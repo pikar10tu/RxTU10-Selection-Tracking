@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RxTU10 Dashboard v1.6.2</title>
+    <title>RxTU10 Dashboard v1.7 (Toggle Name)</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <style>
@@ -54,7 +54,7 @@
         .names-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
         .name-tag { background: white; padding: 12px; border-radius: 15px; border: 1px solid #f1f5f9; cursor: pointer; transition: 0.2s; text-align: center; position: relative; overflow: hidden; }
         .name-tag:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.05); border-color: #cbd5e1; }
-        .nickname { display: block; font-weight: 600; font-size: 1rem; }
+        .nickname { display: block; font-weight: 600; font-size: 1rem; transition: font-size 0.2s; }
         .id { font-size: 0.75rem; color: #94a3b8; }
         .track-badge { font-size: 0.6rem; padding: 2px 8px; border-radius: 6px; color: white; margin-top: 6px; display: inline-block; font-weight: 600; text-transform: uppercase; }
 
@@ -100,12 +100,9 @@
 
         footer { text-align: center; margin-top: 40px; padding: 20px; color: #94a3b8; font-size: 0.85rem; }
         .credit { font-weight: 600; color: #475569; background: #e2e8f0; padding: 5px 15px; border-radius: 50px; display: inline-block; margin-top: 8px; }
-        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #334155; color: white; padding: 10px 25px; border-radius: 50px; font-size: 0.9rem; display: none; z-index: 1000; }
     </style>
 </head>
 <body>
-
-<div id="toast">คัดลอกรหัสแล้ว! 📋</div>
 
 <div class="container">
     <header>
@@ -137,7 +134,7 @@
     </div>
 
     <div id="list-section">
-        <h3 id="list-title" style="font-size: 1rem; margin-top: 0; color: #475569; text-align: center;">รายชื่อ RxTU10</h3>
+        <h3 id="list-title" style="font-size: 1rem; margin-top: 0; color: #475569; text-align: center;">รายชื่อ RxTU10 (แตะที่ชื่อเพื่อดูชื่อจริง)</h3>
         <div class="names-grid" id="names-display"></div>
     </div>
 
@@ -171,7 +168,7 @@
 
     <footer>
         <p>RxTU10 Track Selection Tracking<br>
-        <span class="credit">by pika v1.6.2</span></p>
+        <span class="credit">by pika v1.7 (Toggle Name)</span></p>
     </footer>
 </div>
 
@@ -358,35 +355,25 @@
     }
 
     // --- Dashboard Logic ---
-    function celebrate(track, event, nameWithEmoji) {
-        const colors = { 
-            sci: ['#2563eb', '#ffffff'], 
-            care: ['#10b981', '#ffffff'], 
-            all: ['#f97316', '#2563eb', '#10b981'] 
-        };
-        const emojiMatch = nameWithEmoji.match(/(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g);
-        const emoji = emojiMatch ? emojiMatch[0] : "✨";
-        const rect = event.currentTarget.getBoundingClientRect();
-        const x = (rect.left + rect.width / 2) / window.innerWidth;
-        const y = (rect.top + rect.height / 2) / window.innerHeight;
-        const userColor = track === 'all' ? colors.all : colors[track];
 
-        confetti({ particleCount: 25, spread: 50, origin: { x, y }, colors: userColor, ticks: 50 });
-        if (confetti.shapeFromText) {
-            const shape = confetti.shapeFromText({ text: emoji, scalar: 3 });
-            confetti({ shapes: [shape], particleCount: 12, scalar: 3, spread: 80, origin: { x, y }, ticks: 60 });
+    // ฟังก์ชันใหม่: สลับชื่อเล่น <-> ชื่อจริง
+    function toggleName(el, nickname, realname) {
+        const nameSpan = el.querySelector('.nickname');
+        const isShowingReal = nameSpan.getAttribute('data-showing') === 'true';
+
+        if (!isShowingReal) {
+            // เปลี่ยนเป็นชื่อจริง
+            nameSpan.innerText = realname;
+            nameSpan.style.fontSize = '0.85rem'; // ปรับตัวอักษรให้เล็กลง
+            nameSpan.style.color = '#2563eb'; // เปลี่ยนสี
+            nameSpan.setAttribute('data-showing', 'true');
+        } else {
+            // กลับมาเป็นชื่อเล่น
+            nameSpan.innerText = nickname;
+            nameSpan.style.fontSize = '1rem';
+            nameSpan.style.color = ''; // สีเดิม
+            nameSpan.setAttribute('data-showing', 'false');
         }
-        
-        const idText = event.currentTarget.querySelector('.id').innerText;
-        navigator.clipboard.writeText(idText);
-        showToast(`คัดลอกรหัส ${idText} แล้ว! 📋`);
-    }
-
-    function showToast(msg) {
-        const toast = document.getElementById('toast');
-        toast.innerText = msg;
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 2000);
     }
 
     function updateDashboard() {
@@ -418,29 +405,45 @@
         const display = document.getElementById('names-display');
         let list = [];
 
+        // Logic ในการเตรียมข้อมูลให้พร้อมสำหรับ render (ดึงชื่อจริงมารอไว้เลย)
         if (track === 'sci') {
-            list = rawData.sci.map(s => ({ s, t: 'sci' }));
+            list = rawData.sci.map(s => {
+                const [n, idWithParen] = s.split(' (');
+                const id = idWithParen.replace(')', '');
+                const student = allStudents.find(st => st.id === id);
+                return { nickname: n, id: id, track: 'sci', realName: student ? student.realName : "ไม่ระบุ" };
+            });
         } else if (track === 'care') {
-            list = rawData.care.map(s => ({ s, t: 'care' }));
+            list = rawData.care.map(s => {
+                const [n, idWithParen] = s.split(' (');
+                const id = idWithParen.replace(')', '');
+                const student = allStudents.find(st => st.id === id);
+                return { nickname: n, id: id, track: 'care', realName: student ? student.realName : "ไม่ระบุ" };
+            });
         } else {
+            // รวมทั้งสองสาย
             list = allStudents.map(student => ({ 
-                s: `${student.nickname} (${student.id})`, 
-                t: student.track 
+                nickname: student.nickname,
+                id: student.id,
+                track: student.track,
+                realName: student.realName
             }));
             
+            // กรองค้นหา
             if (filter) {
-                list = list.filter(x => x.s.toLowerCase().includes(filter.toLowerCase()));
+                const f = filter.toLowerCase();
+                list = list.filter(x => x.nickname.toLowerCase().includes(f) || x.id.includes(f));
             }
         }
 
         display.innerHTML = list.map(item => {
-            const [n, id] = item.s.split(' (');
-            const color = item.t === 'sci' ? 'var(--sci-color)' : 'var(--care-color)';
+            const color = item.track === 'sci' ? 'var(--sci-color)' : 'var(--care-color)';
+            
             return `
-                <div class="name-tag" onclick="celebrate('${track === 'all' ? 'all' : item.t}', event, '${n}')">
-                    <span class="nickname">${n}</span>
-                    <span class="id">${id.replace(')', '')}</span>
-                    <span class="track-badge" style="background:${color}">${item.t.toUpperCase()}</span>
+                <div class="name-tag" onclick="toggleName(this, '${item.nickname}', '${item.realName}')">
+                    <span class="nickname">${item.nickname}</span>
+                    <span class="id">${item.id}</span>
+                    <span class="track-badge" style="background:${color}">${item.track.toUpperCase()}</span>
                 </div>
             `;
         }).join('');
