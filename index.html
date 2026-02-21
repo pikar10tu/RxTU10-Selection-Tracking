@@ -3,494 +3,1521 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RxTU10 Dashboard v2.0 (Profile + Toggle Name)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>RxTU10 — Class Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+    <!-- ══════════════════════════════════════════════
+         🔥 FIREBASE CONFIG — แก้ไขตรงนี้!
+         1. ไปที่ https://console.firebase.google.com
+         2. สร้าง Project ใหม่
+         3. เพิ่ม Web App แล้ว copy config มาใส่ด้านล่าง
+         4. เปิด Authentication > Sign-in method > Google
+         5. เปิด Firestore Database > Start in test mode
+    ══════════════════════════════════════════════ -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged }
+            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, getDocs, increment, serverTimestamp, arrayUnion }
+            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // ✏️ แก้ไข firebaseConfig ด้านล่างนี้
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlmHZZ3JixrQlH7PyMa_QqQuDPEN4RJBE",
+            authDomain: "rxtu10dashboard.firebaseapp.com",
+            projectId: "rxtu10dashboard",
+            storageBucket: "rxtu10dashboard.firebasestorage.app",
+            messagingSenderId: "485847555600",
+            appId: "1:485847555600:web:1ee57ea6044c687b10b495",
+            measurementId: "G-RPJ8V0XM19"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        // ════════════════ PET DATABASE ════════════════
+        const PET_POOL = [
+            // Common (50%)
+            { id:"cat",      emoji:"🐱", name:"น้องแมว",    rarity:"common",    effect:"none",          desc:"เพื่อนซี้ผู้น่ารัก ไม่มีเอฟเฟค แต่ cute มาก",  rate:0.20 },
+            { id:"rabbit",   emoji:"🐰", name:"กระต่าย",   rarity:"common",    effect:"none",          desc:"กระต่ายขาวน้อย ขนฟู นิสัยดี",                 rate:0.15 },
+            { id:"hamster",  emoji:"🐹", name:"แฮมสเตอร์", rarity:"common",    effect:"none",          desc:"วิ่งล้อทั้งวันไม่เหนื่อย",                    rate:0.15 },
+            // Rare (30%)
+            { id:"fox",      emoji:"🦊", name:"จิ้งจอก",   rarity:"rare",      effect:"coin_boost",    desc:"+10% เงินจากเกมทุกครั้ง",                     rate:0.12 },
+            { id:"owl",      emoji:"🦉", name:"นกฮูก",     rarity:"rare",      effect:"coin_boost",    desc:"+15% เงินจากเกมทุกครั้ง",                     rate:0.10 },
+            { id:"panda",    emoji:"🐼", name:"แพนด้า",    rarity:"rare",      effect:"score_boost",   desc:"+5 คะแนนโบนัสในเกม Quiz",                    rate:0.08 },
+            // Epic (15%)
+            { id:"dragon",   emoji:"🐲", name:"มังกรน้อย", rarity:"epic",      effect:"coin_x2",       desc:"x2 เงินจากทุกกิจกรรม (สุดโหด!)",             rate:0.06 },
+            { id:"unicorn",  emoji:"🦄", name:"ยูนิคอร์น", rarity:"epic",      effect:"score_x2",      desc:"x2 คะแนนเกม Quiz ทุกครั้ง",                  rate:0.05 },
+            { id:"phoenix",  emoji:"🦅", name:"ฟีนิกซ์",  rarity:"epic",      effect:"daily_coin",    desc:"+50 เหรียญต่อวันอัตโนมัติ",                  rate:0.04 },
+            // Legendary (5%)
+            { id:"kirin",    emoji:"🦁", name:"ไคริน",     rarity:"legendary", effect:"rainbow_name",  desc:"ชื่อแสดงผลเป็นสีทองวิบวับ ✨",                rate:0.02 },
+            { id:"bahamut",  emoji:"🐉", name:"พาฮามุท",   rarity:"legendary", effect:"all_boost",     desc:"เงิน x3 + คะแนน x2 + ชื่อสีรุ้ง 🌈",         rate:0.02 },
+            { id:"celestial",emoji:"🌟", name:"เซเลสเชียล",rarity:"legendary", effect:"rainbow_name",  desc:"ชื่อไล่สีรุ้งตลอดเวลา + daily 100 เหรียญ",   rate:0.01 },
+        ];
+
+        const RARITY_CONFIG = {
+            common:    { color: "#94a3b8", glow: "#94a3b8",  label: "COMMON",    bg: "#f1f5f9" },
+            rare:      { color: "#3b82f6", glow: "#3b82f6",  label: "RARE",      bg: "#eff6ff" },
+            epic:      { color: "#a855f7", glow: "#a855f7",  label: "EPIC",      bg: "#faf5ff" },
+            legendary: { color: "#f59e0b", glow: "#fbbf24",  label: "LEGENDARY", bg: "#fffbeb" },
+        };
+
+        const EGG_COST = 100;
+
+        // ════════════════ AUTH ════════════════
+        window.loginWithGoogle = async () => {
+            try {
+                provider.setCustomParameters({ prompt: 'select_account' });
+                const result = await signInWithPopup(auth, provider);
+                await ensureUserDoc(result.user);
+            } catch(e) {
+                if (e.code !== 'auth/popup-closed-by-user') {
+                    showToast("❌ Login ไม่สำเร็จ: " + e.message, "error");
+                }
+            }
+        };
+
+        window.logoutUser = async () => {
+            await signOut(auth);
+            currentUser = null;
+            currentUserData = null;
+            renderLoginState(null);
+        };
+
+        async function ensureUserDoc(user) {
+            const ref = doc(db, "users", user.uid);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) {
+                await setDoc(ref, {
+                    uid: user.uid,
+                    name: user.displayName,
+                    email: user.email,
+                    photo: user.photoURL,
+                    coins: 200,
+                    pets: [],
+                    activePet: null,
+                    nameColor: null,
+                    createdAt: serverTimestamp(),
+                    lastDaily: null,
+                    quizHighScore: 0,
+                });
+            }
+        }
+
+        let currentUser = null;
+        let currentUserData = null;
+        let userUnsubscribe = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            if (user) {
+                await ensureUserDoc(user);
+                if (userUnsubscribe) userUnsubscribe();
+                userUnsubscribe = onSnapshot(doc(db, "users", user.uid), (snap) => {
+                    currentUserData = snap.data();
+                    renderLoginState(user);
+                    checkDailyReward();
+                });
+            } else {
+                renderLoginState(null);
+            }
+        });
+
+        function renderLoginState(user) {
+            const loginSection = document.getElementById('login-section');
+            const profileBar = document.getElementById('profile-bar');
+            const gachaSection = document.getElementById('gacha-section');
+
+            if (!user) {
+                loginSection.style.display = 'flex';
+                profileBar.style.display = 'none';
+                gachaSection.style.display = 'none';
+                return;
+            }
+
+            loginSection.style.display = 'none';
+            profileBar.style.display = 'flex';
+            gachaSection.style.display = 'block';
+
+            const coins = currentUserData?.coins ?? 0;
+            const activePet = getActivePet();
+
+            document.getElementById('user-avatar').src = user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`;
+            document.getElementById('user-name').textContent = user.displayName;
+            document.getElementById('coin-count').textContent = coins.toLocaleString();
+
+            // Active pet display
+            const petDisplay = document.getElementById('active-pet-display');
+            if (activePet) {
+                petDisplay.textContent = activePet.emoji;
+                petDisplay.title = activePet.name;
+                petDisplay.style.display = 'inline';
+            } else {
+                petDisplay.style.display = 'none';
+            }
+
+            // Apply name effect if legendary
+            if (activePet?.effect === 'rainbow_name' || activePet?.effect === 'all_boost') {
+                document.getElementById('user-name').classList.add('rainbow-text');
+            } else {
+                document.getElementById('user-name').classList.remove('rainbow-text');
+            }
+
+            renderMyPets();
+        }
+
+        function getActivePet() {
+            if (!currentUserData?.activePet || !currentUserData?.pets) return null;
+            return currentUserData.pets.find(p => p.id === currentUserData.activePet && p.instanceId === currentUserData.activePetInstance) 
+                || currentUserData.pets.find(p => p.id === currentUserData.activePet)
+                || null;
+        }
+
+        // ════════════════ DAILY REWARD ════════════════
+        async function checkDailyReward() {
+            if (!currentUser || !currentUserData) return;
+            const last = currentUserData.lastDaily?.toDate?.();
+            if (!last) { showDailyBtn(); return; }
+            const now = new Date();
+            const diff = now - last;
+            if (diff > 23 * 3600 * 1000) showDailyBtn();
+            else hideDailyBtn();
+
+            // Check phoenix/celestial daily
+            const activePet = getActivePet();
+            if (activePet?.effect === 'daily_coin' || activePet?.effect === 'all_boost') {
+                const petLastDaily = currentUserData.petLastDaily?.toDate?.();
+                if (!petLastDaily || (now - petLastDaily) > 23 * 3600 * 1000) {
+                    const bonus = activePet.effect === 'all_boost' ? 100 : 50;
+                    await updateDoc(doc(db, "users", currentUser.uid), {
+                        coins: increment(bonus),
+                        petLastDaily: serverTimestamp()
+                    });
+                    showToast(`${activePet.emoji} ${activePet.name} ให้ daily ${bonus} เหรียญ!`, "success");
+                }
+            }
+        }
+
+        function showDailyBtn() {
+            document.getElementById('daily-btn')?.classList.remove('claimed');
+        }
+        function hideDailyBtn() {
+            document.getElementById('daily-btn')?.classList.add('claimed');
+        }
+
+        window.claimDaily = async () => {
+            if (!currentUser) return;
+            const btn = document.getElementById('daily-btn');
+            if (btn.classList.contains('claimed')) { showToast("⏰ รับได้อีกครั้งพรุ่งนี้!", "info"); return; }
+            const base = 30;
+            const activePet = getActivePet();
+            let bonus = base;
+            if (activePet?.effect === 'coin_boost') bonus = Math.floor(base * 1.1);
+            if (activePet?.effect === 'coin_x2' || activePet?.effect === 'all_boost') bonus = base * 2;
+            await updateDoc(doc(db, "users", currentUser.uid), {
+                coins: increment(bonus),
+                lastDaily: serverTimestamp()
+            });
+            hideDailyBtn();
+            showToast(`🎁 รับ Daily +${bonus} เหรียญแล้ว!`, "success");
+            confetti({ particleCount: 80, spread: 60, origin: { y: 0.5 } });
+        };
+
+        // ════════════════ GACHA ════════════════
+        function rollPet() {
+            const rand = Math.random();
+            let cumulative = 0;
+            for (const pet of PET_POOL) {
+                cumulative += pet.rate;
+                if (rand <= cumulative) return { ...pet, instanceId: Date.now() + Math.random() };
+            }
+            return { ...PET_POOL[0], instanceId: Date.now() };
+        }
+
+        window.openGacha = async () => {
+            if (!currentUser || !currentUserData) {
+                showToast("❌ กรุณา Login ก่อน", "error"); return;
+            }
+            if (currentUserData.coins < EGG_COST) {
+                showToast(`❌ เหรียญไม่พอ! ต้องการ ${EGG_COST} เหรียญ`, "error"); return;
+            }
+
+            // Deduct
+            await updateDoc(doc(db, "users", currentUser.uid), { coins: increment(-EGG_COST) });
+
+            // Roll
+            const pet = rollPet();
+            showGachaResult(pet);
+
+            // Save pet
+            await updateDoc(doc(db, "users", currentUser.uid), {
+                pets: arrayUnion({ id: pet.id, emoji: pet.emoji, name: pet.name, rarity: pet.rarity, effect: pet.effect, desc: pet.desc, instanceId: pet.instanceId })
+            });
+        };
+
+        function showGachaResult(pet) {
+            const cfg = RARITY_CONFIG[pet.rarity];
+            const modal = document.getElementById('gacha-modal');
+            const content = document.getElementById('gacha-result-content');
+            content.innerHTML = `
+                <div class="gacha-result-inner" style="--glow: ${cfg.glow}">
+                    <div class="gacha-rarity-badge" style="background:${cfg.color}">${cfg.label}</div>
+                    <div class="gacha-emoji">${pet.emoji}</div>
+                    <div class="gacha-pet-name">${pet.name}</div>
+                    <div class="gacha-pet-desc">${pet.desc}</div>
+                    <div class="gacha-effect-tag">✨ ${pet.effect === 'none' ? 'ไม่มี Effect' : pet.desc}</div>
+                    <div class="gacha-actions">
+                        <button class="btn-primary" onclick="setActivePet('${pet.id}', ${pet.instanceId}); closeGachaModal()">ใช้งานเลย!</button>
+                        <button class="btn-secondary" onclick="closeGachaModal()">เก็บไว้ก่อน</button>
+                    </div>
+                </div>
+            `;
+            modal.classList.add('active');
+
+            // Confetti by rarity
+            const colors = pet.rarity === 'legendary' ? ['#f59e0b', '#fbbf24', '#fff'] :
+                           pet.rarity === 'epic' ? ['#a855f7', '#c084fc', '#fff'] :
+                           pet.rarity === 'rare' ? ['#3b82f6', '#60a5fa', '#fff'] :
+                           ['#94a3b8', '#cbd5e1', '#fff'];
+            confetti({ particleCount: pet.rarity === 'legendary' ? 200 : pet.rarity === 'epic' ? 120 : 60,
+                spread: 80, origin: { y: 0.5 }, colors });
+        }
+
+        window.closeGachaModal = () => {
+            document.getElementById('gacha-modal').classList.remove('active');
+        };
+
+        window.setActivePet = async (petId, instanceId) => {
+            if (!currentUser) return;
+            await updateDoc(doc(db, "users", currentUser.uid), {
+                activePet: petId,
+                activePetInstance: instanceId || null
+            });
+            showToast("🐾 เปลี่ยนสัตว์เลี้ยงแล้ว!", "success");
+        };
+
+        window.removePet = async () => {
+            if (!currentUser) return;
+            await updateDoc(doc(db, "users", currentUser.uid), { activePet: null, activePetInstance: null });
+            showToast("สัตว์เลี้ยงถูกเก็บไว้ในกล่องแล้ว", "info");
+        };
+
+        function renderMyPets() {
+            const container = document.getElementById('my-pets-grid');
+            if (!container || !currentUserData?.pets?.length) {
+                if (container) container.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:0.85rem">ยังไม่มีสัตว์เลี้ยง ซื้อไข่เพื่อสุ่มเลย! 🥚</p>';
+                return;
+            }
+
+            const activePet = getActivePet();
+            container.innerHTML = currentUserData.pets.map(pet => {
+                const cfg = RARITY_CONFIG[pet.rarity];
+                const isActive = activePet && pet.id === activePet.id;
+                return `
+                    <div class="pet-card ${isActive ? 'pet-active' : ''}" 
+                         style="--rarity-color: ${cfg.color}; --rarity-bg: ${cfg.bg}"
+                         onclick="setActivePet('${pet.id}', ${pet.instanceId || 0})">
+                        <div class="pet-emoji">${pet.emoji}</div>
+                        <div class="pet-card-name">${pet.name}</div>
+                        <div class="pet-rarity-dot" style="background:${cfg.color}">${cfg.label}</div>
+                        ${isActive ? '<div class="pet-active-badge">ACTIVE</div>' : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ════════════════ GAME COIN REWARDS ════════════════
+        window.awardCoins = async (amount, reason) => {
+            if (!currentUser || !currentUserData) return amount;
+            const activePet = getActivePet();
+            let final = amount;
+            if (activePet?.effect === 'coin_boost') final = Math.floor(amount * (activePet.id === 'owl' ? 1.15 : 1.10));
+            if (activePet?.effect === 'coin_x2' || activePet?.effect === 'all_boost') final = amount * (activePet.effect === 'all_boost' ? 3 : 2);
+            await updateDoc(doc(db, "users", currentUser.uid), { coins: increment(final) });
+            if (final !== amount) showToast(`${activePet.emoji} Effect! +${final} เหรียญ (แทน +${amount})`, "success");
+            return final;
+        };
+
+        window.getScoreMultiplier = () => {
+            const activePet = getActivePet();
+            if (!activePet) return 1;
+            if (activePet.effect === 'score_boost') return 1; // +5 flat
+            if (activePet.effect === 'score_x2' || activePet.effect === 'all_boost') return activePet.effect === 'all_boost' ? 2 : 2;
+            return 1;
+        };
+
+        window.getScoreBonus = () => {
+            const activePet = getActivePet();
+            if (activePet?.effect === 'score_boost') return 5;
+            return 0;
+        };
+
+        // ════════════════ TRADE ════════════════
+        window.openTradePanel = () => {
+            const panel = document.getElementById('trade-panel');
+            if (!currentUser) { showToast("❌ กรุณา Login ก่อน", "error"); return; }
+            renderTradePanel();
+            panel.classList.add('active');
+        };
+        window.closeTradePanel = () => {
+            document.getElementById('trade-panel').classList.remove('active');
+        };
+
+        async function renderTradePanel() {
+            if (!currentUserData?.pets?.length) {
+                document.getElementById('trade-my-pets').innerHTML = '<p style="color:#94a3b8">ไม่มีสัตว์เลี้ยง</p>';
+                return;
+            }
+            document.getElementById('trade-my-pets').innerHTML = currentUserData.pets.map((pet, i) => {
+                const cfg = RARITY_CONFIG[pet.rarity];
+                return `
+                    <div class="trade-pet-item" onclick="selectForTrade(${i})" id="trade-pet-${i}">
+                        <span>${pet.emoji}</span>
+                        <span style="font-size:0.8rem">${pet.name}</span>
+                        <span style="color:${cfg.color};font-size:0.7rem">${cfg.label}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        let selectedTradeIndex = null;
+        window.selectForTrade = (i) => {
+            selectedTradeIndex = i;
+            document.querySelectorAll('.trade-pet-item').forEach(el => el.classList.remove('selected'));
+            document.getElementById(`trade-pet-${i}`)?.classList.add('selected');
+        };
+
+        window.sendTrade = async () => {
+            const targetEmail = document.getElementById('trade-target-email').value.trim();
+            if (!targetEmail || selectedTradeIndex === null) {
+                showToast("❌ เลือกสัตว์เลี้ยงและใส่ email เพื่อน", "error"); return;
+            }
+            const pet = currentUserData.pets[selectedTradeIndex];
+            // Find user by email
+            const usersQuery = query(collection(db, "users"));
+            const allUsers = await getDocs(usersQuery);
+            let targetUser = null;
+            allUsers.forEach(u => { if (u.data().email === targetEmail) targetUser = u; });
+            if (!targetUser) { showToast("❌ ไม่พบผู้ใช้นี้", "error"); return; }
+
+            // Transfer
+            const newPets = currentUserData.pets.filter((_, i) => i !== selectedTradeIndex);
+            await setDoc(doc(db, "users", currentUser.uid), { pets: newPets }, { merge: true });
+            await updateDoc(doc(db, "users", targetUser.id), { pets: arrayUnion(pet) });
+            showToast(`✅ ส่ง ${pet.emoji} ${pet.name} ให้ ${targetEmail} แล้ว!`, "success");
+            closeTradePanel();
+            selectedTradeIndex = null;
+        };
+
+        // ════════════════ QUIZ (with coins) ════════════════
+        let quizScore = 0;
+        let quizCorrectAnswer = null;
+
+        window.startQuiz = () => {
+            quizScore = 0;
+            document.getElementById('current-score').textContent = '0';
+            document.getElementById('quiz-start').style.display = 'none';
+            document.getElementById('quiz-play').style.display = 'block';
+            nextQuestion();
+        };
+
+        window.nextQuestion = () => {
+            if (!allStudents.length) return;
+            const student = allStudents[Math.floor(Math.random() * allStudents.length)];
+            quizCorrectAnswer = student.realName;
+            document.getElementById('quiz-nickname').textContent = `ชื่อเล่น: ${student.nickname.split(' ')[0]}`;
+
+            let options = [quizCorrectAnswer];
+            while (options.length < 4) {
+                const w = allStudents[Math.floor(Math.random() * allStudents.length)].realName;
+                if (!options.includes(w)) options.push(w);
+            }
+            options.sort(() => Math.random() - 0.5);
+            const container = document.getElementById('quiz-options');
+            container.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => checkQuizAnswer(opt);
+                container.appendChild(btn);
+            });
+        };
+
+        window.checkQuizAnswer = async (selected) => {
+            if (selected === quizCorrectAnswer) {
+                quizScore++;
+                document.getElementById('quiz-options').querySelectorAll('button').forEach(b => {
+                    if (b.textContent === selected) b.classList.add('correct');
+                });
+                // Coin + multiplier
+                const base = 5;
+                const multi = window.getScoreMultiplier();
+                const bonus = window.getScoreBonus();
+                const scoreEarned = quizScore * multi + bonus;
+                const coinEarned = await window.awardCoins(base, 'quiz');
+                const scoreDisplay = document.getElementById('current-score');
+                scoreDisplay.textContent = scoreEarned;
+                confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 }, colors: ['#10b981'] });
+                setTimeout(window.nextQuestion, 600);
+            } else {
+                document.getElementById('quiz-options').querySelectorAll('button').forEach(b => {
+                    if (b.textContent === selected) b.classList.add('wrong');
+                    if (b.textContent === quizCorrectAnswer) b.classList.add('correct');
+                });
+                // Save high score
+                if (currentUser && quizScore > (currentUserData?.quizHighScore || 0)) {
+                    await updateDoc(doc(db, "users", currentUser.uid), { quizHighScore: quizScore });
+                }
+                setTimeout(() => {
+                    document.getElementById('quiz-start').style.display = 'block';
+                    document.getElementById('quiz-play').style.display = 'none';
+                    document.getElementById('quiz-start-msg').textContent = `❌ ผิด! ชื่อจริงคือ "${quizCorrectAnswer}" | คะแนนสูงสุด: ${Math.max(quizScore, currentUserData?.quizHighScore||0)}`;
+                }, 900);
+            }
+        };
+
+        // Make available globally
+        window.__db = db;
+        window.__auth = auth;
+        window.__firebase_ready = true;
+    </script>
+
     <style>
         :root {
-            --sci-color: #2563eb;
-            --care-color: #10b981;
-            --all-color: #f97316;
-            --bg-color: #f8fafc;
+            --sci: #2563eb;
+            --care: #10b981;
+            --gold: #f59e0b;
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --common: #94a3b8;
+            --rare: #3b82f6;
+            --epic: #a855f7;
+            --legendary: #f59e0b;
         }
 
-        body { font-family: 'Kanit', sans-serif; background-color: var(--bg-color); margin: 0; padding: 15px; color: #1e293b; user-select: none; -webkit-tap-highlight-color: transparent; }
-        .container { max-width: 800px; margin: 0 auto; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        header { background: white; padding: 20px; border-radius: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        h1 { margin: 0 0 15px 0; font-size: 1.8rem; text-align: center; color: #334155; }
-
-        /* Progress Bar */
-        .progress-label-group { display: flex; justify-content: space-between; font-size: 1rem; margin-bottom: 8px; flex-wrap: wrap; }
-        .label-item { display: flex; align-items: center; gap: 5px; font-weight: 600; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; }
-        
-        .multi-progress { 
-            display: flex; height: 24px; 
-            background-color: #e2e8f0; 
-            border-radius: 50px; overflow: hidden; 
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 60px;
         }
 
-        .progress-part { height: 100%; transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .bg-sci { background-color: var(--sci-color); }
-        .bg-care { background-color: var(--care-color); }
+        /* ── TOP NAV ── */
+        .top-nav {
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
 
-        /* Stats Grid */
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat-card { background: white; padding: 12px; border-radius: 18px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.3s; }
-        
-        .stat-card.active-sci { border-color: var(--sci-color); background: #eff6ff; transform: scale(1.05); }
-        .stat-card.active-care { border-color: var(--care-color); background: #ecfdf5; transform: scale(1.05); }
-        .stat-card.active-all { border-color: var(--all-color); background: #fff7ed; transform: scale(1.05); }
-        
-        .stat-card h2 { margin: 0; font-size: 0.8rem; color: #64748b; text-transform: uppercase; }
-        .stat-card .count { font-size: 1.6rem; font-weight: 600; display: block; }
-
-        /* Search & List */
-        .search-wrapper { margin-bottom: 15px; position: sticky; top: 10px; z-index: 100; }
-        .search-box { width: 100%; padding: 14px 18px; border: 2px solid white; border-radius: 16px; font-family: inherit; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); outline: none; box-sizing: border-box; transition: 0.3s; }
-        .search-box:focus { border-color: var(--all-color); }
-        #list-section { background: white; padding: 20px; border-radius: 24px; min-height: 200px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        .names-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-
-        /* --- Updated Name Tag with Image --- */
-        .name-tag { 
-            background: white; 
-            padding: 15px 10px; 
-            border-radius: 16px; 
-            border: 1px solid #f1f5f9; 
-            cursor: pointer; 
-            transition: 0.2s; 
-            text-align: center; 
-            position: relative; 
-            overflow: hidden; 
-            display: flex; 
-            flex-direction: column;
+        .nav-brand {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
             align-items: center;
             gap: 8px;
         }
-        .name-tag:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.05); border-color: #cbd5e1; }
-        
-        .profile-img {
-            width: 70px;
-            height: 70px;
+
+        #login-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #profile-bar {
+            display: none;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--border);
+        }
+
+        #user-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .coin-badge {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 1px solid #f59e0b;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #92400e;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        #active-pet-display {
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        #active-pet-display:hover { transform: scale(1.3); }
+
+        /* ── BUTTONS ── */
+        .btn-google {
+            background: white;
+            border: 1.5px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+            color: var(--text);
+            font-weight: 500;
+        }
+        .btn-google:hover { background: #f8fafc; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+        .btn-logout {
+            background: none;
+            border: 1px solid #fca5a5;
+            color: #ef4444;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(245,158,11,0.4); }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--muted);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .btn-daily {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-daily.claimed { background: var(--border); color: var(--muted); }
+        .btn-daily:not(.claimed):hover { transform: scale(1.05); }
+
+        /* ── MAIN LAYOUT ── */
+        .container { max-width: 820px; margin: 0 auto; padding: 20px 16px; }
+
+        /* ── HEADER CARD ── */
+        .header-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .header-title {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--text);
+        }
+
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .prog-label { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+        .prog-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        .progress-bar {
+            height: 22px;
+            background: var(--border);
+            border-radius: 50px;
+            overflow: hidden;
+            display: flex;
+        }
+        .prog-sci { background: var(--sci); height: 100%; transition: width 1.2s cubic-bezier(0.34,1.56,0.64,1); }
+        .prog-care { background: var(--care); height: 100%; transition: width 1.2s cubic-bezier(0.34,1.56,0.64,1); }
+
+        /* ── STATS ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 14px;
+            text-align: center;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: 0.25s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card.active-sci { border-color: var(--sci); background: #eff6ff; }
+        .stat-card.active-care { border-color: var(--care); background: #ecfdf5; }
+        .stat-card.active-all { border-color: var(--gold); background: #fffbeb; }
+        .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+        .stat-num { font-size: 1.7rem; font-weight: 700; }
+
+        /* ── SEARCH ── */
+        .search-wrap {
+            position: sticky;
+            top: 65px;
+            z-index: 100;
+            margin-bottom: 14px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 13px 18px;
+            border: 2px solid white;
+            border-radius: 14px;
+            font-family: inherit;
+            font-size: 1rem;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            outline: none;
+            transition: 0.2s;
+        }
+        .search-input:focus { border-color: var(--gold); }
+
+        /* ── NAME GRID ── */
+        .list-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+        }
+
+        .list-title {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-bottom: 16px;
+        }
+
+        .names-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 12px;
+        }
+
+        .name-tag {
+            background: #fafafa;
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 7px;
+        }
+        .name-tag:hover { transform: translateY(-3px); box-shadow: 0 6px 14px rgba(0,0,0,0.07); border-color: #cbd5e1; }
+
+        .name-tag img {
+            width: 66px;
+            height: 66px;
             border-radius: 50%;
             object-fit: cover;
             border: 3px solid white;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            background-color: #f1f5f9;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            background: var(--border);
         }
-        /* ----------------------------------- */
 
-        .nickname { display: block; font-weight: 600; font-size: 1rem; transition: font-size 0.2s; color: #334155; }
-        .id { font-size: 0.75rem; color: #94a3b8; display: block; }
-        .track-badge { font-size: 0.6rem; padding: 2px 8px; border-radius: 6px; color: white; margin-top: 4px; display: inline-block; font-weight: 600; text-transform: uppercase; }
-
-        /* Game Zone */
-        .game-zone { margin-top: 40px; border-top: 2px dashed #cbd5e1; padding-top: 30px; }
-        .game-header { text-align: center; margin-bottom: 20px; color: #64748b; font-weight: 600; letter-spacing: 1px; }
-        .game-card { 
-            background: white; padding: 20px; border-radius: 24px; 
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
-            margin-bottom: 20px; text-align: center;
-            border: 1px solid #e2e8f0;
+        .nt-nickname { font-weight: 600; font-size: 0.95rem; }
+        .nt-id { font-size: 0.72rem; color: var(--muted); }
+        .nt-badge {
+            font-size: 0.6rem;
+            padding: 2px 8px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 700;
+            text-transform: uppercase;
         }
-        .game-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 15px; color: #475569; }
-        
-        /* Quiz Styles */
+
+        /* ── GACHA SECTION ── */
+        #gacha-section { display: none; }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-align: center;
+            margin: 28px 0 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .gacha-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+        }
+
+        .egg-btn {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #f59e0b 100%);
+            border: 3px solid #f59e0b;
+            border-radius: 20px;
+            padding: 24px 40px;
+            cursor: pointer;
+            transition: 0.3s;
+            display: inline-block;
+            font-family: inherit;
+        }
+        .egg-btn:hover { transform: scale(1.05) rotate(3deg); box-shadow: 0 8px 24px rgba(245,158,11,0.4); }
+        .egg-emoji { font-size: 3.5rem; display: block; animation: wobble 3s ease infinite; }
+        @keyframes wobble { 0%,100%{transform:rotate(-5deg)} 50%{transform:rotate(5deg)} }
+        .egg-label { font-size: 1rem; font-weight: 700; color: #92400e; margin-top: 6px; }
+        .egg-cost { font-size: 0.85rem; color: #b45309; }
+
+        .rates-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .rate-item {
+            padding: 8px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        /* ── MY PETS ── */
+        .pets-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+        }
+
+        .pets-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        #my-pets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+        }
+
+        .pet-card {
+            background: var(--rarity-bg, #f8fafc);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 10px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            position: relative;
+        }
+        .pet-card:hover { transform: translateY(-3px); border-color: var(--rarity-color); }
+        .pet-card.pet-active { border-color: var(--rarity-color); box-shadow: 0 0 12px color-mix(in srgb, var(--rarity-color) 30%, transparent); }
+        .pet-emoji { font-size: 1.8rem; }
+        .pet-card-name { font-size: 0.7rem; font-weight: 600; margin-top: 4px; color: var(--text); }
+        .pet-rarity-dot { font-size: 0.55rem; font-weight: 700; color: var(--rarity-color); }
+        .pet-active-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: var(--rarity-color);
+            color: white;
+            font-size: 0.5rem;
+            font-weight: 700;
+            padding: 2px 5px;
+            border-radius: 6px;
+        }
+
+        /* ── GAME ZONE ── */
+        .game-card {
+            background: white;
+            border-radius: 20px;
+            padding: 22px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+        }
+
+        .game-title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 16px; text-align: center; }
+
         .quiz-container { display: none; }
-        .quiz-question { font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; color: var(--all-color); }
-        .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .quiz-btn { 
-            background: #f1f5f9; border: none; padding: 12px; border-radius: 12px; 
-            font-family: inherit; font-size: 0.9rem; cursor: pointer; transition: 0.2s;
-            color: #334155;
+        .quiz-question { font-size: 1.3rem; font-weight: 700; color: var(--gold); margin-bottom: 16px; }
+        .quiz-options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .quiz-option-btn {
+            background: #f8fafc;
+            border: 2px solid var(--border);
+            padding: 12px;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.15s;
+            color: var(--text);
         }
-        .quiz-btn:hover { background: #e2e8f0; }
-        .quiz-btn:active { transform: scale(0.98); }
-        .score-board { font-size: 1rem; margin-bottom: 10px; color: #64748b; }
-        .start-btn { 
-            background: var(--all-color); color: white; border: none; 
-            padding: 10px 30px; border-radius: 50px; font-size: 1rem; cursor: pointer; 
-            font-family: inherit; font-weight: 600;
+        .quiz-option-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .quiz-option-btn.correct { background: #dcfce7; border-color: #10b981; color: #065f46; }
+        .quiz-option-btn.wrong { background: #fee2e2; border-color: #ef4444; color: #7f1d1d; }
+
+        .score-display { font-size: 0.95rem; color: var(--muted); margin-bottom: 12px; }
+
+        .flashcard {
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 28px;
+            min-height: 110px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.25s;
+            border: 2px dashed var(--border);
+            margin-bottom: 14px;
+        }
+        .flashcard:hover { background: #f1f5f9; }
+        .drug-name { font-size: 1.7rem; font-weight: 700; color: var(--text); }
+        .drug-ans { font-size: 1rem; color: var(--care); margin-top: 8px; display: none; font-weight: 500; }
+        .drug-hint { font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
+
+        /* ── PROFILE MODAL ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 500;
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .profile-modal {
+            background: white;
+            border-radius: 24px;
+            padding: 28px;
+            max-width: 380px;
+            width: 100%;
+            animation: slideUp 0.3s ease;
+            position: relative;
         }
 
-        /* Flashcard Styles */
-        .flashcard { 
-            background: #f8fafc; border-radius: 16px; padding: 30px; 
-            min-height: 120px; display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; cursor: pointer;
-            transition: 0.3s; margin-bottom: 15px; border: 2px dashed #cbd5e1;
-        }
-        .drug-name { font-size: 1.8rem; font-weight: 600; color: #334155; }
-        .drug-answer { font-size: 1.1rem; color: var(--care-color); margin-top: 10px; display: none; }
-        .reveal-hint { font-size: 0.8rem; color: #94a3b8; margin-top: 15px; }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        footer { text-align: center; margin-top: 40px; padding: 20px; color: #94a3b8; font-size: 0.85rem; }
-        .credit { font-weight: 600; color: #475569; background: #e2e8f0; padding: 5px 15px; border-radius: 50px; display: inline-block; margin-top: 8px; }
+        .modal-close {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: var(--border);
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-profile-img {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+            margin-bottom: 12px;
+        }
+
+        .modal-nickname { font-size: 1.4rem; font-weight: 700; }
+        .modal-realname { font-size: 0.95rem; color: var(--muted); margin-top: 2px; }
+        .modal-id { font-size: 0.8rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+        .modal-track-badge {
+            padding: 4px 14px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-top: 8px;
+            display: inline-block;
+        }
+
+        /* ── GACHA MODAL ── */
+        .gacha-modal-inner {
+            background: white;
+            border-radius: 28px;
+            padding: 36px 28px;
+            max-width: 340px;
+            width: 100%;
+            animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            text-align: center;
+        }
+
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .gacha-result-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .gacha-rarity-badge {
+            padding: 4px 16px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+
+        .gacha-emoji {
+            font-size: 5rem;
+            animation: bounce 0.6s ease;
+            filter: drop-shadow(0 0 20px var(--glow, #f59e0b));
+        }
+        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
+
+        .gacha-pet-name { font-size: 1.6rem; font-weight: 800; }
+        .gacha-pet-desc { font-size: 0.9rem; color: var(--muted); }
+        .gacha-effect-tag { font-size: 0.85rem; background: #f8fafc; padding: 6px 14px; border-radius: 20px; color: var(--muted); }
+        .gacha-actions { display: flex; gap: 10px; margin-top: 10px; }
+
+        /* ── TRADE PANEL ── */
+        .trade-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 24px 24px 0 0;
+            padding: 24px 20px;
+            box-shadow: 0 -8px 30px rgba(0,0,0,0.1);
+            z-index: 400;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .trade-panel.active { transform: translateY(0); }
+
+        .trade-pet-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: 0.15s;
+        }
+        .trade-pet-item.selected { border-color: var(--sci); background: #eff6ff; }
+
+        .trade-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            margin: 12px 0;
+        }
+        .trade-input:focus { border-color: var(--sci); }
+
+        /* ── DAILY BTN ── */
+        #daily-btn { display: none; }
+
+        /* ── RAINBOW TEXT ── */
+        .rainbow-text {
+            background: linear-gradient(90deg, #f59e0b, #ef4444, #a855f7, #3b82f6, #10b981, #f59e0b);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: rainbow 2s linear infinite;
+        }
+        @keyframes rainbow { to { background-position: 200% center; } }
+
+        /* ── TOAST ── */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #1e293b;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            white-space: nowrap;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+        #toast.success { background: #065f46; }
+        #toast.error { background: #7f1d1d; }
+        #toast.info { background: #1e40af; }
+
+        footer {
+            text-align: center;
+            padding: 30px 20px 10px;
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        @media (max-width: 480px) {
+            .names-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+            .rates-grid { grid-template-columns: repeat(2, 1fr); }
+            .stats-row { gap: 8px; }
+            .stat-num { font-size: 1.4rem; }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>💊 RxTU10 Dashboard</h1>
-        <div class="progress-label-group">
-            <div class="label-item"><span class="dot bg-sci"></span> Sci: <span id="p-sci-count">0</span> คน</div>
-            <div class="label-item"><span class="dot bg-care"></span> Care: <span id="p-care-count">0</span> คน</div>
+<!-- ── TOP NAV ── -->
+<nav class="top-nav">
+    <div class="nav-brand">💊 RxTU10</div>
+    <div id="login-section">
+        <button class="btn-google" onclick="loginWithGoogle()">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Login ด้วย Google
+        </button>
+    </div>
+    <div id="profile-bar">
+        <span id="active-pet-display" style="display:none"></span>
+        <img id="user-avatar" class="user-avatar" src="" alt="avatar">
+        <span id="user-name"></span>
+        <div class="coin-badge" onclick="document.getElementById('gacha-section').scrollIntoView({behavior:'smooth'})">
+            🪙 <span id="coin-count">0</span>
         </div>
-        <div class="multi-progress">
-            <div id="bar-sci" class="progress-part bg-sci" style="width: 0%"></div>
-            <div id="bar-care" class="progress-part bg-care" style="width: 0%"></div>
-        </div>
-    </header>
+        <button id="daily-btn" class="btn-daily" onclick="claimDaily()">🎁 Daily</button>
+        <button class="btn-logout" onclick="logoutUser()">ออก</button>
+    </div>
+</nav>
 
-    <div class="stats-grid">
+<div class="container">
+
+    <!-- ── HEADER ── -->
+    <div class="header-card">
+        <div class="header-title">💊 RxTU10 Dashboard</div>
+        <div class="progress-labels">
+            <div class="prog-label"><span class="prog-dot" style="background:var(--sci)"></span> Sci: <span id="p-sci">0</span> คน</div>
+            <div class="prog-label"><span class="prog-dot" style="background:var(--care)"></span> Care: <span id="p-care">0</span> คน</div>
+        </div>
+        <div class="progress-bar">
+            <div class="prog-sci" id="bar-sci" style="width:0%"></div>
+            <div class="prog-care" id="bar-care" style="width:0%"></div>
+        </div>
+    </div>
+
+    <!-- ── STATS ── -->
+    <div class="stats-row">
         <div class="stat-card" id="card-sci" onclick="setTrack('sci')">
-            <h2>Sci</h2><span class="count" style="color: var(--sci-color)" id="cnt-sci">0</span>
+            <div class="stat-label">Sci</div>
+            <div class="stat-num" style="color:var(--sci)" id="cnt-sci">0</div>
         </div>
         <div class="stat-card" id="card-all" onclick="setTrack('all')">
-            <h2>รวมรุ่น</h2><span class="count" style="color: var(--all-color)" id="cnt-total">0</span>
+            <div class="stat-label">รวมรุ่น</div>
+            <div class="stat-num" style="color:var(--gold)" id="cnt-all">0</div>
         </div>
         <div class="stat-card" id="card-care" onclick="setTrack('care')">
-            <h2>Care</h2><span class="count" style="color: var(--care-color)" id="cnt-care">0</span>
+            <div class="stat-label">Care</div>
+            <div class="stat-num" style="color:var(--care)" id="cnt-care">0</div>
         </div>
     </div>
 
-    <div class="search-wrapper">
-        <input type="text" class="search-box" id="search" placeholder="🔍 ค้นหาเพื่อน หรือ รหัส..." oninput="handleSearch()">
+    <!-- ── SEARCH ── -->
+    <div class="search-wrap">
+        <input type="text" class="search-input" id="search" placeholder="🔍 ค้นหาเพื่อน หรือ รหัส..." oninput="handleSearch()">
     </div>
 
-    <div id="list-section">
-        <h3 id="list-title" style="font-size: 1rem; margin-top: 0; color: #475569; text-align: center;">รายชื่อ RxTU10 (แตะรูป/ชื่อ เพื่อดูชื่อจริง)</h3>
+    <!-- ── LIST ── -->
+    <div class="list-card">
+        <div class="list-title" id="list-title">รายชื่อ RxTU10 — แตะเพื่อดูชื่อจริง</div>
         <div class="names-grid" id="names-display"></div>
     </div>
 
-    <div class="game-zone">
-        <div class="game-header">✨ RELAX ZONE ✨</div>
-        
-        <div class="game-card">
-            <div class="game-title">🕵️ เกมแฟนพันธุ์แท้: ทายชื่อจริงเพื่อน</div>
-            <div id="quiz-start">
-                <p>พิสูจน์ความเป็น RxTU10 ด้วยการทายชื่อจริงเพื่อนให้ถูกต่อเนื่อง!</p>
-                <button class="start-btn" onclick="startQuiz()">เริ่มเกม</button>
+    <!-- ══ GACHA SECTION (logged in only) ══ -->
+    <div id="gacha-section">
+        <div class="section-title">🐾 สัตว์เลี้ยง & Gacha</div>
+
+        <!-- My Pets -->
+        <div class="pets-card">
+            <div class="pets-card-header">
+                <span style="font-weight:700;font-size:1rem">คอลเลกชันสัตว์เลี้ยง</span>
+                <button class="btn-secondary" style="padding:6px 12px;font-size:0.8rem" onclick="openTradePanel()">🔄 Trade</button>
             </div>
-            <div id="quiz-play" class="quiz-container">
-                <div class="score-board">คะแนนต่อเนื่อง: <span id="current-score" style="font-weight:bold; color:var(--all-color);">0</span></div>
-                <div class="quiz-question" id="quiz-nickname">น้อง...</div>
-                <div class="quiz-options" id="quiz-options">
-                    </div>
-            </div>
+            <div id="my-pets-grid"></div>
         </div>
 
-        <div class="game-card">
-            <div class="game-title">💊 เกมทายยา (50 Drugs)</div>
-            <div class="flashcard" onclick="revealDrug()">
-                <div class="drug-name" id="flash-drug">???</div>
-                <div class="drug-answer" id="flash-answer">...</div>
-                <div class="reveal-hint" id="flash-hint">แตะเพื่อเฉลย</div>
+        <!-- Gacha -->
+        <div class="gacha-card">
+            <div class="game-title">🥚 ฟักไข่สัตว์เลี้ยง</div>
+            <button class="egg-btn" onclick="openGacha()">
+                <span class="egg-emoji">🥚</span>
+                <div class="egg-label">ฟักไข่!</div>
+                <div class="egg-cost">ราคา 100 🪙</div>
+            </button>
+            <div class="rates-grid" style="margin-top:20px">
+                <div class="rate-item" style="background:#f1f5f9;color:#64748b">Common<br><b>50%</b></div>
+                <div class="rate-item" style="background:#eff6ff;color:#3b82f6">Rare<br><b>30%</b></div>
+                <div class="rate-item" style="background:#faf5ff;color:#a855f7">Epic<br><b>15%</b></div>
+                <div class="rate-item" style="background:#fffbeb;color:#f59e0b">Legendary<br><b>5%</b></div>
             </div>
-            <button class="quiz-btn" onclick="nextDrug()">สุ่มยาใหม่ 🔄</button>
         </div>
     </div>
 
+    <!-- ══ RELAX ZONE ══ -->
+    <div class="section-title">✨ RELAX ZONE ✨</div>
+
+    <!-- Quiz -->
+    <div class="game-card">
+        <div class="game-title">🕵️ เกมแฟนพันธุ์แท้ — ทายชื่อจริงเพื่อน</div>
+        <div id="quiz-start">
+            <p id="quiz-start-msg" style="color:var(--muted);font-size:0.9rem;margin-bottom:14px">ทายชื่อจริงเพื่อนให้ถูกต่อเนื่อง! (ได้เหรียญด้วย 🪙)</p>
+            <button class="btn-primary" onclick="startQuiz()">เริ่มเกม!</button>
+        </div>
+        <div id="quiz-play" class="quiz-container">
+            <div class="score-display">คะแนนต่อเนื่อง: <b style="color:var(--gold)" id="current-score">0</b></div>
+            <div class="quiz-question" id="quiz-nickname">น้อง...</div>
+            <div class="quiz-options-grid" id="quiz-options"></div>
+        </div>
+    </div>
+
+    <!-- Flashcard -->
+    <div class="game-card">
+        <div class="game-title">💊 ทายยา (50 Drugs)</div>
+        <div class="flashcard" onclick="revealDrug()">
+            <div class="drug-name" id="flash-drug">???</div>
+            <div class="drug-ans" id="flash-ans">...</div>
+            <div class="drug-hint" id="flash-hint">แตะเพื่อเฉลย</div>
+        </div>
+        <button class="btn-secondary" style="width:100%" onclick="nextDrug()">สุ่มยาใหม่ 🔄</button>
+    </div>
+
     <footer>
-        <p>RxTU10 Track Selection Tracking<br>
-        <span class="credit">by pika v2.0 (With Photos)</span></p>
+        RxTU10 Track Selection Dashboard<br>
+        <span style="font-weight:600">by pika — v3.0 🔥</span>
     </footer>
 </div>
 
+<!-- ── PROFILE MODAL ── -->
+<div class="modal-overlay" id="profile-modal">
+    <div class="profile-modal">
+        <button class="modal-close" onclick="closeProfileModal()">✕</button>
+        <div style="text-align:center">
+            <img id="modal-img" class="modal-profile-img" src="" alt="">
+            <div class="modal-nickname" id="modal-nickname"></div>
+            <div class="modal-realname" id="modal-realname"></div>
+            <div class="modal-id" id="modal-id"></div>
+            <div class="modal-track-badge" id="modal-badge"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ── GACHA RESULT MODAL ── -->
+<div class="modal-overlay" id="gacha-modal" onclick="if(event.target===this)closeGachaModal()">
+    <div class="gacha-modal-inner">
+        <div id="gacha-result-content"></div>
+    </div>
+</div>
+
+<!-- ── TRADE PANEL ── -->
+<div class="trade-panel" id="trade-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <span style="font-size:1.1rem;font-weight:700">🔄 Trade สัตว์เลี้ยง</span>
+        <button class="modal-close" onclick="closeTradePanel()">✕</button>
+    </div>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:12px">เลือกสัตว์เลี้ยงที่อยากส่ง:</p>
+    <div id="trade-my-pets"></div>
+    <input type="email" class="trade-input" id="trade-target-email" placeholder="Email เพื่อนที่อยากส่งให้">
+    <button class="btn-primary" style="width:100%" onclick="sendTrade()">ส่งให้เพื่อน ✉️</button>
+</div>
+
+<!-- ── TOAST ── -->
+<div id="toast"></div>
+
 <script>
-    // --- Data Section ---
-    const rawData = {
-        sci: [
-            "กิ้ฟท์ 🎁 (6418610082)", "โบ 🎀 (6418610140)", "อิกคิว 👦 (6418610264)", "เหนือ ⛰️ (6418610280)",
-            "ขิม 🎼 (6518540015)", "มายด์ 💖 (6518610016)", "ติน 💎 (6518610024)", "อ้น 🐿️ (6518610073)",
-            "เอ็มมี่ 🌸 (6518610099)", "โฟกัส 🔍 (6518610123)", "ลิ้ง 🔗 (6518610164)", "ติณณ์ ✨ (6518610172)",
-            "เพ่ยเพ่ย 🏮 (6518610180)", "ป่าน 🌿 (6518610198)", "เอเชีย 🌏 (6518610214)", "แพร 👗 (6518610222)",
-            "กาฟิว 🐱 (6518610297)", "แตงโม 🍉 (6518610347)", "ส้มโอ 🍊 (6518610420)", "อุ้ม 🤗 (6518610446)",
-            "ทิว 🌲 (6518610479)", "แพน 🐼 (6518610503)", "ปั้น 🏺 (6518610545)", "แก๊ป 🧢 (6518610560)",
-            "แยม 🍓 (6518610578)", "แพรไหม 🧵 (6518610586)", "ไอจัง 🍦 (6518610610)", "เพ้นท์ 🎨 (6518670010)",
-            "สุ่น 🧶 (6518670069)", "ทะเล 🌊 (6518670077)", "ตั้ว 🎟️ (6518670093)", "แพรวา 💎 (6518670101)",
-            "ซาเนียร์ 🎐 (6518670119)", "เปปเปอร์ 🌶️ (6518670150)", "ว่านว่าน 🍃 (6518670176)", "ฟ้าใส ☀️ (6518670192)",
-            "เขต 🏁 (6518670200)", "เบเบ้ 🧸 (6518670226)", "เชอร์รี่ 🍒 (6518670267)"
-        ],
-        care: [
-            "เมย์ 🌙 (6418610157)", "เดียร 🦌 (6418670110)", "บัว 🪷 (6518610032)", "ปาล์มมี่ 🌴 (6518610040)",
-            "อุ๋งอิ๋ง 🦭 (6518610057)", "เพียว 🫧 (6518610065)", "ใบบัว 🍃 (6518610081)", "บลู 💙 (6518610107)",
-            "ต้นน้ำ 🌱 (6518610115)", "แซนนี่ ☀️ (6518610131)", "กัส ⛽ (6518610149)", "นินจี้ 🥷 (6518610206)",
-            "นนท์ 🕶️ (6518610230)", "มินท์ 🌿 (6518610248)", "แป้ง 🍞 (6518610255)", "ตีตี้ 🎸 (6518610263)",
-            "แพม 👒 (6518610271)", "อะตอม ⚛️ (6518610305)", "นาย 👔 (6518610313)", "การ์ตูน 📖 (6518610321)",
-            "นัซ 🌠 (6518610354)", "แพนด้า 🐼 (6518610362)", "ปิ๊ก 🎸 (6518610388)", "จอย 😊 (6518610396)",
-            "มายด์ ✨ (6518610404)", "โดนัท 🍩 (6518610453)", "บุ๊ค 📚 (6518610461)", "ปอนด์ 💷 (6518610495)",
-            "เบค 🥓 (6518610511)", "ต้นกล้า 🪴 (6518610537)", "มิ้นท์ 🌱 (6518610552)", "ต้นน้ำ 💧 (6518610602)",
-            "แพรทอง ✨ (6518660011)", "แก้ม 😊 (6518660029)", "แสนดี 😇 (6518670028)", "อุ๊กอิ๊ก 🐣 (6518670044)",
-            "ต้้นน้ำ 🌊 (6518670085)", "เจ 🃏 (6518670135)", "เปมี่ 🍭 (6518670143)", "ท้องฟ้า ☁️ (6518670184)",
-            "พีช 🍑 (6518670218)", "สมายด์ 😁 (6518670242)", "แพร 🌸 (6518670259)", "ตะวัน 🌻 (6518670283)"
-        ]
-    };
+// ════════════════════════════════════════
+//  STUDENT DATA
+// ════════════════════════════════════════
+const rawData = {
+    sci: [
+        "กิ้ฟท์ 🎁 (6418610082)","โบ 🎀 (6418610140)","อิกคิว 👦 (6418610264)","เหนือ ⛰️ (6418610280)",
+        "ขิม 🎼 (6518540015)","มายด์ 💖 (6518610016)","ติน 💎 (6518610024)","อ้น 🐿️ (6518610073)",
+        "เอ็มมี่ 🌸 (6518610099)","โฟกัส 🔍 (6518610123)","ลิ้ง 🔗 (6518610164)","ติณณ์ ✨ (6518610172)",
+        "เพ่ยเพ่ย 🏮 (6518610180)","ป่าน 🌿 (6518610198)","เอเชีย 🌏 (6518610214)","แพร 👗 (6518610222)",
+        "กาฟิว 🐱 (6518610297)","แตงโม 🍉 (6518610347)","ส้มโอ 🍊 (6518610420)","อุ้ม 🤗 (6518610446)",
+        "ทิว 🌲 (6518610479)","แพน 🐼 (6518610503)","ปั้น 🏺 (6518610545)","แก๊ป 🧢 (6518610560)",
+        "แยม 🍓 (6518610578)","แพรไหม 🧵 (6518610586)","ไอจัง 🍦 (6518610610)","เพ้นท์ 🎨 (6518670010)",
+        "สุ่น 🧶 (6518670069)","ทะเล 🌊 (6518670077)","ตั้ว 🎟️ (6518670093)","แพรวา 💎 (6518670101)",
+        "ซาเนียร์ 🎐 (6518670119)","เปปเปอร์ 🌶️ (6518670150)","ว่านว่าน 🍃 (6518670176)","ฟ้าใส ☀️ (6518670192)",
+        "เขต 🏁 (6518670200)","เบเบ้ 🧸 (6518670226)","เชอร์รี่ 🍒 (6518670267)"
+    ],
+    care: [
+        "เมย์ 🌙 (6418610157)","เดียร 🦌 (6418670110)","บัว 🪷 (6518610032)","ปาล์มมี่ 🌴 (6518610040)",
+        "อุ๋งอิ๋ง 🦭 (6518610057)","เพียว 🫧 (6518610065)","ใบบัว 🍃 (6518610081)","บลู 💙 (6518610107)",
+        "ต้นน้ำ 🌱 (6518610115)","แซนนี่ ☀️ (6518610131)","กัส ⛽ (6518610149)","นินจี้ 🥷 (6518610206)",
+        "นนท์ 🕶️ (6518610230)","มินท์ 🌿 (6518610248)","แป้ง 🍞 (6518610255)","ตีตี้ 🎸 (6518610263)",
+        "แพม 👒 (6518610271)","อะตอม ⚛️ (6518610305)","นาย 👔 (6518610313)","การ์ตูน 📖 (6518610321)",
+        "นัซ 🌠 (6518610354)","แพนด้า 🐼 (6518610362)","ปิ๊ก 🎸 (6518610388)","จอย 😊 (6518610396)",
+        "มายด์ ✨ (6518610404)","โดนัท 🍩 (6518610453)","บุ๊ค 📚 (6518610461)","ปอนด์ 💷 (6518610495)",
+        "เบค 🥓 (6518610511)","ต้นกล้า 🪴 (6518610537)","มิ้นท์ 🌱 (6518610552)","ต้นน้ำ 💧 (6518610602)",
+        "แพรทอง ✨ (6518660011)","แก้ม 😊 (6518660029)","แสนดี 😇 (6518670028)","อุ๊กอิ๊ก 🐣 (6518670044)",
+        "ต้้นน้ำ 🌊 (6518670085)","เจ 🃏 (6518670135)","เปมี่ 🍭 (6518670143)","ท้องฟ้า ☁️ (6518670184)",
+        "พีช 🍑 (6518670218)","สมายด์ 😁 (6518670242)","แพร 🌸 (6518670259)","ตะวัน 🌻 (6518670283)"
+    ]
+};
 
-    const realNamesRaw = "นางสาวชญานิศ ชายเมฆนางสาวณัชชา ศรีทองสุขนางสาวณัฏฐณิชา ตราหยกนายปวริศ ชูชมชื่นนายพศวัต พุทธิชนม์นางสาวณัฎฐริณีย์ เทือกท้าวนางสาวหรรษธร เปลี่ยนภักดีนางสาวกชกร ทรงเตชะเลิศนายกฎปิยราช ชนะสิทธิ์นางสาวกมลพร ว่องไวนางสาวกฤติยาพร คำศรีนางสาวกอแก้ว พัฒนาศูรนางสาวกัญญาณัฏฐ์ ลาภทรงสุขนายเกตุโพธิ์ ใจสงฆ์นางสาวแก้วบุษราภรณ์ เลาหกัยกุลนางสาวงามวรินทร์ กิตติจิตต์นายจิรวัฒน์ รักษ์วิเชียรนางสาวชนัญธิดา วีระวุฒิพงศ์นายชนาธิป บุญมาศิรินางสาวชวัลพัชร วิชัยศิริรัตน์นายชาคริษ บวรกิจนางสาวชาลิสา พรสุขจันทรานายญาณพัฒน์ สุขเกษมนางสาวฐณิชา จรัสวิชากรนางสาวฐิตารีย์ ปานสง่านายณพงศ์ เจริญเนติศาสตร์นางสาวณัฏฐณิชา สุดคงนางสาวณัฐกฤตา ศรีวิเชียรนายณัฐชนนท์ เครือตานางสาวณัฐณิชา ขวาลำธารนางสาวณัฐธิดา อรุณแสงนางสาวต่วนนีซาวาตี อัลอาตัสนางสาวธัญรดา โทธรัตน์นายธิติวุฒิ เพชรเงินทองนายธีรเมธ แสงอรุณนายนพเก้า วิวัฒชยางกูลนางสาวนภัสวรรณ แผลงศรนางสาวนัชชา ลักษณ์เชื้อวงศ์นางสาวนัซรียา บุญชูนางสาวนันตรา อินทร์น้อยนายประวิชญ์ อำนวยพันธ์วิไลนางสาวปรางค์ทิพย์ บุญมีวิเศษนางสาวปราณปริยา จ่าพลนางสาวปาณิสรา ศรีอาจนางสาวพรปวีณ์ บุราณเคนนายพิธินันท์ สัตติยารักษ์นายพุฒิพงศ์ ผดุงวัฒนะโชคนายภูมิรพี บูรณะสมทบนายภูวเดช นิลคตนางสาวมนณิชชา บุญนำนายรัชชานนท์ ขมิ้นทองนายวชิรวิทย์ ชำนาญวงศ์นายวศิน เอี่ยมต่อมนางสาวศุภิสรา สุวรรณศักดิ์สินนายสุรพงษ์ จันทบูรณ์นางสาวหทัยนันท์ เทพกำปนาทนางสาวอชิรญาณ์ ลำพรหมแก้วนายอัครวิทย์ นิธิบุญญาพันธ์นางสาวไอลดา ทาหะพรหมนางสาวแพรทอง เพอรัตน์นางสาวอภิสรา นุตภูติพงศ์นางสาวกวินธร เมฆะจำรูญนางสาวกานติมา มัทกิจนางสาวจาริญดา อินอัญชัญนายโชคชัย อริยะบุญสกุลนางสาวณภัทร ดำแก้วนายณัฐดนย์ อภิรติชัยศิริกุลนางสาวทัศน์สุดา ประสิทธิ์วิเศษนางสาวธีริศรา อินตรานางสาวนรมล พรหมโชตินายปิติพัตน์ รัตนสัมพันธ์นางสาวเปมิกา บุรณศิรินางสาวพรภรณ์ บุญยู่ฮงนางสาวภานิลนาถ มานะธัญญานายภาสกร นาคานางสาวมศารัศม์ พุทธะไชยทัศน์นายรัฐธีร์ พนิตจินดาศักดิ์นางสาววิรัลพัชร คุณาสถิตย์ชัยนางสาวศศินิภา แก้วสุวรรณ์นางสาวสุชัญญา หนูยิ้มนางสาวสุภัสสรา ฤกษ์รัตนีนางสาวสุมาลี นิมิตรมงคลนางสาวแสงตะวัน บุษปวนิช";
+const realNamesRaw = "นางสาวชญานิศ ชายเมฆนางสาวณัชชา ศรีทองสุขนางสาวณัฏฐณิชา ตราหยกนายปวริศ ชูชมชื่นนายพศวัต พุทธิชนม์นางสาวณัฎฐริณีย์ เทือกท้าวนางสาวหรรษธร เปลี่ยนภักดีนางสาวกชกร ทรงเตชะเลิศนายกฎปิยราช ชนะสิทธิ์นางสาวกมลพร ว่องไวนางสาวกฤติยาพร คำศรีนางสาวกอแก้ว พัฒนาศูรนางสาวกัญญาณัฏฐ์ ลาภทรงสุขนายเกตุโพธิ์ ใจสงฆ์นางสาวแก้วบุษราภรณ์ เลาหกัยกุลนางสาวงามวรินทร์ กิตติจิตต์นายจิรวัฒน์ รักษ์วิเชียรนางสาวชนัญธิดา วีระวุฒิพงศ์นายชนาธิป บุญมาศิรินางสาวชวัลพัชร วิชัยศิริรัตน์นายชาคริษ บวรกิจนางสาวชาลิสา พรสุขจันทรานายญาณพัฒน์ สุขเกษมนางสาวฐณิชา จรัสวิชากรนางสาวฐิตารีย์ ปานสง่านายณพงศ์ เจริญเนติศาสตร์นางสาวณัฏฐณิชา สุดคงนางสาวณัฐกฤตา ศรีวิเชียรนายณัฐชนนท์ เครือตานางสาวณัฐณิชา ขวาลำธารนางสาวณัฐธิดา อรุณแสงนางสาวต่วนนีซาวาตี อัลอาตัสนางสาวธัญรดา โทธรัตน์นายธิติวุฒิ เพชรเงินทองนายธีรเมธ แสงอรุณนายนพเก้า วิวัฒชยางกูลนางสาวนภัสวรรณ แผลงศรนางสาวนัชชา ลักษณ์เชื้อวงศ์นางสาวนัซรียา บุญชูนางสาวนันตรา อินทร์น้อยนายประวิชญ์ อำนวยพันธ์วิไลนางสาวปรางค์ทิพย์ บุญมีวิเศษนางสาวปราณปริยา จ่าพลนางสาวปาณิสรา ศรีอาจนางสาวพรปวีณ์ บุราณเคนนายพิธินันท์ สัตติยารักษ์นายพุฒิพงศ์ ผดุงวัฒนะโชคนายภูมิรพี บูรณะสมทบนายภูวเดช นิลคตนางสาวมนณิชชา บุญนำนายรัชชานนท์ ขมิ้นทองนายวชิรวิทย์ ชำนาญวงศ์นายวศิน เอี่ยมต่อมนางสาวศุภิสรา สุวรรณศักดิ์สินนายสุรพงษ์ จันทบูรณ์นางสาวหทัยนันท์ เทพกำปนาทนางสาวอชิรญาณ์ ลำพรหมแก้วนายอัครวิทย์ นิธิบุญญาพันธ์นางสาวไอลดา ทาหะพรหมนางสาวแพรทอง เพอรัตน์นางสาวอภิสรา นุตภูติพงศ์นางสาวกวินธร เมฆะจำรูญนางสาวกานติมา มัทกิจนางสาวจาริญดา อินอัญชัญนายโชคชัย อริยะบุญสกุลนางสาวณภัทร ดำแก้วนายณัฐดนย์ อภิรติชัยศิริกุลนางสาวทัศน์สุดา ประสิทธิ์วิเศษนางสาวธีริศรา อินตรานางสาวนรมล พรหมโชตินายปิติพัตน์ รัตนสัมพันธ์นางสาวเปมิกา บุรณศิรินางสาวพรภรณ์ บุญยู่ฮงนางสาวภานิลนาถ มานะธัญญานายภาสกร นาคานางสาวมศารัศม์ พุทธะไชยทัศน์นายรัฐธีร์ พนิตจินดาศักดิ์นางสาววิรัลพัชร คุณาสถิตย์ชัยนางสาวศศินิภา แก้วสุวรรณ์นางสาวสุชัญญา หนูยิ้มนางสาวสุภัสสรา ฤกษ์รัตนีนางสาวสุมาลี นิมิตรมงคลนางสาวแสงตะวัน บุษปวนิช";
 
-    // 50 Drugs Database
-    const drugDatabase = [
-        { name: "Paracetamol", ans: "Analgesic, Antipyretic (แก้ปวด ลดไข้)" },
-        { name: "Amoxicillin", ans: "Antibiotic (ยาฆ่าเชื้อแบคทีเรีย)" },
-        { name: "Cetirizine", ans: "Antihistamine Gen 2 (แก้แพ้)" },
-        { name: "Omeprazole", ans: "PPI (ลดกรด รักษาโรคกระเพาะ)" },
-        { name: "Simvastatin", ans: "Statin (ลดไขมันในเลือด)" },
-        { name: "Metformin", ans: "Antidiabetic (ยารักษาเบาหวาน)" },
-        { name: "Amlodipine", ans: "CCB (ลดความดันโลหิต)" },
-        { name: "Ibuprofen", ans: "NSAIDs (แก้ปวด แก้อักเสบ)" },
-        { name: "Prednisolone", ans: "Corticosteroid (สเตียรอยด์)" },
-        { name: "Salbutamol", ans: "Bronchodilator (ขยายหลอดลม)" },
-        { name: "Losartan", ans: "ARB (ลดความดันโลหิต)" },
-        { name: "Atorvastatin", ans: "Statin (ลดไขมันในเลือด)" },
-        { name: "Clopidogrel", ans: "Antiplatelet (ต้านเกล็ดเลือด)" },
-        { name: "Gabapentin", ans: "Anticonvulsant (ระงับปวดปลายประสาท)" },
-        { name: "Domperidone", ans: "Antiemetic (แก้คลื่นไส้ อาเจียน)" },
-        { name: "Lorazepam", ans: "Benzodiazepine (คลายกังวล นอนหลับ)" },
-        { name: "Tramadol", ans: "Opioid Analgesic (แก้ปวดรุนแรง)" },
-        { name: "Acetylcysteine", ans: "Mucolytic (ละลายเสมหะ)" },
-        { name: "ORS", ans: "Electrolyte (เกลือแร่ทดแทนการเสียน้ำ)" },
-        { name: "Mefenamic Acid", ans: "NSAIDs (แก้ปวดประจำเดือน)" },
-        { name: "Enalapril", ans: "ACE Inhibitor (ลดความดันโลหิต)" },
-        { name: "Propranolol", ans: "Beta-blocker (ลดใจสั่น ลดความดัน)" },
-        { name: "Furosemide", ans: "Loop Diuretic (ยาขับปัสสาวะ)" },
-        { name: "Warfarin", ans: "Anticoagulant (ยาต้านการแข็งตัวของเลือด)" },
-        { name: "Digoxin", ans: "Cardiac Glycoside (เพิ่มแรงบีบหัวใจ)" },
-        { name: "Azithromycin", ans: "Macrolide Antibiotic (ยาฆ่าเชื้อ)" },
-        { name: "Ciprofloxacin", ans: "Fluoroquinolone Antibiotic (ยาฆ่าเชื้อ)" },
-        { name: "Doxycycline", ans: "Tetracycline Antibiotic (ยาฆ่าเชื้อ)" },
-        { name: "Ceftriaxone", ans: "Cephalosporin Gen 3 (ยาฆ่าเชื้อ)" },
-        { name: "Norfloxacin", ans: "Antibiotic (ยาฆ่าเชื้อทางเดินปัสสาวะ/ลำไส้)" },
-        { name: "Diazepam", ans: "Benzodiazepine (ระงับประสาท/กันชัก)" },
-        { name: "Fluoxetine", ans: "SSRI (ยาต้านซึมเศร้า)" },
-        { name: "Amitriptyline", ans: "TCA (ยาต้านซึมเศร้า/แก้ปวดประสาท)" },
-        { name: "Phenytoin", ans: "Anticonvulsant (ยากันชัก)" },
-        { name: "CPM (Chlorpheniramine)", ans: "Antihistamine Gen 1 (แก้แพ้ ลดน้ำมูก)" },
-        { name: "Loratadine", ans: "Antihistamine Gen 2 (แก้แพ้)" },
-        { name: "Fexofenadine", ans: "Antihistamine Gen 3 (แก้แพ้)" },
-        { name: "Dextromethorphan", ans: "Antitussive (ยาแก้ไอแห้ง)" },
-        { name: "Bromhexine", ans: "Mucolytic (ละลายเสมหะ)" },
-        { name: "Famotidine", ans: "H2 Blocker (ลดกรด)" },
-        { name: "Hyoscine", ans: "Antispasmodic (แก้ปวดเกร็งท้อง)" },
-        { name: "Loperamide", ans: "Antidiarrheal (หยุดถ่าย)" },
-        { name: "Glibenclamide", ans: "Sulfonylurea (ยารักษาเบาหวาน)" },
-        { name: "Allopurinol", ans: "Xanthine oxidase inhibitor (ลดกรดยูริก/เกาต์)" },
-        { name: "Colchicine", ans: "Antigout (รักษาเกาต์กำเริบ)" },
-        { name: "Diclofenac", ans: "NSAIDs (แก้ปวดอักเสบ)" },
-        { name: "Naproxen", ans: "NSAIDs (แก้ปวดอักเสบ)" },
-        { name: "Celecoxib", ans: "COX-2 Inhibitor (แก้ปวดอักเสบ)" },
-        { name: "Aspirin", ans: "Antiplatelet/NSAIDs (ต้านเกล็ดเลือด)" },
-        { name: "Ergotamine", ans: "Antimigraine (แก้ปวดไมเกรน)" }
-    ];
+// ════════════════════════════════════════
+//  DRUG DATA
+// ════════════════════════════════════════
+const drugDatabase = [
+    {name:"Paracetamol",ans:"Analgesic, Antipyretic"},{name:"Amoxicillin",ans:"Antibiotic (Penicillin)"},
+    {name:"Cetirizine",ans:"Antihistamine Gen 2"},{name:"Omeprazole",ans:"PPI (ลดกรด)"},
+    {name:"Simvastatin",ans:"Statin (ลดไขมัน)"},{name:"Metformin",ans:"Biguanide (เบาหวาน)"},
+    {name:"Amlodipine",ans:"CCB (ลดความดัน)"},{name:"Ibuprofen",ans:"NSAIDs"},
+    {name:"Prednisolone",ans:"Corticosteroid"},{name:"Salbutamol",ans:"β2-agonist (ขยายหลอดลม)"},
+    {name:"Losartan",ans:"ARB (ลดความดัน)"},{name:"Atorvastatin",ans:"Statin (ลดไขมัน)"},
+    {name:"Clopidogrel",ans:"Antiplatelet"},{name:"Gabapentin",ans:"Anticonvulsant"},
+    {name:"Domperidone",ans:"Antiemetic (แก้คลื่นไส้)"},{name:"Lorazepam",ans:"Benzodiazepine"},
+    {name:"Tramadol",ans:"Opioid Analgesic"},{name:"Acetylcysteine",ans:"Mucolytic"},
+    {name:"ORS",ans:"Electrolyte solution"},{name:"Mefenamic Acid",ans:"NSAIDs (แก้ปวดประจำเดือน)"},
+    {name:"Enalapril",ans:"ACE Inhibitor"},{name:"Propranolol",ans:"Beta-blocker"},
+    {name:"Furosemide",ans:"Loop Diuretic"},{name:"Warfarin",ans:"Anticoagulant (Vit K antagonist)"},
+    {name:"Digoxin",ans:"Cardiac Glycoside"},{name:"Azithromycin",ans:"Macrolide Antibiotic"},
+    {name:"Ciprofloxacin",ans:"Fluoroquinolone Antibiotic"},{name:"Doxycycline",ans:"Tetracycline Antibiotic"},
+    {name:"Ceftriaxone",ans:"Cephalosporin Gen 3"},{name:"Norfloxacin",ans:"Antibiotic (UTI/GI)"},
+    {name:"Diazepam",ans:"Benzodiazepine (anticonvulsant)"},{name:"Fluoxetine",ans:"SSRI"},
+    {name:"Amitriptyline",ans:"TCA (ซึมเศร้า/ปวดประสาท)"},{name:"Phenytoin",ans:"Anticonvulsant (กันชัก)"},
+    {name:"CPM",ans:"Antihistamine Gen 1"},{name:"Loratadine",ans:"Antihistamine Gen 2"},
+    {name:"Fexofenadine",ans:"Antihistamine Gen 3"},{name:"Dextromethorphan",ans:"Antitussive (ไอแห้ง)"},
+    {name:"Bromhexine",ans:"Mucolytic (ละลายเสมหะ)"},{name:"Famotidine",ans:"H2 Blocker"},
+    {name:"Hyoscine",ans:"Antispasmodic (ปวดเกร็ง)"},{name:"Loperamide",ans:"Antidiarrheal"},
+    {name:"Glibenclamide",ans:"Sulfonylurea (เบาหวาน)"},{name:"Allopurinol",ans:"Xanthine oxidase inhibitor"},
+    {name:"Colchicine",ans:"Antigout (เกาต์กำเริบ)"},{name:"Diclofenac",ans:"NSAIDs"},
+    {name:"Naproxen",ans:"NSAIDs"},{name:"Celecoxib",ans:"COX-2 Inhibitor"},
+    {name:"Aspirin",ans:"Antiplatelet / NSAIDs"},{name:"Ergotamine",ans:"Antimigraine"}
+];
 
-    // --- Processing Data ---
-    let allStudents = [];
-    let realNamesList = [];
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+let allStudents = [];
 
-    function initData() {
-        const sciObj = rawData.sci.map(s => { const [n, id] = s.split(' ('); return { nickname: n, id: id.replace(')', ''), track: 'sci' }; });
-        const careObj = rawData.care.map(s => { const [n, id] = s.split(' ('); return { nickname: n, id: id.replace(')', ''), track: 'care' }; });
-        allStudents = [...sciObj, ...careObj].sort((a, b) => a.id.localeCompare(b.id));
+function initData() {
+    const sciList = rawData.sci.map(s => { const [n, id] = s.split(' ('); return { nickname: n, id: id.replace(')', ''), track: 'sci' }; });
+    const careList = rawData.care.map(s => { const [n, id] = s.split(' ('); return { nickname: n, id: id.replace(')', ''), track: 'care' }; });
+    allStudents = [...sciList, ...careList].sort((a,b) => a.id.localeCompare(b.id));
 
-        const splitRegex = /(?=นาย|นางสาว)/g;
-        realNamesList = realNamesRaw.split(splitRegex)
-            .filter(n => n.trim() !== "")
-            .map(n => n.replace("นาย", "").replace("นางสาว", "").trim());
+    const names = realNamesRaw.split(/(?=นาย|นางสาว)/).filter(n => n.trim())
+        .map(n => n.replace(/^นาย|^นางสาว/, '').trim());
+    allStudents.forEach((s, i) => { s.realName = names[i] || 'ไม่ระบุ'; });
+}
 
-        allStudents.forEach((student, index) => {
-            if (realNamesList[index]) {
-                student.realName = realNamesList[index];
-            } else {
-                student.realName = "ไม่ระบุ";
-            }
-        });
-    }
+function updateStats() {
+    const sci = rawData.sci.length, care = rawData.care.length, total = sci + care;
+    document.getElementById('p-sci').textContent = sci;
+    document.getElementById('p-care').textContent = care;
+    document.getElementById('cnt-sci').textContent = sci;
+    document.getElementById('cnt-care').textContent = care;
+    document.getElementById('cnt-all').textContent = total;
+    setTimeout(() => {
+        document.getElementById('bar-sci').style.width = (sci/total*100).toFixed(1) + '%';
+        document.getElementById('bar-care').style.width = (care/total*100).toFixed(1) + '%';
+    }, 300);
+}
 
-    // --- Game 1 Logic (Quiz) ---
-    let score = 0;
-    let currentCorrectAnswer = null;
+let currentTrack = 'all';
 
-    function startQuiz() {
-        document.getElementById('quiz-start').style.display = 'none';
-        document.getElementById('quiz-play').style.display = 'block';
-        score = 0;
-        updateScore();
-        nextQuestion();
-    }
+function setTrack(track) {
+    currentTrack = track;
+    document.querySelectorAll('.stat-card').forEach(c => c.className = 'stat-card');
+    document.getElementById('card-' + track).classList.add('active-' + track);
+    render(track);
+}
 
-    function nextQuestion() {
-        const randIndex = Math.floor(Math.random() * allStudents.length);
-        const student = allStudents[randIndex];
-        currentCorrectAnswer = student.realName;
-        const cleanNickname = student.nickname.split(' ')[0]; 
-        document.getElementById('quiz-nickname').innerText = `ชื่อเล่น: ${cleanNickname}`;
-
-        let options = [currentCorrectAnswer];
-        while (options.length < 4) {
-            const wrongName = allStudents[Math.floor(Math.random() * allStudents.length)].realName;
-            if (!options.includes(wrongName)) options.push(wrongName);
-        }
-        options.sort(() => Math.random() - 0.5);
-
-        const optContainer = document.getElementById('quiz-options');
-        optContainer.innerHTML = '';
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = 'quiz-btn';
-            btn.innerText = opt;
-            btn.onclick = () => checkAnswer(opt);
-            optContainer.appendChild(btn);
-        });
-    }
-
-    function checkAnswer(selected) {
-        if (selected === currentCorrectAnswer) {
-            score++;
-            updateScore();
-            confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 }, colors: ['#10b981'] });
-            nextQuestion();
-        } else {
-            alert(`❌ ผิดจ้า! ชื่อจริงของเขาคือ "${currentCorrectAnswer}"\n\nคะแนนสูงสุดของคุณ: ${score}`);
-            document.getElementById('quiz-start').style.display = 'block';
-            document.getElementById('quiz-play').style.display = 'none';
+function render(track, filter = '') {
+    let list = [];
+    if (track === 'sci') list = allStudents.filter(s => s.track === 'sci');
+    else if (track === 'care') list = allStudents.filter(s => s.track === 'care');
+    else {
+        list = [...allStudents];
+        if (filter) {
+            const f = filter.toLowerCase();
+            list = list.filter(s => s.nickname.toLowerCase().includes(f) || s.id.includes(f) || s.realName.toLowerCase().includes(f));
         }
     }
 
-    function updateScore() {
-        document.getElementById('current-score').innerText = score;
-    }
-
-    // --- Game 2 Logic (Flashcard) ---
-    function nextDrug() {
-        const randDrug = drugDatabase[Math.floor(Math.random() * drugDatabase.length)];
-        document.getElementById('flash-drug').innerText = randDrug.name;
-        document.getElementById('flash-answer').innerText = randDrug.ans;
-        document.getElementById('flash-answer').style.display = 'none';
-        document.getElementById('flash-hint').style.display = 'block';
-        document.getElementById('flash-hint').innerText = "แตะเพื่อเฉลย";
-    }
-
-    function revealDrug() {
-        document.getElementById('flash-answer').style.display = 'block';
-        document.getElementById('flash-hint').style.display = 'none';
-    }
-
-    // --- Dashboard Logic ---
-
-    // ฟังก์ชัน: สลับชื่อเล่น <-> ชื่อจริง
-    function toggleName(el, nickname, realname) {
-        const nameSpan = el.querySelector('.nickname');
-        const isShowingReal = nameSpan.getAttribute('data-showing') === 'true';
-
-        if (!isShowingReal) {
-            nameSpan.innerText = realname;
-            nameSpan.style.fontSize = '0.85rem'; 
-            nameSpan.style.color = '#2563eb'; 
-            nameSpan.setAttribute('data-showing', 'true');
-        } else {
-            nameSpan.innerText = nickname;
-            nameSpan.style.fontSize = '1rem';
-            nameSpan.style.color = ''; 
-            nameSpan.setAttribute('data-showing', 'false');
-        }
-    }
-
-    function updateDashboard() {
-        const sciCount = rawData.sci.length;
-        const careCount = rawData.care.length;
-        const total = sciCount + careCount; 
-        const sP = (sciCount / total * 100).toFixed(1);
-        const cP = (careCount / total * 100).toFixed(1);
-        
-        document.getElementById('p-sci-count').innerText = sciCount;
-        document.getElementById('p-care-count').innerText = careCount;
-        document.getElementById('cnt-sci').innerText = sciCount;
-        document.getElementById('cnt-care').innerText = careCount;
-        document.getElementById('cnt-total').innerText = total;
-        
-        setTimeout(() => {
-            document.getElementById('bar-sci').style.width = sP + '%';
-            document.getElementById('bar-care').style.width = cP + '%';
-        }, 300);
-    }
-
-    function setTrack(track) {
-        document.querySelectorAll('.stat-card').forEach(c => c.className = 'stat-card');
-        document.getElementById('card-' + track).classList.add('active-' + track);
-        render(track);
-    }
-
-    function render(track, filter = '') {
-        const display = document.getElementById('names-display');
-        let list = [];
-
-        // Logic ในการเตรียมข้อมูลให้พร้อมสำหรับ render
-        if (track === 'sci') {
-            list = rawData.sci.map(s => {
-                const [n, idWithParen] = s.split(' (');
-                const id = idWithParen.replace(')', '');
-                const student = allStudents.find(st => st.id === id);
-                return { nickname: n, id: id, track: 'sci', realName: student ? student.realName : "ไม่ระบุ" };
-            });
-        } else if (track === 'care') {
-            list = rawData.care.map(s => {
-                const [n, idWithParen] = s.split(' (');
-                const id = idWithParen.replace(')', '');
-                const student = allStudents.find(st => st.id === id);
-                return { nickname: n, id: id, track: 'care', realName: student ? student.realName : "ไม่ระบุ" };
-            });
-        } else {
-            list = allStudents.map(student => ({ 
-                nickname: student.nickname,
-                id: student.id,
-                track: student.track,
-                realName: student.realName
-            }));
-            
-            if (filter) {
-                const f = filter.toLowerCase();
-                list = list.filter(x => x.nickname.toLowerCase().includes(f) || x.id.includes(f));
-            }
-        }
-
-        display.innerHTML = list.map(item => {
-            const color = item.track === 'sci' ? 'var(--sci-color)' : 'var(--care-color)';
-            
-            // Path รูปภาพ: img/6418xxxxxx.jpg
-            const imgPath = `img/${item.id}.jpg`;
-            // Avatar อัตโนมัติถ้าไม่มีรูป
-            const defaultImg = `https://ui-avatars.com/api/?name=${item.nickname}&background=random&color=fff&size=128`;
-
-            return `
-                <div class="name-tag" onclick="toggleName(this, '${item.nickname}', '${item.realName}')">
-                    <img src="${imgPath}" 
-                         class="profile-img" 
-                         onerror="this.onerror=null; this.src='${defaultImg}';" 
-                         alt="${item.nickname}">
-                    <div>
-                        <span class="nickname">${item.nickname}</span>
-                        <span class="id">${item.id}</span>
-                        <span class="track-badge" style="background:${color}">${item.track.toUpperCase()}</span>
-                    </div>
+    document.getElementById('names-display').innerHTML = list.map(item => {
+        const color = item.track === 'sci' ? 'var(--sci)' : 'var(--care)';
+        const imgPath = `img/${item.id}.jpg`;
+        const defaultImg = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nickname.split(' ')[0])}&background=${item.track === 'sci' ? '2563eb' : '10b981'}&color=fff&size=128`;
+        return `
+            <div class="name-tag" onclick="openProfileModal('${item.nickname}', '${item.realName}', '${item.id}', '${item.track}', '${imgPath}', '${defaultImg}')">
+                <img src="${imgPath}" onerror="this.onerror=null;this.src='${defaultImg}'" alt="${item.nickname}">
+                <div>
+                    <div class="nt-nickname">${item.nickname}</div>
+                    <div class="nt-id">${item.id}</div>
+                    <div class="nt-badge" style="background:${color}">${item.track.toUpperCase()}</div>
                 </div>
-            `;
-        }).join('');
-    }
+            </div>
+        `;
+    }).join('');
+}
 
-    function handleSearch() {
-        const q = document.getElementById('search').value;
-        document.querySelectorAll('.stat-card').forEach(c => c.className = 'stat-card');
-        render('all', q); 
-    }
+function handleSearch() {
+    const q = document.getElementById('search').value;
+    document.querySelectorAll('.stat-card').forEach(c => c.className = 'stat-card');
+    document.getElementById('card-all').classList.add('active-all');
+    currentTrack = 'all';
+    render('all', q);
+}
 
-    // Initialize
-    initData();
-    updateDashboard();
-    render('all'); 
-    nextDrug();
+// ════════════════════════════════════════
+//  PROFILE MODAL
+// ════════════════════════════════════════
+function openProfileModal(nickname, realname, id, track, imgPath, defaultImg) {
+    document.getElementById('modal-img').src = imgPath;
+    document.getElementById('modal-img').onerror = function() { this.src = defaultImg; };
+    document.getElementById('modal-nickname').textContent = nickname;
+    document.getElementById('modal-realname').textContent = realname;
+    document.getElementById('modal-id').textContent = id;
+    const badge = document.getElementById('modal-badge');
+    badge.textContent = track.toUpperCase();
+    badge.style.background = track === 'sci' ? 'var(--sci)' : 'var(--care)';
+    document.getElementById('profile-modal').classList.add('active');
+}
+
+function closeProfileModal() {
+    document.getElementById('profile-modal').classList.remove('active');
+}
+document.getElementById('profile-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeProfileModal();
+});
+
+// ════════════════════════════════════════
+//  FLASHCARD
+// ════════════════════════════════════════
+function nextDrug() {
+    const d = drugDatabase[Math.floor(Math.random() * drugDatabase.length)];
+    document.getElementById('flash-drug').textContent = d.name;
+    document.getElementById('flash-ans').textContent = d.ans;
+    document.getElementById('flash-ans').style.display = 'none';
+    document.getElementById('flash-hint').textContent = 'แตะเพื่อเฉลย';
+    document.getElementById('flash-hint').style.display = 'block';
+}
+
+function revealDrug() {
+    document.getElementById('flash-ans').style.display = 'block';
+    document.getElementById('flash-hint').style.display = 'none';
+}
+
+// ════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════
+function showToast(msg, type = 'info') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `show ${type}`;
+    clearTimeout(t._timeout);
+    t._timeout = setTimeout(() => t.classList.remove('show'), 3000);
+}
+window.showToast = showToast;
+
+// ════════════════════════════════════════
+//  DAILY BTN VISIBILITY — show after login
+// ════════════════════════════════════════
+const origRenderLoginState = window.renderLoginState;
+// daily btn shown from firebase module
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+initData();
+updateStats();
+setTrack('all');
+nextDrug();
 </script>
 </body>
 </html>
