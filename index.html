@@ -103,9 +103,75 @@
                     createdAt: serverTimestamp(),
                     lastDaily: null,
                     quizHighScore: 0,
+                    studentId: null,
+                    nickname: null,
+                    realName: null,
+                    track: null,
                 });
             }
         }
+
+        // ════════════════ STUDENT LINKING ════════════════
+        window.openLinkModal = () => {
+            document.getElementById('link-modal').classList.add('active');
+            document.getElementById('link-input').value = '';
+            document.getElementById('link-error').textContent = '';
+            document.getElementById('link-preview').style.display = 'none';
+        };
+
+        window.closeLinkModal = () => {
+            document.getElementById('link-modal').classList.remove('active');
+        };
+
+        window.previewLink = () => {
+            const val = document.getElementById('link-input').value.trim();
+            const errEl = document.getElementById('link-error');
+            const previewEl = document.getElementById('link-preview');
+            const found = window.__allStudents?.find(s => s.id === val);
+            if (!found) {
+                errEl.textContent = '❌ ไม่พบรหัสนี้ กรุณาตรวจสอบอีกครั้ง';
+                previewEl.style.display = 'none';
+                return;
+            }
+            errEl.textContent = '';
+            document.getElementById('link-preview-nickname').textContent = found.nickname;
+            document.getElementById('link-preview-name').textContent = found.realName;
+            const trackEl = document.getElementById('link-preview-track');
+            trackEl.textContent = found.track.toUpperCase();
+            trackEl.style.background = found.track === 'sci' ? 'var(--sci)' : 'var(--care)';
+            previewEl.style.display = 'block';
+            previewEl.dataset.sid = val;
+        };
+
+        window.confirmLink = async () => {
+            const previewEl = document.getElementById('link-preview');
+            if (previewEl.style.display === 'none') {
+                showToast('❌ กรุณาตรวจสอบรหัสก่อน', 'error'); return;
+            }
+            const sid = previewEl.dataset.sid;
+            const found = window.__allStudents?.find(s => s.id === sid);
+            if (!found || !currentUser) return;
+
+            // เช็คว่ารหัสนี้ถูก claim แล้วหรือยัง
+            const allUsers = await getDocs(collection(db, "users"));
+            let alreadyClaimed = false;
+            allUsers.forEach(d => {
+                if (d.data().studentId === sid && d.id !== currentUser.uid) alreadyClaimed = true;
+            });
+            if (alreadyClaimed) {
+                showToast('❌ รหัสนี้ถูกใช้งานแล้ว ถ้าเป็นปัญหาติดต่อ admin', 'error'); return;
+            }
+
+            await updateDoc(doc(db, "users", currentUser.uid), {
+                studentId: sid,
+                nickname: found.nickname,
+                realName: found.realName,
+                track: found.track,
+            });
+            closeLinkModal();
+            showToast(`✅ ผูกรหัสสำเร็จ! ยินดีต้อนรับ ${found.nickname} 🎉`, 'success');
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
+        };
 
         let currentUser = null;
         let currentUserData = null;
@@ -130,26 +196,29 @@
             const loginSection = document.getElementById('login-section');
             const profileBar = document.getElementById('profile-bar');
             const gachaSection = document.getElementById('gacha-section');
+            const myProfileCard = document.getElementById('my-profile-card');
 
             if (!user) {
                 loginSection.style.display = 'flex';
                 profileBar.style.display = 'none';
                 gachaSection.style.display = 'none';
+                if (myProfileCard) myProfileCard.style.display = 'none';
                 return;
             }
 
             loginSection.style.display = 'none';
             profileBar.style.display = 'flex';
             gachaSection.style.display = 'block';
+            if (myProfileCard) myProfileCard.style.display = 'block';
 
             const coins = currentUserData?.coins ?? 0;
             const activePet = getActivePet();
+            const linked = currentUserData?.studentId;
 
             document.getElementById('user-avatar').src = user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`;
-            document.getElementById('user-name').textContent = user.displayName;
+            document.getElementById('user-name').textContent = linked ? (currentUserData.nickname?.split(' ')[0] || user.displayName) : user.displayName;
             document.getElementById('coin-count').textContent = coins.toLocaleString();
 
-            // Active pet display
             const petDisplay = document.getElementById('active-pet-display');
             if (activePet) {
                 petDisplay.textContent = activePet.emoji;
@@ -159,14 +228,68 @@
                 petDisplay.style.display = 'none';
             }
 
-            // Apply name effect if legendary
             if (activePet?.effect === 'rainbow_name' || activePet?.effect === 'all_boost') {
                 document.getElementById('user-name').classList.add('rainbow-text');
             } else {
                 document.getElementById('user-name').classList.remove('rainbow-text');
             }
 
+            renderMyProfileCard(user);
             renderMyPets();
+        }
+
+        function renderMyProfileCard(user) {
+            const card = document.getElementById('my-profile-card');
+            if (!card) return;
+            const linked = currentUserData?.studentId;
+            const activePet = getActivePet();
+
+            if (!linked) {
+                card.innerHTML = `
+                    <div class="my-profile-unlinked">
+                        <img src="${user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&size=128`}" class="my-profile-avatar">
+                        <div style="flex:1">
+                            <div style="font-weight:700;font-size:1rem">${user.displayName}</div>
+                            <div style="font-size:0.82rem;color:var(--muted);margin-top:2px">ยังไม่ได้ผูกรหัสนักศึกษา</div>
+                        </div>
+                        <button class="btn-link" onclick="openLinkModal()">🔗 ผูกรหัส</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const sid = currentUserData.studentId;
+            const track = currentUserData.track;
+            const trackColor = track === 'sci' ? 'var(--sci)' : 'var(--care)';
+            const imgPath = `img/${sid}.jpg`;
+            const nn = currentUserData.nickname?.split(' ')[0] || '';
+            const defaultImg = `https://ui-avatars.com/api/?name=${encodeURIComponent(nn)}&background=${track === 'sci' ? '2563eb' : '10b981'}&color=fff&size=128`;
+            const nameClass = (activePet?.effect === 'rainbow_name' || activePet?.effect === 'all_boost') ? 'rainbow-text' : '';
+            const coins = currentUserData?.coins ?? 0;
+            const highScore = currentUserData?.quizHighScore ?? 0;
+            const petCount = currentUserData?.pets?.length ?? 0;
+
+            card.innerHTML = `
+                <div class="my-profile-linked">
+                    <div class="my-profile-left">
+                        <div class="my-profile-img-wrap">
+                            <img src="${imgPath}" onerror="this.onerror=null;this.src='${defaultImg}'" class="my-profile-avatar-lg">
+                            ${activePet ? `<div class="my-profile-pet-badge">${activePet.emoji}</div>` : ''}
+                        </div>
+                        <div>
+                            <div class="my-profile-nickname ${nameClass}">${currentUserData.nickname}</div>
+                            <div class="my-profile-realname">${currentUserData.realName}</div>
+                            <div class="my-profile-id">${sid}</div>
+                            <span class="nt-badge" style="background:${trackColor};margin-top:4px;display:inline-block">${track.toUpperCase()}</span>
+                        </div>
+                    </div>
+                    <div class="my-profile-stats">
+                        <div class="my-profile-stat"><span>🪙</span><b>${coins.toLocaleString()}</b><small>เหรียญ</small></div>
+                        <div class="my-profile-stat"><span>🏆</span><b>${highScore}</b><small>ไฮสกอร์</small></div>
+                        <div class="my-profile-stat"><span>🐾</span><b>${petCount}</b><small>สัตว์เลี้ยง</small></div>
+                    </div>
+                </div>
+            `;
         }
 
         function getActivePet() {
@@ -1099,6 +1222,88 @@
         }
         .trade-input:focus { border-color: var(--sci); }
 
+        /* ── MY PROFILE CARD ── */
+        #my-profile-card { display: none; margin-bottom: 16px; }
+
+        .my-profile-unlinked {
+            background: white;
+            border-radius: 20px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 2px dashed var(--border);
+        }
+
+        .my-profile-linked {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+            border: 2px solid var(--gold);
+        }
+
+        .my-profile-left { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+        .my-profile-img-wrap { position: relative; flex-shrink: 0; }
+
+        .my-profile-avatar {
+            width: 44px; height: 44px;
+            border-radius: 50%; object-fit: cover;
+            border: 2px solid var(--border);
+        }
+        .my-profile-avatar-lg {
+            width: 72px; height: 72px;
+            border-radius: 50%; object-fit: cover;
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        .my-profile-pet-badge {
+            position: absolute; bottom: -4px; right: -4px;
+            font-size: 1.3rem;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+        .my-profile-nickname { font-size: 1.2rem; font-weight: 700; }
+        .my-profile-realname { font-size: 0.85rem; color: var(--muted); margin-top: 1px; }
+        .my-profile-id { font-size: 0.75rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+        .my-profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .my-profile-stat {
+            background: var(--bg); border-radius: 12px; padding: 10px;
+            text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px;
+        }
+        .my-profile-stat span { font-size: 1.2rem; }
+        .my-profile-stat b { font-size: 1rem; font-weight: 700; }
+        .my-profile-stat small { font-size: 0.7rem; color: var(--muted); }
+
+        .btn-link {
+            background: linear-gradient(135deg, var(--sci), #1d4ed8);
+            color: white; border: none; padding: 8px 14px;
+            border-radius: 10px; font-family: inherit; font-size: 0.85rem;
+            font-weight: 600; cursor: pointer; white-space: nowrap; transition: 0.2s;
+        }
+        .btn-link:hover { transform: scale(1.05); }
+
+        /* ── LINK MODAL ── */
+        .link-modal-inner {
+            background: white; border-radius: 24px; padding: 28px 24px;
+            max-width: 360px; width: 100%;
+            animation: slideUp 0.3s ease;
+        }
+        .link-input-wrap { display: flex; gap: 8px; margin: 14px 0 6px; }
+        .link-id-input {
+            flex: 1; padding: 12px 14px;
+            border: 2px solid var(--border); border-radius: 12px;
+            font-family: inherit; font-size: 1rem; outline: none; transition: 0.2s;
+        }
+        .link-id-input:focus { border-color: var(--sci); }
+        .link-preview-box {
+            background: var(--bg); border-radius: 14px;
+            padding: 14px; margin: 10px 0; display: none;
+        }
+        .link-preview-nickname { font-size: 1.2rem; font-weight: 700; }
+        .link-preview-name { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+
         /* ── DAILY BTN ── */
         #daily-btn { display: none; }
 
@@ -1175,45 +1380,8 @@
 
 <div class="container">
 
-    <!-- ── HEADER ── -->
-    <div class="header-card">
-        <div class="header-title">💊 RxTU10 Dashboard</div>
-        <div class="progress-labels">
-            <div class="prog-label"><span class="prog-dot" style="background:var(--sci)"></span> Sci: <span id="p-sci">0</span> คน</div>
-            <div class="prog-label"><span class="prog-dot" style="background:var(--care)"></span> Care: <span id="p-care">0</span> คน</div>
-        </div>
-        <div class="progress-bar">
-            <div class="prog-sci" id="bar-sci" style="width:0%"></div>
-            <div class="prog-care" id="bar-care" style="width:0%"></div>
-        </div>
-    </div>
-
-    <!-- ── STATS ── -->
-    <div class="stats-row">
-        <div class="stat-card" id="card-sci" onclick="setTrack('sci')">
-            <div class="stat-label">Sci</div>
-            <div class="stat-num" style="color:var(--sci)" id="cnt-sci">0</div>
-        </div>
-        <div class="stat-card" id="card-all" onclick="setTrack('all')">
-            <div class="stat-label">รวมรุ่น</div>
-            <div class="stat-num" style="color:var(--gold)" id="cnt-all">0</div>
-        </div>
-        <div class="stat-card" id="card-care" onclick="setTrack('care')">
-            <div class="stat-label">Care</div>
-            <div class="stat-num" style="color:var(--care)" id="cnt-care">0</div>
-        </div>
-    </div>
-
-    <!-- ── SEARCH ── -->
-    <div class="search-wrap">
-        <input type="text" class="search-input" id="search" placeholder="🔍 ค้นหาเพื่อน หรือ รหัส..." oninput="handleSearch()">
-    </div>
-
-    <!-- ── LIST ── -->
-    <div class="list-card">
-        <div class="list-title" id="list-title">รายชื่อ RxTU10 — แตะเพื่อดูชื่อจริง</div>
-        <div class="names-grid" id="names-display"></div>
-    </div>
+    <!-- ── MY PROFILE CARD (top, logged in only) ── -->
+    <div id="my-profile-card"></div>
 
     <!-- ══ GACHA SECTION (logged in only) ══ -->
     <div id="gacha-section">
@@ -1273,6 +1441,49 @@
         <button class="btn-secondary" style="width:100%" onclick="nextDrug()">สุ่มยาใหม่ 🔄</button>
     </div>
 
+    <!-- ══ MEMBER LIST (ลงล่าง) ══ -->
+    <div class="section-title">👥 รายชื่อรุ่น RxTU10</div>
+
+    <!-- ── HEADER ── -->
+    <div class="header-card">
+        <div class="header-title">💊 RxTU10</div>
+        <div class="progress-labels">
+            <div class="prog-label"><span class="prog-dot" style="background:var(--sci)"></span> Sci: <span id="p-sci">0</span> คน</div>
+            <div class="prog-label"><span class="prog-dot" style="background:var(--care)"></span> Care: <span id="p-care">0</span> คน</div>
+        </div>
+        <div class="progress-bar">
+            <div class="prog-sci" id="bar-sci" style="width:0%"></div>
+            <div class="prog-care" id="bar-care" style="width:0%"></div>
+        </div>
+    </div>
+
+    <!-- ── STATS ── -->
+    <div class="stats-row">
+        <div class="stat-card" id="card-sci" onclick="setTrack('sci')">
+            <div class="stat-label">Sci</div>
+            <div class="stat-num" style="color:var(--sci)" id="cnt-sci">0</div>
+        </div>
+        <div class="stat-card" id="card-all" onclick="setTrack('all')">
+            <div class="stat-label">รวมรุ่น</div>
+            <div class="stat-num" style="color:var(--gold)" id="cnt-all">0</div>
+        </div>
+        <div class="stat-card" id="card-care" onclick="setTrack('care')">
+            <div class="stat-label">Care</div>
+            <div class="stat-num" style="color:var(--care)" id="cnt-care">0</div>
+        </div>
+    </div>
+
+    <!-- ── SEARCH ── -->
+    <div class="search-wrap" style="top: 65px;">
+        <input type="text" class="search-input" id="search" placeholder="🔍 ค้นหาเพื่อน หรือ รหัส..." oninput="handleSearch()">
+    </div>
+
+    <!-- ── LIST ── -->
+    <div class="list-card">
+        <div class="list-title" id="list-title">รายชื่อ RxTU10 — แตะเพื่อดูชื่อจริง</div>
+        <div class="names-grid" id="names-display"></div>
+    </div>
+
     <footer>
         RxTU10 Track Selection Dashboard<br>
         <span style="font-weight:600">by pika — v3.0 🔥</span>
@@ -1289,6 +1500,68 @@
             <div class="modal-realname" id="modal-realname"></div>
             <div class="modal-id" id="modal-id"></div>
             <div class="modal-track-badge" id="modal-badge"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ── LINK MODAL ── -->
+<div class="modal-overlay" id="link-modal" onclick="if(event.target===this)closeLinkModal()">
+    <div class="link-modal-inner">
+        <button class="modal-close" onclick="closeLinkModal()">&#x2715;</button>
+        <div style="font-size:1.4rem;font-weight:800;margin-bottom:4px">&#x1F517; ผูกรหัสนักศึกษา</div>
+        <div style="font-size:0.85rem;color:var(--muted)">กรอกรหัสนักศึกษา 10 หลักของคุณ</div>
+        <div class="link-input-wrap">
+            <input type="text" class="link-id-input" id="link-input" placeholder="เช่น 6518610016" maxlength="10"
+                   oninput="this.value=this.value.replace(/\D/g,'')"
+                   onkeyup="if(this.value.length===10)previewLink()">
+            <button class="btn-primary" style="padding:10px 16px" onclick="previewLink()">ตรวจสอบ</button>
+        </div>
+        <div id="link-error" style="color:#ef4444;font-size:0.85rem;min-height:20px"></div>
+        <div class="link-preview-box" id="link-preview">
+            <div style="display:flex;align-items:center;gap:10px">
+                <div style="font-size:2rem">&#x1F464;</div>
+                <div>
+                    <div class="link-preview-nickname" id="link-preview-nickname"></div>
+                    <div class="link-preview-name" id="link-preview-name"></div>
+                    <span class="nt-badge" id="link-preview-track" style="margin-top:4px;display:inline-block"></span>
+                </div>
+            </div>
+            <div style="font-size:0.82rem;color:var(--muted);margin-top:10px">ใช่คุณไหม? กด "ยืนยัน" เพื่อผูกบัญชี</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn-primary" style="flex:1" onclick="confirmLink()">&#x2705; ยืนยัน</button>
+            <button class="btn-secondary" style="flex:1" onclick="closeLinkModal()">ยกเลิก</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── LINK MODAL ── -->
+<div class="modal-overlay" id="link-modal" onclick="if(event.target===this)closeLinkModal()">
+    <div class="link-modal-inner">
+        <button class="modal-close" onclick="closeLinkModal()">&#x2715;</button>
+        <div style="font-size:1.4rem;font-weight:800;margin-bottom:4px">&#x1F517; ผูกรหัสนักศึกษา</div>
+        <div style="font-size:0.85rem;color:var(--muted)">กรอกรหัสนักศึกษา 10 หลักของคุณ</div>
+        <div class="link-input-wrap">
+            <input type="text" class="link-id-input" id="link-input" placeholder="เช่น 6518610016" maxlength="10"
+                   oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                   onkeyup="if(this.value.length===10)previewLink()">
+            <button class="btn-primary" style="padding:10px 16px" onclick="previewLink()">ตรวจสอบ</button>
+        </div>
+        <div id="link-error" style="color:#ef4444;font-size:0.85rem;min-height:20px"></div>
+        <div class="link-preview-box" id="link-preview">
+            <div style="display:flex;align-items:center;gap:10px">
+                <div style="font-size:2rem">&#x1F464;</div>
+                <div>
+                    <div class="link-preview-nickname" id="link-preview-nickname"></div>
+                    <div class="link-preview-name" id="link-preview-name"></div>
+                    <span class="nt-badge" id="link-preview-track" style="margin-top:4px;display:inline-block"></span>
+                </div>
+            </div>
+            <div style="font-size:0.82rem;color:var(--muted);margin-top:10px">ใช่คุณไหม? กด ยืนยัน เพื่อผูกบัญชี</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn-primary" style="flex:1" onclick="confirmLink()">&#x2705; ยืนยัน</button>
+            <button class="btn-secondary" style="flex:1" onclick="closeLinkModal()">ยกเลิก</button>
         </div>
     </div>
 </div>
@@ -1515,6 +1788,7 @@ const origRenderLoginState = window.renderLoginState;
 //  INIT
 // ════════════════════════════════════════
 initData();
+window.__allStudents = allStudents; // expose ให้ Firebase module เรียกได้
 updateStats();
 setTrack('all');
 nextDrug();
