@@ -83,6 +83,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .mcard{background:#fff;border-radius:13px;padding:11px 6px;cursor:pointer;text-align:center;border:1.5px solid var(--border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
 .mcard:hover{transform:translateY(-2px);box-shadow:0 5px 12px rgba(0,0,0,.07);}
 .mc-img{width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);}
+.mc-emoji-fallback{width:56px;height:56px;border-radius:50%;background:var(--bg);border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);font-size:1.8rem;align-items:center;justify-content:center;}
 .mc-nick{font-weight:600;font-size:0.82rem;} .mc-id{font-size:0.62rem;color:var(--muted);}
 .prog-bar{height:16px;background:var(--border);border-radius:50px;overflow:hidden;display:flex;margin-bottom:4px;}
 .pb-sci{background:var(--sci);height:100%;} .pb-care{background:var(--care);height:100%;}
@@ -358,6 +359,23 @@ function initStudents() {
 }
 initStudents();
 
+// ── MEMBER LIVE DATA CACHE ──
+window.__fbUsers = {}; // studentId -> liveData
+async function loadFbUsers() {
+    try {
+        const snap = await getDocs(collection(db,"users"));
+        snap.forEach(d => {
+            const x = d.data();
+            if (x.studentId) window.__fbUsers[x.studentId] = x;
+        });
+        // re-render member grid if on members tab
+        if (window.__tab === 'members') {
+            const g = document.getElementById('mgrid');
+            if (g) g.innerHTML = memberGrid();
+        }
+    } catch(e) {}
+}
+
 // ════════════════════════════════════════
 //  AUTH
 // ════════════════════════════════════════
@@ -365,7 +383,7 @@ window.loginGoogle=async()=>{
     try{provider.setCustomParameters({prompt:'select_account'});const r=await signInWithPopup(auth,provider);await ensureDoc(r.user);}
     catch(e){if(e.code!=='auth/popup-closed-by-user')toast("Login ไม่สำเร็จ","error");}
 };
-window.logoutUser=async()=>{await signOut(auth);currentUser=userData=null;renderAll();};
+window.logoutUser=async()=>{try{await signOut(auth);}catch(e){}currentUser=userData=null;window.__fbUsers={};window.__tab='home';renderTab('home');};
 
 async function ensureDoc(u){
     const ref=doc(db,"users",u.uid);const snap=await getDoc(ref);
@@ -378,6 +396,7 @@ onAuthStateChanged(auth,async u=>{
         await ensureDoc(u);
         if(unsub)unsub();
         unsub=onSnapshot(doc(db,"users",u.uid),snap=>{userData=snap.data();qHigh=userData?.quizHigh||0;dqHigh=userData?.drugHigh||0;renderAll();checkDaily();});
+        loadFbUsers();
     } else renderAll();
 });
 
