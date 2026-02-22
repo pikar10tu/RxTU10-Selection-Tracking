@@ -1169,7 +1169,7 @@ function memberGrid(){
                 <img src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:56px;height:56px">
                 ${petEmoji?`<div style="position:absolute;bottom:-3px;right:-3px;font-size:0.9rem;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))">${petEmoji}</div>`:''}
             </div>
-            <div class="mc-nick">${nc?`<span class="${nc}">${s.nickname}</span>`:s.nickname}</div>
+            ${badge?`<div style="border-radius:7px;padding:1px 6px;font-size:0.82rem;font-weight:600;background:${badge.bg};border:1.5px solid ${badge.border}">${s.nickname}</div>`:`<div class="mc-nick">${s.nickname}</div>`}
             <div class="mc-id">${s.id}</div>
             <span class="track-badge sm" style="background:${tc}">${s.track.toUpperCase()}</span>
         </div>`;
