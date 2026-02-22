@@ -283,7 +283,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot,
-         collection, getDocs, increment, serverTimestamp, arrayUnion, addDoc, orderBy, query, limit, getDocs as gd }
+         collection, getDocs, increment, serverTimestamp, arrayUnion, addDoc, orderBy, query, limit }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -345,17 +345,22 @@ let mTrack='all', mSearch='';
 let qScore=0, qAnswer=null, qHigh=0;
 let dqScore=0, dqAnswer=null, dqHigh=0;
 let curDrug=null, tradeIdx=null;
+let __quizTop5Posted=false, __drugTop5Posted=false; // guard ไม่ให้ spam top5% news
 
 // ════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════
 function initStudents() {
-    const names=RN.split(/(?=นาย|นางสาว)/).filter(n=>n.trim()).map(n=>n.replace(/^นาย|^นางสาว/,'').trim());
+    // Parse nickname+id arrays
     const sci=R_SCI.map(s=>{const[nick,rest]=s.split(' (');return{nickname:nick,id:rest.replace(')',''),track:'sci'};});
     const care=R_CARE.map(s=>{const[nick,rest]=s.split(' (');return{nickname:nick,id:rest.replace(')',''),track:'care'};});
-    const all=[...sci,...care].sort((a,b)=>a.id.localeCompare(b.id));
-    all.forEach((s,i)=>{s.realName=names[i]||'ไม่ระบุ';});
-    window.__students=all;
+    // Parse real names — keep same order as R_SCI then R_CARE (not sorted)
+    const names=RN.split(/(?=นาย|นางสาว)/).filter(n=>n.trim()).map(n=>n.replace(/^นาย|^นางสาว/,'').trim());
+    // Map names BEFORE sorting so index aligns
+    const allUnsorted=[...sci,...care];
+    allUnsorted.forEach((s,i)=>{s.realName=names[i]||'ไม่ระบุ';});
+    // Sort by ID for display only (realName already assigned)
+    window.__students=allUnsorted.sort((a,b)=>a.id.localeCompare(b.id));
 }
 initStudents();
 
@@ -395,23 +400,31 @@ onAuthStateChanged(auth,async u=>{
     if(u){
         await ensureDoc(u);
         if(unsub)unsub();
+        __petDailyChecked=false; // reset guard เมื่อ login ใหม่
         unsub=onSnapshot(doc(db,"users",u.uid),snap=>{userData=snap.data();qHigh=userData?.quizHigh||0;dqHigh=userData?.drugHigh||0;renderAll();checkDaily();});
         loadFbUsers();
+        setTimeout(checkPetDaily, 1500); // เรียกครั้งเดียวหลัง data โหลด
     } else renderAll();
 });
 
 // ════════════════════════════════════════
 //  DAILY
 // ════════════════════════════════════════
+let __petDailyChecked = false; // guard ไม่ให้ award ซ้ำใน session เดียว
 async function checkDaily(){
     if(!currentUser||!userData)return;
     const last=userData.lastDaily?.toDate?.();const now=new Date();
     const btn=document.getElementById('daily-btn');
     if(btn)btn.classList.toggle('ready',!last||(now-last)>23*3600000);
+}
+async function checkPetDaily(){
+    if(!currentUser||!userData||__petDailyChecked)return;
     const pet=activePet();
     if(pet?.effect==='daily50'||pet?.effect==='all'||pet?.effect==='rainbow'){
         const pl=userData.petLastDaily?.toDate?.();
+        const now=new Date();
         if(!pl||(now-pl)>23*3600000){
+            __petDailyChecked=true;
             const b=pet.effect==='all'?100:pet.effect==='rainbow'?100:50;
             await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(b),petLastDaily:serverTimestamp()});
             toast(`${pet.emoji} ${pet.name} ให้ daily +${b}🪙!`,"success");
@@ -533,6 +546,7 @@ window.confirmLink=async()=>{
 window.triggerPhoto=()=>document.getElementById('photo-input').click();
 window.handlePhoto=async(e)=>{
     const file=e.target.files[0];if(!file||!currentUser)return;
+    if(!file.type.startsWith('image/')){toast("ไฟล์ต้องเป็นรูปภาพเท่านั้น","error");return;}
     if(file.size>800*1024){toast("รูปใหญ่เกิน 800KB","error");return;}
     toast("กำลังอัพโหลด...","info");
     const reader=new FileReader();
@@ -601,8 +615,8 @@ function showGachaResult(pet){
 }
 window.closeGacha=()=>document.getElementById('gacha-modal').classList.remove('active');
 
-window.setActive=async(id)=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:id});toast("เปลี่ยนสัตว์เลี้ยงแล้ว!","success");};
-window.unsetActive=async()=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:null});toast("เก็บสัตว์เลี้ยงแล้ว","info");};
+window.setActive=async(id)=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:id});toast("เปลี่ยนสัตว์เลี้ยงแล้ว!","success");loadFbUsers();};
+window.unsetActive=async()=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:null});toast("เก็บสัตว์เลี้ยงแล้ว","info");loadFbUsers();};
 
 window.showPetInfo=(petId)=>{
     const p=PETS.find(x=>x.id===petId)||(userData?.pets||[]).find(x=>x.id===petId);if(!p)return;
@@ -638,14 +652,15 @@ window.sendTrade=async()=>{
     if(!target){toast("ไม่พบผู้ใช้","error");return;}
     const newPets=userData.pets.filter((_,i)=>i!==tradeIdx);
     await setDoc(doc(db,"users",currentUser.uid),{pets:newPets},{merge:true});await updateDoc(doc(db,"users",target.id),{pets:arrayUnion(pet)});
-    toast(`ส่ง ${pet.emoji}${pet.name} ให้ ${email}!`,"success");closeTrade();tradeIdx=null;
+    toast(`ส่ง ${pet.emoji}${pet.name} ให้ ${email}!`,"success");closeTrade();tradeIdx=null;loadFbUsers();
 };
 
 // ════════════════════════════════════════
 //  QUIZ — ทายชื่อเพื่อน
 // ════════════════════════════════════════
 window.startQuiz=()=>{
-    qScore=0;document.getElementById('q-score').textContent='0';
+    qScore=0;__quizTop5Posted=false;
+    document.getElementById('q-score').textContent='0';
     document.getElementById('quiz-start').style.display='none';document.getElementById('quiz-play').style.display='block';nextQ();
 };
 window.nextQ=()=>{
@@ -654,26 +669,37 @@ window.nextQ=()=>{
     document.getElementById('q-nick').textContent=st.nickname.split(' ')[0];
     let opts=[qAnswer];while(opts.length<4){const w=s[Math.floor(Math.random()*s.length)].realName;if(!opts.includes(w))opts.push(w);}
     opts.sort(()=>Math.random()-0.5);
-    document.getElementById('q-opts').innerHTML=opts.map(o=>`<button class="q-btn" onclick="answerQ(this,'${o.replace(/'/g,"\\'")}','quiz')">${o}</button>`).join('');
+    document.getElementById('q-opts').innerHTML=opts.map(o=>`<button class="q-btn" onclick="answerQ(this,'${o.replace(/'/g,"\\'")}')">${o}</button>`).join('');
 };
-window.answerQ=async(btn,ans,mode)=>{
-    document.querySelectorAll('.q-btn').forEach(b=>{b.disabled=true;if(b.textContent===ans)b.classList.add(ans===(mode==='quiz'?qAnswer:dqAnswer)?'correct':'wrong');if(b.textContent===(mode==='quiz'?qAnswer:dqAnswer))b.classList.add('correct');});
-    if(mode==='quiz'){
-        if(ans===qAnswer){
-            qScore++;const disp=qScore*scoreMulti()+scoreBonus();document.getElementById('q-score').textContent=disp;
-            await window.awardCoins(5);confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#10b981']});
-            setTimeout(nextQ,700);
-        } else {
-            const finalScore=qScore;
-            const name=userData?.nickname?.split(' ')[0]||userData?.name||'?';
-            if(currentUser&&finalScore>qHigh){
-                qHigh=finalScore;await updateDoc(doc(db,"users",currentUser.uid),{quizHigh:finalScore});
-                await postNews("🏆",`${name} ทำ High Score ใหม่ในเกมทายชื่อ: ${finalScore} คะแนน!`);
-            } else if(currentUser&&finalScore>=10){
-                await postNews("🎮",`${name} ทำได้ ${finalScore} ข้อในเกมทายชื่อ — Top 5%! 🔥`);
-            }
-            setTimeout(()=>{document.getElementById('quiz-start').style.display='block';document.getElementById('quiz-play').style.display='none';document.getElementById('q-msg').innerHTML=`ชื่อจริงคือ <b>${qAnswer}</b> | ไฮสกอร์: ${Math.max(finalScore,qHigh)}`;},1000);
+window.answerQ=async(btn,ans)=>{
+    document.querySelectorAll('.q-btn').forEach(b=>{
+        b.disabled=true;
+        if(b.textContent===qAnswer) b.classList.add('correct');
+        else if(b.textContent===ans) b.classList.add('wrong');
+    });
+    if(ans===qAnswer){
+        qScore++;
+        const disp=qScore*scoreMulti()+scoreBonus();
+        document.getElementById('q-score').textContent=disp;
+        await window.awardCoins(5);
+        confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#10b981']});
+        setTimeout(nextQ,700);
+    } else {
+        const finalScore=qScore;
+        const name=userData?.nickname?.split(' ')[0]||userData?.name||'?';
+        if(currentUser&&finalScore>qHigh){
+            qHigh=finalScore;
+            await updateDoc(doc(db,"users",currentUser.uid),{quizHigh:finalScore});
+            await postNews("🏆",`${name} ทำ High Score ใหม่ในเกมทายชื่อ: ${finalScore} คะแนน!`);
+        } else if(currentUser&&finalScore>=10&&!__quizTop5Posted){
+            __quizTop5Posted=true;
+            await postNews("🎮",`${name} ทำได้ ${finalScore} ข้อในเกมทายชื่อ — Top 5%! 🔥`);
         }
+        setTimeout(()=>{
+            document.getElementById('quiz-start').style.display='block';
+            document.getElementById('quiz-play').style.display='none';
+            document.getElementById('q-msg').innerHTML=`ชื่อจริงคือ <b>${qAnswer}</b> | ไฮสกอร์: ${Math.max(finalScore,qHigh)}`;
+        },1000);
     }
 };
 
@@ -681,7 +707,8 @@ window.answerQ=async(btn,ans,mode)=>{
 //  DRUG QUIZ — MCQ
 // ════════════════════════════════════════
 window.startDrugQuiz=()=>{
-    dqScore=0;document.getElementById('dq-score').textContent='0';
+    dqScore=0;__drugTop5Posted=false;
+    document.getElementById('dq-score').textContent='0';
     document.getElementById('dquiz-start').style.display='none';document.getElementById('dquiz-play').style.display='block';nextDQ();
 };
 window.nextDQ=()=>{
@@ -703,7 +730,8 @@ window.answerDQ=async(btn,ans)=>{
         if(currentUser&&finalScore>dqHigh){
             dqHigh=finalScore;await updateDoc(doc(db,"users",currentUser.uid),{drugHigh:finalScore});
             await postNews("💊",`${name2} ทำ High Score ใหม่ในเกมทายยา: ${finalScore} คะแนน!`);
-        } else if(currentUser&&finalScore>=10){
+        } else if(currentUser&&finalScore>=10&&!__drugTop5Posted){
+            __drugTop5Posted=true;
             await postNews("🎮",`${name2} ทำได้ ${finalScore} ข้อในเกมทายยา — Top 5%! 🔥`);
         }
         setTimeout(()=>{document.getElementById('dquiz-start').style.display='block';document.getElementById('dquiz-play').style.display='none';document.getElementById('dq-msg').innerHTML=`ยาชนิดนี้คือ <b>${dqAnswer}</b> | ไฮสกอร์: ${Math.max(finalScore,dqHigh)}`;},1000);
@@ -740,6 +768,7 @@ function renderTab(tab){
 // ════════════════════════════════════════
 //  TAB: HOME
 // ════════════════════════════════════════
+const GOOGLE_SVG=`<svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>`;
 function buildHome(){
     if(!currentUser)return`
         <div class="login-card">
@@ -982,18 +1011,14 @@ function buildShop(){
 // ════════════════════════════════════════
 window.__tab='home';
 loadTicker();
-// Hatch timer refresh — only re-render shop egg section, never during active game
+// Hatch timer refresh — only when eggs actively hatching, never during game
 setInterval(()=>{
+    const eggs=(userData?.eggs||[]);
+    const hasHatching=eggs.some(e=>e.startedAt&&Date.now()<e.startedAt+e.hatchMins*60000);
+    if(!hasHatching) return; // ไม่มีไข่ฟัก ไม่ต้อง re-render
     const tab=window.__tab;
-    if(tab==='shop'){
-        const eggs=window.__userData?.eggs||[];
-        if(eggs.some(e=>e.startedAt)) renderTab('shop');
-    }
-    // Home: only refresh egg countdown if NOT playing a game
-    if(tab==='home'){
-        const eggs=window.__userData?.eggs||[];
-        if(eggs.some(e=>e.startedAt)) renderTab('home');
-    }
+    if(tab==='shop') renderTab('shop');
+    if(tab==='home') renderTab('home');
 },10000);
 
 </script>
