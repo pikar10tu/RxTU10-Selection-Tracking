@@ -351,16 +351,13 @@ let __quizTop5Posted=false, __drugTop5Posted=false; // guard ไม่ให้ 
 //  INIT
 // ════════════════════════════════════════
 function initStudents() {
-    // Parse nickname+id arrays
     const sci=R_SCI.map(s=>{const[nick,rest]=s.split(' (');return{nickname:nick,id:rest.replace(')',''),track:'sci'};});
     const care=R_CARE.map(s=>{const[nick,rest]=s.split(' (');return{nickname:nick,id:rest.replace(')',''),track:'care'};});
-    // Parse real names — keep same order as R_SCI then R_CARE (not sorted)
     const names=RN.split(/(?=นาย|นางสาว)/).filter(n=>n.trim()).map(n=>n.replace(/^นาย|^นางสาว/,'').trim());
-    // Map names BEFORE sorting so index aligns
-    const allUnsorted=[...sci,...care];
-    allUnsorted.forEach((s,i)=>{s.realName=names[i]||'ไม่ระบุ';});
-    // Sort by ID for display only (realName already assigned)
-    window.__students=allUnsorted.sort((a,b)=>a.id.localeCompare(b.id));
+    // RN เรียงตาม ID sort ascending ของทุกคน (Sci+Care รวม) — map หลัง sort
+    const all=[...sci,...care].sort((a,b)=>a.id.localeCompare(b.id));
+    all.forEach((s,i)=>{s.realName=names[i]||'ไม่ระบุ';});
+    window.__students=all;
 }
 initStudents();
 
