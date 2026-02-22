@@ -22,18 +22,19 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .btn-google.big{padding:13px 22px;font-size:0.95rem;width:100%;justify-content:center;}
 
 /* ── NEWS TICKER ── */
-#news-ticker{position:fixed;top:0;left:0;right:0;height:var(--ticker);background:linear-gradient(135deg,#1e293b,#334155);color:#fde68a;font-size:0.74rem;font-weight:600;display:flex;align-items:center;z-index:199;cursor:pointer;overflow:hidden;border-bottom:1px solid #475569;}
-.ticker-label{background:#f59e0b;color:#1e293b;padding:2px 8px;font-weight:800;font-size:0.7rem;white-space:nowrap;flex-shrink:0;height:100%;display:flex;align-items:center;}
-.ticker-scroll{flex:1;overflow:hidden;position:relative;height:100%;}
-.ticker-inner{position:absolute;white-space:nowrap;animation:tickerMove 20s linear infinite;padding:0 12px;line-height:var(--ticker);}
-@keyframes tickerMove{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}
+/* ticker now inline in Play tab */
+.ticker-label{background:#f59e0b;color:#1e293b;padding:3px 9px;font-weight:800;font-size:0.72rem;white-space:nowrap;border-radius:6px 0 0 6px;}
+.ticker-scroll{flex:1;overflow:hidden;position:relative;height:34px;}
+.ticker-inner{position:absolute;white-space:nowrap;animation:tickerMove 22s linear infinite;padding:0 12px;line-height:34px;font-size:0.8rem;}
+@keyframes tickerMove{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 .ticker-inner:hover{animation-play-state:paused;}
+.news-banner{background:linear-gradient(135deg,#1e293b,#334155);color:#fde68a;font-weight:600;display:flex;align-items:center;border-radius:12px;overflow:hidden;cursor:pointer;margin-bottom:10px;height:36px;}
 
 /* ── MAIN ── */
-#main-content{padding:calc(var(--ticker)+8px) 12px calc(var(--btm)+16px);min-height:100vh;}
+#main-content{padding:12px 12px calc(var(--btm)+24px);min-height:100vh;}
 
 /* ── BOTTOM NAV ── */
-#bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--btm);background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -3px 12px rgba(0,0,0,.07);}
+#bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--btm);background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -3px 12px rgba(0,0,0,.07);padding-bottom:env(safe-area-inset-bottom,0px);}
 .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:none;background:none;font-family:inherit;color:var(--muted);font-size:0.67rem;font-weight:600;transition:.15s;padding:5px 2px;}
 .bn-icon{font-size:1.3rem;transition:.15s;}
 .bn-item.active{color:var(--gold);}
@@ -172,10 +173,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 </head>
 <body>
 
-<div id="news-ticker" onclick="openFeed()">
-    <div class="ticker-label">📢 ข่าว</div>
-    <div class="ticker-scroll"><div class="ticker-inner" id="ticker-text">กำลังโหลด...</div></div>
-</div>
+<div id="news-ticker" style="display:none"><div id="ticker-text"></div></div>
 
 <div id="main-content">
     <div style="text-align:center;padding:60px 20px;color:var(--muted)">กำลังโหลด...</div>
@@ -878,7 +876,13 @@ window.closePM=()=>document.getElementById('profile-modal').classList.remove('ac
 // ════════════════════════════════════════
 //  TAB: PLAY
 // ════════════════════════════════════════
-function buildPlay(){return`
+function buildPlay(){
+    const tickerText=document.getElementById('ticker-text')?.textContent||'ยินดีต้อนรับสู่ RxTU10!';
+    return`
+    <div class="news-banner" onclick="openFeed()">
+        <div class="ticker-label">📢 ข่าว</div>
+        <div class="ticker-scroll"><div class="ticker-inner">${tickerText}</div></div>
+    </div>
     <div class="sec-head">🕵️ ทายชื่อจริงเพื่อน</div>
     <div class="card">
         <div id="quiz-start">
