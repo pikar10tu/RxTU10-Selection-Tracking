@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 <style>
-:root{--sci:#2563eb;--care:#10b981;--gold:#f59e0b;--bg:#f0f4f8;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--nav:52px;--ticker:34px;--btm:66px;}
+:root{--sci:#2563eb;--care:#10b981;--gold:#f59e0b;--bg:#f0f4f8;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--nav:52px;--ticker:34px;--btm:66px;--top-offset:106px;}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(--text);}
 
@@ -35,7 +35,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .ticker-inner:hover{animation-play-state:paused;}
 
 /* ── MAIN ── */
-#main-content{padding:calc(var(--nav)+var(--ticker)+16px) 12px calc(var(--btm)+16px);min-height:100vh;}
+#main-content{padding:var(--top-offset) 12px calc(var(--btm)+16px);min-height:100vh;}
 
 /* ── BOTTOM NAV ── */
 #bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--btm);background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -3px 12px rgba(0,0,0,.07);}
@@ -706,7 +706,15 @@ window.answerDQ=async(btn,ans)=>{
 // ════════════════════════════════════════
 //  RENDER ENGINE
 // ════════════════════════════════════════
-window.renderAll=()=>{renderTopBar();renderTab(window.__tab||'home');};
+window.renderAll=()=>{
+    renderTopBar();
+    const tab=window.__tab||'home';
+    // Don't re-render play tab while game is active — it would reset quiz mid-game
+    const quizActive=tab==='play'&&document.getElementById('quiz-play')?.style.display==='block';
+    const dquizActive=tab==='play'&&document.getElementById('dquiz-play')?.style.display==='block';
+    if(quizActive||dquizActive) return;
+    renderTab(tab);
+};
 
 function renderTopBar(){
     const nav=document.getElementById('top-bar');
@@ -956,7 +964,19 @@ function buildShop(){
 // ════════════════════════════════════════
 window.__tab='home';
 loadTicker();
-setInterval(()=>{if(window.__tab==='home')renderTab('home');if(window.__tab==='shop')renderTab('shop');},8000);
+// Hatch timer refresh — only re-render shop egg section, never during active game
+setInterval(()=>{
+    const tab=window.__tab;
+    if(tab==='shop'){
+        const eggs=window.__userData?.eggs||[];
+        if(eggs.some(e=>e.startedAt)) renderTab('shop');
+    }
+    // Home: only refresh egg countdown if NOT playing a game
+    if(tab==='home'){
+        const eggs=window.__userData?.eggs||[];
+        if(eggs.some(e=>e.startedAt)) renderTab('home');
+    }
+},10000);
 
 </script>
 
