@@ -9,7 +9,7 @@
 <style>
 :root{--sci:#2563eb;--care:#10b981;--gold:#f59e0b;--bg:#f0f4f8;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--ticker:34px;--btm:66px;}
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(--text);}
+html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
 
 /* ── TOP BAR ── */
 /* top-bar removed */
@@ -31,7 +31,15 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .news-banner{background:linear-gradient(135deg,#1e293b,#334155);color:#fde68a;font-weight:600;display:flex;align-items:center;border-radius:12px;overflow:hidden;cursor:pointer;margin-bottom:10px;height:36px;}
 
 /* ── MAIN ── */
-#main-content{padding:12px 12px calc(var(--btm)+24px);min-height:100vh;}
+html,body{height:100%;overflow:hidden;}
+#main-content{
+    position:fixed;
+    top:0;left:0;right:0;
+    bottom:var(--btm);
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:12px 12px 24px;
+}
 
 /* ── BOTTOM NAV ── */
 #bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--btm);background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -3px 12px rgba(0,0,0,.07);padding-bottom:env(safe-area-inset-bottom,0px);}
@@ -874,10 +882,18 @@ function memberGrid(){
     if(!list.length)return`<div style="text-align:center;color:var(--muted);padding:24px">ไม่พบ</div>`;
     return`<div class="mgrid">${list.map(s=>{
         const tc=s.track==='sci'?'var(--sci)':'var(--care)';
-        const img=`img/${s.id}.jpg`;const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=128`;
+        const live=window.__fbUsers?.[s.id];
+        const photoSrc=live?.customPhoto||live?.googlePhoto||`img/${s.id}.jpg`;
+        const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=128`;
+        const petData=live?.activePet?(live.pets||[]).find(p=>p.id===live.activePet):null;
+        const petEmoji=petData?petData.emoji:'';
+        const nc=(petData?.effect==='gold_name'||petData?.effect==='all')?'gold-name':(petData?.effect==='rainbow'?'rainbow-name':'');
         return`<div class="mcard" onclick="openProfileModal('${s.id}')">
-            <img src="${img}" onerror="this.onerror=null;this.src='${def}'" class="mc-img">
-            <div class="mc-nick">${s.nickname}</div>
+            <div style="position:relative;width:56px;height:56px;margin-bottom:2px">
+                <img src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:56px;height:56px">
+                ${petEmoji?`<div style="position:absolute;bottom:-3px;right:-3px;font-size:0.9rem;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))">${petEmoji}</div>`:''}
+            </div>
+            <div class="mc-nick ${nc}">${s.nickname}</div>
             <div class="mc-id">${s.id}</div>
             <span class="track-badge sm" style="background:${tc}">${s.track.toUpperCase()}</span>
         </div>`;
