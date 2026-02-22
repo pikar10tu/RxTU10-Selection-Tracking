@@ -7,27 +7,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 <style>
-:root{--sci:#2563eb;--care:#10b981;--gold:#f59e0b;--bg:#f0f4f8;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--nav:52px;--ticker:34px;--btm:66px;--top-offset:106px;}
+:root{--sci:#2563eb;--care:#10b981;--gold:#f59e0b;--bg:#f0f4f8;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--ticker:34px;--btm:66px;}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(--text);}
 
 /* ── TOP BAR ── */
-#top-bar{position:fixed;top:0;left:0;right:0;height:var(--nav);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 12px;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.06);gap:8px;}
-.tb-brand{font-size:1.1rem;font-weight:800;flex-shrink:0;}
-.tb-left{display:flex;align-items:center;gap:7px;cursor:pointer;min-width:0;flex:1;}
-.tb-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0;}
-.tb-name{font-size:0.82rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;}
-.tb-right{display:flex;align-items:center;gap:5px;flex-shrink:0;}
-.coin-pill{background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;padding:3px 8px;border-radius:16px;font-size:0.76rem;font-weight:700;color:#92400e;cursor:pointer;display:flex;align-items:center;gap:2px;white-space:nowrap;}
-.btn-daily{background:none;border:1.5px solid var(--border);padding:3px 7px;border-radius:7px;font-size:0.88rem;cursor:pointer;opacity:.4;transition:.2s;}
+/* top-bar removed */
+.coin-pill{background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;padding:5px 12px;border-radius:16px;font-size:0.88rem;font-weight:700;color:#92400e;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.btn-daily{background:none;border:2px solid var(--border);padding:6px 12px;border-radius:10px;font-size:1rem;cursor:pointer;opacity:.4;transition:.2s;font-family:inherit;}
 .btn-daily.ready{opacity:1;border-color:var(--care);animation:pulse 2s ease infinite;}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-.btn-out{background:none;border:1px solid #fca5a5;color:#ef4444;padding:3px 8px;border-radius:7px;font-family:inherit;font-size:0.72rem;cursor:pointer;}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.btn-out{background:none;border:1.5px solid #fca5a5;color:#ef4444;padding:7px 14px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;width:100%;}
 .btn-google{background:#fff;border:1.5px solid var(--border);padding:6px 11px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--text);font-weight:500;transition:.2s;}
-.btn-google.big{padding:12px 22px;font-size:0.95rem;}
+.btn-google.big{padding:13px 22px;font-size:0.95rem;width:100%;justify-content:center;}
 
 /* ── NEWS TICKER ── */
-#news-ticker{position:fixed;top:var(--nav);left:0;right:0;height:var(--ticker);background:linear-gradient(135deg,#1e293b,#334155);color:#fde68a;font-size:0.74rem;font-weight:600;display:flex;align-items:center;z-index:199;cursor:pointer;overflow:hidden;border-bottom:1px solid #475569;}
+#news-ticker{position:fixed;top:0;left:0;right:0;height:var(--ticker);background:linear-gradient(135deg,#1e293b,#334155);color:#fde68a;font-size:0.74rem;font-weight:600;display:flex;align-items:center;z-index:199;cursor:pointer;overflow:hidden;border-bottom:1px solid #475569;}
 .ticker-label{background:#f59e0b;color:#1e293b;padding:2px 8px;font-weight:800;font-size:0.7rem;white-space:nowrap;flex-shrink:0;height:100%;display:flex;align-items:center;}
 .ticker-scroll{flex:1;overflow:hidden;position:relative;height:100%;}
 .ticker-inner{position:absolute;white-space:nowrap;animation:tickerMove 20s linear infinite;padding:0 12px;line-height:var(--ticker);}
@@ -35,7 +30,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .ticker-inner:hover{animation-play-state:paused;}
 
 /* ── MAIN ── */
-#main-content{padding:var(--top-offset) 12px calc(var(--btm)+16px);min-height:100vh;}
+#main-content{padding:calc(var(--ticker)+8px) 12px calc(var(--btm)+16px);min-height:100vh;}
 
 /* ── BOTTOM NAV ── */
 #bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--btm);background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -3px 12px rgba(0,0,0,.07);}
@@ -176,11 +171,6 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 </style>
 </head>
 <body>
-
-<div id="top-bar">
-    <div class="tb-brand">💊 RxTU10</div>
-    <button class="btn-google" onclick="loginGoogle()">เข้าสู่ระบบ</button>
-</div>
 
 <div id="news-ticker" onclick="openFeed()">
     <div class="ticker-label">📢 ข่าว</div>
@@ -707,33 +697,14 @@ window.answerDQ=async(btn,ans)=>{
 //  RENDER ENGINE
 // ════════════════════════════════════════
 window.renderAll=()=>{
-    renderTopBar();
     const tab=window.__tab||'home';
-    // Don't re-render play tab while game is active — it would reset quiz mid-game
     const quizActive=tab==='play'&&document.getElementById('quiz-play')?.style.display==='block';
     const dquizActive=tab==='play'&&document.getElementById('dquiz-play')?.style.display==='block';
     if(quizActive||dquizActive) return;
     renderTab(tab);
 };
 
-function renderTopBar(){
-    const nav=document.getElementById('top-bar');
-    if(!currentUser){nav.innerHTML=`<div class="tb-brand">💊 RxTU10</div><button class="btn-google" onclick="loginGoogle()"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>เข้าสู่ระบบ</button>`;return;}
-    const pet=activePet();const linked=userData?.studentId;
-    const dn=linked?(userData.nickname?.split(' ')[0]||userData.name):userData?.name||'...';
-    const nc=(pet?.effect==='gold_name'||pet?.effect==='all')?'gold-name':(pet?.effect==='rainbow'?'rainbow-name':'');
-    nav.innerHTML=`
-        <div class="tb-left" onclick="switchTab('home')">
-            <img src="${myPhoto()}" class="tb-avatar" onerror="this.src='https://ui-avatars.com/api/?name=?'">
-            <span class="tb-name ${nc}">${dn}${pet?' '+pet.emoji:''}</span>
-        </div>
-        <div class="tb-right">
-            <div class="coin-pill" onclick="switchTab('shop')">🪙<span>${(userData?.coins||0).toLocaleString()}</span></div>
-            <button id="daily-btn" class="btn-daily" onclick="claimDaily()" title="Daily">🎁</button>
-            <button class="btn-out" onclick="logoutUser()">ออก</button>
-        </div>`;
-    checkDaily();
-}
+function renderTopBar(){} // top-bar removed — login/coin/daily now in Home tab
 
 window.switchTab=(tab)=>{
     window.__tab=tab;
@@ -753,7 +724,14 @@ function renderTab(tab){
 //  TAB: HOME
 // ════════════════════════════════════════
 function buildHome(){
-    if(!currentUser)return`<div class="login-card"><div style="font-size:3.6rem;margin-bottom:12px">💊</div><div style="font-size:1.5rem;font-weight:800;margin-bottom:5px">RxTU10</div><div style="color:var(--muted);margin-bottom:20px;font-size:0.9rem">Class Dashboard — Rx 2565</div><button class="btn-google big" onclick="loginGoogle()"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>Login ด้วย Google</button></div>`;
+    if(!currentUser)return`
+        <div class="login-card">
+            <div style="font-size:4rem;margin-bottom:10px">💊</div>
+            <div style="font-size:1.6rem;font-weight:800;margin-bottom:4px">RxTU10</div>
+            <div style="color:var(--muted);margin-bottom:22px;font-size:0.88rem">Class Dashboard — Rx 2565 | Thammasat</div>
+            <button class="btn-google big" onclick="loginGoogle()">${GOOGLE_SVG}Login ด้วย Google</button>
+            <p style="font-size:0.75rem;color:var(--muted);margin-top:12px">Login แล้วผูกรหัสนักศึกษาเพื่อเข้าถึงทุกฟีเจอร์</p>
+        </div>`;
     const pet=activePet();const tc=userData?.track==='sci'?'var(--sci)':'var(--care)';
     const nc=(pet?.effect==='gold_name'||pet?.effect==='all')?'gold-name':(pet?.effect==='rainbow'?'rainbow-name':'');
     const linked=userData?.studentId;
@@ -763,19 +741,36 @@ function buildHome(){
                 <img src="${myPhoto()}" class="pc-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
                 <button class="pc-cam" onclick="triggerPhoto()">📷</button>
             </div>
-            <div class="pc-info">
+            <div class="pc-info" style="flex:1">
                 <div class="pc-nick ${nc}">${userData.nickname}${pet?' '+pet.emoji:''}</div>
                 <div class="pc-real">${userData.realName}</div>
                 <div class="pc-id">${userData.studentId}</div>
                 <span class="track-badge" style="background:${tc}">${userData.track?.toUpperCase()}</span>
             </div>
         </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+            <div class="coin-pill" onclick="switchTab('shop')">🪙 ${(userData.coins||0).toLocaleString()}</div>
+            <button id="daily-btn" class="btn-daily" onclick="claimDaily()" title="Daily reward">🎁 Daily</button>
+            <button class="btn-out" style="width:auto;padding:6px 14px" onclick="logoutUser()">ออกจากระบบ</button>
+        </div>
         <div class="stats-row">
             <div class="stat-box"><div class="sb-icon">🪙</div><b>${(userData.coins||0).toLocaleString()}</b><small>เหรียญ</small></div>
             <div class="stat-box"><div class="sb-icon">👥</div><b>${userData.quizHigh||0}</b><small>Quiz Hi</small></div>
             <div class="stat-box"><div class="sb-icon">💊</div><b>${userData.drugHigh||0}</b><small>Drug Hi</small></div>
         </div>`
-        :`<div class="unlinked-card"><div class="ul-left"><img src="${myPhoto()}" class="ul-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'"><div><div style="font-weight:700">${userData?.name||''}</div><div style="font-size:0.76rem;color:var(--muted)">ยังไม่ได้ผูกรหัสนักศึกษา</div></div></div><button class="btn-link" onclick="openLinkModal()">🔗 ผูกรหัส</button></div>`;
+        :`<div class="unlinked-card">
+            <div class="ul-left">
+                <img src="${myPhoto()}" class="ul-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
+                <div>
+                    <div style="font-weight:700">${userData?.name||''}</div>
+                    <div style="font-size:0.76rem;color:var(--muted)">ยังไม่ได้ผูกรหัสนักศึกษา</div>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+                <button class="btn-link" onclick="openLinkModal()">🔗 ผูกรหัส</button>
+                <button class="btn-out" style="font-size:0.7rem;padding:4px 8px" onclick="logoutUser()">ออก</button>
+            </div>
+        </div>`;
 
     // Inventory: hatching eggs first
     const eggs=userData?.eggs||[];const pets=userData?.pets||[];const now=Date.now();
