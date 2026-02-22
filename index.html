@@ -6,842 +6,173 @@
 <title>RxTU10</title>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot,
-         collection, getDocs, increment, serverTimestamp, arrayUnion }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyAlmHZZ3JixrQlH7PyMa_QqQuDPEN4RJBE",
-    authDomain: "rxtu10dashboard.firebaseapp.com",
-    projectId: "rxtu10dashboard",
-    storageBucket: "rxtu10dashboard.firebasestorage.app",
-    messagingSenderId: "485847555600",
-    appId: "1:485847555600:web:1ee57ea6044c687b10b495",
-    measurementId: "G-RPJ8V0XM19"
-};
-
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db   = getFirestore(app);
-const provider = new GoogleAuthProvider();
-
-const RARITY = {
-    common:    { color:"#64748b", bg:"#f1f5f9", label:"COMMON",    glow:"#94a3b8" },
-    rare:      { color:"#3b82f6", bg:"#eff6ff", label:"RARE",      glow:"#60a5fa" },
-    epic:      { color:"#a855f7", bg:"#faf5ff", label:"EPIC",      glow:"#c084fc" },
-    legendary: { color:"#f59e0b", bg:"#fffbeb", label:"LEGENDARY", glow:"#fbbf24" },
-};
-
-// hatchMins = เวลาฟักเป็นนาที
-const PETS = [
-    { id:"cat",       emoji:"🐱", name:"น้องแมว",     rarity:"common",    effect:"none",       desc:"เพื่อนซี้น่ารัก ไม่มี effect พิเศษ แต่ cute มาก",  rate:0.20, hatchMins:5   },
-    { id:"rabbit",    emoji:"🐰", name:"กระต่าย",    rarity:"common",    effect:"none",       desc:"ขนฟู นิสัยดี ไม่มี effect พิเศษ",                   rate:0.15, hatchMins:5   },
-    { id:"hamster",   emoji:"🐹", name:"แฮมสเตอร์",  rarity:"common",    effect:"none",       desc:"วิ่งล้อทั้งวัน ไม่มี effect พิเศษ",                 rate:0.15, hatchMins:5   },
-    { id:"fox",       emoji:"🦊", name:"จิ้งจอก",    rarity:"rare",      effect:"coin+10",    desc:"+10% เหรียญจากเกมทุกครั้ง",                         rate:0.12, hatchMins:60  },
-    { id:"owl",       emoji:"🦉", name:"นกฮูก",      rarity:"rare",      effect:"coin+15",    desc:"+15% เหรียญจากเกมทุกครั้ง",                         rate:0.10, hatchMins:60  },
-    { id:"panda",     emoji:"🐼", name:"แพนด้า",     rarity:"rare",      effect:"score+5",    desc:"+5 คะแนนโบนัสต่อข้อใน Quiz",                       rate:0.08, hatchMins:60  },
-    { id:"dragon",    emoji:"🐲", name:"มังกรน้อย",  rarity:"epic",      effect:"coinx2",     desc:"เหรียญ x2 จากเกมทุกประเภท",                        rate:0.06, hatchMins:180 },
-    { id:"unicorn",   emoji:"🦄", name:"ยูนิคอร์น",  rarity:"epic",      effect:"scorex2",    desc:"คะแนน Quiz x2 ทุกข้อ",                             rate:0.05, hatchMins:180 },
-    { id:"phoenix",   emoji:"🦅", name:"ฟีนิกซ์",   rarity:"epic",      effect:"daily50",    desc:"+50 เหรียญ daily รับอัตโนมัติทุกวัน",              rate:0.04, hatchMins:180 },
-    { id:"kirin",     emoji:"🦁", name:"ไคริน",      rarity:"legendary", effect:"gold_name",  desc:"ชื่อเรืองแสงสีทอง ✨ เท่สุด",                       rate:0.02, hatchMins:1440},
-    { id:"bahamut",   emoji:"🐉", name:"พาฮามุท",    rarity:"legendary", effect:"all",        desc:"เหรียญ x3 + คะแนน x2 + ชื่อสีรุ้ง รวมทุก effect!", rate:0.02, hatchMins:1440},
-    { id:"celestial", emoji:"🌟", name:"เซเลสเชียล", rarity:"legendary", effect:"rainbow",    desc:"ชื่อไล่สีรุ้ง + daily 100 เหรียญอัตโนมัติ",         rate:0.01, hatchMins:1440},
-];
-const HATCH_LABELS = { common:"5 นาที", rare:"1 ชั่วโมง", epic:"3 ชั่วโมง", legendary:"24 ชั่วโมง" };
-
-const EGG_COST = 100;
-let currentUser = null, userData = null, unsub = null;
-
-// ── AUTH ──
-window.loginGoogle = async () => {
-    try {
-        provider.setCustomParameters({ prompt:'select_account' });
-        const r = await signInWithPopup(auth, provider);
-        await ensureDoc(r.user);
-    } catch(e) { if (e.code !== 'auth/popup-closed-by-user') toast("Login ไม่สำเร็จ","error"); }
-};
-window.logoutUser = async () => { await signOut(auth); currentUser=userData=null; renderAll(); };
-
-async function ensureDoc(u) {
-    const ref = doc(db,"users",u.uid);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-        await setDoc(ref,{ uid:u.uid, name:u.displayName, email:u.email, googlePhoto:u.photoURL,
-            customPhoto:null, coins:200, pets:[], activePet:null,
-            studentId:null, nickname:null, realName:null, track:null,
-            quizHigh:0, lastDaily:null, petLastDaily:null, createdAt:serverTimestamp() });
-    }
-}
-
-onAuthStateChanged(auth, async u => {
-    currentUser = u;
-    if (u) {
-        await ensureDoc(u);
-        if (unsub) unsub();
-        unsub = onSnapshot(doc(db,"users",u.uid), snap => { userData=snap.data(); renderAll(); checkDaily(); });
-    } else { renderAll(); }
-});
-
-// ── DAILY ──
-async function checkDaily() {
-    if (!currentUser||!userData) return;
-    const last = userData.lastDaily?.toDate?.();
-    const now = new Date();
-    const btn = document.getElementById('daily-btn');
-    if (btn) btn.classList.toggle('ready', !last||(now-last)>23*3600000);
-    const pet = activePet();
-    if (pet?.effect==='daily50'||pet?.effect==='all'||pet?.effect==='rainbow') {
-        const pl = userData.petLastDaily?.toDate?.();
-        if (!pl||(now-pl)>23*3600000) {
-            const b = pet.effect==='all'?100:pet.effect==='rainbow'?100:50;
-            await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(b),petLastDaily:serverTimestamp()});
-            toast(`${pet.emoji} ${pet.name} ให้ daily +${b} เหรียญ!`,"success");
-        }
-    }
-}
-window.claimDaily = async () => {
-    if (!currentUser) return;
-    const btn = document.getElementById('daily-btn');
-    if (!btn?.classList.contains('ready')) { toast("รับได้อีกครั้งพรุ่งนี้!","info"); return; }
-    const pet = activePet(); let base=30;
-    if (pet?.effect==='coin+10') base=33;
-    if (pet?.effect==='coin+15') base=35;
-    if (pet?.effect==='coinx2'||pet?.effect==='all') base=60;
-    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(base),lastDaily:serverTimestamp()});
-    btn.classList.remove('ready');
-    toast(`🎁 รับ Daily +${base} เหรียญ!`,"success");
-    confetti({particleCount:80,spread:60,origin:{y:0.6}});
-};
-
-// ── HELPERS ──
-function activePet() {
-    if (!userData?.activePet||!userData?.pets) return null;
-    return userData.pets.find(p=>p.id===userData.activePet)||null;
-}
-function coinMulti() {
-    const p=activePet(); if(!p) return 1;
-    if(p.effect==='coin+10') return 1.1;
-    if(p.effect==='coin+15') return 1.15;
-    if(p.effect==='coinx2') return 2;
-    if(p.effect==='all') return 3;
-    return 1;
-}
-function scoreMulti() { const p=activePet(); return (p?.effect==='scorex2'||p?.effect==='all')?2:1; }
-function scoreBonus() { return activePet()?.effect==='score+5'?5:0; }
-window.awardCoins = async (base) => {
-    if (!currentUser) return base;
-    const final = Math.floor(base*coinMulti());
-    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(final)});
-    if (final!==base) toast(`${activePet().emoji} Effect! +${final} แทน +${base}`,"success");
-    return final;
-};
-
-// ── LINK ──
-window.openLinkModal = () => {
-    if (!currentUser) { toast("กรุณา Login ก่อน","error"); return; }
-    document.getElementById('link-input').value='';
-    document.getElementById('link-error').textContent='';
-    document.getElementById('link-preview').style.display='none';
-    document.getElementById('link-modal').classList.add('active');
-};
-window.closeLinkModal = () => document.getElementById('link-modal').classList.remove('active');
-window.previewLink = () => {
-    const val=document.getElementById('link-input').value.trim();
-    const found=window.__students?.find(s=>s.id===val);
-    const err=document.getElementById('link-error');
-    const prev=document.getElementById('link-preview');
-    if (!found) { err.textContent='ไม่พบรหัสนี้ กรุณาตรวจสอบ'; prev.style.display='none'; return; }
-    err.textContent='';
-    document.getElementById('lp-nick').textContent=found.nickname;
-    document.getElementById('lp-name').textContent=found.realName;
-    const tb=document.getElementById('lp-track');
-    tb.textContent=found.track.toUpperCase();
-    tb.style.background=found.track==='sci'?'var(--sci)':'var(--care)';
-    prev.style.display='block'; prev.dataset.sid=val;
-};
-window.confirmLink = async () => {
-    const prev=document.getElementById('link-preview');
-    if (prev.style.display==='none') { toast("ตรวจสอบรหัสก่อน","error"); return; }
-    const sid=prev.dataset.sid;
-    const found=window.__students?.find(s=>s.id===sid);
-    if (!found||!currentUser) return;
-    const all=await getDocs(collection(db,"users"));
-    let claimed=false;
-    all.forEach(d=>{ if(d.data().studentId===sid&&d.id!==currentUser.uid) claimed=true; });
-    if (claimed) { toast("รหัสนี้ถูกใช้แล้ว ติดต่อ admin","error"); return; }
-    await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track});
-    closeLinkModal();
-    toast(`ยินดีต้อนรับ ${found.nickname}!`,"success");
-    confetti({particleCount:120,spread:70,origin:{y:0.5}});
-};
-
-// ── PHOTO UPLOAD ──
-window.triggerPhoto = () => document.getElementById('photo-input').click();
-window.handlePhoto = async (e) => {
-    const file=e.target.files[0];
-    if (!file||!currentUser) return;
-    if (file.size>800*1024) { toast("รูปใหญ่เกิน 800KB","error"); return; }
-    toast("กำลังอัพโหลด...","info");
-    const reader=new FileReader();
-    reader.onload=ev=>{
-        const img=new Image();
-        img.onload=async()=>{
-            const canvas=document.createElement('canvas');
-            const MAX=300; let w=img.width,h=img.height;
-            if(w>h){if(w>MAX){h=h*(MAX/w);w=MAX;}}else{if(h>MAX){w=w*(MAX/h);h=MAX;}}
-            canvas.width=w; canvas.height=h;
-            canvas.getContext('2d').drawImage(img,0,0,w,h);
-            const b64=canvas.toDataURL('image/jpeg',0.75);
-            await updateDoc(doc(db,"users",currentUser.uid),{customPhoto:b64});
-            toast("อัพโหลดรูปสำเร็จ!","success");
-        };
-        img.src=ev.target.result;
-    };
-    reader.readAsDataURL(file);
-    e.target.value='';
-};
-function myPhoto() {
-    if (!userData) return null;
-    return userData.customPhoto||userData.googlePhoto||
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name||'?')}&size=256`;
-}
-
-// ── GACHA ──
-function rollPet() {
-    const r=Math.random(); let c=0;
-    for(const p of PETS){c+=p.rate;if(r<=c)return{...p,instId:Date.now()+Math.random()};}
-    return {...PETS[0],instId:Date.now()};
-}
-
-// ซื้อไข่ → เก็บไว้ใน eggs[] ยังไม่ฟัก
-window.buyEgg = async () => {
-    if (!currentUser||!userData) { toast("กรุณา Login","error"); return; }
-    if (userData.coins<EGG_COST) { toast(`เหรียญไม่พอ! ต้องการ ${EGG_COST}🪙`,"error"); return; }
-    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(-EGG_COST)});
-    // pre-roll ผลลัพธ์แต่ซ่อนไว้ใน egg object
-    const pet=rollPet();
-    const egg = {
-        eggId: Date.now()+'_'+Math.random().toString(36).slice(2),
-        petId:pet.id, petEmoji:pet.emoji, petName:pet.name,
-        petRarity:pet.rarity, petEffect:pet.effect, petDesc:pet.desc, petInstId:pet.instId,
-        hatchMins:pet.hatchMins,
-        startedAt:null, // null = ยังไม่ได้เริ่มฟัก
-    };
-    const eggs=[...(userData.eggs||[]), egg];
-    await updateDoc(doc(db,"users",currentUser.uid),{eggs});
-    toast("🥚 ได้ไข่ปริศนาแล้ว! ไปที่ Home > Inventory เพื่อฟัก","success");
-    renderAll();
-};
-
-// เริ่มฟักไข่
-window.startHatch = async (eggId) => {
-    if (!currentUser||!userData) return;
-    const eggs=(userData.eggs||[]).map(e=>
-        e.eggId===eggId ? {...e, startedAt: Date.now()} : e
-    );
-    await updateDoc(doc(db,"users",currentUser.uid),{eggs});
-    toast("🔥 เริ่มฟักแล้ว! รอจนครบเวลา","info");
-};
-
-// เช็คและ claim ไข่ที่ฟักเสร็จ
-window.claimEgg = async (eggId) => {
-    if (!currentUser||!userData) return;
-    const egg=(userData.eggs||[]).find(e=>e.eggId===eggId);
-    if (!egg||!egg.startedAt) return;
-    const now=Date.now();
-    const done=egg.startedAt + egg.hatchMins*60000;
-    if (now<done) { toast("ยังฟักไม่เสร็จ!","error"); return; }
-    // ฟักเสร็จ → ย้ายเป็น pet จริง
-    const newEggs=(userData.eggs||[]).filter(e=>e.eggId!==eggId);
-    const pet={id:egg.petId,emoji:egg.petEmoji,name:egg.petName,rarity:egg.petRarity,effect:egg.petEffect,desc:egg.petDesc,instId:egg.petInstId};
-    await updateDoc(doc(db,"users",currentUser.uid),{eggs:newEggs, pets:arrayUnion(pet)});
-    showGachaResult(pet);
-};
-
-function showGachaResult(pet) {
-    const cfg=RARITY[pet.rarity];
-    document.getElementById('gacha-result').innerHTML=`
-        <div class="gacha-inner" style="--glow:${cfg.glow}">
-            <div class="gr-badge" style="background:${cfg.color}">${cfg.label}</div>
-            <div class="gr-emoji">${pet.emoji}</div>
-            <div class="gr-name">${pet.name}</div>
-            <div class="gr-desc">${pet.desc}</div>
-            <div class="gr-btns">
-                <button class="btn-gold" onclick="setActive('${pet.id}');closeGacha()">ใช้งานเลย!</button>
-                <button class="btn-gray" onclick="closeGacha()">เก็บไว้ก่อน</button>
-            </div>
-        </div>`;
-    document.getElementById('gacha-modal').classList.add('active');
-    const colors=pet.rarity==='legendary'?['#f59e0b','#fbbf24','#fff']:
-                 pet.rarity==='epic'?['#a855f7','#c084fc','#fff']:
-                 pet.rarity==='rare'?['#3b82f6','#60a5fa','#fff']:['#94a3b8','#cbd5e1'];
-    confetti({particleCount:pet.rarity==='legendary'?200:pet.rarity==='epic'?120:60,spread:80,origin:{y:0.5},colors});
-}
-window.closeGacha = () => document.getElementById('gacha-modal').classList.remove('active');
-
-window.setActive = async (id) => {
-    if (!currentUser) return;
-    await updateDoc(doc(db,"users",currentUser.uid),{activePet:id});
-    toast("เปลี่ยนสัตว์เลี้ยงแล้ว!","success");
-};
-window.unsetActive = async () => {
-    if (!currentUser) return;
-    await updateDoc(doc(db,"users",currentUser.uid),{activePet:null});
-    toast("เก็บสัตว์เลี้ยงแล้ว","info");
-};
-
-// Pet info popup
-window.showPetInfo = (petId) => {
-    const p=PETS.find(x=>x.id===petId)||(userData?.pets||[]).find(x=>x.id===petId);
-    if (!p) return;
-    const cfg=RARITY[p.rarity];
-    document.getElementById('petinfo-content').innerHTML=`
-        <div style="text-align:center">
-            <div class="gr-badge" style="background:${cfg.color};display:inline-block;margin-bottom:10px">${cfg.label}</div>
-            <div style="font-size:3.5rem;margin:6px 0;filter:drop-shadow(0 0 12px ${cfg.glow})">${p.emoji}</div>
-            <div style="font-size:1.3rem;font-weight:800;margin-bottom:4px">${p.name}</div>
-            <div style="color:var(--muted);font-size:0.85rem;margin-bottom:12px">เวลาฟัก: ${HATCH_LABELS[p.rarity]||''}</div>
-            <div style="background:${cfg.bg};border:1.5px solid ${cfg.color}33;border-radius:12px;padding:12px;font-size:0.9rem;color:var(--text)">
-                ✨ <b>ความสามารถ:</b><br><span style="color:${cfg.color};font-weight:600">${p.desc}</span>
-            </div>
-        </div>`;
-    const isActive=userData?.activePet===p.id;
-    document.getElementById('petinfo-actions').innerHTML=`
-        <button class="btn-gold" style="flex:1" onclick="${isActive?"unsetActive()":"setActive('"+p.id+"')"};closePetInfo()">${isActive?"🔴 เอาออก":"🟢 ใช้งาน"}</button>
-        <button class="btn-gray" style="flex:1" onclick="closePetInfo()">ปิด</button>`;
-    document.getElementById('petinfo-modal').classList.add('active');
-};
-window.closePetInfo = () => document.getElementById('petinfo-modal').classList.remove('active');
-
-// ── TRADE ──
-let tradeIdx=null;
-window.openTrade=()=>{ if(!currentUser){toast("Login ก่อน","error");return;} tradeIdx=null; renderTradeList(); document.getElementById('trade-panel').classList.add('active'); };
-window.closeTrade=()=>document.getElementById('trade-panel').classList.remove('active');
-function renderTradeList(){
-    const el=document.getElementById('trade-pets');
-    if(!userData?.pets?.length){el.innerHTML='<p style="color:#94a3b8;text-align:center;padding:10px">ยังไม่มีสัตว์เลี้ยง</p>';return;}
-    el.innerHTML=userData.pets.map((p,i)=>{const c=RARITY[p.rarity];return `<div class="trade-item${tradeIdx===i?' sel':''}" onclick="pickTrade(${i})"><span style="font-size:1.5rem">${p.emoji}</span><div><div style="font-weight:600;font-size:0.85rem">${p.name}</div><div style="color:${c.color};font-size:0.7rem;font-weight:700">${c.label}</div></div></div>`;}).join('');
-}
-window.pickTrade=i=>{tradeIdx=i;renderTradeList();};
-window.sendTrade=async()=>{
-    const email=document.getElementById('trade-email').value.trim();
-    if(!email||tradeIdx===null){toast("เลือกสัตว์เลี้ยงและใส่ email","error");return;}
-    const pet=userData.pets[tradeIdx];
-    const all=await getDocs(collection(db,"users"));
-    let target=null; all.forEach(d=>{if(d.data().email===email)target=d;});
-    if(!target){toast("ไม่พบผู้ใช้นี้","error");return;}
-    const newPets=userData.pets.filter((_,i)=>i!==tradeIdx);
-    await setDoc(doc(db,"users",currentUser.uid),{pets:newPets},{merge:true});
-    await updateDoc(doc(db,"users",target.id),{pets:arrayUnion(pet)});
-    toast(`ส่ง ${pet.emoji}${pet.name} ให้ ${email} แล้ว!`,"success");
-    closeTrade(); tradeIdx=null;
-};
-
-// ── QUIZ ──
-let qScore=0, qAnswer=null;
-window.startQuiz=()=>{
-    qScore=0; document.getElementById('q-score').textContent='0';
-    document.getElementById('quiz-start').style.display='none';
-    document.getElementById('quiz-play').style.display='block';
-    nextQ();
-};
-window.nextQ=()=>{
-    const s=window.__students; if(!s?.length) return;
-    const st=s[Math.floor(Math.random()*s.length)];
-    qAnswer=st.realName;
-    document.getElementById('q-nick').textContent=st.nickname.split(' ')[0];
-    let opts=[qAnswer];
-    while(opts.length<4){const w=s[Math.floor(Math.random()*s.length)].realName;if(!opts.includes(w))opts.push(w);}
-    opts.sort(()=>Math.random()-0.5);
-    document.getElementById('q-opts').innerHTML=opts.map(o=>`<button class="q-btn" onclick="answerQ(this,'${o.replace(/'/g,"\\'")}')">${o}</button>`).join('');
-};
-window.answerQ=async(btn,ans)=>{
-    document.querySelectorAll('.q-btn').forEach(b=>{
-        b.disabled=true;
-        if(b.textContent===ans)b.classList.add(ans===qAnswer?'correct':'wrong');
-        if(b.textContent===qAnswer)b.classList.add('correct');
-    });
-    if(ans===qAnswer){
-        qScore++;
-        document.getElementById('q-score').textContent=qScore*scoreMulti()+scoreBonus();
-        await window.awardCoins(5);
-        confetti({particleCount:30,spread:50,origin:{y:0.7},colors:['#10b981']});
-        setTimeout(nextQ,700);
-    } else {
-        if(currentUser&&qScore>(userData?.quizHigh||0))
-            await updateDoc(doc(db,"users",currentUser.uid),{quizHigh:qScore});
-        setTimeout(()=>{
-            document.getElementById('quiz-start').style.display='block';
-            document.getElementById('quiz-play').style.display='none';
-            document.getElementById('q-msg').innerHTML=`ชื่อจริงคือ <b>${qAnswer}</b> | ไฮสกอร์: ${Math.max(qScore,userData?.quizHigh||0)}`;
-        },1000);
-    }
-};
-
-// ── RENDER ENGINE ──
-window.renderAll=()=>{ renderTopBar(); renderTab(window.__tab||'home'); };
-
-function renderTopBar() {
-    const nav=document.getElementById('top-bar');
-    if (!currentUser) {
-        nav.innerHTML=`<div class="tb-brand">💊 RxTU10</div>
-            <button class="btn-google" onclick="loginGoogle()">
-                <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                เข้าสู่ระบบ
-            </button>`;
-        return;
-    }
-    const pet=activePet();
-    const linked=userData?.studentId;
-    const dn=linked?(userData.nickname?.split(' ')[0]||userData.name):userData?.name||'...';
-    const nc=(pet?.effect==='gold_name'||pet?.effect==='all')?'gold-name':(pet?.effect==='rainbow'?'rainbow-name':'');
-    nav.innerHTML=`
-        <div class="tb-left" onclick="switchTab('home')">
-            <img src="${myPhoto()}" class="tb-avatar" onerror="this.src='https://ui-avatars.com/api/?name=?'">
-            <span class="tb-name ${nc}">${dn}${pet?' '+pet.emoji:''}</span>
-        </div>
-        <div class="tb-right">
-            <div class="coin-pill" onclick="switchTab('shop')">🪙<span id="coin-count">${(userData?.coins||0).toLocaleString()}</span></div>
-            <button id="daily-btn" class="btn-daily" onclick="claimDaily()" title="Daily reward">🎁</button>
-            <button class="btn-out" onclick="logoutUser()">ออก</button>
-        </div>`;
-    checkDaily();
-}
-
-window.switchTab=(tab)=>{
-    window.__tab=tab;
-    document.querySelectorAll('.bn-item').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));
-    renderTab(tab);
-    window.scrollTo({top:0,behavior:'smooth'});
-};
-
-function renderTab(tab) {
-    const main=document.getElementById('main-content');
-    if(tab==='home')    {main.innerHTML=buildHome();}
-    if(tab==='members') {main.innerHTML=buildMembers();}
-    if(tab==='play')    {main.innerHTML=buildPlay(); setTimeout(nextDrug,50);}
-    if(tab==='shop')    {main.innerHTML=buildShop();}
-}
-
-// ── HOME TAB ──
-function buildHome() {
-    if (!currentUser) return `<div class="login-card">
-        <div style="font-size:4rem;margin-bottom:16px">💊</div>
-        <div style="font-size:1.6rem;font-weight:800;margin-bottom:6px">RxTU10</div>
-        <div style="color:var(--muted);margin-bottom:24px;font-size:0.95rem">Class Dashboard — Rx 2565</div>
-        <button class="btn-google big" onclick="loginGoogle()">
-            <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-            Login ด้วย Google
-        </button>
-        <p style="font-size:0.78rem;color:var(--muted);margin-top:14px">Login แล้วผูกรหัสนักศึกษาเพื่อเข้าถึงทุกฟีเจอร์</p>
-    </div>`;
-
-    const pet=activePet(); const linked=userData?.studentId;
-    const tc=userData?.track==='sci'?'var(--sci)':'var(--care)';
-    const nc=(pet?.effect==='gold_name'||pet?.effect==='all')?'gold-name':(pet?.effect==='rainbow'?'rainbow-name':'');
-
-    const profileBlock = linked ? `
-        <div class="profile-card">
-            <div class="pc-img-wrap">
-                <img src="${myPhoto()}" class="pc-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
-                <button class="pc-cam" onclick="triggerPhoto()" title="เปลี่ยนรูป">📷</button>
-            </div>
-            <div class="pc-info">
-                <div class="pc-nick ${nc}">${userData.nickname}${pet?' '+pet.emoji:''}</div>
-                <div class="pc-real">${userData.realName}</div>
-                <div class="pc-id">${userData.studentId}</div>
-                <span class="track-badge" style="background:${tc}">${userData.track?.toUpperCase()}</span>
-            </div>
-        </div>
-        <div class="stats-row">
-            <div class="stat-box"><div class="sb-icon">🪙</div><b>${(userData.coins||0).toLocaleString()}</b><small>เหรียญ</small></div>
-            <div class="stat-box"><div class="sb-icon">🏆</div><b>${userData.quizHigh||0}</b><small>ไฮสกอร์</small></div>
-            <div class="stat-box"><div class="sb-icon">🐾</div><b>${userData.pets?.length||0}</b><small>สัตว์เลี้ยง</small></div>
-        </div>` :
-        `<div class="unlinked-card">
-            <div class="ul-left">
-                <img src="${myPhoto()}" class="ul-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
-                <div>
-                    <div style="font-weight:700">${userData?.name||''}</div>
-                    <div style="font-size:0.8rem;color:var(--muted)">ยังไม่ได้ผูกรหัสนักศึกษา</div>
-                </div>
-            </div>
-            <button class="btn-link" onclick="openLinkModal()">🔗 ผูกรหัส</button>
-        </div>`;
-
-    const pets = userData?.pets||[];
-    const invBlock = pets.length===0 ?
-        `<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ไปที่ 🛒 Shop เพื่อฟักไข่!</div>` :
-        `<div class="inv-grid">${pets.map(p=>{
-            const cfg=RARITY[p.rarity]; const on=p.id===userData?.activePet;
-            return `<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg}" onclick="showPetInfo('${p.id}')">
-                <div class="inv-em">${p.emoji}</div>
-                <div class="inv-nm">${p.name}</div>
-                <div style="font-size:0.58rem;color:${cfg.color};font-weight:700">${cfg.label}</div>
-                ${on?'<div class="inv-on">ON</div>':''}
-            </div>`;
-        }).join('')}</div>
-        <div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
-            ${userData?.activePet?`<button class="btn-gray small" onclick="unsetActive()">เอาออก</button>`:''}
-            ${pets.length?`<button class="btn-gray small" onclick="openTrade()">🔄 Trade</button>`:''}
-        </div>`;
-
-    return `${profileBlock}
-        <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhoto(event)">
-        <div class="sec-head">🎒 Inventory</div>
-        <div class="card">${invBlock}</div>`;
-}
-
-// ── MEMBERS TAB ──
-let mTrack='all', mSearch='';
-function buildMembers() {
-    const all=window.__students||[];
-    const sci=all.filter(s=>s.track==='sci').length;
-    const care=all.filter(s=>s.track==='care').length;
-    const tot=all.length;
-    return `
-        <div class="card" style="margin-bottom:10px">
-            <div style="font-weight:700;font-size:1rem;text-align:center;margin-bottom:10px">💊 RxTU10 — ${tot} คน</div>
-            <div class="prog-bar-wrap">
-                <div class="prog-bar">
-                    <div class="pb-sci" style="width:${(sci/tot*100).toFixed(1)}%"></div>
-                    <div class="pb-care" style="width:${(care/tot*100).toFixed(1)}%"></div>
-                </div>
-                <div class="prog-lbls">
-                    <span style="color:var(--sci)">Sci ${sci}</span>
-                    <span style="color:var(--care)">Care ${care}</span>
-                </div>
-            </div>
-        </div>
-        <div class="filter-row">
-            <button class="fbtn${mTrack==='all'?' fa':''}" onclick="mFilter('all')">รวม ${tot}</button>
-            <button class="fbtn${mTrack==='sci'?' fs':''}" onclick="mFilter('sci')">Sci ${sci}</button>
-            <button class="fbtn${mTrack==='care'?' fc':''}" onclick="mFilter('care')">Care ${care}</button>
-        </div>
-        <div class="search-box"><input class="srch-inp" id="msearch" placeholder="🔍 ค้นหาชื่อหรือรหัส..." value="${mSearch}" oninput="mSearchFn(this.value)"></div>
-        <div id="mgrid">${memberGrid()}</div>`;
-}
-function memberGrid() {
-    let list=window.__students||[];
-    if(mTrack!=='all') list=list.filter(s=>s.track===mTrack);
-    if(mSearch){const q=mSearch.toLowerCase();list=list.filter(s=>s.nickname.toLowerCase().includes(q)||s.id.includes(q)||s.realName.toLowerCase().includes(q));}
-    return `<div class="mgrid">${list.map(s=>{
-        const tc=s.track==='sci'?'var(--sci)':'var(--care)';
-        const img=`img/${s.id}.jpg`;
-        const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=128`;
-        return `<div class="mcard" onclick="openProfileModal('${s.id}')">
-            <img src="${img}" onerror="this.onerror=null;this.src='${def}'" class="mc-img">
-            <div class="mc-nick">${s.nickname}</div>
-            <div class="mc-id">${s.id}</div>
-            <span class="track-badge small" style="background:${tc}">${s.track.toUpperCase()}</span>
-        </div>`;
-    }).join('')}</div>`;
-}
-window.mFilter=t=>{mTrack=t;const g=document.getElementById('mgrid');if(g)g.innerHTML=memberGrid();};
-window.mSearchFn=v=>{mSearch=v;const g=document.getElementById('mgrid');if(g)g.innerHTML=memberGrid();};
-window.openProfileModal=async(id)=>{
-    const s=window.__students?.find(x=>x.id===id);if(!s)return;
-    const tc=s.track==='sci'?'var(--sci)':'var(--care)';
-    const img=`img/${s.id}.jpg`;
-    const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=256`;
-    // Show static data first
-    document.getElementById('pm-content').innerHTML=`
-        <img src="${img}" onerror="this.onerror=null;this.src='${def}'" class="pm-img" id="pm-photo">
-        <div class="pm-nick" id="pm-nick">${s.nickname}</div>
-        <div class="pm-real">${s.realName}</div>
-        <div class="pm-id">${s.id}</div>
-        <span class="track-badge" style="background:${tc};margin-bottom:10px;display:inline-block">${s.track.toUpperCase()}</span>
-        <div id="pm-live" style="margin-top:8px;color:var(--muted);font-size:0.82rem">กำลังโหลด...</div>`;
-    document.getElementById('profile-modal').classList.add('active');
-    // Fetch live Firebase data
-    try {
-        const all=await getDocs(collection(db,"users"));
-        let liveData=null;
-        all.forEach(d=>{ if(d.data().studentId===id) liveData=d.data(); });
-        const lv=document.getElementById('pm-live');
-        if (!lv) return;
-        if (!liveData) { lv.textContent='ยังไม่ได้ login'; return; }
-        // Update photo if they have custom/google photo
-        const photo=liveData.customPhoto||liveData.googlePhoto;
-        if (photo) document.getElementById('pm-photo').src=photo;
-        // Apply name effect
-        const petData=liveData.activePet?(liveData.pets||[]).find(p=>p.id===liveData.activePet):null;
-        const nc=(petData?.effect==='gold_name'||petData?.effect==='all')?'gold-name':(petData?.effect==='rainbow'?'rainbow-name':'');
-        const nickEl=document.getElementById('pm-nick');
-        if (nickEl && nc) nickEl.className='pm-nick '+nc;
-        lv.innerHTML=`
-            <div class="pm-stats">
-                <div class="pm-stat"><span>🪙</span><b>${(liveData.coins||0).toLocaleString()}</b><small>เหรียญ</small></div>
-                <div class="pm-stat"><span>🏆</span><b>${liveData.quizHigh||0}</b><small>ไฮสกอร์</small></div>
-                <div class="pm-stat"><span>🐾</span><b>${(liveData.pets||[]).length}</b><small>สัตว์เลี้ยง</small></div>
-            </div>
-            ${petData?`<div class="pm-pet-row">
-                <div style="font-size:2rem">${petData.emoji}</div>
-                <div>
-                    <div style="font-weight:700;font-size:0.9rem">${petData.name}</div>
-                    <div style="font-size:0.75rem;color:var(--muted)">${petData.desc}</div>
-                </div>
-            </div>`:'<div style="color:var(--muted);font-size:0.82rem">ยังไม่มีสัตว์เลี้ยง active</div>'}`;
-    } catch(e) { const lv=document.getElementById('pm-live'); if(lv) lv.textContent=''; }
-};
-window.closePM=()=>document.getElementById('profile-modal').classList.remove('active');
-
-// ── PLAY TAB ──
-function buildPlay() {
-    return `
-        <div class="sec-head">🕵️ ทายชื่อจริงเพื่อน</div>
-        <div class="card">
-            <div id="quiz-start">
-                <p id="q-msg" style="color:var(--muted);font-size:0.88rem;text-align:center;margin-bottom:14px">ทายชื่อจริงเพื่อนให้ถูกต่อเนื่อง — ได้เหรียญด้วย 🪙</p>
-                <button class="btn-gold full" onclick="startQuiz()">▶ เริ่มเกม!</button>
-            </div>
-            <div id="quiz-play" style="display:none">
-                <div style="font-size:0.88rem;color:var(--muted);margin-bottom:8px">คะแนน: <b id="q-score" style="color:var(--gold);font-size:1.1rem">0</b></div>
-                <div class="q-nick" id="q-nick">...</div>
-                <div class="q-grid" id="q-opts"></div>
-            </div>
-        </div>
-        <div class="sec-head">💊 ทายยา (50 Drugs)</div>
-        <div class="card">
-            <div class="flashcard" onclick="flipCard()">
-                <div id="fc-front" style="font-size:1.5rem;font-weight:800">???</div>
-                <div id="fc-back" style="display:none;font-size:0.95rem;color:var(--care);font-weight:600;margin-top:8px"></div>
-                <div id="fc-hint" style="font-size:0.75rem;color:var(--muted);margin-top:10px">แตะเพื่อเฉลย</div>
-            </div>
-            <button class="btn-gray full" style="margin-top:10px" onclick="nextDrug()">สุ่มยาใหม่ 🔄</button>
-        </div>`;
-}
-
-// ── SHOP TAB ──
-function buildShop() {
-    const coins=userData?.coins||0;
-    const canBuy=!!currentUser&&coins>=EGG_COST;
-    const eggs=userData?.eggs||[];
-    const now=Date.now();
-
-    const eggBag = eggs.length===0 ? '' : `
-        <div class="sec-head">🎒 กระเป๋าไข่</div>
-        <div class="card">
-            ${eggs.map(egg=>{
-                const cfg=RARITY[egg.petRarity];
-                const hatching=!!egg.startedAt;
-                const done=hatching&&(now>=egg.startedAt+egg.hatchMins*60000);
-                const pct=hatching&&!done?Math.min(100,Math.floor((now-egg.startedAt)/(egg.hatchMins*60000)*100)):0;
-                let timeLeft='';
-                if (hatching&&!done) {
-                    const ms=(egg.startedAt+egg.hatchMins*60000)-now;
-                    const h=Math.floor(ms/3600000); const m=Math.floor((ms%3600000)/60000); const s=Math.floor((ms%60000)/1000);
-                    timeLeft=h>0?`${h}ชม ${m}นาที`:m>0?`${m}นาที ${s}วิ`:`${s} วินาที`;
-                }
-                return `<div class="egg-bag-item" style="--rc:${cfg.color};--rb:${cfg.bg}">
-                    <div style="font-size:2.2rem;flex-shrink:0">${done?egg.petEmoji:'🥚'}</div>
-                    <div style="flex:1;min-width:0">
-                        <div style="font-weight:700;font-size:0.9rem">${done?egg.petName:'ไข่ปริศนา'}</div>
-                        <div style="font-size:0.72rem;color:${cfg.color};font-weight:700">${cfg.label} • ฟัก ${HATCH_LABELS[egg.petRarity]}</div>
-                        ${hatching&&!done?`<div class="hatch-bar"><div class="hatch-fill" style="width:${pct}%;background:${cfg.color}"></div></div>
-                            <div style="font-size:0.7rem;color:var(--muted)">เหลืออีก ${timeLeft}</div>`:''}
-                        ${done?`<div style="font-size:0.75rem;color:var(--care);font-weight:600">✅ ฟักเสร็จแล้ว!</div>`:''}
-                        ${!hatching?`<div style="font-size:0.7rem;color:var(--muted)">กดปุ่มเพื่อเริ่มฟัก</div>`:''}
-                    </div>
-                    ${done?`<button class="btn-gold small" onclick="claimEgg('${egg.eggId}')">รับ!</button>`:
-                      !hatching?`<button class="btn-gray small" onclick="startHatch('${egg.eggId}')">🔥 ฟัก</button>`:
-                      `<div style="font-size:1.2rem">⏳</div>`}
-                </div>`;
-            }).join('')}
-        </div>`;
-
-    return `
-        <div class="sec-head">🛒 ร้านค้า</div>
-        <div class="card" style="text-align:center">
-            <div class="egg-wobble">🥚</div>
-            <div style="font-size:1.2rem;font-weight:800;margin:8px 0 4px">ไข่ปริศนา</div>
-            <div style="color:var(--muted);font-size:0.85rem;margin-bottom:10px">สุ่มสัตว์เลี้ยง — ซื้อแล้วต้องฟักก่อนถึงจะรู้ผล!</div>
-            <div class="rates-wrap">
-                <span class="rate-chip" style="background:#f1f5f9;color:#64748b">Common 50%</span>
-                <span class="rate-chip" style="background:#eff6ff;color:#3b82f6">Rare 30%</span>
-                <span class="rate-chip" style="background:#faf5ff;color:#a855f7">Epic 15%</span>
-                <span class="rate-chip" style="background:#fffbeb;color:#f59e0b">??? 5%</span>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0 4px;font-size:0.75rem;color:var(--muted)">
-                <span>⏱ Common: 5 นาที</span>
-                <span>•</span><span>Rare: 1 ชม</span>
-                <span>•</span><span>Epic: 3 ชม</span>
-                <span>•</span><span>???: ??</span>
-            </div>
-            <button class="btn-gold full" style="margin-top:14px;padding:14px;font-size:1rem" onclick="buyEgg()" ${canBuy?'':'disabled'}>
-                🥚 ซื้อไข่ — ${EGG_COST} 🪙
-            </button>
-            ${!currentUser?'<p style="color:var(--muted);font-size:0.8rem;margin-top:8px">Login ก่อนถึงจะซื้อได้</p>':
-              !canBuy?`<p style="color:#ef4444;font-size:0.8rem;margin-top:8px">เหรียญไม่พอ (มี ${coins} / ต้องการ ${EGG_COST})</p>`:''}
-        </div>
-        ${eggBag}
-        <div class="sec-head">🐾 สัตว์ที่รู้จัก</div>
-        <div class="card">
-        ${['common','rare'].map(r=>{
-            const list=PETS.filter(p=>p.rarity===r);
-            const cfg=RARITY[r];
-            return `<div style="margin-bottom:14px">
-                <div style="font-weight:700;color:${cfg.color};font-size:0.82rem;margin-bottom:8px">${cfg.label} — ${(list.reduce((a,p)=>a+p.rate,0)*100).toFixed(0)}% • ฟัก ${HATCH_LABELS[r]}</div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px">
-                    ${list.map(p=>`<div style="background:${cfg.bg};border-radius:12px;padding:10px 6px;text-align:center;border:1.5px solid ${cfg.color}33">
-                        <div style="font-size:1.7rem">${p.emoji}</div>
-                        <div style="font-size:0.72rem;font-weight:700;margin-top:4px">${p.name}</div>
-                        <div style="font-size:0.62rem;color:var(--muted);margin-top:2px">${p.desc}</div>
-                    </div>`).join('')}
-                </div>
-            </div>`;
-        }).join('')}
-        <div style="text-align:center;padding:14px;color:var(--muted);font-size:0.82rem">
-            🔮 สัตว์ระดับสูงกว่านี้ยังเป็น <b>ความลับ</b>... ลองดวงดูสิ!
-        </div>
-        </div>`;
-}
-
-window.__db=db; window.__auth=auth; window.__ready=true;
-// Expose userData for auto-refresh timer
-Object.defineProperty(window,'__userData',{get:()=>userData});
-</script>
-
 <style>
-:root{--sci:#2563eb;--care:#10b981;--gold:#f59e0b;--bg:#f0f4f8;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--nav:60px;--btm:66px;}
+:root{--sci:#2563eb;--care:#10b981;--gold:#f59e0b;--bg:#f0f4f8;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--nav:44px;--ticker:32px;--btm:66px;}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(--text);}
 
-#top-bar{position:fixed;top:0;left:0;right:0;height:var(--nav);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.06);gap:8px;}
-.tb-brand{font-size:1.2rem;font-weight:800;}
-.tb-left{display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0;flex:1;}
-.tb-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0;}
-.tb-name{font-size:0.88rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;}
-.tb-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
-.coin-pill{background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;padding:4px 9px;border-radius:20px;font-size:0.8rem;font-weight:700;color:#92400e;cursor:pointer;display:flex;align-items:center;gap:3px;}
-.btn-daily{background:none;border:1.5px solid var(--border);padding:4px 8px;border-radius:8px;font-size:0.95rem;cursor:pointer;opacity:.4;transition:.2s;}
+/* ── TOP BAR ── */
+#top-bar{position:fixed;top:0;left:0;right:0;height:var(--nav);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 12px;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.06);gap:8px;}
+.tb-brand{font-size:1.1rem;font-weight:800;flex-shrink:0;}
+.tb-left{display:flex;align-items:center;gap:7px;cursor:pointer;min-width:0;flex:1;}
+.tb-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0;}
+.tb-name{font-size:0.82rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;}
+.tb-right{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.coin-pill{background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;padding:3px 8px;border-radius:16px;font-size:0.76rem;font-weight:700;color:#92400e;cursor:pointer;display:flex;align-items:center;gap:2px;white-space:nowrap;}
+.btn-daily{background:none;border:1.5px solid var(--border);padding:3px 7px;border-radius:7px;font-size:0.88rem;cursor:pointer;opacity:.4;transition:.2s;}
 .btn-daily.ready{opacity:1;border-color:var(--care);animation:pulse 2s ease infinite;}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-.btn-out{background:none;border:1px solid #fca5a5;color:#ef4444;padding:4px 10px;border-radius:8px;font-family:inherit;font-size:0.78rem;cursor:pointer;}
-.btn-google{background:#fff;border:1.5px solid var(--border);padding:8px 13px;border-radius:10px;font-family:inherit;font-size:0.85rem;cursor:pointer;display:flex;align-items:center;gap:7px;color:var(--text);font-weight:500;transition:.2s;}
-.btn-google.big{padding:13px 24px;font-size:1rem;}
+.btn-out{background:none;border:1px solid #fca5a5;color:#ef4444;padding:3px 8px;border-radius:7px;font-family:inherit;font-size:0.72rem;cursor:pointer;}
+.btn-google{background:#fff;border:1.5px solid var(--border);padding:6px 11px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--text);font-weight:500;transition:.2s;}
+.btn-google.big{padding:12px 22px;font-size:0.95rem;}
 
-#main-content{padding:calc(var(--nav)+16px) 12px calc(var(--btm)+16px);}
+/* ── NEWS TICKER ── */
+#news-ticker{position:fixed;top:var(--nav);left:0;right:0;height:var(--ticker);background:linear-gradient(135deg,#1e293b,#334155);color:#fde68a;font-size:0.74rem;font-weight:600;display:flex;align-items:center;z-index:199;cursor:pointer;overflow:hidden;border-bottom:1px solid #475569;}
+.ticker-label{background:#f59e0b;color:#1e293b;padding:2px 8px;font-weight:800;font-size:0.7rem;white-space:nowrap;flex-shrink:0;height:100%;display:flex;align-items:center;}
+.ticker-scroll{flex:1;overflow:hidden;position:relative;height:100%;}
+.ticker-inner{position:absolute;white-space:nowrap;animation:tickerMove 20s linear infinite;padding:0 12px;line-height:var(--ticker);}
+@keyframes tickerMove{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}
+.ticker-inner:hover{animation-play-state:paused;}
 
-#bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--btm);background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -3px 14px rgba(0,0,0,.07);}
-.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:none;font-family:inherit;color:var(--muted);font-size:0.68rem;font-weight:600;transition:.15s;padding:6px 4px;}
-.bn-icon{font-size:1.35rem;transition:.15s;}
+/* ── MAIN ── */
+#main-content{padding:calc(var(--nav)+var(--ticker)+12px) 12px calc(var(--btm)+12px);min-height:100vh;}
+
+/* ── BOTTOM NAV ── */
+#bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--btm);background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -3px 12px rgba(0,0,0,.07);}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:none;background:none;font-family:inherit;color:var(--muted);font-size:0.67rem;font-weight:600;transition:.15s;padding:5px 2px;}
+.bn-icon{font-size:1.3rem;transition:.15s;}
 .bn-item.active{color:var(--gold);}
 .bn-item.active .bn-icon{transform:translateY(-2px);}
 
-.card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:12px;}
-.sec-head{font-size:0.75rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin:18px 0 10px;}
-.login-card{background:#fff;border-radius:22px;padding:40px 22px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.07);}
+/* ── COMMON ── */
+.card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;}
+.sec-head{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin:16px 0 8px;}
+.login-card{background:#fff;border-radius:20px;padding:36px 20px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.07);}
+.track-badge{padding:3px 8px;border-radius:5px;color:#fff;font-size:0.58rem;font-weight:700;text-transform:uppercase;}
+.track-badge.sm{font-size:0.54rem;padding:2px 6px;}
 
-/* HOME */
-.profile-card{display:flex;align-items:center;gap:14px;background:#fff;border-radius:18px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,.08);margin-bottom:12px;border:2px solid var(--gold);}
+/* ── HOME ── */
+.profile-card{display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:14px;box-shadow:0 4px 14px rgba(0,0,0,.08);margin-bottom:10px;border:2px solid var(--gold);}
 .pc-img-wrap{position:relative;flex-shrink:0;}
-.pc-img{width:76px;height:76px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.12);}
-.pc-cam{position:absolute;bottom:-2px;right:-2px;background:#fff;border:2px solid var(--border);border-radius:50%;width:24px;height:24px;font-size:0.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,.1);}
-.pc-nick{font-size:1.15rem;font-weight:800;} .pc-real{font-size:0.82rem;color:var(--muted);} .pc-id{font-size:0.72rem;color:var(--muted);font-family:'Space Mono',monospace;}
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
-.stat-box{background:#fff;border-radius:14px;padding:12px 6px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.04);} .sb-icon{font-size:1.2rem;margin-bottom:2px;} .stat-box b{display:block;font-size:0.95rem;font-weight:700;} .stat-box small{font-size:0.68rem;color:var(--muted);}
-.unlinked-card{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:12px;border:2px dashed var(--border);}
-.ul-left{display:flex;align-items:center;gap:10px;flex:1;} .ul-img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--border);}
-.btn-link{background:linear-gradient(135deg,var(--sci),#1d4ed8);color:#fff;border:none;padding:8px 14px;border-radius:10px;font-family:inherit;font-size:0.82rem;font-weight:600;cursor:pointer;white-space:nowrap;}
-.inv-empty{text-align:center;color:var(--muted);font-size:0.85rem;padding:18px;}
-.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px;}
-.inv-item{background:var(--rb,#f8fafc);border:2px solid transparent;border-radius:12px;padding:9px 5px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
+.pc-img{width:70px;height:70px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.12);}
+.pc-cam{position:absolute;bottom:-2px;right:-2px;background:#fff;border:2px solid var(--border);border-radius:50%;width:22px;height:22px;font-size:0.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.pc-nick{font-size:1.1rem;font-weight:800;} .pc-real{font-size:0.8rem;color:var(--muted);} .pc-id{font-size:0.68rem;color:var(--muted);font-family:'Space Mono',monospace;}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.stat-box{background:#fff;border-radius:12px;padding:10px 5px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.04);}
+.sb-icon{font-size:1.1rem;margin-bottom:1px;} .stat-box b{display:block;font-size:0.9rem;font-weight:700;} .stat-box small{font-size:0.64rem;color:var(--muted);}
+.unlinked-card{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;border:2px dashed var(--border);}
+.ul-left{display:flex;align-items:center;gap:9px;flex:1;}
+.ul-img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid var(--border);}
+.btn-link{background:linear-gradient(135deg,var(--sci),#1d4ed8);color:#fff;border:none;padding:7px 12px;border-radius:9px;font-family:inherit;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;}
+
+/* Inventory */
+.inv-empty{text-align:center;color:var(--muted);font-size:0.82rem;padding:16px;}
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;}
+.inv-item{background:var(--rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
 .inv-item:hover{transform:translateY(-2px);border-color:var(--rc);}
 .inv-item.on{border-color:var(--rc);box-shadow:0 0 10px color-mix(in srgb,var(--rc) 20%,transparent);}
-.inv-em{font-size:1.7rem;} .inv-nm{font-size:0.65rem;font-weight:600;margin-top:3px;}
-.inv-on{position:absolute;top:-5px;right:-5px;background:var(--rc);color:#fff;font-size:0.48rem;font-weight:700;padding:2px 5px;border-radius:5px;}
+.inv-em{font-size:1.6rem;} .inv-nm{font-size:0.62rem;font-weight:600;margin-top:2px;}
+.inv-on{position:absolute;top:-5px;right:-5px;background:var(--rc);color:#fff;font-size:0.46rem;font-weight:700;padding:2px 4px;border-radius:4px;}
 
-/* MEMBERS */
-.filter-row{display:flex;gap:7px;margin-bottom:10px;}
-.fbtn{flex:1;padding:8px 4px;border-radius:12px;border:2px solid var(--border);background:#fff;font-family:inherit;font-size:0.8rem;font-weight:600;cursor:pointer;color:var(--muted);transition:.2s;}
+/* ── MEMBERS ── */
+.filter-row{display:flex;gap:6px;margin-bottom:8px;}
+.fbtn{flex:1;padding:7px 3px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:inherit;font-size:0.76rem;font-weight:600;cursor:pointer;color:var(--muted);transition:.2s;}
 .fbtn.fa{border-color:var(--gold);background:#fffbeb;color:#92400e;}
 .fbtn.fs{border-color:var(--sci);background:#eff6ff;color:var(--sci);}
 .fbtn.fc{border-color:var(--care);background:#ecfdf5;color:var(--care);}
-.search-box{margin-bottom:10px;}
-.srch-inp{width:100%;padding:11px 14px;border:2px solid #fff;border-radius:13px;font-family:inherit;font-size:0.92rem;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.07);outline:none;transition:.2s;}
+.search-box{margin-bottom:8px;}
+.srch-inp{width:100%;padding:10px 13px;border:2px solid #fff;border-radius:12px;font-family:inherit;font-size:0.9rem;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.07);outline:none;transition:.2s;}
 .srch-inp:focus{border-color:var(--gold);}
-.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:9px;}
-.mcard{background:#fff;border-radius:14px;padding:12px 6px;cursor:pointer;text-align:center;border:1.5px solid var(--border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:5px;}
-.mcard:hover{transform:translateY(-3px);box-shadow:0 5px 14px rgba(0,0,0,.07);}
-.mc-img{width:60px;height:60px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.1);}
-.mc-nick{font-weight:600;font-size:0.85rem;} .mc-id{font-size:0.65rem;color:var(--muted);}
-.prog-bar-wrap{margin-bottom:4px;}
-.prog-bar{height:18px;background:var(--border);border-radius:50px;overflow:hidden;display:flex;margin-bottom:5px;}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px;}
+.mcard{background:#fff;border-radius:13px;padding:11px 6px;cursor:pointer;text-align:center;border:1.5px solid var(--border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.mcard:hover{transform:translateY(-2px);box-shadow:0 5px 12px rgba(0,0,0,.07);}
+.mc-img{width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);}
+.mc-nick{font-weight:600;font-size:0.82rem;} .mc-id{font-size:0.62rem;color:var(--muted);}
+.prog-bar{height:16px;background:var(--border);border-radius:50px;overflow:hidden;display:flex;margin-bottom:4px;}
 .pb-sci{background:var(--sci);height:100%;} .pb-care{background:var(--care);height:100%;}
-.prog-lbls{display:flex;justify-content:space-between;font-size:0.8rem;font-weight:600;}
+.prog-lbls{display:flex;justify-content:space-between;font-size:0.76rem;font-weight:600;}
 
-/* PLAY */
-.q-nick{font-size:1.4rem;font-weight:800;color:var(--gold);text-align:center;margin-bottom:14px;}
-.q-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
-.q-btn{background:#f8fafc;border:2px solid var(--border);padding:12px 8px;border-radius:12px;font-family:inherit;font-size:0.85rem;cursor:pointer;transition:.15s;color:var(--text);}
+/* ── PLAY ── */
+.q-nick{font-size:1.35rem;font-weight:800;color:var(--gold);text-align:center;margin-bottom:12px;}
+.q-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.q-btn{background:#f8fafc;border:2px solid var(--border);padding:11px 6px;border-radius:11px;font-family:inherit;font-size:0.82rem;cursor:pointer;transition:.15s;color:var(--text);line-height:1.3;}
 .q-btn:hover:not(:disabled){background:#f1f5f9;}
 .q-btn.correct{background:#dcfce7;border-color:#10b981;color:#065f46;}
 .q-btn.wrong{background:#fee2e2;border-color:#ef4444;color:#7f1d1d;}
-.flashcard{background:#f8fafc;border-radius:14px;padding:26px;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:2px dashed var(--border);}
+.flashcard{background:#f8fafc;border-radius:13px;padding:22px;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:2px dashed var(--border);gap:5px;text-align:center;}
+.coming-soon{background:linear-gradient(135deg,#1e293b,#334155);border-radius:16px;padding:28px;text-align:center;color:#fff;margin-bottom:10px;}
 
-/* SHOP */
-.egg-wobble{font-size:4rem;animation:wobble 2.5s ease infinite;display:block;}
+/* ── SHOP ── */
+.egg-wobble{font-size:3.8rem;animation:wobble 2.5s ease infinite;display:block;}
 @keyframes wobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
-.rates-wrap{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
-.rate-chip{padding:5px 11px;border-radius:18px;font-size:0.76rem;font-weight:700;}
+.rates-wrap{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;}
+.rate-chip{padding:4px 10px;border-radius:16px;font-size:0.72rem;font-weight:700;}
+.egg-bag-item{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;background:var(--rb,#f8fafc);border:1.5px solid var(--rc,var(--border));margin-bottom:8px;}
+.hatch-bar{height:5px;background:var(--border);border-radius:8px;overflow:hidden;margin:4px 0 2px;}
+.hatch-fill{height:100%;border-radius:8px;transition:width .3s;}
 
-/* MODALS */
-.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);}
+/* ── MODALS ── */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px);}
 .modal-ov.active{display:flex;}
-.modal-box{background:#fff;border-radius:22px;padding:26px 20px;max-width:350px;width:100%;animation:popIn .35s cubic-bezier(.34,1.56,.64,1);position:relative;max-height:88vh;overflow-y:auto;}
+.modal-box{background:#fff;border-radius:20px;padding:24px 18px;max-width:340px;width:100%;animation:popIn .35s cubic-bezier(.34,1.56,.64,1);position:relative;max-height:88vh;overflow-y:auto;}
 @keyframes popIn{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
-.mclose{position:absolute;top:12px;right:12px;background:var(--border);border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;}
-.pm-img{width:86px;height:86px;border-radius:50%;object-fit:cover;border:4px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.12);margin-bottom:10px;}
-.pm-nick{font-size:1.3rem;font-weight:700;} .pm-real{color:var(--muted);font-size:0.9rem;} .pm-id{font-size:0.78rem;color:var(--muted);font-family:'Space Mono',monospace;margin:4px 0;}
-.link-irow{display:flex;gap:7px;margin:12px 0 4px;}
-.link-inp{flex:1;padding:11px 13px;border:2px solid var(--border);border-radius:11px;font-family:inherit;font-size:0.95rem;outline:none;transition:.2s;}
+.mclose{position:absolute;top:10px;right:10px;background:var(--border);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;}
+.pm-img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.12);margin-bottom:9px;}
+.pm-nick{font-size:1.25rem;font-weight:700;} .pm-real{color:var(--muted);font-size:0.88rem;} .pm-id{font-size:0.74rem;color:var(--muted);font-family:'Space Mono',monospace;margin:3px 0;}
+.pm-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px;}
+.pm-stat{background:var(--bg);border-radius:9px;padding:7px 3px;text-align:center;display:flex;flex-direction:column;align-items:center;}
+.pm-stat span{font-size:1rem;} .pm-stat b{font-size:0.85rem;font-weight:700;} .pm-stat small{font-size:0.62rem;color:var(--muted);}
+.pm-pet-row{display:flex;align-items:center;gap:9px;background:var(--bg);border-radius:11px;padding:9px;margin-top:4px;}
+.link-irow{display:flex;gap:6px;margin:10px 0 3px;}
+.link-inp{flex:1;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.92rem;outline:none;transition:.2s;}
 .link-inp:focus{border-color:var(--sci);}
-.link-prev{background:var(--bg);border-radius:13px;padding:13px;margin:7px 0;display:none;}
-.gacha-inner{display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;}
-.gr-badge{padding:4px 14px;border-radius:18px;color:#fff;font-size:0.76rem;font-weight:800;letter-spacing:2px;}
-.gr-emoji{font-size:5rem;animation:gbounce .6s ease;filter:drop-shadow(0 0 18px var(--glow,#f59e0b));}
-@keyframes gbounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
-.gr-name{font-size:1.4rem;font-weight:800;} .gr-desc{font-size:0.85rem;color:var(--muted);}
-.gr-btns{display:flex;gap:9px;margin-top:7px;}
-.slide-panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:22px 22px 0 0;padding:20px 16px;box-shadow:0 -6px 28px rgba(0,0,0,.1);z-index:400;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);max-height:68vh;overflow-y:auto;}
+.link-prev{background:var(--bg);border-radius:12px;padding:12px;margin:6px 0;display:none;}
+.gacha-inner{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;}
+.gr-badge{padding:3px 12px;border-radius:16px;color:#fff;font-size:0.72rem;font-weight:800;letter-spacing:2px;}
+.gr-emoji{font-size:4.5rem;animation:gbounce .6s ease;filter:drop-shadow(0 0 16px var(--glow,#f59e0b));}
+@keyframes gbounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.gr-name{font-size:1.3rem;font-weight:800;} .gr-desc{font-size:0.82rem;color:var(--muted);}
+.gr-btns{display:flex;gap:8px;margin-top:6px;}
+.slide-panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:18px 14px;box-shadow:0 -5px 24px rgba(0,0,0,.1);z-index:400;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);max-height:65vh;overflow-y:auto;}
 .slide-panel.active{transform:translateY(0);}
-.trade-item{display:flex;align-items:center;gap:9px;padding:9px;border-radius:10px;border:2px solid var(--border);cursor:pointer;margin-bottom:7px;transition:.15s;}
+.trade-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:9px;border:2px solid var(--border);cursor:pointer;margin-bottom:6px;transition:.15s;}
 .trade-item.sel{border-color:var(--sci);background:#eff6ff;}
-.trade-inp{width:100%;padding:10px 13px;border:2px solid var(--border);border-radius:11px;font-family:inherit;font-size:0.88rem;outline:none;margin:9px 0;}
+.trade-inp{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.86rem;outline:none;margin:8px 0;}
 .trade-inp:focus{border-color:var(--sci);}
-.btn-gold{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;padding:10px 18px;border-radius:11px;font-family:inherit;font-size:0.92rem;font-weight:700;cursor:pointer;transition:.2s;}
+
+/* Feed/News modal */
+.feed-item{padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;}
+.feed-item:last-child{border-bottom:none;}
+.feed-icon{font-size:1.4rem;flex-shrink:0;}
+.feed-time{font-size:0.66rem;color:var(--muted);margin-top:2px;}
+.feed-msg{font-size:0.84rem;}
+
+/* Megaphone modal */
+.mega-inp{width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.9rem;outline:none;margin:10px 0;resize:none;}
+.mega-inp:focus{border-color:var(--gold);}
+
+/* Buttons */
+.btn-gold{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;padding:9px 16px;border-radius:10px;font-family:inherit;font-size:0.9rem;font-weight:700;cursor:pointer;transition:.2s;}
 .btn-gold:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 4px 12px rgba(245,158,11,.4);}
 .btn-gold:disabled{opacity:.5;cursor:not-allowed;}
 .btn-gold.full{width:100%;}
-.btn-gray{background:var(--border);color:var(--muted);border:none;padding:9px 16px;border-radius:11px;font-family:inherit;font-size:0.88rem;cursor:pointer;}
-.btn-gray.small{padding:6px 11px;font-size:0.78rem;}
+.btn-gold.sm{padding:6px 11px;font-size:0.78rem;}
+.btn-gray{background:var(--border);color:var(--muted);border:none;padding:8px 14px;border-radius:10px;font-family:inherit;font-size:0.86rem;cursor:pointer;}
+.btn-gray.sm{padding:5px 10px;font-size:0.74rem;}
 .btn-gray.full{width:100%;}
-.track-badge{padding:3px 9px;border-radius:6px;color:#fff;font-size:0.6rem;font-weight:700;text-transform:uppercase;}
-.track-badge.small{font-size:0.56rem;padding:2px 6px;}
+
+/* Name effects */
 .gold-name{background:linear-gradient(90deg,#f59e0b,#fbbf24,#f59e0b);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:sh 2s linear infinite;}
 .rainbow-name{background:linear-gradient(90deg,#f59e0b,#ef4444,#a855f7,#3b82f6,#10b981,#f59e0b);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:sh 1.5s linear infinite;}
 @keyframes sh{to{background-position:200% center}}
-/* Egg bag */
-.egg-bag-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:var(--rb,#f8fafc);border:1.5px solid var(--rc,var(--border));margin-bottom:10px;}
-.hatch-bar{height:6px;background:var(--border);border-radius:10px;overflow:hidden;margin:5px 0 3px;}
-.hatch-fill{height:100%;border-radius:10px;transition:width .3s;}
-.btn-gold.small{padding:7px 13px;font-size:0.82rem;}
-.btn-gray.small{padding:6px 11px;font-size:0.78rem;}
-/* Member profile live stats */
-.pm-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
-.pm-stat{background:var(--bg);border-radius:10px;padding:8px 4px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:1px;}
-.pm-stat span{font-size:1.1rem;} .pm-stat b{font-size:0.9rem;font-weight:700;} .pm-stat small{font-size:0.65rem;color:var(--muted);}
-.pm-pet-row{display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:12px;padding:10px;margin-top:4px;}
-#toast{position:fixed;bottom:calc(var(--btm)+10px);left:50%;transform:translateX(-50%) translateY(80px);background:#1e293b;color:#fff;padding:10px 16px;border-radius:11px;font-size:0.86rem;font-weight:500;z-index:1000;transition:transform .3s;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.2);}
+
+/* Egg bag extras */
+.pm-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:8px 0;}
+
+#toast{position:fixed;bottom:calc(var(--btm)+10px);left:50%;transform:translateX(-50%) translateY(80px);background:#1e293b;color:#fff;padding:9px 15px;border-radius:10px;font-size:0.84rem;font-weight:500;z-index:1000;transition:transform .3s;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.2);}
 #toast.show{transform:translateX(-50%) translateY(0);}
 #toast.success{background:#065f46;} #toast.error{background:#7f1d1d;} #toast.info{background:#1e40af;}
-@media(max-width:360px){.mgrid{grid-template-columns:repeat(auto-fill,minmax(95px,1fr))}}
+@media(max-width:360px){.mgrid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}}
 </style>
 </head>
 <body>
@@ -849,6 +180,11 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 <div id="top-bar">
     <div class="tb-brand">💊 RxTU10</div>
     <button class="btn-google" onclick="loginGoogle()">เข้าสู่ระบบ</button>
+</div>
+
+<div id="news-ticker" onclick="openFeed()">
+    <div class="ticker-label">📢 ข่าว</div>
+    <div class="ticker-scroll"><div class="ticker-inner" id="ticker-text">กำลังโหลด...</div></div>
 </div>
 
 <div id="main-content">
@@ -874,27 +210,27 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 <div class="modal-ov" id="link-modal" onclick="if(event.target===this)closeLinkModal()">
     <div class="modal-box">
         <button class="mclose" onclick="closeLinkModal()">✕</button>
-        <div style="font-size:1.25rem;font-weight:800;margin-bottom:4px">🔗 ผูกรหัสนักศึกษา</div>
-        <div style="font-size:0.82rem;color:var(--muted)">กรอกรหัส 10 หลักของคุณ</div>
+        <div style="font-size:1.2rem;font-weight:800;margin-bottom:3px">🔗 ผูกรหัสนักศึกษา</div>
+        <div style="font-size:0.8rem;color:var(--muted)">กรอกรหัส 10 หลักของคุณ</div>
         <div class="link-irow">
             <input type="text" class="link-inp" id="link-input" placeholder="เช่น 6518610016" maxlength="10"
                    oninput="this.value=this.value.replace(/[^0-9]/g,'')"
                    onkeyup="if(this.value.length===10)previewLink()">
-            <button class="btn-gold" onclick="previewLink()">ตรวจสอบ</button>
+            <button class="btn-gold" onclick="previewLink()">เช็ค</button>
         </div>
-        <div id="link-error" style="color:#ef4444;font-size:0.8rem;min-height:16px;margin-bottom:2px"></div>
+        <div id="link-error" style="color:#ef4444;font-size:0.78rem;min-height:15px;margin-bottom:1px"></div>
         <div class="link-prev" id="link-preview">
-            <div style="display:flex;align-items:center;gap:10px">
-                <div style="font-size:2rem">👤</div>
+            <div style="display:flex;align-items:center;gap:9px">
+                <div style="font-size:1.8rem">👤</div>
                 <div>
-                    <div style="font-weight:700;font-size:1.05rem" id="lp-nick"></div>
-                    <div style="font-size:0.82rem;color:var(--muted)" id="lp-name"></div>
-                    <span class="track-badge" id="lp-track" style="margin-top:4px;display:inline-block"></span>
+                    <div style="font-weight:700;font-size:1rem" id="lp-nick"></div>
+                    <div style="font-size:0.8rem;color:var(--muted)" id="lp-name"></div>
+                    <span class="track-badge" id="lp-track" style="margin-top:3px;display:inline-block"></span>
                 </div>
             </div>
-            <div style="font-size:0.78rem;color:var(--muted);margin-top:8px">ใช่คุณไหม?</div>
+            <div style="font-size:0.76rem;color:var(--muted);margin-top:7px">ใช่คุณไหม?</div>
         </div>
-        <div style="display:flex;gap:8px;margin-top:12px">
+        <div style="display:flex;gap:7px;margin-top:10px">
             <button class="btn-gold" style="flex:1" onclick="confirmLink()">✅ ยืนยัน</button>
             <button class="btn-gray" style="flex:1" onclick="closeLinkModal()">ยกเลิก</button>
         </div>
@@ -906,55 +242,124 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
     <div class="modal-box"><div id="gacha-result"></div></div>
 </div>
 
-<!-- TRADE PANEL -->
-<div class="slide-panel" id="trade-panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-weight:700">🔄 Trade สัตว์เลี้ยง</span>
-        <button class="mclose" style="position:static" onclick="closeTrade()">✕</button>
-    </div>
-    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:9px">เลือกสัตว์ที่อยากส่ง:</p>
-    <div id="trade-pets"></div>
-    <input type="email" class="trade-inp" id="trade-email" placeholder="Email เพื่อนที่อยากส่งให้">
-    <button class="btn-gold full" onclick="sendTrade()">ส่งให้เพื่อน ✉️</button>
-</div>
-
 <!-- PET INFO MODAL -->
 <div class="modal-ov" id="petinfo-modal" onclick="if(event.target===this)closePetInfo()">
     <div class="modal-box">
         <button class="mclose" onclick="closePetInfo()">✕</button>
         <div id="petinfo-content"></div>
-        <div style="display:flex;gap:8px;margin-top:16px" id="petinfo-actions"></div>
+        <div style="display:flex;gap:7px;margin-top:14px" id="petinfo-actions"></div>
     </div>
+</div>
+
+<!-- FEED MODAL -->
+<div class="modal-ov" id="feed-modal" onclick="if(event.target===this)closeFeed()">
+    <div class="modal-box">
+        <button class="mclose" onclick="closeFeed()">✕</button>
+        <div style="font-size:1.1rem;font-weight:800;margin-bottom:12px">📢 กระดานข่าว</div>
+        <div id="feed-list"><div style="color:var(--muted);text-align:center;padding:20px">กำลังโหลด...</div></div>
+    </div>
+</div>
+
+<!-- MEGAPHONE MODAL -->
+<div class="modal-ov" id="mega-modal" onclick="if(event.target===this)closeMega()">
+    <div class="modal-box">
+        <button class="mclose" onclick="closeMega()">✕</button>
+        <div style="font-size:1.1rem;font-weight:800;margin-bottom:4px">📣 ใช้โทรโข่ง</div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:2px">ส่งข้อความถึงทุกคน — ใช้ 25🪙</div>
+        <textarea class="mega-inp" id="mega-text" rows="3" maxlength="80" placeholder="พิมพ์ข้อความที่อยากบอกทุกคน (ไม่เกิน 80 ตัวอักษร)..."></textarea>
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:10px">เหรียญของคุณ: <b id="mega-coins">0</b> 🪙</div>
+        <div style="display:flex;gap:7px">
+            <button class="btn-gold" style="flex:1" onclick="sendMegaphone()">📣 ส่ง (25🪙)</button>
+            <button class="btn-gray" style="flex:1" onclick="closeMega()">ยกเลิก</button>
+        </div>
+    </div>
+</div>
+
+<!-- TRADE PANEL -->
+<div class="slide-panel" id="trade-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-weight:700">🔄 Trade สัตว์เลี้ยง</span>
+        <button class="mclose" style="position:static" onclick="closeTrade()">✕</button>
+    </div>
+    <p style="font-size:0.8rem;color:var(--muted);margin-bottom:8px">เลือกสัตว์ที่อยากส่ง:</p>
+    <div id="trade-pets"></div>
+    <input type="email" class="trade-inp" id="trade-email" placeholder="Email เพื่อนที่อยากส่งให้">
+    <button class="btn-gold full" onclick="sendTrade()">ส่งให้เพื่อน ✉️</button>
 </div>
 
 <div id="toast"></div>
 
-<script>
-// ── Auto-refresh hatch timers every 5s when on Shop tab ──
-setInterval(()=>{
-    if (window.__tab==='shop' && window.__ready) {
-        const grid=document.getElementById('main-content');
-        // Only re-render if there are eggs actively hatching
-        const eggs=window.__userData?.eggs||[];
-        const hasHatching=eggs.some(e=>e.startedAt);
-        if (hasHatching && typeof buildShop==='function') {
-            // Patch just the egg bag section without full re-render to avoid flicker
-            const eggSection=document.querySelector('.egg-bag-item');
-            if (eggSection) {
-                // Light refresh: just re-render the shop tab
-                document.getElementById('main-content').innerHTML=buildShop();
-            }
-        }
-    }
-}, 5000);
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot,
+         collection, getDocs, increment, serverTimestamp, arrayUnion, addDoc, orderBy, query, limit, getDocs as gd }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-<script>
-// ── STUDENTS ──
+const firebaseConfig = {
+    apiKey: "AIzaSyAlmHZZ3JixrQlH7PyMa_QqQuDPEN4RJBE",
+    authDomain: "rxtu10dashboard.firebaseapp.com",
+    projectId: "rxtu10dashboard",
+    storageBucket: "rxtu10dashboard.firebasestorage.app",
+    messagingSenderId: "485847555600",
+    appId: "1:485847555600:web:1ee57ea6044c687b10b495"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+// ════════════════════════════════════════
+//  CONSTANTS
+// ════════════════════════════════════════
+const RARITY = {
+    common:    { color:"#64748b", bg:"#f1f5f9", label:"COMMON",    glow:"#94a3b8" },
+    rare:      { color:"#3b82f6", bg:"#eff6ff", label:"RARE",      glow:"#60a5fa" },
+    epic:      { color:"#a855f7", bg:"#faf5ff", label:"EPIC",      glow:"#c084fc" },
+    legendary: { color:"#f59e0b", bg:"#fffbeb", label:"LEGENDARY", glow:"#fbbf24" },
+};
+const PETS = [
+    { id:"cat",       emoji:"🐱", name:"น้องแมว",     rarity:"common",    effect:"none",      desc:"เพื่อนซี้ cute ไม่มี effect พิเศษ",              rate:0.20, hatchMins:5   },
+    { id:"rabbit",    emoji:"🐰", name:"กระต่าย",    rarity:"common",    effect:"none",      desc:"ขนฟู นิสัยดี ไม่มี effect พิเศษ",               rate:0.15, hatchMins:5   },
+    { id:"hamster",   emoji:"🐹", name:"แฮมสเตอร์",  rarity:"common",    effect:"none",      desc:"วิ่งล้อทั้งวัน ไม่มี effect พิเศษ",             rate:0.15, hatchMins:5   },
+    { id:"fox",       emoji:"🦊", name:"จิ้งจอก",    rarity:"rare",      effect:"coin+10",   desc:"+10% เหรียญจากเกมทุกครั้ง",                     rate:0.12, hatchMins:60  },
+    { id:"owl",       emoji:"🦉", name:"นกฮูก",      rarity:"rare",      effect:"coin+15",   desc:"+15% เหรียญจากเกมทุกครั้ง",                     rate:0.10, hatchMins:60  },
+    { id:"panda",     emoji:"🐼", name:"แพนด้า",     rarity:"rare",      effect:"score+5",   desc:"+5 คะแนนโบนัสต่อข้อใน Quiz",                   rate:0.08, hatchMins:60  },
+    { id:"dragon",    emoji:"🐲", name:"มังกรน้อย",  rarity:"epic",      effect:"coinx2",    desc:"เหรียญ x2 จากเกมทุกประเภท",                    rate:0.06, hatchMins:180 },
+    { id:"unicorn",   emoji:"🦄", name:"ยูนิคอร์น",  rarity:"epic",      effect:"scorex2",   desc:"คะแนน Quiz x2 ทุกข้อ",                         rate:0.05, hatchMins:180 },
+    { id:"phoenix",   emoji:"🦅", name:"ฟีนิกซ์",   rarity:"epic",      effect:"daily50",   desc:"+50 เหรียญ daily อัตโนมัติทุกวัน",             rate:0.04, hatchMins:180 },
+    { id:"kirin",     emoji:"🦁", name:"ไคริน",      rarity:"legendary", effect:"gold_name", desc:"ชื่อเรืองแสงสีทอง ✨",                          rate:0.02, hatchMins:1440},
+    { id:"bahamut",   emoji:"🐉", name:"พาฮามุท",    rarity:"legendary", effect:"all",       desc:"เหรียญ x3 + คะแนน x2 + ชื่อสีรุ้ง",           rate:0.02, hatchMins:1440},
+    { id:"celestial", emoji:"🌟", name:"เซเลสเชียล", rarity:"legendary", effect:"rainbow",   desc:"ชื่อรุ้ง + daily 100 เหรียญอัตโนมัติ",         rate:0.01, hatchMins:1440},
+];
+const HATCH_LABELS = { common:"5 นาที", rare:"1 ชั่วโมง", epic:"3 ชั่วโมง", legendary:"24 ชั่วโมง" };
+const EGG_COST = 100, MEGA_COST = 25;
+
+// ════════════════════════════════════════
+//  STUDENT DATA
+// ════════════════════════════════════════
 const R_SCI=["กิ้ฟท์ 🎁 (6418610082)","โบ 🎀 (6418610140)","อิกคิว 👦 (6418610264)","เหนือ ⛰️ (6418610280)","ขิม 🎼 (6518540015)","มายด์ 💖 (6518610016)","ติน 💎 (6518610024)","อ้น 🐿️ (6518610073)","เอ็มมี่ 🌸 (6518610099)","โฟกัส 🔍 (6518610123)","ลิ้ง 🔗 (6518610164)","ติณณ์ ✨ (6518610172)","เพ่ยเพ่ย 🏮 (6518610180)","ป่าน 🌿 (6518610198)","เอเชีย 🌏 (6518610214)","แพร 👗 (6518610222)","กาฟิว 🐱 (6518610297)","แตงโม 🍉 (6518610347)","ส้มโอ 🍊 (6518610420)","อุ้ม 🤗 (6518610446)","ทิว 🌲 (6518610479)","แพน 🐼 (6518610503)","ปั้น 🏺 (6518610545)","แก๊ป 🧢 (6518610560)","แยม 🍓 (6518610578)","แพรไหม 🧵 (6518610586)","ไอจัง 🍦 (6518610610)","เพ้นท์ 🎨 (6518670010)","สุ่น 🧶 (6518670069)","ทะเล 🌊 (6518670077)","ตั้ว 🎟️ (6518670093)","แพรวา 💎 (6518670101)","ซาเนียร์ 🎐 (6518670119)","เปปเปอร์ 🌶️ (6518670150)","ว่านว่าน 🍃 (6518670176)","ฟ้าใส ☀️ (6518670192)","เขต 🏁 (6518670200)","เบเบ้ 🧸 (6518670226)","เชอร์รี่ 🍒 (6518670267)"];
 const R_CARE=["เมย์ 🌙 (6418610157)","เดียร 🦌 (6418670110)","บัว 🪷 (6518610032)","ปาล์มมี่ 🌴 (6518610040)","อุ๋งอิ๋ง 🦭 (6518610057)","เพียว 🫧 (6518610065)","ใบบัว 🍃 (6518610081)","บลู 💙 (6518610107)","ต้นน้ำ 🌱 (6518610115)","แซนนี่ ☀️ (6518610131)","กัส ⛽ (6518610149)","นินจี้ 🥷 (6518610206)","นนท์ 🕶️ (6518610230)","มินท์ 🌿 (6518610248)","แป้ง 🍞 (6518610255)","ตีตี้ 🎸 (6518610263)","แพม 👒 (6518610271)","อะตอม ⚛️ (6518610305)","นาย 👔 (6518610313)","การ์ตูน 📖 (6518610321)","นัซ 🌠 (6518610354)","แพนด้า 🐼 (6518610362)","ปิ๊ก 🎸 (6518610388)","จอย 😊 (6518610396)","มายด์ ✨ (6518610404)","โดนัท 🍩 (6518610453)","บุ๊ค 📚 (6518610461)","ปอนด์ 💷 (6518610495)","เบค 🥓 (6518610511)","ต้นกล้า 🪴 (6518610537)","มิ้นท์ 🌱 (6518610552)","ต้นน้ำ 💧 (6518610602)","แพรทอง ✨ (6518660011)","แก้ม 😊 (6518660029)","แสนดี 😇 (6518670028)","อุ๊กอิ๊ก 🐣 (6518670044)","ต้้นน้ำ 🌊 (6518670085)","เจ 🃏 (6518670135)","เปมี่ 🍭 (6518670143)","ท้องฟ้า ☁️ (6518670184)","พีช 🍑 (6518670218)","สมายด์ 😁 (6518670242)","แพร 🌸 (6518670259)","ตะวัน 🌻 (6518670283)"];
-const RN="นางสาวชญานิศ ชายเมฆนางสาวณัชชา ศรีทองสุขนางสาวณัฏฐณิชา ตราหยกนายปวริศ ชูชมชื่นนายพศวัต พุทธิชนม์นางสาวณัฎฐริณีย์ เทือกท้าวนางสาวหรรษธร เปลี่ยนภักดีนางสาวกชกร ทรงเตชะเลิศนายกฎปิยราช ชนะสิทธิ์นางสาวกมลพร ว่องไวนางสาวกฤติยาพร คำศรีนางสาวกอแก้ว พัฒนาศูรนางสาวกัญญาณัฏฐ์ ลาภทรงสุขนายเกตุโพธิ์ ใจสงฆ์นางสาวแก้วบุษราภรณ์ เลาหกัยกุลนางสาวงามวรินทร์ กิตติจิตต์นายจิรวัฒน์ รักษ์วิเชียรนางสาวชนัญธิดา วีระวุฒิพงศ์นายชนาธิป บุญมาศิรินางสาวชวัลพัชร วิชัยศิริรัตน์นายชาคริษ บวรกิจนางสาวชาลิสา พรสุขจันทรานายญาณพัฒน์ สุขเกษมนางสาวฐณิชา จรัสวิชากรนางสาวฐิตารีย์ปานสง่านายณพงศ์ เจริญเนติศาสตร์นางสาวณัฏฐณิชา สุดคงนางสาวณัฐกฤตา ศรีวิเชียรนายณัฐชนนท์ เครือตานางสาวณัฐณิชา ขวาลำธารนางสาวณัฐธิดา อรุณแสงนางสาวต่วนนีซาวาตี อัลอาตัสนางสาวธัญรดา โทธรัตน์นายธิติวุฒิ เพชรเงินทองนายธีรเมธ แสงอรุณนายนพเก้า วิวัฒชยางกูลนางสาวนภัสวรรณ แผลงศรนางสาวนัชชา ลักษณ์เชื้อวงศ์นางสาวนัซรียา บุญชูนางสาวนันตรา อินทร์น้อยนายประวิชญ์ อำนวยพันธ์วิไลนางสาวปรางค์ทิพย์ บุญมีวิเศษนางสาวปราณปริยา จ่าพลนางสาวปาณิสรา ศรีอาจนางสาวพรปวีณ์ บุญนำนายพิธินันท์ สัตติยารักษ์นายพุฒิพงศ์ ผดุงวัฒนะโชคนายภูมิรพี บูรณะสมทบนายภูวเดช นิลคตนางสาวมนณิชชา บุญนำนายรัชชานนท์ ขมิ้นทองนายวชิรวิทย์ ชำนาญวงศ์นายวศิน เอี่ยมต่อมนางสาวศุภิสรา สุวรรณศักดิ์สินนายสุรพงษ์ จันทบูรณ์นางสาวหทัยนันท์ เทพกำปนาทนางสาวอชิรญาณ์ ลำพรหมแก้วนายอัครวิทย์ นิธิบุญญาพันธ์นางสาวไอลดา ทาหะพรหมนางสาวแพรทอง เพอรัตน์นางสาวอภิสรา นุตภูติพงศ์นางสาวกวินธร เมฆะจำรูญนางสาวกานติมา มัทกิจนางสาวจาริญดา อินอัญชัญนายโชคชัย อริยะบุญสกุลนางสาวณภัทร ดำแก้วนายณัฐดนย์ อภิรติชัยศิริกุลนางสาวทัศน์สุดา ประสิทธิ์วิเศษนางสาวธีริศรา อินตรานางสาวนรมล พรหมโชตินายปิติพัตน์ รัตนสัมพันธ์นางสาวเปมิกา บุรณศิรินางสาวพรภรณ์ บุญยู่ฮงนางสาวภานิลนาถ มานะธัญญานายภาสกร นาคานางสาวมศารัศม์ พุทธะไชยทัศน์นายรัฐธีร์ พนิตจินดาศักดิ์นางสาววิรัลพัชร คุณาสถิตย์ชัยนางสาวศศินิภา แก้วสุวรรณ์นางสาวสุชัญญา หนูยิ้มนางสาวสุภัสสรา ฤกษ์รัตนีนางสาวสุมาลี นิมิตรมงคลนางสาวแสงตะวัน บุษปวนิช";
-const DRUGS=[{n:"Paracetamol",a:"Analgesic / Antipyretic"},{n:"Amoxicillin",a:"Antibiotic (Penicillin)"},{n:"Cetirizine",a:"Antihistamine Gen 2"},{n:"Omeprazole",a:"PPI"},{n:"Simvastatin",a:"Statin"},{n:"Metformin",a:"Biguanide"},{n:"Amlodipine",a:"CCB"},{n:"Ibuprofen",a:"NSAIDs"},{n:"Prednisolone",a:"Corticosteroid"},{n:"Salbutamol",a:"β2-agonist"},{n:"Losartan",a:"ARB"},{n:"Atorvastatin",a:"Statin"},{n:"Clopidogrel",a:"Antiplatelet"},{n:"Gabapentin",a:"Anticonvulsant"},{n:"Domperidone",a:"Antiemetic"},{n:"Lorazepam",a:"Benzodiazepine"},{n:"Tramadol",a:"Opioid Analgesic"},{n:"Acetylcysteine",a:"Mucolytic"},{n:"Mefenamic Acid",a:"NSAIDs"},{n:"Enalapril",a:"ACE Inhibitor"},{n:"Propranolol",a:"Beta-blocker"},{n:"Furosemide",a:"Loop Diuretic"},{n:"Warfarin",a:"Anticoagulant"},{n:"Digoxin",a:"Cardiac Glycoside"},{n:"Azithromycin",a:"Macrolide"},{n:"Ciprofloxacin",a:"Fluoroquinolone"},{n:"Doxycycline",a:"Tetracycline"},{n:"Ceftriaxone",a:"Cephalosporin Gen 3"},{n:"Diazepam",a:"Benzodiazepine"},{n:"Fluoxetine",a:"SSRI"},{n:"Amitriptyline",a:"TCA"},{n:"Phenytoin",a:"Anticonvulsant"},{n:"CPM",a:"Antihistamine Gen 1"},{n:"Loratadine",a:"Antihistamine Gen 2"},{n:"Fexofenadine",a:"Antihistamine Gen 3"},{n:"Dextromethorphan",a:"Antitussive"},{n:"Bromhexine",a:"Mucolytic"},{n:"Famotidine",a:"H2 Blocker"},{n:"Hyoscine",a:"Antispasmodic"},{n:"Loperamide",a:"Antidiarrheal"},{n:"Glibenclamide",a:"Sulfonylurea"},{n:"Allopurinol",a:"Xanthine oxidase inhibitor"},{n:"Colchicine",a:"Antigout"},{n:"Diclofenac",a:"NSAIDs"},{n:"Naproxen",a:"NSAIDs"},{n:"Celecoxib",a:"COX-2 Inhibitor"},{n:"Aspirin",a:"Antiplatelet / NSAIDs"},{n:"Ergotamine",a:"Antimigraine"},{n:"Norfloxacin",a:"Antibiotic (UTI)"},{n:"ORS",a:"Electrolyte solution"}];
+const RN="นางสาวชญานิศ ชายเมฆนางสาวณัชชา ศรีทองสุขนางสาวณัฏฐณิชา ตราหยกนายปวริศ ชูชมชื่นนายพศวัต พุทธิชนม์นางสาวณัฎฐริณีย์ เทือกท้าวนางสาวหรรษธร เปลี่ยนภักดีนางสาวกชกร ทรงเตชะเลิศนายกฎปิยราช ชนะสิทธิ์นางสาวกมลพร ว่องไวนางสาวกฤติยาพร คำศรีนางสาวกอแก้ว พัฒนาศูรนางสาวกัญญาณัฏฐ์ ลาภทรงสุขนายเกตุโพธิ์ ใจสงฆ์นางสาวแก้วบุษราภรณ์ เลาหกัยกุลนางสาวงามวรินทร์ กิตติจิตต์นายจิรวัฒน์ รักษ์วิเชียรนางสาวชนัญธิดา วีระวุฒิพงศ์นายชนาธิป บุญมาศิรินางสาวชวัลพัชร วิชัยศิริรัตน์นายชาคริษ บวรกิจนางสาวชาลิสา พรสุขจันทรานายญาณพัฒน์ สุขเกษมนางสาวฐณิชา จรัสวิชากรนางสาวฐิตารีย์ ปานสง่านายณพงศ์ เจริญเนติศาสตร์นางสาวณัฏฐณิชา สุดคงนางสาวณัฐกฤตา ศรีวิเชียรนายณัฐชนนท์ เครือตานางสาวณัฐณิชา ขวาลำธารนางสาวณัฐธิดา อรุณแสงนางสาวต่วนนีซาวาตี อัลอาตัสนางสาวธัญรดา โทธรัตน์นายธิติวุฒิ เพชรเงินทองนายธีรเมธ แสงอรุณนายนพเก้า วิวัฒชยางกูลนางสาวนภัสวรรณ แผลงศรนางสาวนัชชา ลักษณ์เชื้อวงศ์นางสาวนัซรียา บุญชูนางสาวนันตรา อินทร์น้อยนายประวิชญ์ อำนวยพันธ์วิไลนางสาวปรางค์ทิพย์ บุญมีวิเศษนางสาวปราณปริยา จ่าพลนางสาวปาณิสรา ศรีอาจนางสาวพรปวีณ์ บุญนำนายพิธินันท์ สัตติยารักษ์นายพุฒิพงศ์ ผดุงวัฒนะโชคนายภูมิรพี บูรณะสมทบนายภูวเดช นิลคตนางสาวมนณิชชา บุญนำนายรัชชานนท์ ขมิ้นทองนายวชิรวิทย์ ชำนาญวงศ์นายวศิน เอี่ยมต่อมนางสาวศุภิสรา สุวรรณศักดิ์สินนายสุรพงษ์ จันทบูรณ์นางสาวหทัยนันท์ เทพกำปนาทนางสาวอชิรญาณ์ ลำพรหมแก้วนายอัครวิทย์ นิธิบุญญาพันธ์นางสาวไอลดา ทาหะพรหมนางสาวแพรทอง เพอรัตน์นางสาวอภิสรา นุตภูติพงศ์นางสาวกวินธร เมฆะจำรูญนางสาวกานติมา มัทกิจนางสาวจาริญดา อินอัญชัญนายโชคชัย อริยะบุญสกุลนางสาวณภัทร ดำแก้วนายณัฐดนย์ อภิรติชัยศิริกุลนางสาวทัศน์สุดา ประสิทธิ์วิเศษนางสาวธีริศรา อินตรานางสาวนรมล พรหมโชตินายปิติพัตน์ รัตนสัมพันธ์นางสาวเปมิกา บุรณศิรินางสาวพรภรณ์ บุญยู่ฮงนางสาวภานิลนาถ มานะธัญญานายภาสกร นาคานางสาวมศารัศม์ พุทธะไชยทัศน์นายรัฐธีร์ พนิตจินดาศักดิ์นางสาววิรัลพัชร คุณาสถิตย์ชัยนางสาวศศินิภา แก้วสุวรรณ์นางสาวสุชัญญา หนูยิ้มนางสาวสุภัสสรา ฤกษ์รัตนีนางสาวสุมาลี นิมิตรมงคลนางสาวแสงตะวัน บุษปวนิช";
 
+const DRUGS=[
+    {n:"Paracetamol",a:"Analgesic / Antipyretic"},{n:"Amoxicillin",a:"Antibiotic (Penicillin)"},{n:"Cetirizine",a:"Antihistamine Gen 2"},{n:"Omeprazole",a:"Proton Pump Inhibitor (PPI)"},{n:"Simvastatin",a:"HMG-CoA Reductase Inhibitor (Statin)"},{n:"Metformin",a:"Biguanide (เบาหวาน)"},{n:"Amlodipine",a:"Calcium Channel Blocker (CCB)"},{n:"Ibuprofen",a:"NSAIDs (COX-1/2 inhibitor)"},{n:"Prednisolone",a:"Systemic Corticosteroid"},{n:"Salbutamol",a:"Short-acting β2-agonist (SABA)"},{n:"Losartan",a:"Angiotensin II Receptor Blocker (ARB)"},{n:"Atorvastatin",a:"HMG-CoA Reductase Inhibitor (Statin)"},{n:"Clopidogrel",a:"P2Y12 Antiplatelet"},{n:"Gabapentin",a:"Anticonvulsant / Neuropathic pain"},{n:"Domperidone",a:"Dopamine Antagonist Antiemetic"},{n:"Lorazepam",a:"Benzodiazepine (anxiolytic)"},{n:"Tramadol",a:"Weak Opioid Analgesic"},{n:"Acetylcysteine",a:"Mucolytic / Antidote (paracetamol OD)"},{n:"Mefenamic Acid",a:"NSAIDs (NSAID fenamate)"},{n:"Enalapril",a:"ACE Inhibitor"},{n:"Propranolol",a:"Non-selective Beta-blocker"},{n:"Furosemide",a:"Loop Diuretic"},{n:"Warfarin",a:"Vitamin K Antagonist (Anticoagulant)"},{n:"Digoxin",a:"Cardiac Glycoside (inotrope)"},{n:"Azithromycin",a:"Macrolide Antibiotic"},{n:"Ciprofloxacin",a:"Fluoroquinolone Antibiotic"},{n:"Doxycycline",a:"Tetracycline Antibiotic"},{n:"Ceftriaxone",a:"3rd-gen Cephalosporin"},{n:"Diazepam",a:"Benzodiazepine (anticonvulsant/anxiolytic)"},{n:"Fluoxetine",a:"Selective Serotonin Reuptake Inhibitor (SSRI)"},{n:"Amitriptyline",a:"Tricyclic Antidepressant (TCA)"},{n:"Phenytoin",a:"Hydantoin Anticonvulsant (Na+ channel blocker)"},{n:"Chlorpheniramine (CPM)",a:"1st-gen Antihistamine (sedating)"},{n:"Loratadine",a:"2nd-gen Antihistamine (non-sedating)"},{n:"Fexofenadine",a:"3rd-gen Antihistamine (peripherally selective)"},{n:"Dextromethorphan",a:"NMDA Antagonist Antitussive"},{n:"Bromhexine",a:"Mucolytic (depolymerizes mucopolysaccharides)"},{n:"Famotidine",a:"H2-Receptor Antagonist"},{n:"Hyoscine (Scopolamine)",a:"Anticholinergic / Antispasmodic"},{n:"Loperamide",a:"Peripheral Opioid Receptor Agonist (Antidiarrheal)"},{n:"Glibenclamide",a:"Sulfonylurea (closes K-ATP channel)"},{n:"Allopurinol",a:"Xanthine Oxidase Inhibitor (antigout)"},{n:"Colchicine",a:"Microtubule Inhibitor (acute gout)"},{n:"Diclofenac",a:"NSAIDs (acetic acid derivative)"},{n:"Naproxen",a:"NSAIDs (propionic acid derivative)"},{n:"Celecoxib",a:"Selective COX-2 Inhibitor"},{n:"Aspirin (Low dose)",a:"Irreversible COX-1 Inhibitor / Antiplatelet"},{n:"Ergotamine",a:"Serotonin Agonist Antimigraine"},{n:"Norfloxacin",a:"Fluoroquinolone (urinary/GI tract)"},{n:"ORS",a:"Oral Rehydration Solution (WHO formula)"}
+];
+
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let currentUser=null, userData=null, unsub=null;
+let mTrack='all', mSearch='';
+let qScore=0, qAnswer=null, qHigh=0;
+let dqScore=0, dqAnswer=null, dqHigh=0;
+let curDrug=null, tradeIdx=null;
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
 function initStudents() {
     const names=RN.split(/(?=นาย|นางสาว)/).filter(n=>n.trim()).map(n=>n.replace(/^นาย|^นางสาว/,'').trim());
     const sci=R_SCI.map(s=>{const[nick,rest]=s.split(' (');return{nickname:nick,id:rest.replace(')',''),track:'sci'};});
@@ -963,26 +368,600 @@ function initStudents() {
     all.forEach((s,i)=>{s.realName=names[i]||'ไม่ระบุ';});
     window.__students=all;
 }
-
-let curDrug=null;
-window.nextDrug=()=>{
-    curDrug=DRUGS[Math.floor(Math.random()*DRUGS.length)];
-    const f=document.getElementById('fc-front'),b=document.getElementById('fc-back'),h=document.getElementById('fc-hint');
-    if(f){f.textContent=curDrug.n;b.style.display='none';b.textContent=curDrug.a;if(h){h.style.display='block';h.textContent='แตะเพื่อเฉลย';}}
-};
-window.flipCard=()=>{
-    const b=document.getElementById('fc-back'),h=document.getElementById('fc-hint');
-    if(b){b.style.display='block';if(h)h.style.display='none';}
-};
-
-window.toast=(msg,type='info')=>{
-    const t=document.getElementById('toast');
-    t.textContent=msg;t.className='show '+type;
-    clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);
-};
-
 initStudents();
+
+// ════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════
+window.loginGoogle=async()=>{
+    try{provider.setCustomParameters({prompt:'select_account'});const r=await signInWithPopup(auth,provider);await ensureDoc(r.user);}
+    catch(e){if(e.code!=='auth/popup-closed-by-user')toast("Login ไม่สำเร็จ","error");}
+};
+window.logoutUser=async()=>{await signOut(auth);currentUser=userData=null;renderAll();};
+
+async function ensureDoc(u){
+    const ref=doc(db,"users",u.uid);const snap=await getDoc(ref);
+    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:200,pets:[],eggs:[],activePet:null,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,lastDaily:null,petLastDaily:null,createdAt:serverTimestamp()});
+}
+
+onAuthStateChanged(auth,async u=>{
+    currentUser=u;
+    if(u){
+        await ensureDoc(u);
+        if(unsub)unsub();
+        unsub=onSnapshot(doc(db,"users",u.uid),snap=>{userData=snap.data();qHigh=userData?.quizHigh||0;dqHigh=userData?.drugHigh||0;renderAll();checkDaily();});
+    } else renderAll();
+});
+
+// ════════════════════════════════════════
+//  DAILY
+// ════════════════════════════════════════
+async function checkDaily(){
+    if(!currentUser||!userData)return;
+    const last=userData.lastDaily?.toDate?.();const now=new Date();
+    const btn=document.getElementById('daily-btn');
+    if(btn)btn.classList.toggle('ready',!last||(now-last)>23*3600000);
+    const pet=activePet();
+    if(pet?.effect==='daily50'||pet?.effect==='all'||pet?.effect==='rainbow'){
+        const pl=userData.petLastDaily?.toDate?.();
+        if(!pl||(now-pl)>23*3600000){
+            const b=pet.effect==='all'?100:pet.effect==='rainbow'?100:50;
+            await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(b),petLastDaily:serverTimestamp()});
+            toast(`${pet.emoji} ${pet.name} ให้ daily +${b}🪙!`,"success");
+        }
+    }
+}
+window.claimDaily=async()=>{
+    if(!currentUser)return;
+    const btn=document.getElementById('daily-btn');
+    if(!btn?.classList.contains('ready')){toast("รับได้อีกครั้งพรุ่งนี้!","info");return;}
+    const pet=activePet();let base=30;
+    if(pet?.effect==='coin+10')base=33;if(pet?.effect==='coin+15')base=35;
+    if(pet?.effect==='coinx2'||pet?.effect==='all')base=60;
+    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(base),lastDaily:serverTimestamp()});
+    btn.classList.remove('ready');
+    toast(`🎁 Daily +${base}🪙!`,"success");
+    confetti({particleCount:80,spread:60,origin:{y:0.6}});
+};
+
+// ════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════
+function activePet(){if(!userData?.activePet||!userData?.pets)return null;return userData.pets.find(p=>p.id===userData.activePet)||null;}
+function coinMulti(){const p=activePet();if(!p)return 1;if(p.effect==='coin+10')return 1.1;if(p.effect==='coin+15')return 1.15;if(p.effect==='coinx2')return 2;if(p.effect==='all')return 3;return 1;}
+function scoreMulti(){const p=activePet();return(p?.effect==='scorex2'||p?.effect==='all')?2:1;}
+function scoreBonus(){return activePet()?.effect==='score+5'?5:0;}
+window.awardCoins=async(base)=>{if(!currentUser)return base;const final=Math.floor(base*coinMulti());await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(final)});if(final!==base)toast(`${activePet().emoji} Effect! +${final} แทน +${base}`,"success");return final;};
+function myPhoto(){if(!userData)return null;return userData.customPhoto||userData.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name||'?')}&size=256`;}
+
+// ════════════════════════════════════════
+//  NEWS FEED
+// ════════════════════════════════════════
+async function postNews(icon, msg) {
+    try {
+        await addDoc(collection(db,"news"), {icon, msg, ts: serverTimestamp()});
+        loadTicker();
+    } catch(e){}
+}
+
+async function loadTicker() {
+    try {
+        const q=query(collection(db,"news"),orderBy("ts","desc"),limit(5));
+        const snap=await getDocs(q);
+        let items=[];
+        snap.forEach(d=>{const x=d.data();items.push(`${x.icon} ${x.msg}`);});
+        if(!items.length)items=['ยินดีต้อนรับสู่ RxTU10 Dashboard! 🎉'];
+        document.getElementById('ticker-text').textContent=items.join('  •  ');
+    } catch(e){}
+}
+
+window.openFeed=async()=>{
+    document.getElementById('feed-modal').classList.add('active');
+    try {
+        const q=query(collection(db,"news"),orderBy("ts","desc"),limit(30));
+        const snap=await getDocs(q);
+        let html='';
+        snap.forEach(d=>{
+            const x=d.data();
+            const ts=x.ts?.toDate?.();
+            const timeStr=ts?ts.toLocaleString('th-TH',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'}):'';
+            html+=`<div class="feed-item"><div class="feed-icon">${x.icon}</div><div><div class="feed-msg">${x.msg}</div><div class="feed-time">${timeStr}</div></div></div>`;
+        });
+        document.getElementById('feed-list').innerHTML=html||'<div style="text-align:center;color:var(--muted);padding:20px">ยังไม่มีข่าว</div>';
+    } catch(e){document.getElementById('feed-list').innerHTML='<div style="color:#ef4444;text-align:center;padding:16px">โหลดไม่ได้</div>';}
+};
+window.closeFeed=()=>document.getElementById('feed-modal').classList.remove('active');
+
+// Megaphone
+window.openMega=()=>{
+    if(!currentUser){toast("Login ก่อน","error");return;}
+    document.getElementById('mega-coins').textContent=(userData?.coins||0).toLocaleString();
+    document.getElementById('mega-text').value='';
+    document.getElementById('mega-modal').classList.add('active');
+};
+window.closeMega=()=>document.getElementById('mega-modal').classList.remove('active');
+window.sendMegaphone=async()=>{
+    if(!currentUser||!userData){toast("Login ก่อน","error");return;}
+    if((userData.coins||0)<MEGA_COST){toast(`เหรียญไม่พอ! ต้องการ ${MEGA_COST}🪙`,"error");return;}
+    const msg=document.getElementById('mega-text').value.trim();
+    if(!msg){toast("กรุณาพิมพ์ข้อความ","error");return;}
+    const name=userData.nickname?.split(' ')[0]||userData.name||'ไม่ระบุ';
+    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(-MEGA_COST)});
+    await postNews("📣",`${name}: ${msg}`);
+    closeMega();
+    toast("ส่งข้อความแล้ว! 📣","success");
+};
+
+// ════════════════════════════════════════
+//  STUDENT LINKING
+// ════════════════════════════════════════
+window.openLinkModal=()=>{
+    if(!currentUser){toast("กรุณา Login ก่อน","error");return;}
+    document.getElementById('link-input').value='';document.getElementById('link-error').textContent='';document.getElementById('link-preview').style.display='none';document.getElementById('link-modal').classList.add('active');
+};
+window.closeLinkModal=()=>document.getElementById('link-modal').classList.remove('active');
+window.previewLink=()=>{
+    const val=document.getElementById('link-input').value.trim();const found=window.__students?.find(s=>s.id===val);
+    const err=document.getElementById('link-error');const prev=document.getElementById('link-preview');
+    if(!found){err.textContent='ไม่พบรหัสนี้';prev.style.display='none';return;}
+    err.textContent='';document.getElementById('lp-nick').textContent=found.nickname;document.getElementById('lp-name').textContent=found.realName;
+    const tb=document.getElementById('lp-track');tb.textContent=found.track.toUpperCase();tb.style.background=found.track==='sci'?'var(--sci)':'var(--care)';
+    prev.style.display='block';prev.dataset.sid=val;
+};
+window.confirmLink=async()=>{
+    const prev=document.getElementById('link-preview');if(prev.style.display==='none'){toast("ตรวจสอบรหัสก่อน","error");return;}
+    const sid=prev.dataset.sid;const found=window.__students?.find(s=>s.id===sid);if(!found||!currentUser)return;
+    const all=await getDocs(collection(db,"users"));let claimed=false;
+    all.forEach(d=>{if(d.data().studentId===sid&&d.id!==currentUser.uid)claimed=true;});
+    if(claimed){toast("รหัสนี้ถูกใช้แล้ว","error");return;}
+    await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track});
+    closeLinkModal();toast(`ยินดีต้อนรับ ${found.nickname}!`,"success");
+    confetti({particleCount:120,spread:70,origin:{y:0.5}});
+    await postNews("🔗",`${found.nickname} เพิ่งเข้าร่วม RxTU10 Dashboard!`);
+};
+
+// ════════════════════════════════════════
+//  PHOTO UPLOAD
+// ════════════════════════════════════════
+window.triggerPhoto=()=>document.getElementById('photo-input').click();
+window.handlePhoto=async(e)=>{
+    const file=e.target.files[0];if(!file||!currentUser)return;
+    if(file.size>800*1024){toast("รูปใหญ่เกิน 800KB","error");return;}
+    toast("กำลังอัพโหลด...","info");
+    const reader=new FileReader();
+    reader.onload=ev=>{const img=new Image();img.onload=async()=>{
+        const canvas=document.createElement('canvas');const MAX=300;let w=img.width,h=img.height;
+        if(w>h){if(w>MAX){h=h*(MAX/w);w=MAX;}}else{if(h>MAX){w=w*(MAX/h);h=MAX;}}
+        canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
+        const b64=canvas.toDataURL('image/jpeg',0.75);
+        await updateDoc(doc(db,"users",currentUser.uid),{customPhoto:b64});
+        toast("อัพโหลดรูปสำเร็จ!","success");
+    };img.src=ev.target.result;};
+    reader.readAsDataURL(file);e.target.value='';
+};
+
+// ════════════════════════════════════════
+//  GACHA & HATCH
+// ════════════════════════════════════════
+function rollPet(){const r=Math.random();let c=0;for(const p of PETS){c+=p.rate;if(r<=c)return{...p,instId:Date.now()+Math.random()};}return{...PETS[0],instId:Date.now()};}
+
+window.buyEgg=async()=>{
+    if(!currentUser||!userData){toast("กรุณา Login","error");return;}
+    if(userData.coins<EGG_COST){toast(`เหรียญไม่พอ! ต้องการ ${EGG_COST}🪙`,"error");return;}
+    const pet=rollPet();
+    const egg={eggId:Date.now()+'_'+Math.random().toString(36).slice(2),petId:pet.id,petEmoji:pet.emoji,petName:pet.name,petRarity:pet.rarity,petEffect:pet.effect,petDesc:pet.desc,petInstId:pet.instId,hatchMins:pet.hatchMins,startedAt:null};
+    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(-EGG_COST),eggs:arrayUnion(egg)});
+    toast("🥚 ได้ไข่แล้ว! ไปที่ Inventory > ฟัก","success");
+};
+
+window.startHatch=async(eggId)=>{
+    if(!currentUser||!userData)return;
+    const eggs=(userData.eggs||[]).map(e=>e.eggId===eggId?{...e,startedAt:Date.now()}:e);
+    await updateDoc(doc(db,"users",currentUser.uid),{eggs});toast("🔥 เริ่มฟักแล้ว!","info");
+};
+
+window.claimEgg=async(eggId)=>{
+    if(!currentUser||!userData)return;
+    const egg=(userData.eggs||[]).find(e=>e.eggId===eggId);if(!egg||!egg.startedAt)return;
+    if(Date.now()<egg.startedAt+egg.hatchMins*60000){toast("ยังฟักไม่เสร็จ!","error");return;}
+    const newEggs=(userData.eggs||[]).filter(e=>e.eggId!==eggId);
+    const pet={id:egg.petId,emoji:egg.petEmoji,name:egg.petName,rarity:egg.petRarity,effect:egg.petEffect,desc:egg.petDesc,instId:egg.petInstId};
+    await updateDoc(doc(db,"users",currentUser.uid),{eggs:newEggs,pets:arrayUnion(pet)});
+    showGachaResult(pet);
+    if(pet.rarity!=='common'){
+        const name=userData.nickname?.split(' ')[0]||userData.name||'?';
+        const icons={rare:'✨',epic:'💥',legendary:'🌟'};
+        await postNews(icons[pet.rarity]||'🎉',`${name} ฟักได้ ${pet.emoji} ${pet.name} [${RARITY[pet.rarity].label}]!`);
+    }
+};
+
+function showGachaResult(pet){
+    const cfg=RARITY[pet.rarity];
+    document.getElementById('gacha-result').innerHTML=`
+        <div class="gacha-inner" style="--glow:${cfg.glow}">
+            <div class="gr-badge" style="background:${cfg.color}">${cfg.label}</div>
+            <div class="gr-emoji">${pet.emoji}</div>
+            <div class="gr-name">${pet.name}</div>
+            <div class="gr-desc">${pet.desc}</div>
+            <div class="gr-btns">
+                <button class="btn-gold" onclick="setActive('${pet.id}');closeGacha()">ใช้งานเลย!</button>
+                <button class="btn-gray" onclick="closeGacha()">เก็บไว้ก่อน</button>
+            </div>
+        </div>`;
+    document.getElementById('gacha-modal').classList.add('active');
+    const colors=pet.rarity==='legendary'?['#f59e0b','#fbbf24','#fff']:pet.rarity==='epic'?['#a855f7','#c084fc','#fff']:pet.rarity==='rare'?['#3b82f6','#60a5fa','#fff']:['#94a3b8'];
+    confetti({particleCount:pet.rarity==='legendary'?200:pet.rarity==='epic'?120:60,spread:80,origin:{y:0.5},colors});
+}
+window.closeGacha=()=>document.getElementById('gacha-modal').classList.remove('active');
+
+window.setActive=async(id)=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:id});toast("เปลี่ยนสัตว์เลี้ยงแล้ว!","success");};
+window.unsetActive=async()=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:null});toast("เก็บสัตว์เลี้ยงแล้ว","info");};
+
+window.showPetInfo=(petId)=>{
+    const p=PETS.find(x=>x.id===petId)||(userData?.pets||[]).find(x=>x.id===petId);if(!p)return;
+    const cfg=RARITY[p.rarity];
+    document.getElementById('petinfo-content').innerHTML=`
+        <div style="text-align:center">
+            <div class="gr-badge" style="background:${cfg.color};display:inline-block;margin-bottom:8px">${cfg.label}</div>
+            <div style="font-size:3.2rem;margin:5px 0;filter:drop-shadow(0 0 10px ${cfg.glow})">${p.emoji}</div>
+            <div style="font-size:1.2rem;font-weight:800;margin-bottom:3px">${p.name}</div>
+            <div style="color:var(--muted);font-size:0.78rem;margin-bottom:10px">เวลาฟัก: ${HATCH_LABELS[p.rarity]||''}</div>
+            <div style="background:${cfg.bg};border:1.5px solid ${cfg.color}33;border-radius:11px;padding:11px;font-size:0.86rem">
+                ✨ <b>ความสามารถ:</b><br><span style="color:${cfg.color};font-weight:600">${p.desc}</span>
+            </div>
+        </div>`;
+    const isActive=userData?.activePet===p.id;
+    document.getElementById('petinfo-actions').innerHTML=`
+        <button class="btn-gold" style="flex:1" onclick="${isActive?'unsetActive()':'setActive(\''+p.id+'\')' };closePetInfo()">${isActive?"🔴 เอาออก":"🟢 ใช้งาน"}</button>
+        <button class="btn-gray" style="flex:1" onclick="closePetInfo()">ปิด</button>`;
+    document.getElementById('petinfo-modal').classList.add('active');
+};
+window.closePetInfo=()=>document.getElementById('petinfo-modal').classList.remove('active');
+
+// ════════════════════════════════════════
+//  TRADE
+// ════════════════════════════════════════
+window.openTrade=()=>{if(!currentUser){toast("Login ก่อน","error");return;}tradeIdx=null;renderTradeList();document.getElementById('trade-panel').classList.add('active');};
+window.closeTrade=()=>document.getElementById('trade-panel').classList.remove('active');
+function renderTradeList(){const el=document.getElementById('trade-pets');if(!userData?.pets?.length){el.innerHTML='<p style="color:#94a3b8;text-align:center;padding:8px">ยังไม่มีสัตว์เลี้ยง</p>';return;}el.innerHTML=userData.pets.map((p,i)=>{const c=RARITY[p.rarity];return`<div class="trade-item${tradeIdx===i?' sel':''}" onclick="pickTrade(${i})"><span style="font-size:1.4rem">${p.emoji}</span><div><div style="font-weight:600;font-size:0.82rem">${p.name}</div><div style="color:${c.color};font-size:0.68rem;font-weight:700">${c.label}</div></div></div>`;}).join('');}
+window.pickTrade=i=>{tradeIdx=i;renderTradeList();};
+window.sendTrade=async()=>{
+    const email=document.getElementById('trade-email').value.trim();if(!email||tradeIdx===null){toast("เลือกสัตว์และใส่ email","error");return;}
+    const pet=userData.pets[tradeIdx];const all=await getDocs(collection(db,"users"));let target=null;all.forEach(d=>{if(d.data().email===email)target=d;});
+    if(!target){toast("ไม่พบผู้ใช้","error");return;}
+    const newPets=userData.pets.filter((_,i)=>i!==tradeIdx);
+    await setDoc(doc(db,"users",currentUser.uid),{pets:newPets},{merge:true});await updateDoc(doc(db,"users",target.id),{pets:arrayUnion(pet)});
+    toast(`ส่ง ${pet.emoji}${pet.name} ให้ ${email}!`,"success");closeTrade();tradeIdx=null;
+};
+
+// ════════════════════════════════════════
+//  QUIZ — ทายชื่อเพื่อน
+// ════════════════════════════════════════
+window.startQuiz=()=>{
+    qScore=0;document.getElementById('q-score').textContent='0';
+    document.getElementById('quiz-start').style.display='none';document.getElementById('quiz-play').style.display='block';nextQ();
+};
+window.nextQ=()=>{
+    const s=window.__students;if(!s?.length)return;
+    const st=s[Math.floor(Math.random()*s.length)];qAnswer=st.realName;
+    document.getElementById('q-nick').textContent=st.nickname.split(' ')[0];
+    let opts=[qAnswer];while(opts.length<4){const w=s[Math.floor(Math.random()*s.length)].realName;if(!opts.includes(w))opts.push(w);}
+    opts.sort(()=>Math.random()-0.5);
+    document.getElementById('q-opts').innerHTML=opts.map(o=>`<button class="q-btn" onclick="answerQ(this,'${o.replace(/'/g,"\\'")}','quiz')">${o}</button>`).join('');
+};
+window.answerQ=async(btn,ans,mode)=>{
+    document.querySelectorAll('.q-btn').forEach(b=>{b.disabled=true;if(b.textContent===ans)b.classList.add(ans===(mode==='quiz'?qAnswer:dqAnswer)?'correct':'wrong');if(b.textContent===(mode==='quiz'?qAnswer:dqAnswer))b.classList.add('correct');});
+    if(mode==='quiz'){
+        if(ans===qAnswer){
+            qScore++;const disp=qScore*scoreMulti()+scoreBonus();document.getElementById('q-score').textContent=disp;
+            await window.awardCoins(5);confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#10b981']});
+            setTimeout(nextQ,700);
+        } else {
+            const finalScore=qScore;
+            const name=userData?.nickname?.split(' ')[0]||userData?.name||'?';
+            if(currentUser&&finalScore>qHigh){
+                qHigh=finalScore;await updateDoc(doc(db,"users",currentUser.uid),{quizHigh:finalScore});
+                await postNews("🏆",`${name} ทำ High Score ใหม่ในเกมทายชื่อ: ${finalScore} คะแนน!`);
+            } else if(currentUser&&finalScore>=10){
+                await postNews("🎮",`${name} ทำได้ ${finalScore} ข้อในเกมทายชื่อ — Top 5%! 🔥`);
+            }
+            setTimeout(()=>{document.getElementById('quiz-start').style.display='block';document.getElementById('quiz-play').style.display='none';document.getElementById('q-msg').innerHTML=`ชื่อจริงคือ <b>${qAnswer}</b> | ไฮสกอร์: ${Math.max(finalScore,qHigh)}`;},1000);
+        }
+    }
+};
+
+// ════════════════════════════════════════
+//  DRUG QUIZ — MCQ
+// ════════════════════════════════════════
+window.startDrugQuiz=()=>{
+    dqScore=0;document.getElementById('dq-score').textContent='0';
+    document.getElementById('dquiz-start').style.display='none';document.getElementById('dquiz-play').style.display='block';nextDQ();
+};
+window.nextDQ=()=>{
+    const d=DRUGS[Math.floor(Math.random()*DRUGS.length)];dqAnswer=d.a;
+    document.getElementById('dq-drug').textContent=d.n;
+    let opts=[d.a];while(opts.length<4){const w=DRUGS[Math.floor(Math.random()*DRUGS.length)].a;if(!opts.includes(w))opts.push(w);}
+    opts.sort(()=>Math.random()-0.5);
+    document.getElementById('dq-opts').innerHTML=opts.map(o=>`<button class="q-btn" onclick="answerDQ(this,'${o.replace(/'/g,"\\'")}')" style="font-size:0.76rem;text-align:left;padding:9px 10px">${o}</button>`).join('');
+};
+window.answerDQ=async(btn,ans)=>{
+    document.querySelectorAll('#dq-opts .q-btn').forEach(b=>{b.disabled=true;if(b.textContent===ans)b.classList.add(ans===dqAnswer?'correct':'wrong');if(b.textContent===dqAnswer)b.classList.add('correct');});
+    if(ans===dqAnswer){
+        dqScore++;const disp=dqScore*scoreMulti()+scoreBonus();document.getElementById('dq-score').textContent=disp;
+        await window.awardCoins(5);confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#3b82f6']});
+        setTimeout(nextDQ,700);
+    } else {
+        const finalScore=dqScore;
+        const name2=userData?.nickname?.split(' ')[0]||userData?.name||'?';
+        if(currentUser&&finalScore>dqHigh){
+            dqHigh=finalScore;await updateDoc(doc(db,"users",currentUser.uid),{drugHigh:finalScore});
+            await postNews("💊",`${name2} ทำ High Score ใหม่ในเกมทายยา: ${finalScore} คะแนน!`);
+        } else if(currentUser&&finalScore>=10){
+            await postNews("🎮",`${name2} ทำได้ ${finalScore} ข้อในเกมทายยา — Top 5%! 🔥`);
+        }
+        setTimeout(()=>{document.getElementById('dquiz-start').style.display='block';document.getElementById('dquiz-play').style.display='none';document.getElementById('dq-msg').innerHTML=`ยาชนิดนี้คือ <b>${dqAnswer}</b> | ไฮสกอร์: ${Math.max(finalScore,dqHigh)}`;},1000);
+    }
+};
+
+// ════════════════════════════════════════
+//  RENDER ENGINE
+// ════════════════════════════════════════
+window.renderAll=()=>{renderTopBar();renderTab(window.__tab||'home');};
+
+function renderTopBar(){
+    const nav=document.getElementById('top-bar');
+    if(!currentUser){nav.innerHTML=`<div class="tb-brand">💊 RxTU10</div><button class="btn-google" onclick="loginGoogle()"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>เข้าสู่ระบบ</button>`;return;}
+    const pet=activePet();const linked=userData?.studentId;
+    const dn=linked?(userData.nickname?.split(' ')[0]||userData.name):userData?.name||'...';
+    const nc=(pet?.effect==='gold_name'||pet?.effect==='all')?'gold-name':(pet?.effect==='rainbow'?'rainbow-name':'');
+    nav.innerHTML=`
+        <div class="tb-left" onclick="switchTab('home')">
+            <img src="${myPhoto()}" class="tb-avatar" onerror="this.src='https://ui-avatars.com/api/?name=?'">
+            <span class="tb-name ${nc}">${dn}${pet?' '+pet.emoji:''}</span>
+        </div>
+        <div class="tb-right">
+            <div class="coin-pill" onclick="switchTab('shop')">🪙<span>${(userData?.coins||0).toLocaleString()}</span></div>
+            <button id="daily-btn" class="btn-daily" onclick="claimDaily()" title="Daily">🎁</button>
+            <button class="btn-out" onclick="logoutUser()">ออก</button>
+        </div>`;
+    checkDaily();
+}
+
+window.switchTab=(tab)=>{
+    window.__tab=tab;
+    document.querySelectorAll('.bn-item').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));
+    renderTab(tab);window.scrollTo({top:0,behavior:'smooth'});
+};
+
+function renderTab(tab){
+    const main=document.getElementById('main-content');
+    if(tab==='home')    main.innerHTML=buildHome();
+    if(tab==='members') main.innerHTML=buildMembers();
+    if(tab==='play')    main.innerHTML=buildPlay();
+    if(tab==='shop')    main.innerHTML=buildShop();
+}
+
+// ════════════════════════════════════════
+//  TAB: HOME
+// ════════════════════════════════════════
+function buildHome(){
+    if(!currentUser)return`<div class="login-card"><div style="font-size:3.6rem;margin-bottom:12px">💊</div><div style="font-size:1.5rem;font-weight:800;margin-bottom:5px">RxTU10</div><div style="color:var(--muted);margin-bottom:20px;font-size:0.9rem">Class Dashboard — Rx 2565</div><button class="btn-google big" onclick="loginGoogle()"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>Login ด้วย Google</button></div>`;
+    const pet=activePet();const tc=userData?.track==='sci'?'var(--sci)':'var(--care)';
+    const nc=(pet?.effect==='gold_name'||pet?.effect==='all')?'gold-name':(pet?.effect==='rainbow'?'rainbow-name':'');
+    const linked=userData?.studentId;
+    const profileBlock=linked?`
+        <div class="profile-card">
+            <div class="pc-img-wrap">
+                <img src="${myPhoto()}" class="pc-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
+                <button class="pc-cam" onclick="triggerPhoto()">📷</button>
+            </div>
+            <div class="pc-info">
+                <div class="pc-nick ${nc}">${userData.nickname}${pet?' '+pet.emoji:''}</div>
+                <div class="pc-real">${userData.realName}</div>
+                <div class="pc-id">${userData.studentId}</div>
+                <span class="track-badge" style="background:${tc}">${userData.track?.toUpperCase()}</span>
+            </div>
+        </div>
+        <div class="stats-row">
+            <div class="stat-box"><div class="sb-icon">🪙</div><b>${(userData.coins||0).toLocaleString()}</b><small>เหรียญ</small></div>
+            <div class="stat-box"><div class="sb-icon">👥</div><b>${userData.quizHigh||0}</b><small>Quiz Hi</small></div>
+            <div class="stat-box"><div class="sb-icon">💊</div><b>${userData.drugHigh||0}</b><small>Drug Hi</small></div>
+        </div>`
+        :`<div class="unlinked-card"><div class="ul-left"><img src="${myPhoto()}" class="ul-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'"><div><div style="font-weight:700">${userData?.name||''}</div><div style="font-size:0.76rem;color:var(--muted)">ยังไม่ได้ผูกรหัสนักศึกษา</div></div></div><button class="btn-link" onclick="openLinkModal()">🔗 ผูกรหัส</button></div>`;
+
+    // Inventory: hatching eggs first
+    const eggs=userData?.eggs||[];const pets=userData?.pets||[];const now=Date.now();
+    const eggSection=eggs.length?`
+        <div class="sec-head">🥚 ฟักไข่</div><div class="card">${eggs.map(egg=>{
+            const cfg=RARITY[egg.petRarity];const hatching=!!egg.startedAt;const done=hatching&&(now>=egg.startedAt+egg.hatchMins*60000);
+            let timeLeft='';if(hatching&&!done){const ms=(egg.startedAt+egg.hatchMins*60000)-now;const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);const s=Math.floor((ms%60000)/1000);timeLeft=h>0?`${h}ชม ${m}น`:m>0?`${m}น ${s}ว`:`${s}ว`;}
+            const pct=hatching&&!done?Math.min(100,Math.floor((now-egg.startedAt)/(egg.hatchMins*60000)*100)):0;
+            return`<div class="egg-bag-item" style="--rc:${cfg.color};--rb:${cfg.bg}">
+                <div style="font-size:2rem;flex-shrink:0">${done?egg.petEmoji:'🥚'}</div>
+                <div style="flex:1;min-width:0">
+                    <div style="font-weight:700;font-size:0.86rem">${done?egg.petName:'ไข่ปริศนา'}</div>
+                    <div style="font-size:0.68rem;color:${cfg.color};font-weight:700">${cfg.label} • ${HATCH_LABELS[egg.petRarity]}</div>
+                    ${hatching&&!done?`<div class="hatch-bar"><div class="hatch-fill" style="width:${pct}%;background:${cfg.color}"></div></div><div style="font-size:0.67rem;color:var(--muted)">เหลือ ${timeLeft}</div>`:''}
+                    ${done?`<div style="font-size:0.72rem;color:var(--care);font-weight:600">✅ ฟักเสร็จ!</div>`:''}
+                    ${!hatching?`<div style="font-size:0.67rem;color:var(--muted)">กดปุ่มเพื่อเริ่มฟัก</div>`:''}
+                </div>
+                ${done?`<button class="btn-gold sm" onclick="claimEgg('${egg.eggId}')">รับ!</button>`:!hatching?`<button class="btn-gray sm" onclick="startHatch('${egg.eggId}')">🔥 ฟัก</button>`:`<span style="font-size:1.1rem">⏳</span>`}
+            </div>`;
+        }).join('')}</div>`:''
+
+    const invBlock=pets.length===0?`<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ฟักไข่ใน 🛒 Shop ก่อน!</div>`
+        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.id===userData?.activePet;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg}" onclick="showPetInfo('${p.id}')"><div class="inv-em">${p.emoji}</div><div class="inv-nm">${p.name}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}</div>${on?'<div class="inv-on">ON</div>':''}</div>`;}).join('')}</div>
+        <div style="display:flex;gap:7px;justify-content:center;margin-top:8px">
+            ${userData?.activePet?`<button class="btn-gray sm" onclick="unsetActive()">เอาออก</button>`:''}
+            ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
+            <button class="btn-gray sm" onclick="openMega()">📣 โทรโข่ง</button>
+        </div>`;
+
+    return`${profileBlock}<input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhoto(event)">
+        ${eggSection}
+        <div class="sec-head">🐾 สัตว์เลี้ยง</div><div class="card">${invBlock}</div>`;
+}
+
+// ════════════════════════════════════════
+//  TAB: MEMBERS
+// ════════════════════════════════════════
+function buildMembers(){
+    const all=window.__students||[];const sci=all.filter(s=>s.track==='sci').length;const care=all.filter(s=>s.track==='care').length;const tot=all.length;
+    return`
+        <div class="card" style="margin-bottom:8px">
+            <div style="font-weight:700;font-size:0.95rem;text-align:center;margin-bottom:8px">💊 RxTU10 — ${tot} คน</div>
+            <div><div class="prog-bar"><div class="pb-sci" style="width:${(sci/tot*100).toFixed(1)}%"></div><div class="pb-care" style="width:${(care/tot*100).toFixed(1)}%"></div></div>
+            <div class="prog-lbls"><span style="color:var(--sci)">Sci ${sci}</span><span style="color:var(--care)">Care ${care}</span></div></div>
+        </div>
+        <div class="filter-row">
+            <button class="fbtn${mTrack==='all'?' fa':''}" onclick="mFilter('all')">รวม ${tot}</button>
+            <button class="fbtn${mTrack==='sci'?' fs':''}" onclick="mFilter('sci')">Sci ${sci}</button>
+            <button class="fbtn${mTrack==='care'?' fc':''}" onclick="mFilter('care')">Care ${care}</button>
+        </div>
+        <div class="search-box"><input class="srch-inp" id="msearch" placeholder="🔍 ชื่อเล่น / รหัส / ชื่อจริง..." value="${mSearch}" oninput="mSearchFn(this.value)"></div>
+        <div id="mgrid">${memberGrid()}</div>`;
+}
+function memberGrid(){
+    let list=window.__students||[];
+    if(mTrack!=='all')list=list.filter(s=>s.track===mTrack);
+    if(mSearch){const q=mSearch.toLowerCase();list=list.filter(s=>s.nickname.toLowerCase().includes(q)||s.id.includes(q)||s.realName.toLowerCase().includes(q));}
+    if(!list.length)return`<div style="text-align:center;color:var(--muted);padding:24px">ไม่พบ</div>`;
+    return`<div class="mgrid">${list.map(s=>{
+        const tc=s.track==='sci'?'var(--sci)':'var(--care)';
+        const img=`img/${s.id}.jpg`;const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=128`;
+        return`<div class="mcard" onclick="openProfileModal('${s.id}')">
+            <img src="${img}" onerror="this.onerror=null;this.src='${def}'" class="mc-img">
+            <div class="mc-nick">${s.nickname}</div>
+            <div class="mc-id">${s.id}</div>
+            <span class="track-badge sm" style="background:${tc}">${s.track.toUpperCase()}</span>
+        </div>`;
+    }).join('')}</div>`;
+}
+window.mFilter=t=>{mTrack=t;const g=document.getElementById('mgrid');if(g)g.innerHTML=memberGrid();};
+window.mSearchFn=v=>{mSearch=v;const g=document.getElementById('mgrid');if(g)g.innerHTML=memberGrid();};
+
+window.openProfileModal=async(id)=>{
+    const s=window.__students?.find(x=>x.id===id);if(!s)return;
+    const tc=s.track==='sci'?'var(--sci)':'var(--care)';
+    const img=`img/${s.id}.jpg`;const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=256`;
+    document.getElementById('pm-content').innerHTML=`
+        <img src="${img}" onerror="this.onerror=null;this.src='${def}'" class="pm-img" id="pm-photo">
+        <div class="pm-nick" id="pm-nick">${s.nickname}</div>
+        <div class="pm-real">${s.realName}</div>
+        <div class="pm-id">${s.id}</div>
+        <span class="track-badge" style="background:${tc};margin-bottom:8px;display:inline-block">${s.track.toUpperCase()}</span>
+        <div id="pm-live" style="margin-top:6px;color:var(--muted);font-size:0.78rem">กำลังโหลด...</div>`;
+    document.getElementById('profile-modal').classList.add('active');
+    try{
+        const all=await getDocs(collection(db,"users"));let liveData=null;
+        all.forEach(d=>{if(d.data().studentId===id)liveData=d.data();});
+        const lv=document.getElementById('pm-live');if(!lv)return;
+        if(!liveData){lv.textContent='ยังไม่ได้ login';return;}
+        if(liveData.customPhoto||liveData.googlePhoto)document.getElementById('pm-photo').src=liveData.customPhoto||liveData.googlePhoto;
+        const petData=liveData.activePet?(liveData.pets||[]).find(p=>p.id===liveData.activePet):null;
+        const nc=(petData?.effect==='gold_name'||petData?.effect==='all')?'gold-name':(petData?.effect==='rainbow'?'rainbow-name':'');
+        const nickEl=document.getElementById('pm-nick');if(nickEl&&nc)nickEl.className='pm-nick '+nc;
+        lv.innerHTML=`
+            <div class="pm-stats">
+                <div class="pm-stat"><span>🪙</span><b>${(liveData.coins||0).toLocaleString()}</b><small>เหรียญ</small></div>
+                <div class="pm-stat"><span>👥</span><b>${liveData.quizHigh||0}</b><small>Quiz Hi</small></div>
+                <div class="pm-stat"><span>💊</span><b>${liveData.drugHigh||0}</b><small>Drug Hi</small></div>
+            </div>
+            ${petData?`<div class="pm-pet-row"><div style="font-size:1.8rem">${petData.emoji}</div><div><div style="font-weight:700;font-size:0.86rem">${petData.name}</div><div style="font-size:0.72rem;color:var(--muted)">${petData.desc}</div></div></div>`:'<div style="color:var(--muted);font-size:0.78rem">ไม่มีสัตว์เลี้ยง active</div>'}`;
+    }catch(e){const lv=document.getElementById('pm-live');if(lv)lv.textContent='';}
+};
+window.closePM=()=>document.getElementById('profile-modal').classList.remove('active');
+
+// ════════════════════════════════════════
+//  TAB: PLAY
+// ════════════════════════════════════════
+function buildPlay(){return`
+    <div class="sec-head">🕵️ ทายชื่อจริงเพื่อน</div>
+    <div class="card">
+        <div id="quiz-start">
+            <p id="q-msg" style="color:var(--muted);font-size:0.84rem;text-align:center;margin-bottom:12px">ทายชื่อจริงเพื่อนให้ถูกต่อเนื่อง +5🪙/ข้อ &nbsp;|&nbsp; Hi: ${qHigh}</p>
+            <button class="btn-gold full" onclick="startQuiz()">▶ เริ่มเกม</button>
+        </div>
+        <div id="quiz-play" style="display:none">
+            <div style="font-size:0.84rem;color:var(--muted);margin-bottom:6px">คะแนน: <b id="q-score" style="color:var(--gold);font-size:1rem">0</b></div>
+            <div class="q-nick" id="q-nick">...</div>
+            <div class="q-grid" id="q-opts"></div>
+        </div>
+    </div>
+
+    <div class="sec-head">💊 ทายยา (Drug Class)</div>
+    <div class="card">
+        <div id="dquiz-start">
+            <p id="dq-msg" style="color:var(--muted);font-size:0.84rem;text-align:center;margin-bottom:12px">ทาย Drug Class ให้ถูกต่อเนื่อง +5🪙/ข้อ &nbsp;|&nbsp; Hi: ${dqHigh}</p>
+            <button class="btn-gold full" onclick="startDrugQuiz()">▶ เริ่มเกม</button>
+        </div>
+        <div id="dquiz-play" style="display:none">
+            <div style="font-size:0.84rem;color:var(--muted);margin-bottom:6px">คะแนน: <b id="dq-score" style="color:var(--gold);font-size:1rem">0</b></div>
+            <div style="font-size:1.3rem;font-weight:800;color:#3b82f6;text-align:center;margin-bottom:12px" id="dq-drug">...</div>
+            <div class="q-grid" id="dq-opts"></div>
+        </div>
+    </div>
+
+    <div class="coming-soon">
+        <div style="font-size:2.5rem;margin-bottom:8px">🔜</div>
+        <div style="font-weight:800;font-size:1rem;margin-bottom:4px">เกมใหม่กำลังมา!</div>
+        <div style="font-size:0.8rem;opacity:0.7">ข้อสอบใบประกอบวิชาชีพ • Drug Interaction • Spelling Sprint</div>
+        <div style="font-size:0.72rem;opacity:0.5;margin-top:8px">Coming Soon...</div>
+    </div>`;}
+
+// ════════════════════════════════════════
+//  TAB: SHOP
+// ════════════════════════════════════════
+function buildShop(){
+    const coins=userData?.coins||0;const canBuy=!!currentUser&&coins>=EGG_COST;const canMega=!!currentUser&&coins>=MEGA_COST;
+    return`
+        <div class="sec-head">🛒 ร้านค้า</div>
+        <div class="card" style="text-align:center">
+            <div class="egg-wobble">🥚</div>
+            <div style="font-size:1.1rem;font-weight:800;margin:7px 0 3px">ไข่ปริศนา</div>
+            <div style="color:var(--muted);font-size:0.8rem;margin-bottom:9px">ซื้อแล้วไปฟักใน Home — ผลลัพธ์รู้ตอนฟักเสร็จ!</div>
+            <div class="rates-wrap">
+                <span class="rate-chip" style="background:#f1f5f9;color:#64748b">Common 50% • 5น</span>
+                <span class="rate-chip" style="background:#eff6ff;color:#3b82f6">Rare 30% • 1ชม</span>
+                <span class="rate-chip" style="background:#faf5ff;color:#a855f7">Epic 15% • 3ชม</span>
+                <span class="rate-chip" style="background:#fffbeb;color:#f59e0b">??? 5% • ??</span>
+            </div>
+            <button class="btn-gold full" style="margin-top:12px;padding:12px;font-size:0.95rem" onclick="buyEgg()" ${canBuy?'':'disabled'}>
+                🥚 ซื้อไข่ — ${EGG_COST}🪙
+            </button>
+            ${!currentUser?'<p style="color:var(--muted);font-size:0.76rem;margin-top:6px">Login ก่อน</p>':!canBuy?`<p style="color:#ef4444;font-size:0.76rem;margin-top:6px">เหรียญไม่พอ (มี ${coins} / ต้องการ ${EGG_COST})</p>`:''}
+        </div>
+
+        <div class="sec-head">📣 ไอเทมพิเศษ</div>
+        <div class="card">
+            <div style="display:flex;align-items:center;gap:12px;padding:4px 0">
+                <div style="font-size:2.4rem;flex-shrink:0">📣</div>
+                <div style="flex:1">
+                    <div style="font-weight:700;font-size:0.95rem">โทรโข่ง</div>
+                    <div style="font-size:0.76rem;color:var(--muted)">ส่งข้อความถึงทุกคนในกระดานข่าว เห็นได้ทั่วหน้า</div>
+                </div>
+                <button class="btn-gold sm" onclick="openMega()" ${canMega?'':'disabled'}>${MEGA_COST}🪙</button>
+            </div>
+        </div>
+
+        <div class="sec-head">🐾 สัตว์ที่รู้จัก</div>
+        <div class="card">
+            ${['common','rare'].map(r=>{const list=PETS.filter(p=>p.rarity===r);const cfg=RARITY[r];return`<div style="margin-bottom:12px"><div style="font-weight:700;color:${cfg.color};font-size:0.78rem;margin-bottom:7px">${cfg.label} — ${(list.reduce((a,p)=>a+p.rate,0)*100).toFixed(0)}% • ฟัก ${HATCH_LABELS[r]}</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:7px">${list.map(p=>`<div style="background:${cfg.bg};border-radius:11px;padding:9px 5px;text-align:center;border:1.5px solid ${cfg.color}33"><div style="font-size:1.6rem">${p.emoji}</div><div style="font-size:0.68rem;font-weight:700;margin-top:3px">${p.name}</div><div style="font-size:0.58rem;color:var(--muted);margin-top:1px">${p.desc}</div></div>`).join('')}</div></div>`;}).join('')}
+            <div style="text-align:center;padding:12px;color:var(--muted);font-size:0.78rem">🔮 สัตว์ระดับสูงกว่านี้ยังเป็น <b>ความลับ</b>...</div>
+        </div>`;
+}
+
+// ════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════
 window.__tab='home';
+loadTicker();
+setInterval(()=>{if(window.__tab==='home')renderTab('home');if(window.__tab==='shop')renderTab('shop');},8000);
+
+</script>
+
+<script>
+window.toast=(msg,type='info')=>{const t=document.getElementById('toast');t.textContent=msg;t.className='show '+type;clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);};
 </script>
 </body>
 </html>
