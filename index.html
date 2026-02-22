@@ -9,7 +9,7 @@
 <style>
 :root{--sci:#2563eb;--care:#10b981;--gold:#f59e0b;--bg:#f0f4f8;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--ticker:34px;--btm:66px;}
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
+html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(--text);}
 
 /* ── TOP BAR ── */
 /* top-bar removed */
@@ -31,7 +31,6 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .news-banner{background:linear-gradient(135deg,#1e293b,#334155);color:#fde68a;font-weight:600;display:flex;align-items:center;border-radius:12px;overflow:hidden;cursor:pointer;margin-bottom:10px;height:36px;}
 
 /* ── MAIN ── */
-html,body{height:100%;overflow:hidden;}
 #main-content{
     position:fixed;
     top:0;left:0;right:0;
@@ -53,6 +52,7 @@ html,body{height:100%;overflow:hidden;}
 .sec-head{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin:16px 0 8px;}
 .login-card{background:#fff;border-radius:20px;padding:36px 20px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.07);}
 .track-badge{padding:3px 8px;border-radius:5px;color:#fff;font-size:0.58rem;font-weight:700;text-transform:uppercase;}
+.guest-badge{background:#64748b;}
 .track-badge.sm{font-size:0.54rem;padding:2px 6px;}
 
 /* ── HOME ── */
@@ -167,14 +167,14 @@ html,body{height:100%;overflow:hidden;}
 .btn-gray.full{width:100%;}
 
 /* Name effects */
-.gold-name{background:linear-gradient(90deg,#f59e0b,#fbbf24,#f59e0b);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:sh 2s linear infinite;}
-.rainbow-name{background:linear-gradient(90deg,#f59e0b,#ef4444,#a855f7,#3b82f6,#10b981,#f59e0b);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:sh 1.5s linear infinite;}
+.gold-name{background:linear-gradient(90deg,#f59e0b,#fbbf24,#f59e0b);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:sh 2s linear infinite;display:inline-block;}
+.rainbow-name{background:linear-gradient(90deg,#f59e0b,#ef4444,#a855f7,#3b82f6,#10b981,#f59e0b);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:sh 1.5s linear infinite;display:inline-block;}
 @keyframes sh{to{background-position:200% center}}
 
 /* Egg bag extras */
 .pm-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:8px 0;}
 
-#toast{position:fixed;bottom:calc(var(--btm)+10px);left:50%;transform:translateX(-50%) translateY(80px);background:#1e293b;color:#fff;padding:9px 15px;border-radius:10px;font-size:0.84rem;font-weight:500;z-index:1000;transition:transform .3s;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.2);}
+#toast{position:fixed;bottom:calc(var(--btm)+10px);left:50%;transform:translateX(-50%) translateY(120px);background:#1e293b;color:#fff;padding:9px 15px;border-radius:10px;font-size:0.84rem;font-weight:500;z-index:1000;transition:transform .3s;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.2);pointer-events:none;}
 #toast.show{transform:translateX(-50%) translateY(0);}
 #toast.success{background:#065f46;} #toast.error{background:#7f1d1d;} #toast.info{background:#1e40af;}
 @media(max-width:360px){.mgrid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}}
@@ -207,29 +207,46 @@ html,body{height:100%;overflow:hidden;}
 <div class="modal-ov" id="link-modal" onclick="if(event.target===this)closeLinkModal()">
     <div class="modal-box">
         <button class="mclose" onclick="closeLinkModal()">✕</button>
-        <div style="font-size:1.2rem;font-weight:800;margin-bottom:3px">🔗 ผูกรหัสนักศึกษา</div>
-        <div style="font-size:0.8rem;color:var(--muted)">กรอกรหัส 10 หลักของคุณ</div>
-        <div class="link-irow">
-            <input type="text" class="link-inp" id="link-input" placeholder="เช่น 6518610016" maxlength="10"
-                   oninput="this.value=this.value.replace(/[^0-9]/g,'')"
-                   onkeyup="if(this.value.length===10)previewLink()">
-            <button class="btn-gold" onclick="previewLink()">เช็ค</button>
-        </div>
-        <div id="link-error" style="color:#ef4444;font-size:0.78rem;min-height:15px;margin-bottom:1px"></div>
-        <div class="link-prev" id="link-preview">
-            <div style="display:flex;align-items:center;gap:9px">
-                <div style="font-size:1.8rem">👤</div>
-                <div>
-                    <div style="font-weight:700;font-size:1rem" id="lp-nick"></div>
-                    <div style="font-size:0.8rem;color:var(--muted)" id="lp-name"></div>
-                    <span class="track-badge" id="lp-track" style="margin-top:3px;display:inline-block"></span>
-                </div>
+        <!-- Section A: student ID -->
+        <div id="link-section-student">
+            <div style="font-size:1.2rem;font-weight:800;margin-bottom:3px">🔗 ผูกรหัสนักศึกษา</div>
+            <div style="font-size:0.8rem;color:var(--muted);margin-bottom:8px">กรอกรหัส 10 หลักของคุณ</div>
+            <div class="link-irow">
+                <input type="text" class="link-inp" id="link-input" placeholder="เช่น 6518610016" maxlength="10"
+                       oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                       onkeyup="if(this.value.length===10)previewLink()">
+                <button class="btn-gold" onclick="previewLink()">เช็ค</button>
             </div>
-            <div style="font-size:0.76rem;color:var(--muted);margin-top:7px">ใช่คุณไหม?</div>
+            <div id="link-error" style="color:#ef4444;font-size:0.78rem;min-height:15px;margin-bottom:1px"></div>
+            <div class="link-prev" id="link-preview">
+                <div style="display:flex;align-items:center;gap:9px">
+                    <div style="font-size:1.8rem">👤</div>
+                    <div>
+                        <div style="font-weight:700;font-size:1rem" id="lp-nick"></div>
+                        <div style="font-size:0.8rem;color:var(--muted)" id="lp-name"></div>
+                        <span class="track-badge" id="lp-track" style="margin-top:3px;display:inline-block"></span>
+                    </div>
+                </div>
+                <div style="font-size:0.76rem;color:var(--muted);margin-top:7px">ใช่คุณไหม?</div>
+            </div>
+            <div style="display:flex;gap:7px;margin-top:10px">
+                <button class="btn-gold" style="flex:1" onclick="confirmLink()">✅ ยืนยัน</button>
+                <button class="btn-gray" style="flex:1" onclick="closeLinkModal()">ยกเลิก</button>
+            </div>
+            <div style="text-align:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+                <button onclick="showGuestSection()" style="background:none;border:none;color:var(--muted);font-size:0.78rem;cursor:pointer;font-family:inherit;text-decoration:underline">ไม่มีรหัสนักศึกษา / เข้าแบบ Guest 👋</button>
+            </div>
         </div>
-        <div style="display:flex;gap:7px;margin-top:10px">
-            <button class="btn-gold" style="flex:1" onclick="confirmLink()">✅ ยืนยัน</button>
-            <button class="btn-gray" style="flex:1" onclick="closeLinkModal()">ยกเลิก</button>
+        <!-- Section B: guest -->
+        <div id="link-section-guest" style="display:none">
+            <div style="font-size:1.2rem;font-weight:800;margin-bottom:3px">👋 เข้าแบบ Guest</div>
+            <div style="font-size:0.8rem;color:var(--muted);margin-bottom:10px">ตั้งชื่อแสดงผลของคุณ (สามารถเปลี่ยนภายหลังได้)</div>
+            <input type="text" class="link-inp" id="guest-name-input" placeholder="ชื่อที่อยากให้คนอื่นเห็น..." maxlength="20" style="width:100%;margin-bottom:4px">
+            <div id="guest-error" style="color:#ef4444;font-size:0.78rem;min-height:15px;margin-bottom:1px"></div>
+            <div style="display:flex;gap:7px;margin-top:8px">
+                <button class="btn-gold" style="flex:1" onclick="confirmGuest()">✅ เข้าเลย</button>
+                <button class="btn-gray" onclick="showStudentSection()">← กลับ</button>
+            </div>
         </div>
     </div>
 </div>
@@ -440,9 +457,7 @@ window.claimDaily=async()=>{
     if(!currentUser)return;
     const btn=document.getElementById('daily-btn');
     if(!btn?.classList.contains('ready')){toast("รับได้อีกครั้งพรุ่งนี้!","info");return;}
-    const pet=activePet();let base=30;
-    if(pet?.effect==='coin+10')base=33;if(pet?.effect==='coin+15')base=35;
-    if(pet?.effect==='coinx2'||pet?.effect==='all')base=60;
+    const base=50;
     await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(base),lastDaily:serverTimestamp()});
     btn.classList.remove('ready');
     toast(`🎁 Daily +${base}🪙!`,"success");
@@ -525,6 +540,29 @@ window.openLinkModal=()=>{
     document.getElementById('link-input').value='';document.getElementById('link-error').textContent='';document.getElementById('link-preview').style.display='none';document.getElementById('link-modal').classList.add('active');
 };
 window.closeLinkModal=()=>document.getElementById('link-modal').classList.remove('active');
+window.showGuestSection=()=>{
+    document.getElementById('link-section-student').style.display='none';
+    document.getElementById('link-section-guest').style.display='block';
+    document.getElementById('guest-name-input').focus();
+};
+window.showStudentSection=()=>{
+    document.getElementById('link-section-guest').style.display='none';
+    document.getElementById('link-section-student').style.display='block';
+};
+window.confirmGuest=async()=>{
+    const name=document.getElementById('guest-name-input').value.trim();
+    const err=document.getElementById('guest-error');
+    if(!name){err.textContent='กรุณาใส่ชื่อก่อน';return;}
+    if(name.length<2){err.textContent='ชื่อต้องมีอย่างน้อย 2 ตัวอักษร';return;}
+    if(!currentUser)return;
+    // Guest: studentId='guest', track='guest', nickname=name ที่ตั้งเอง
+    const welcomeEggs=[1,2].map(()=>{const p=rollPet();return{eggId:`welcome_${Date.now()}_${Math.random().toString(36).slice(2)}`,petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petEffect:p.effect,petDesc:p.desc,petInstId:p.instId,hatchMins:p.hatchMins,startedAt:null};});
+    await updateDoc(doc(db,"users",currentUser.uid),{studentId:'guest_'+currentUser.uid.slice(0,8),nickname:name,realName:name,track:'guest',eggs:arrayUnion(welcomeEggs[0],welcomeEggs[1])});
+    closeLinkModal();
+    toast(`ยินดีต้อนรับ ${name}! 🎁 ได้รับไข่ 2 ฟอง!`,"success");
+    confetti({particleCount:120,spread:70,origin:{y:0.5}});
+    await postNews("👋",`${name} เพิ่งเข้าร่วม RxTU10 Dashboard ในฐานะ Guest!`);
+};
 window.previewLink=()=>{
     const val=document.getElementById('link-input').value.trim();const found=window.__students?.find(s=>s.id===val);
     const err=document.getElementById('link-error');const prev=document.getElementById('link-preview');
@@ -539,9 +577,11 @@ window.confirmLink=async()=>{
     const all=await getDocs(collection(db,"users"));let claimed=false;
     all.forEach(d=>{if(d.data().studentId===sid&&d.id!==currentUser.uid)claimed=true;});
     if(claimed){toast("รหัสนี้ถูกใช้แล้ว","error");return;}
-    await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track});
-    closeLinkModal();toast(`ยินดีต้อนรับ ${found.nickname}!`,"success");
-    confetti({particleCount:120,spread:70,origin:{y:0.5}});
+    // มอบไข่ 2 ฟองต้อนรับ
+    const welcomeEggs=[1,2].map(()=>{const p=rollPet();return{eggId:`welcome_${Date.now()}_${Math.random().toString(36).slice(2)}`,petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petEffect:p.effect,petDesc:p.desc,petInstId:p.instId,hatchMins:p.hatchMins,startedAt:null};});
+    await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track,eggs:arrayUnion(welcomeEggs[0],welcomeEggs[1])});
+    closeLinkModal();toast(`ยินดีต้อนรับ ${found.nickname}! 🎁 ได้รับไข่ 2 ฟอง!`,"success");
+    confetti({particleCount:150,spread:80,origin:{y:0.5}});
     await postNews("🔗",`${found.nickname} เพิ่งเข้าร่วม RxTU10 Dashboard!`);
 };
 
@@ -827,15 +867,17 @@ function buildHome(){
     const eggs=userData?.eggs||[];const pets=userData?.pets||[];const now=Date.now();
     const eggSection=eggs.length?`
         <div class="sec-head">🥚 ฟักไข่</div><div class="card">${eggs.map(egg=>{
-            const cfg=RARITY[egg.petRarity];const hatching=!!egg.startedAt;const done=hatching&&(now>=egg.startedAt+egg.hatchMins*60000);
+            const hatching=!!egg.startedAt;const done=hatching&&(now>=egg.startedAt+egg.hatchMins*60000);
+            // ซ่อน rarity จนกว่าจะฟักเสร็จ — แสดงแค่เวลาฟัก
+            const cfg=done?RARITY[egg.petRarity]:{color:'var(--muted)',bg:'#f1f5f9',label:'???'};
             let timeLeft='';if(hatching&&!done){const ms=(egg.startedAt+egg.hatchMins*60000)-now;const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);const s=Math.floor((ms%60000)/1000);timeLeft=h>0?`${h}ชม ${m}น`:m>0?`${m}น ${s}ว`:`${s}ว`;}
             const pct=hatching&&!done?Math.min(100,Math.floor((now-egg.startedAt)/(egg.hatchMins*60000)*100)):0;
             return`<div class="egg-bag-item" style="--rc:${cfg.color};--rb:${cfg.bg}">
                 <div style="font-size:2rem;flex-shrink:0">${done?egg.petEmoji:'🥚'}</div>
                 <div style="flex:1;min-width:0">
-                    <div style="font-weight:700;font-size:0.86rem">${done?egg.petName:'ไข่ปริศนา'}</div>
-                    <div style="font-size:0.68rem;color:${cfg.color};font-weight:700">${cfg.label} • ${HATCH_LABELS[egg.petRarity]}</div>
-                    ${hatching&&!done?`<div class="hatch-bar"><div class="hatch-fill" style="width:${pct}%;background:${cfg.color}"></div></div><div style="font-size:0.67rem;color:var(--muted)">เหลือ ${timeLeft}</div>`:''}
+                    <div style="font-weight:700;font-size:0.86rem">${done?egg.petName:'ไข่ปริศนา 🔮'}</div>
+                    <div style="font-size:0.68rem;color:${cfg.color};font-weight:700">${done?cfg.label+' • '+HATCH_LABELS[egg.petRarity]:'กำลังรอฟัก...'}</div>
+                    ${hatching&&!done?`<div class="hatch-bar"><div class="hatch-fill" style="width:${pct}%;background:#94a3b8"></div></div><div style="font-size:0.67rem;color:var(--muted)">เหลือ ${timeLeft}</div>`:''}
                     ${done?`<div style="font-size:0.72rem;color:var(--care);font-weight:600">✅ ฟักเสร็จ!</div>`:''}
                     ${!hatching?`<div style="font-size:0.67rem;color:var(--muted)">กดปุ่มเพื่อเริ่มฟัก</div>`:''}
                 </div>
