@@ -13,9 +13,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* ── TOP BAR ── */
 /* top-bar removed */
-.coin-pill{background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;padding:5px 12px;border-radius:16px;font-size:0.88rem;font-weight:700;color:#92400e;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
-.btn-daily{background:none;border:2px solid var(--border);padding:6px 12px;border-radius:10px;font-size:1rem;cursor:pointer;opacity:.4;transition:.2s;font-family:inherit;}
-.btn-daily.ready{opacity:1;border-color:var(--care);animation:pulse 2s ease infinite;}
+/* coin-pill และ btn-daily ถูกนิยามใหม่ใน HOME section ด้านล่าง */
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 .btn-out{background:none;border:1.5px solid #fca5a5;color:#ef4444;padding:7px 14px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;width:100%;}
 .btn-google{background:#fff;border:1.5px solid var(--border);padding:6px 11px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--text);font-weight:500;transition:.2s;}
@@ -51,9 +49,8 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;}
 .sec-head{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin:16px 0 8px;}
 .login-card{background:#fff;border-radius:20px;padding:36px 20px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.07);}
-.track-badge{padding:3px 8px;border-radius:5px;color:#fff;font-size:0.58rem;font-weight:700;text-transform:uppercase;}
 .guest-badge{background:#64748b;}
-.track-badge.sm{font-size:0.54rem;padding:2px 6px;}
+/* .track-badge นิยามใน HOME section */
 
 /* ── HOME ── */
 /* Hero banner */
@@ -82,10 +79,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 /* track pill */
 .track-badge{padding:3px 8px;border-radius:5px;color:#fff;font-size:0.58rem;font-weight:700;text-transform:uppercase;}
 .track-badge.sm{font-size:0.54px;padding:2px 6px;}
-/* stats row (legacy compat) */
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
-.stat-box{background:#fff;border-radius:12px;padding:10px 5px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.04);}
-.sb-icon{font-size:1.1rem;margin-bottom:1px;} .stat-box b{display:block;font-size:0.9rem;font-weight:700;} .stat-box small{font-size:0.64rem;color:var(--muted);}
+/* .stats-row/.stat-box removed — replaced by hero-stats strip */
 /* unlinked */
 .unlinked-card{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;border:2px dashed var(--border);}
 .ul-left{display:flex;align-items:center;gap:9px;flex:1;}
@@ -104,9 +98,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .inv-item:hover{transform:translateY(-2px);border-color:var(--rc);}
 .inv-item.on{border-color:var(--rc);box-shadow:0 0 10px color-mix(in srgb,var(--rc) 20%,transparent);}
 /* pet badge effects */
-.pet-badge-gold{background:linear-gradient(135deg,#fef3c7,#fde68a) !important;border-color:#f59e0b !important;box-shadow:0 0 14px #fbbf2455 !important;}
-.pet-badge-rainbow{background:linear-gradient(90deg,#fde68a,#fbcfe8,#bfdbfe,#bbf7d0) !important;border-color:#a855f7 !important;}
-.pet-badge-kirin{background:linear-gradient(135deg,#fef3c7,#fed7aa) !important;border-color:#f59e0b !important;box-shadow:0 0 18px #f59e0b55 !important;}
+/* pet-badge-gold/rainbow/kirin นิยามซ้ำด้านล่าง ลบ duplicate นี้ออก */
 
 /* Inventory */
 .inv-empty{text-align:center;color:var(--muted);font-size:0.82rem;padding:16px;}
@@ -129,8 +121,8 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px;}
 .mcard{background:#fff;border-radius:13px;padding:11px 6px;cursor:pointer;text-align:center;border:1.5px solid var(--border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
 .mcard:hover{transform:translateY(-2px);box-shadow:0 5px 12px rgba(0,0,0,.07);}
-.mc-img{width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);}
-.mc-emoji-fallback{width:56px;height:56px;border-radius:50%;background:var(--bg);border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);font-size:1.8rem;align-items:center;justify-content:center;}
+.mc-img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);}
+/* .mc-emoji-fallback removed — not used */
 .mc-nick{font-weight:600;font-size:0.82rem;} .mc-id{font-size:0.62rem;color:var(--muted);}
 .prog-bar{height:16px;background:var(--border);border-radius:50px;overflow:hidden;display:flex;margin-bottom:4px;}
 .pb-sci{background:var(--sci);height:100%;} .pb-care{background:var(--care);height:100%;}
@@ -638,7 +630,7 @@ window.loginGoogle=async()=>{
     try{provider.setCustomParameters({prompt:'select_account'});const r=await signInWithPopup(auth,provider);await ensureDoc(r.user);}
     catch(e){if(e.code!=='auth/popup-closed-by-user')toast("Login ไม่สำเร็จ","error");}
 };
-window.logoutUser=async()=>{if(!confirm('ออกจากระบบ?'))return;try{await signOut(auth);}catch(e){}currentUser=userData=null;window.__fbUsers={};window.__tab='home';renderTab('home');};
+window.logoutUser=async()=>{if(!confirm('ออกจากระบบ?'))return;clearInterval(window.__hatchTimer);try{await signOut(auth);}catch(e){}currentUser=userData=null;window.__fbUsers={};window.__tab='home';renderTab('home');};
 
 async function ensureDoc(u){
     const ref=doc(db,"users",u.uid);const snap=await getDoc(ref);
@@ -650,7 +642,14 @@ onAuthStateChanged(auth,async u=>{
     if(u){
         await ensureDoc(u);
         if(unsub)unsub();
-        unsub=onSnapshot(doc(db,"users",u.uid),snap=>{userData=snap.data();qHigh=userData?.quizHigh||0;dqHigh=userData?.drugHigh||0;renderAll();checkDaily();});
+        unsub=onSnapshot(doc(db,"users",u.uid),snap=>{
+            userData=snap.data();qHigh=userData?.quizHigh||0;dqHigh=userData?.drugHigh||0;
+            // migrate: ถ้า activePet เป็น id เก่า (ไม่มี _) ให้ clear เพื่อป้องกัน multi-highlight
+            if(userData?.activePet&&!String(userData.activePet).includes('_')){
+                updateDoc(doc(db,"users",u.uid),{activePet:null});
+            }
+            renderAll();checkDaily();
+        });
         loadFbUsers();
         // checkPetDaily removed
     } else renderAll();
@@ -907,6 +906,7 @@ function myPhoto(thumb=false){if(!userData)return null;if(thumb)return userData.
 // ════════════════════════════════════════
 //  NEWS FEED
 // ════════════════════════════════════════
+function sanitize(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 async function postNews(icon, msg) {
     try {
         await addDoc(collection(db,"news"), {icon, msg, ts: serverTimestamp()});
@@ -919,7 +919,7 @@ async function loadTicker() {
         const q=query(collection(db,"news"),orderBy("ts","desc"),limit(5));
         const snap=await getDocs(q);
         let items=[];
-        snap.forEach(d=>{const x=d.data();items.push(`${x.icon} ${x.msg}`);});
+        snap.forEach(d=>{const x=d.data();items.push(`${sanitize(x.icon)} ${sanitize(x.msg)}`);});
         if(!items.length)items=['ยินดีต้อนรับสู่ RxTU10 Dashboard! 🎉'];
         document.getElementById('ticker-text').textContent=items.join('  •  ');
     } catch(e){}
@@ -938,7 +938,7 @@ window.openFeed=async()=>{
             const timeStr=ts?ts.toLocaleString('th-TH',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'}):'';
             html+=`<div class="feed-item" id="news-${id}">
                 <div class="feed-icon">${x.icon}</div>
-                <div style="flex:1"><div class="feed-msg">${x.msg}</div><div class="feed-time">${timeStr}</div></div>
+                <div style="flex:1"><div class="feed-msg">${sanitize(x.msg)}</div><div class="feed-time">${timeStr}</div></div>
                 ${admin?`<button onclick="deleteNews('${id}')" style="background:none;border:none;color:#ef444466;cursor:pointer;font-size:1rem;flex-shrink:0;padding:2px 4px" title="ลบ">🗑️</button>`:''}
             </div>`;
         });
@@ -1095,8 +1095,14 @@ window.confirmLink=async()=>{
     const prev=document.getElementById('link-preview');if(prev.style.display==='none'){toast("ตรวจสอบรหัสก่อน","error");return;}
     const sid=prev.dataset.sid;const found=window.__students?.find(s=>s.id===sid);if(!found||!currentUser)return;
     const confirmBtn=document.querySelector('#link-section-student .btn-gold');if(confirmBtn)confirmBtn.disabled=true;
-    const all=await getDocs(collection(db,"users"));let claimed=false;
-    all.forEach(d=>{if(d.data().studentId===sid&&d.id!==currentUser.uid)claimed=true;});
+    // ตรวจ cache ก่อน — ไม่เสีย Firestore reads
+    const cachedAll=[...Object.values(window.__fbUsers||{}),...(window.__guestUsers||[])];
+    let claimed=cachedAll.some(u=>u.studentId===sid&&u.uid!==currentUser.uid);
+    // fallback getDocs เฉพาะถ้า cache ยังไม่โหลด
+    if(!claimed&&Object.keys(window.__fbUsers||{}).length===0){
+        const all=await getDocs(collection(db,"users"));
+        all.forEach(d=>{if(d.data().studentId===sid&&d.id!==currentUser.uid)claimed=true;});
+    }
     if(claimed){toast("รหัสนี้ถูกใช้แล้ว","error");if(confirmBtn)confirmBtn.disabled=false;return;}
     // มอบไข่ 2 ฟองต้อนรับ
     const welcomeEggs=[1,2].map(()=>{const p=rollPetFromEgg('normal');return{eggId:`welcome_${Date.now()}_${Math.random().toString(36).slice(2)}`,eggType:'normal',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petEffect:p.effect,petInstId:p.instId,hatchMins:p.hatchMins,startedAt:null};});
@@ -1331,6 +1337,7 @@ window.pickTrade=i=>{tradeIdx=i;renderTradeList();};
 window.sendTrade=async()=>{
     const email=document.getElementById('trade-email').value.trim();if(!email||tradeIdx===null){toast("เลือกสัตว์และใส่ email","error");return;}
     const pet=userData.pets[tradeIdx];
+    if(!confirm(`ส่ง ${pet.emoji}${pet.name} ให้ ${email} จริงๆ?\nสัตว์จะออกจากกระเป๋าทันที!`))return;
     // หา target จาก cache ก่อน — fallback getDocs เฉพาะถ้าไม่เจอ
     const allCached=[...Object.values(window.__fbUsers||{}),...(window.__guestUsers||[])];
     let targetUid=allCached.find(u=>u.email===email)?.uid||null;
@@ -1357,7 +1364,9 @@ window.nextQ=()=>{
     const s=window.__students;if(!s?.length)return;
     const st=s[Math.floor(Math.random()*s.length)];qAnswer=st.realName;
     document.getElementById('q-nick').textContent=st.nickname.split(' ')[0];
-    let opts=[qAnswer];while(opts.length<4){const w=s[Math.floor(Math.random()*s.length)].realName;if(!opts.includes(w))opts.push(w);}
+    // shuffle แทน while-loop: สุ่ม pool แล้ว slice — ป้องกัน infinite loop
+    const wrongPool=[...new Set(s.map(x=>x.realName))].filter(n=>n!==qAnswer).sort(()=>Math.random()-.5);
+    const opts=[qAnswer,...wrongPool.slice(0,3)].sort(()=>Math.random()-.5);
     opts.sort(()=>Math.random()-0.5);
     document.getElementById('q-opts').innerHTML=opts.map(o=>`<button class="q-btn" onclick="answerQ(this,'${o.replace(/'/g,"\\'")}')">${o}</button>`).join('');
 };
@@ -1411,7 +1420,8 @@ window.startDrugQuiz=()=>{
 window.nextDQ=()=>{
     const d=DRUGS[Math.floor(Math.random()*DRUGS.length)];dqAnswer=d.a;
     document.getElementById('dq-drug').textContent=d.n;
-    let opts=[d.a];while(opts.length<4){const w=DRUGS[Math.floor(Math.random()*DRUGS.length)].a;if(!opts.includes(w))opts.push(w);}
+    const wrongDQ=[...new Set(DRUGS.map(x=>x.a))].filter(a=>a!==d.a).sort(()=>Math.random()-.5);
+    const opts=[d.a,...wrongDQ.slice(0,3)].sort(()=>Math.random()-.5);
     opts.sort(()=>Math.random()-0.5);
     document.getElementById('dq-opts').innerHTML=opts.map(o=>`<button class="q-btn" onclick="answerDQ(this,'${o.replace(/'/g,"\\'")}')" style="font-size:0.76rem;text-align:left;padding:9px 10px">${o}</button>`).join('');
 };
@@ -1458,7 +1468,7 @@ window.renderAll=()=>{
     renderTab(tab);
 };
 
-function renderTopBar(){} // top-bar removed — login/coin/daily now in Home tab
+
 
 window.switchTab=(tab)=>{
     window.__tab=tab;
@@ -1666,9 +1676,9 @@ function memberGrid(){
         const petGrade=petData?(petData.grade||0):0;
         const petColor=petData?(RARITY[petData.rarity]?.color||'#64748b'):'';
         return`<div class="mcard" onclick="openProfileModal('${s.id}')">
-            <div style="position:relative;width:56px;height:56px;margin-bottom:4px">
-                <img src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:56px;height:56px">
-                ${petData?`<div style="position:absolute;bottom:-4px;right:-4px;font-size:1rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));line-height:1">${petData.emoji}${petGrade>0?`<span style="position:absolute;bottom:-1px;right:-4px;background:${petColor};color:#fff;font-size:0.38rem;font-weight:800;padding:1px 3px;border-radius:3px;line-height:1.4">${GRADE_LABELS[petGrade]}</span>`:''}
+            <div style="position:relative;width:64px;height:64px;margin-bottom:4px">
+                <img src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:64px;height:64px">
+                ${petData?`<div style="position:absolute;bottom:-6px;right:-6px;font-size:1.25rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));line-height:1">${petData.emoji}${petGrade>0?`<span style="position:absolute;bottom:-1px;right:-4px;background:${petColor};color:#fff;font-size:0.38rem;font-weight:800;padding:1px 3px;border-radius:3px;line-height:1.4">${GRADE_LABELS[petGrade]}</span>`:''}
                 </div>`:''}
             </div>
             ${(()=>{if(!badge)return'<div class="mc-nick">'+s.nickname+'</div>';return'<div style="border-radius:7px;padding:1px 6px;font-size:0.82rem;font-weight:600;background:'+badge.bg+';border:1.5px solid '+badge.border+'">'+s.nickname+'</div>';})()}
@@ -1687,11 +1697,48 @@ window.openProfileModal=(id)=>{
     const tc=s.track==='sci'?'var(--sci)':'var(--care)';
     const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=256`;
     const photo=liveData?.customPhotoFull||liveData?.customPhoto||liveData?.googlePhoto||`img/${s.id}.jpg`;
-    const petData=liveData?.activePet?(liveData.pets||[]).find(p=>p.id===liveData.activePet):null;
+    // activePet: instId match ก่อน fallback id (compat)
+    const petData=liveData?.activePet
+        ?(liveData.pets||[]).find(p=>p.instId&&String(p.instId)===String(liveData.activePet))
+          ||(liveData.pets||[]).find(p=>p.id===liveData.activePet)
+        :null;
     const pmBadge=petData?BADGE_EFFECTS[petData.effect]:null;
     const nickHtml=pmBadge
         ?`<span style="background:${pmBadge.bg};border-radius:6px;padding:1px 8px;border:1.5px solid ${pmBadge.border}">${s.nickname}</span>`
         :s.nickname;
+    // สร้าง pet showcase section
+    const allPets=liveData?.pets||[];
+    const petShowcase=(()=>{
+        if(!liveData)return'<div style="color:var(--muted);font-size:0.78rem;margin-top:8px">ยังไม่ได้ login</div>';
+        if(!allPets.length)return'<div style="color:var(--muted);font-size:0.78rem;margin-top:6px">ไม่มีสัตว์เลี้ยง</div>';
+        const activePetHtml=petData?`
+            <div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openFriendPetInfo('${s.id}','${String(petData.instId||petData.id)}')">
+                <div style="font-size:2rem;filter:drop-shadow(0 0 8px ${RARITY[petData.rarity]?.glow||'#fff'})">
+                    ${petData.emoji}
+                </div>
+                <div style="flex:1">
+                    <div style="font-size:0.62rem;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase">Active Pet</div>
+                    <div style="font-weight:800;color:#fff;font-size:0.92rem">${petData.name}${(petData.grade||0)>0?' <span style="background:'+RARITY[petData.rarity]?.color+';color:#fff;font-size:0.52rem;padding:1px 5px;border-radius:4px">'+GRADE_LABELS[petData.grade]+'</span>':''}</div>
+                    <div style="font-size:0.7rem;color:${RARITY[petData.rarity]?.color||'#64748b'};font-weight:700">${RARITY[petData.rarity]?.label||''} · +${petDailyCoins(petData)}🪙/วัน</div>
+                </div>
+                <div style="font-size:0.62rem;color:rgba(255,255,255,.35)">แตะดูข้อมูล →</div>
+            </div>`
+        :'<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">ไม่มีสัตว์ active</div>';
+        // mini grid สัตว์ทั้งหมด (คลิกดูรายละเอียดได้)
+        const gridHtml=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:5px">
+            ${allPets.map(p=>{
+                const cfg=RARITY[p.rarity];const gr=p.grade||0;
+                const isOn=petData&&String(p.instId||p.id)===String(petData.instId||petData.id);
+                return`<div onclick="openFriendPetInfo('${s.id}','${String(p.instId||p.id)}')"
+                    style="background:${cfg.bg};border:2px solid ${isOn?cfg.color:'transparent'};border-radius:9px;padding:5px 3px;text-align:center;cursor:pointer;position:relative">
+                    <div style="font-size:1.3rem">${p.emoji}</div>
+                    <div style="font-size:0.5rem;color:${cfg.color};font-weight:700;margin-top:1px">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}</div>
+                    ${isOn?'<div style="position:absolute;top:-4px;right:-4px;background:'+cfg.color+';color:#fff;font-size:0.38rem;padding:1px 3px;border-radius:3px;font-weight:800">ON</div>':''}
+                </div>`;
+            }).join('')}
+        </div>`;
+        return activePetHtml+`<div style="font-size:0.65rem;color:var(--muted);margin-bottom:5px;text-align:left">🐾 สัตว์ทั้งหมด (${allPets.length} ตัว)</div>`+gridHtml;
+    })();
     document.getElementById('pm-content').innerHTML=`
         <img src="${photo}" onerror="this.onerror=null;this.src='${def}'" class="pm-img">
         <div class="pm-nick">${nickHtml}</div>
@@ -1703,9 +1750,8 @@ window.openProfileModal=(id)=>{
             <div class="pm-stat"><span>🪙</span><b>${(liveData.coins||0).toLocaleString()}</b><small>เหรียญ</small></div>
             <div class="pm-stat"><span>👥</span><b>${liveData.quizHigh||0}</b><small>Quiz Hi</small></div>
             <div class="pm-stat"><span>💊</span><b>${liveData.drugHigh||0}</b><small>Drug Hi</small></div>
-        </div>
-        ${petData?`<div class="pm-pet-row"><div style="font-size:1.8rem">${petData.emoji}</div><div><div style="font-weight:700;font-size:0.86rem">${petData.name}</div><div style="font-size:0.72rem;color:var(--muted)">${petData.activeDesc||''}</div></div></div>`:'<div style="color:var(--muted);font-size:0.78rem;margin-top:6px">ไม่มีสัตว์เลี้ยง active</div>'}
-        `:'<div style="color:var(--muted);font-size:0.78rem;margin-top:8px">ยังไม่ได้ login</div>'}`;
+        </div>`:''}
+        <div style="margin-top:8px;text-align:left">${petShowcase}</div>`;
     // เพิ่มปุ่มมอบดอกไม้ถ้าไม่ใช่โปรไฟล์ตัวเอง
     if(currentUser && s.id !== userData?.studentId){
         const flowerBtn=document.createElement('div');
@@ -1728,6 +1774,53 @@ window.openProfileModal=(id)=>{
     document.getElementById('profile-modal').classList.add('active');
 };
 window.closePM=()=>document.getElementById('profile-modal').classList.remove('active');
+
+// แสดงรายละเอียด pet ของเพื่อน (read-only) — เปิดบน profile modal
+window.openFriendPetInfo=(studentId,instOrId)=>{
+    const liveData=window.__fbUsers?.[studentId];
+    if(!liveData?.pets)return;
+    const p=liveData.pets.find(x=>String(x.instId||x.id)===String(instOrId));
+    if(!p)return;
+    const cfg=RARITY[p.rarity];
+    const grade=p.grade||0;
+    const daily=petDailyCoins(p);
+    const def=PETS.find(x=>x.id===p.id);
+    const effectLabel=activeEffectLabel(p.effect||'none');
+    // สร้าง overlay บน pm-content
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:absolute;inset:0;background:#fff;border-radius:20px;padding:20px 16px;overflow-y:auto;z-index:10;animation:popIn .25s ease';
+    overlay.innerHTML=`
+        <button onclick="this.parentElement.remove()" style="position:absolute;top:10px;right:10px;background:var(--border);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.85rem">✕</button>
+        <div style="text-align:center">
+            <div style="display:flex;justify-content:center;gap:6px;margin-bottom:8px">
+                <span style="background:${cfg.color};color:#fff;padding:3px 12px;border-radius:16px;font-size:0.72rem;font-weight:800">${cfg.label}</span>
+                ${grade>0?`<span style="background:#475569;color:#fff;padding:3px 12px;border-radius:16px;font-size:0.72rem;font-weight:800">Grade ${GRADE_LABELS[grade]}</span>`:''}
+            </div>
+            <div style="font-size:3.5rem;margin:4px 0;filter:drop-shadow(0 0 14px ${cfg.glow})">${p.emoji}</div>
+            <div style="font-size:1.2rem;font-weight:800;margin-bottom:4px">${p.name}</div>
+            ${def?.flavor?`<div style="font-size:0.74rem;color:${cfg.color};font-style:italic;padding:7px 12px;background:${cfg.bg};border-radius:9px;border-left:3px solid ${cfg.color}44;text-align:left;margin-bottom:10px">"${def.flavor}"</div>`:''}
+            <div style="background:${cfg.bg};border:1.5px solid ${cfg.color}33;border-radius:12px;padding:12px;font-size:0.84rem;margin-bottom:8px;text-align:left">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span>💰 Passive daily</span>
+                    <b style="color:${cfg.color}">+${daily}🪙/วัน</b>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span>⚡ Active effect</span>
+                    <b style="color:${cfg.color}">${effectLabel}</b>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                    <span>⬆ Grade</span>
+                    <b style="color:${cfg.color}">${grade>0?GRADE_LABELS[grade]+' / V':'base'} (×${GRADE_MULTI[grade]} daily)</b>
+                </div>
+            </div>
+            <div style="background:#f8fafc;border-radius:12px;padding:10px;font-size:0.78rem;color:var(--muted);text-align:left">
+                🥚 ฟักจาก: ${HATCH_LABELS[p.rarity]||''}<br>
+                🆔 instId: <span style="font-family:'Space Mono',monospace;font-size:0.66rem">${p.instId||'(legacy)'}</span>
+            </div>
+        </div>`;
+    const modalBox=document.querySelector('#profile-modal .modal-box');
+    if(modalBox){modalBox.style.position='relative';modalBox.appendChild(overlay);}
+};
 
 window.openGuestList=()=>{
     const guests=window.__guestUsers||[];
