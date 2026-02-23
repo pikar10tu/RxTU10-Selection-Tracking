@@ -202,7 +202,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .mclose{position:absolute;top:10px;right:10px;background:var(--border);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;}
 .pm-img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.12);margin-bottom:9px;}
 .pm-nick{font-size:1.25rem;font-weight:700;} .pm-real{color:var(--muted);font-size:0.88rem;} .pm-id{font-size:0.74rem;color:var(--muted);font-family:'Space Mono',monospace;margin:3px 0;}
-.pm-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px;}
+.pm-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:9px;}
 .pm-stat{background:var(--bg);border-radius:9px;padding:7px 3px;text-align:center;display:flex;flex-direction:column;align-items:center;}
 .pm-stat span{font-size:1rem;} .pm-stat b{font-size:0.85rem;font-weight:700;} .pm-stat small{font-size:0.62rem;color:var(--muted);}
 .pm-pet-row{display:flex;align-items:center;gap:9px;background:var(--bg);border-radius:11px;padding:9px;margin-top:4px;}
@@ -446,54 +446,72 @@ const GRADE_LABELS = ['','I','II','III','IV','V'];
 const GRADE_COPIES = [0,1,2,4,7,12]; // copies needed for each grade
 const GRADE_MULTI  = [1,2,4,8,16,32]; // ×base daily
 
-// Badge effect สำหรับ active pet (แสดงเป็น gradient bg บน profile card)
+// Badge visual สำหรับ active pet (gold/rainbow/kirin ยังคงมีเพื่อแสดงผลบน profile)
 const BADGE_EFFECTS = {
-    none:       null,
-    'coin+10':  null,
-    'coin+15':  null,
-    'score+3':  null,
-    'score+5':  null,
-    'scorex1.5':null,
-    'coinx2':   null,
-    'scorex2':  null,
-    'daily+20': null,
-    'daily+50': null,
-    'coinx2score+5': null,
-    'gold_badge':   { bg:'linear-gradient(135deg,#fef3c7,#fde68a)', border:'#f59e0b', label:'✨ Gold' },
-    'rainbow_badge':{ bg:'linear-gradient(90deg,#fde68a,#fbcfe8,#bfdbfe,#bbf7d0)', border:'#a855f7', label:'🌈 Rainbow', anim:true },
-    'kirin_badge':  { bg:'linear-gradient(135deg,#fef3c7,#fed7aa)', border:'#f59e0b', label:'👑 Kirin' },
+    'gold_badge':   { bg:'linear-gradient(135deg,#fef3c7,#fde68a)', border:'#f59e0b' },
+    'rainbow_badge':{ bg:'linear-gradient(90deg,#fde68a,#fbcfe8,#bfdbfe,#bbf7d0)', border:'#a855f7', anim:true },
+    'kirin_badge':  { bg:'linear-gradient(135deg,#fef3c7,#fed7aa)', border:'#f59e0b' },
 };
+
+// ── ELEMENT SYSTEM ──
+// ✊ค้อน ชนะ✌️กรรไกร | ✌️กรรไกร ชนะ✋กระดาษ | ✋กระดาษ ชนะ✊ค้อน
+const ELEMENTS = {
+    fist:    { emoji:'✊', beats:'scissors' },
+    scissors:{ emoji:'✌️', beats:'paper'   },
+    paper:   { emoji:'✋', beats:'fist'     },
+};
+// ชนะทาง = ATK ×1.5 (ใช้ใน battle ภายหลัง)
+function elementBeats(attEl,defEl){ return ELEMENTS[attEl]?.beats===defEl; }
+
+// ── BASE STATS ── (HP ≈ ATK × 5, เพิ่มตาม rarity)
+// ATK base: common 10 | rare 25 | epic 55 | legendary 120
+// HP  base: common 50 | rare 125 | epic 275 | legendary 600
+const BASE_STATS = {
+    common:    { atk:10, hp:50  },
+    rare:      { atk:15, hp:75  },
+    epic:      { atk:20, hp:100 },
+    legendary: { atk:25, hp:125 },
+};
+// Grade multiplier สำหรับ stats (อ่อนกว่า daily ×)
+const STAT_MULTI = [1.0, 1.3, 1.7, 2.2, 2.8, 3.5];
+
+function petStats(p){
+    const base=BASE_STATS[p.rarity]||BASE_STATS.common;
+    const g=p.grade||0;
+    const m=STAT_MULTI[g];
+    return { atk:Math.round(base.atk*m), hp:Math.round(base.hp*m) };
+}
 
 // PETS pool — flexible เพิ่มตัวได้ตลอด
 // eggTypes: ['normal'] | ['gold'] | ['rainbow'] | ['normal','gold'] ฯลฯ
 const PETS = [
-    // ── COMMON ──
-    { id:"cat",       emoji:"🐱", name:"น้องแมว",    rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"เพื่อนซี้ประจำห้องยา ชอบนั่งบนตำราและทำตัวเป็นที่ปรึกษา",                    rate:{normal:0.20,gold:0,rainbow:0}, hatchMins:5    },
-    { id:"rabbit",    emoji:"🐰", name:"กระต่าย",   rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"กระโดดไปมาระหว่าง Sci กับ Care ได้อย่างคล่องแคล่ว",                           rate:{normal:0.15,gold:0,rainbow:0}, hatchMins:5    },
-    { id:"hamster",   emoji:"🐹", name:"แฮมสเตอร์", rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"เก็บสะสมแคปซูลยาไว้เต็มแก้มทั้งสองข้าง",                                     rate:{normal:0.12,gold:0,rainbow:0}, hatchMins:5    },
-    { id:"frog",      emoji:"🐸", name:"กบน้อย",    rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"อาศัยอยู่ในห้องน้ำยาสมุนไพร ชอบนั่งดูน้ำต้มยา",                              rate:{normal:0.10,gold:0,rainbow:0}, hatchMins:5    },
-    { id:"penguin",   emoji:"🐧", name:"เพนกวิน",   rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"แต่งตัวด้วยชุดขาวดำเหมือนเภสัชกรทุกวัน",                                     rate:{normal:0.07,gold:0,rainbow:0}, hatchMins:5    },
-    { id:"hedgehog",  emoji:"🦔", name:"เม่น",       rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"ป้องกันตัวเองด้วยหนามเหมือนยา NSAIDs ป้องกัน COX",                            rate:{normal:0.04,gold:0,rainbow:0}, hatchMins:5    },
-    { id:"mouse",     emoji:"🐭", name:"หนูน้อย",   rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"อาสาเป็น lab model ทดสอบยาทุกชนิดด้วยใจกล้า",                                 rate:{normal:0.015,gold:0,rainbow:0},hatchMins:5    },
-    { id:"chick",     emoji:"🐣", name:"ลูกไก่",    rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"เพิ่งฟักออกมา ยังต้องเรียนรู้เรื่องยาอีกเยอะ",                                rate:{normal:0.025,gold:0,rainbow:0},hatchMins:5    },
-    // ── RARE ──
-    { id:"fox",       emoji:"🦊", name:"จิ้งจอก",   rarity:"rare",      effect:"coin+10",       activeDesc:"+10% เหรียญจากเกม",           flavor:"จมูกไว ได้กลิ่น drug interaction ก่อนใคร",                                   rate:{normal:0.08,gold:0.12,rainbow:0},   hatchMins:60   },
-    { id:"owl",       emoji:"🦉", name:"นกฮูก",     rarity:"rare",      effect:"score+3",       activeDesc:"+3 คะแนนต่อข้อใน Quiz",       flavor:"ตื่นอยู่ทั้งคืนอ่านตำราเหมือนนักศึกษาก่อน final",                           rate:{normal:0.06,gold:0.11,rainbow:0},   hatchMins:60   },
-    { id:"panda",     emoji:"🐼", name:"แพนด้า",    rarity:"rare",      effect:"coin+15",       activeDesc:"+15% เหรียญจากเกม",           flavor:"กินไผ่เหมือนกินยา TCM ได้ตลอดวัน",                                           rate:{normal:0.05,gold:0.10,rainbow:0},   hatchMins:60   },
-    { id:"butterfly", emoji:"🦋", name:"ผีเสื้อ",   rarity:"rare",      effect:"daily+20",      activeDesc:"+20 daily bonus พิเศษ",        flavor:"บินผ่านสวน herbal ได้ทุกเช้า นำพา bonus มาให้",                              rate:{normal:0.04,gold:0.09,rainbow:0},   hatchMins:60   },
-    { id:"wolf",      emoji:"🐺", name:"หมาป่า",    rarity:"rare",      effect:"scorex1.5",     activeDesc:"คะแนน Quiz ×1.5",              flavor:"เป็นผู้นำ pack กระตุ้นทีมให้ตอบ MCQ ได้เร็วขึ้น",                            rate:{normal:0.03,gold:0.08,rainbow:0},   hatchMins:60   },
-    { id:"peacock",   emoji:"🦚", name:"นกยูง",     rarity:"rare",      effect:"gold_badge",    activeDesc:"ป้ายโปรไฟล์สีทอง ✨",          flavor:"แผ่หางโชว์เหมือนเปิดตำราพร้อม counsel ผู้ป่วย",                             rate:{normal:0.02,gold:0.05,rainbow:0},   hatchMins:60   },
-    // ── EPIC ──
-    { id:"dragon",    emoji:"🐲", name:"มังกรน้อย", rarity:"epic",      effect:"coinx2",        activeDesc:"เหรียญจากเกม ×2",              flavor:"หายใจพ่นไฟ pyrolyze สิ่งเจือปนในยาได้ทันที",                                 rate:{normal:0,gold:0.13,rainbow:0.16},  hatchMins:180  },
-    { id:"unicorn",   emoji:"🦄", name:"ยูนิคอร์น", rarity:"epic",      effect:"scorex2",       activeDesc:"คะแนน Quiz ×2",                flavor:"เขาเป็น magic wand สำหรับ compounding pharmacy",                              rate:{normal:0,gold:0.11,rainbow:0.14},  hatchMins:180  },
-    { id:"phoenix",   emoji:"🦅", name:"ฟีนิกซ์",  rarity:"epic",      effect:"daily+50",      activeDesc:"+50 daily bonus พิเศษ",        flavor:"ฟื้นจากเถ้าได้เหมือนยา antidote ช่วยชีวิตผู้ป่วย",                          rate:{normal:0,gold:0.09,rainbow:0.13},  hatchMins:180  },
-    { id:"spirit",    emoji:"🧿", name:"วิญญาณ",    rarity:"epic",      effect:"coinx2score+5", activeDesc:"เหรียญ ×2 + คะแนน +5/ข้อ",    flavor:"แฝงอยู่ใน active ingredient ของทุกยา invisible แต่ powerful",               rate:{normal:0,gold:0.07,rainbow:0.12},  hatchMins:180  },
-    // ── LEGENDARY ──
-    { id:"celestial", emoji:"🌟", name:"เซเลสเชียล",rarity:"legendary", effect:"rainbow_badge", activeDesc:"ป้ายรุ้ง 🌈 + daily +100",     flavor:"เกิดจากการรวมพลังของ 7 กลุ่มยาในตำรา WHO Essential Medicines",              rate:{normal:0,gold:0.02,rainbow:0.18},  hatchMins:1440 },
-    { id:"bahamut",   emoji:"🐉", name:"พาฮามุท",   rarity:"legendary", effect:"coinx3scorex2", activeDesc:"เหรียญ ×3 + คะแนน ×2",         flavor:"มังกรแห่ง Pharmacopoeia ผู้รักษา knowledge ของโลกยาทั้งใบ",               rate:{normal:0,gold:0.02,rainbow:0.15},  hatchMins:1440 },
-    { id:"kirin",     emoji:"🦁", name:"ไคริน",     rarity:"legendary", effect:"kirin_badge",   activeDesc:"ป้ายทอง 👑 + เหรียญ ×2 + daily +80", flavor:"สัตว์ศักดิ์สิทธิ์แห่งวิชาเภสัช ปรากฏตัวเมื่อมีเภสัชกรผู้ยิ่งใหญ่", rate:{normal:0,gold:0.01,rainbow:0.12}, hatchMins:1440 },
+    // ── COMMON ✊✊✊ ✌️✌️✌️ ✋✋ ──
+    { id:"cat",       emoji:"🐱", name:"น้องแมว",    rarity:"common",    element:"paper",  flavor:"เพื่อนซี้ประจำห้องยา ชอบนั่งบนตำราและทำตัวเป็นที่ปรึกษา",  rate:{normal:0.20,gold:0,rainbow:0}, hatchMins:1   },
+    { id:"rabbit",    emoji:"🐰", name:"กระต่าย",   rarity:"common",    element:"scissors",  flavor:"กระโดดไปมาระหว่าง Sci กับ Care ได้อย่างคล่องแคล่ว",         rate:{normal:0.15,gold:0,rainbow:0}, hatchMins:1   },
+    { id:"hamster",   emoji:"🐹", name:"แฮมสเตอร์", rarity:"common",    element:"fist",  flavor:"เก็บสะสมแคปซูลยาไว้เต็มแก้มทั้งสองข้าง",                   rate:{normal:0.12,gold:0,rainbow:0}, hatchMins:1   },
+    { id:"frog",      emoji:"🐸", name:"กบน้อย",    rarity:"common",    element:"paper",  flavor:"อาศัยอยู่ในห้องน้ำยาสมุนไพร ชอบนั่งดูน้ำต้มยา",            rate:{normal:0.10,gold:0,rainbow:0}, hatchMins:1   },
+    { id:"penguin",   emoji:"🐧", name:"เพนกวิน",   rarity:"common",    element:"scissors",  flavor:"แต่งตัวด้วยชุดขาวดำเหมือนเภสัชกรทุกวัน",                   rate:{normal:0.07,gold:0,rainbow:0}, hatchMins:1   },
+    { id:"hedgehog",  emoji:"🦔", name:"เม่น",       rarity:"common",    element:"fist",  flavor:"ป้องกันตัวเองด้วยหนามเหมือนยา NSAIDs ป้องกัน COX",          rate:{normal:0.04,gold:0,rainbow:0}, hatchMins:1   },
+    { id:"mouse",     emoji:"🐭", name:"หนูน้อย",   rarity:"common",    element:"scissors",  flavor:"อาสาเป็น lab model ทดสอบยาทุกชนิดด้วยใจกล้า",              rate:{normal:0.015,gold:0,rainbow:0},hatchMins:1   },
+    { id:"chick",     emoji:"🐣", name:"ลูกไก่",    rarity:"common",    element:"fist",  flavor:"เพิ่งฟักออกมา ยังต้องเรียนรู้เรื่องยาอีกเยอะ",              rate:{normal:0.025,gold:0,rainbow:0},hatchMins:1   },
+    // ── RARE ✊✊ ✌️✌️ ✋✋ ──
+    { id:"fox",       emoji:"🦊", name:"จิ้งจอก",   rarity:"rare",      element:"scissors",  flavor:"จมูกไว ได้กลิ่น drug interaction ก่อนใคร",                  rate:{normal:0.08,gold:0.12,rainbow:0}, hatchMins:5 },
+    { id:"owl",       emoji:"🦉", name:"นกฮูก",     rarity:"rare",      element:"paper",  flavor:"ตื่นอยู่ทั้งคืนอ่านตำราเหมือนนักศึกษาก่อน final",           rate:{normal:0.06,gold:0.11,rainbow:0}, hatchMins:5 },
+    { id:"panda",     emoji:"🐼", name:"แพนด้า",    rarity:"rare",      element:"paper",  flavor:"กินไผ่เหมือนกินยา TCM ได้ตลอดวัน",                          rate:{normal:0.05,gold:0.10,rainbow:0}, hatchMins:5 },
+    { id:"butterfly", emoji:"🦋", name:"ผีเสื้อ",   rarity:"rare",      element:"scissors",  flavor:"บินผ่านสวน herbal ได้ทุกเช้า นำพา bonus มาให้",              rate:{normal:0.04,gold:0.09,rainbow:0}, hatchMins:5 },
+    { id:"wolf",      emoji:"🐺", name:"หมาป่า",    rarity:"rare",      element:"fist",  flavor:"เป็นผู้นำ pack กระตุ้นทีมให้ตอบ MCQ ได้เร็วขึ้น",           rate:{normal:0.03,gold:0.08,rainbow:0}, hatchMins:5 },
+    { id:"peacock",   emoji:"🦚", name:"นกยูง",     rarity:"rare",      element:"fist",  flavor:"แผ่หางโชว์เหมือนเปิดตำราพร้อม counsel ผู้ป่วย",             rate:{normal:0.02,gold:0.05,rainbow:0}, hatchMins:5 },
+    // ── EPIC ✊ ✌️ ✋✋ ──
+    { id:"dragon",    emoji:"🐲", name:"มังกรน้อย", rarity:"epic",      element:"fist",  flavor:"หายใจพ่นไฟ pyrolyze สิ่งเจือปนในยาได้ทันที",                rate:{normal:0,gold:0.13,rainbow:0.16}, hatchMins:15},
+    { id:"unicorn",   emoji:"🦄", name:"ยูนิคอร์น", rarity:"epic",      element:"paper",  flavor:"เขาเป็น magic wand สำหรับ compounding pharmacy",             rate:{normal:0,gold:0.11,rainbow:0.14}, hatchMins:15},
+    { id:"phoenix",   emoji:"🦅", name:"ฟีนิกซ์",  rarity:"epic",      element:"scissors",  flavor:"ฟื้นจากเถ้าได้เหมือนยา antidote ช่วยชีวิตผู้ป่วย",          rate:{normal:0,gold:0.09,rainbow:0.13}, hatchMins:15},
+    { id:"spirit",    emoji:"🧿", name:"วิญญาณ",    rarity:"epic",      element:"paper",  flavor:"แฝงอยู่ใน active ingredient ของทุกยา invisible แต่ powerful", rate:{normal:0,gold:0.07,rainbow:0.12}, hatchMins:15},
+    // ── LEGENDARY ✊ ✌️ ✋ ──
+    { id:"celestial", emoji:"🌟", name:"เซเลสเชียล",rarity:"legendary", element:"paper",  flavor:"เกิดจากการรวมพลังของ 7 กลุ่มยาในตำรา WHO Essential Medicines", rate:{normal:0,gold:0.02,rainbow:0.18}, hatchMins:60},
+    { id:"bahamut",   emoji:"🐉", name:"พาฮามุท",   rarity:"legendary", element:"scissors",  flavor:"มังกรแห่ง Pharmacopoeia ผู้รักษา knowledge ของโลกยาทั้งใบ", rate:{normal:0,gold:0.02,rainbow:0.15}, hatchMins:60},
+    { id:"kirin",     emoji:"🦁", name:"ไคริน",     rarity:"legendary", element:"fist",  flavor:"สัตว์ศักดิ์สิทธิ์แห่งวิชาเภสัช ปรากฏตัวเมื่อมีเภสัชกรผู้ยิ่งใหญ่", rate:{normal:0,gold:0.01,rainbow:0.12}, hatchMins:60},
 ];
-const HATCH_LABELS = { common:"5 นาที", rare:"1 ชั่วโมง", epic:"3 ชั่วโมง", legendary:"24 ชั่วโมง" };
+const HATCH_LABELS = { common:"1 นาที", rare:"5 นาที", epic:"15 นาที", legendary:"1 ชั่วโมง" };
 // ไข่ 3 ระดับ + instant hatch
 const EGG_TYPES = {
     normal:  { label:"🥚 ธรรมดา",  cost:100, desc:"Common~Rare",        color:"#64748b" },
@@ -524,20 +542,7 @@ function calcTotalDaily(pets){
     const passive=(pets||[]).reduce((sum,p)=>sum+petDailyCoins(p),0);
     return {base:50, passive, total:50+passive};
 }
-function activeEffectLabel(effect){
-    const m={
-        'coin+10':'+10% เหรียญ','coin+15':'+15% เหรียญ',
-        'score+3':'+3 คะแนน/ข้อ','score+5':'+5 คะแนน/ข้อ',
-        'scorex1.5':'คะแนน ×1.5','coinx2':'เหรียญ ×2','scorex2':'คะแนน ×2',
-        'daily+20':'+20 daily','daily+50':'+50 daily',
-        'coinx2score+5':'เหรียญ ×2 + +5/ข้อ',
-        'coinx3scorex2':'เหรียญ ×3 + คะแนน ×2',
-        'rainbow_badge':'ป้ายรุ้ง + daily +100',
-        'kirin_badge':'ป้ายทอง + เหรียญ ×2 + daily +80',
-        'gold_badge':'ป้ายทอง ✨','none':'—',
-    };
-    return m[effect]||effect;
-}
+
 
 // ════════════════════════════════════════
 //  STUDENT DATA
@@ -672,7 +677,6 @@ window.claimDaily=async()=>{
     const btn=document.getElementById('daily-btn');
     if(!btn?.classList.contains('ready')){toast("รับได้อีกครั้งพรุ่งนี้!","info");return;}
     const {base,passive}=calcTotalDaily(userData?.pets||[]);
-    const extra=activeExtraDaily();
     const total=base+passive+extra;
     await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(total),lastDaily:serverTimestamp()});
     btn.classList.remove('ready');
@@ -690,7 +694,6 @@ window.openDailyModal=()=>{
     if(!currentUser){toast("กรุณา Login","error");return;}
     const pets=userData?.pets||[];
     const {base,passive}=calcTotalDaily(pets);
-    const extra=activeExtraDaily();
     const total=base+passive+extra;
     const activePetData=activePet();
     const isReady=document.getElementById('daily-btn')?.classList.contains('ready');
@@ -800,7 +803,7 @@ function renderUpgradeModal(mainPet,candidates,cfg,nextGrade){
                 เลือก <b style="color:${cfg.color}">${selCount}/${state.needed}</b> ตัวเพื่อ consume
             </div>
             <div style="background:${cfg.bg};border-radius:8px;padding:5px 10px;font-size:0.76rem;margin-top:4px;display:inline-block">
-                Daily จะเพิ่มเป็น <b>+${RARITY[mainPet.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน</b>
+                Daily: <b>+${RARITY[mainPet.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน</b> · ATK/HP ×${STAT_MULTI[nextGrade]}
             </div>
         </div>
         ${candidates.length===0
@@ -858,7 +861,7 @@ window.confirmUpgrade=async()=>{
     await updateDoc(doc(db,"users",currentUser.uid),{pets:newPets});
     closeUpgradeModal();
     const pet=newPets[mainIdx];
-    toast(`${pet.emoji} อัพ Grade ${GRADE_LABELS[newGrade]}! Daily +${RARITY[pet.rarity].dailyBase*GRADE_MULTI[newGrade]}🪙/วัน`,"success");
+    const ns=petStats({...pet,grade:newGrade});toast(`${pet.emoji} Grade ${GRADE_LABELS[newGrade]}! ATK ${ns.atk} · HP ${ns.hp} · +${RARITY[pet.rarity].dailyBase*GRADE_MULTI[newGrade]}🪙/วัน`,"success");
     confetti({particleCount:120,spread:70,origin:{y:0.5}});
 };
 
@@ -871,35 +874,12 @@ function activePet(){
     return userData.pets.find(p=>p.instId&&String(p.instId)===String(userData.activePet))
         ||userData.pets.find(p=>p.id===userData.activePet)||null;
 }
-function coinMulti(){const p=activePet();if(!p)return 1;
-    const e=p.effect;
-    if(e==='coin+10')return 1.1;if(e==='coin+15')return 1.15;
-    if(e==='coinx2'||e==='coinx2score+5')return 2;
-    if(e==='coinx3scorex2')return 3;
-    if(e==='kirin_badge')return 2;
-    return 1;}
-function scoreMulti(){const p=activePet();if(!p)return 1;
-    const e=p.effect;
-    if(e==='scorex2'||e==='coinx3scorex2')return 2;
-    if(e==='scorex1.5')return 1.5;
-    return 1;}
-function scoreBonus(){const p=activePet();if(!p)return 0;
-    const e=p.effect;
-    if(e==='score+3')return 3;if(e==='score+5')return 5;
-    if(e==='coinx2score+5')return 5;
-    return 0;}
-function activeExtraDaily(){const p=activePet();if(!p)return 0;
-    const e=p.effect;
-    if(e==='daily+20')return 20;if(e==='daily+50')return 50;
-    if(e==='rainbow_badge')return 100;if(e==='kirin_badge')return 80;
-    return 0;}
-function getActiveBadge(){const p=activePet();if(!p)return null;return BADGE_EFFECTS[p.effect]||null;}
+function getActiveBadge(){const p=activePet();if(!p)return null;const def=PETS.find(x=>x.id===p.id);return def?BADGE_EFFECTS[def.effect]||null:null;}
 window.awardCoins=async(base,trackKey)=>{
     if(!currentUser)return base;
-    const final=Math.floor(base*coinMulti());
-    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(final)});
-    if(trackKey)window[trackKey]=(window[trackKey]||0)+final;
-    return final;
+    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(base)});
+    if(trackKey)window[trackKey]=(window[trackKey]||0)+base;
+    return base;
 };
 function myPhoto(thumb=false){if(!userData)return null;if(thumb)return userData.customPhotoThumb||userData.customPhoto||userData.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name||'?')}&size=64`;return userData.customPhoto||userData.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name||'?')}&size=256`;}
 
@@ -1075,7 +1055,7 @@ window.confirmGuest=async()=>{
     if(name.length<2){err.textContent='ชื่อต้องมีอย่างน้อย 2 ตัวอักษร';return;}
     if(!currentUser)return;
     // Guest: studentId='guest', track='guest', nickname=name ที่ตั้งเอง
-    const welcomeEggs=[1,2].map(()=>{const p=rollPetFromEgg('normal');return{eggId:`welcome_${Date.now()}_${Math.random().toString(36).slice(2)}`,eggType:'normal',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petEffect:p.effect,petInstId:p.instId,hatchMins:p.hatchMins,startedAt:null};});
+    const welcomeEggs=[1,2].map(()=>{const p=rollPetFromEgg('normal');return{eggId:`welcome_${Date.now()}_${Math.random().toString(36).slice(2)}`,eggType:'normal',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:p.hatchMins,startedAt:null};});
     await updateDoc(doc(db,"users",currentUser.uid),{studentId:'guest_'+currentUser.uid.slice(0,8),nickname:name,realName:name,track:'guest',eggs:arrayUnion(welcomeEggs[0],welcomeEggs[1])});
     closeLinkModal();
     toast(`ยินดีต้อนรับ ${name}! 🎁 ได้รับไข่ 2 ฟอง!`,"success");
@@ -1105,7 +1085,7 @@ window.confirmLink=async()=>{
     }
     if(claimed){toast("รหัสนี้ถูกใช้แล้ว","error");if(confirmBtn)confirmBtn.disabled=false;return;}
     // มอบไข่ 2 ฟองต้อนรับ
-    const welcomeEggs=[1,2].map(()=>{const p=rollPetFromEgg('normal');return{eggId:`welcome_${Date.now()}_${Math.random().toString(36).slice(2)}`,eggType:'normal',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petEffect:p.effect,petInstId:p.instId,hatchMins:p.hatchMins,startedAt:null};});
+    const welcomeEggs=[1,2].map(()=>{const p=rollPetFromEgg('normal');return{eggId:`welcome_${Date.now()}_${Math.random().toString(36).slice(2)}`,eggType:'normal',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:p.hatchMins,startedAt:null};});
     await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track,eggs:arrayUnion(welcomeEggs[0],welcomeEggs[1])});
     closeLinkModal();toast(`ยินดีต้อนรับ ${found.nickname}! 🎁 ได้รับไข่ 2 ฟอง!`,"success");
     confetti({particleCount:150,spread:80,origin:{y:0.5}});
@@ -1164,7 +1144,7 @@ window.buyEgg=async(eggType='normal')=>{
     const et=EGG_TYPES[eggType];if(!et)return;
     if(userData.coins<et.cost){toast(`เหรียญไม่พอ! ต้องการ ${et.cost}🪙`,"error");return;}
     const pet=rollPetFromEgg(eggType);
-    const egg={eggId:Date.now()+'_'+Math.random().toString(36).slice(2),eggType,petId:pet.id,petEmoji:pet.emoji,petName:pet.name,petRarity:pet.rarity,petEffect:pet.effect,petInstId:pet.instId,hatchMins:pet.hatchMins,startedAt:null};
+    const egg={eggId:Date.now()+'_'+Math.random().toString(36).slice(2),eggType,petId:pet.id,petEmoji:pet.emoji,petName:pet.name,petRarity:pet.rarity,petInstId:pet.instId,hatchMins:pet.hatchMins,startedAt:null};
     await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(-et.cost),eggs:arrayUnion(egg)});
     toast(`${et.label} ได้แล้ว! ไปฟักใน Inventory 🥚`,"success");
 };
@@ -1192,7 +1172,7 @@ window.claimEgg=async(eggId)=>{
     if(Date.now()<egg.startedAt+egg.hatchMins*60000){toast("ยังฟักไม่เสร็จ!","error");return;}
     const newEggs=(userData.eggs||[]).filter(e=>e.eggId!==eggId);
     // สร้าง pet object ใหม่พร้อม grade:0
-    const pet={id:egg.petId,emoji:egg.petEmoji,name:egg.petName,rarity:egg.petRarity,effect:egg.petEffect,instId:egg.petInstId,grade:0};
+    const pet={id:egg.petId,emoji:egg.petEmoji,name:egg.petName,rarity:egg.petRarity,instId:egg.petInstId,grade:0};
     // เช็ค duplicate — ถ้ามีตัวเดิมแล้ว แสดง upgrade popup แทน
     const existing=(userData.pets||[]).find(p=>p.id===pet.id);
     await updateDoc(doc(db,"users",currentUser.uid),{eggs:newEggs,pets:arrayUnion(pet)});
@@ -1229,7 +1209,7 @@ function showDuplicatePopup(newPet,existing){
                 <b>⬆ อัพเป็น Grade ${GRADE_LABELS[nextGrade]}</b><br>
                 ต้องการ copies อีก <b>${neededForNext}</b> ตัว · มีอยู่ <b>${copiesOwned-1}</b> ตัว
                 ${canUpgradeNow?'':' · <span style="color:#94a3b8">ยังไม่พอ</span>'}
-                <br>Daily จะเพิ่มเป็น <b>${RARITY[newPet.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน</b>
+                <br>Daily: <b>+${RARITY[newPet.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน</b>
             </div>
             <div class="gr-btns">
                 <button class="btn-gold" onclick="closeGacha();openUpgradeModal('${existing.instId}')" ${canUpgradeNow?'':'disabled'}>⬆ อัพ Grade ${GRADE_LABELS[nextGrade]}!</button>
@@ -1249,7 +1229,7 @@ function showGachaResult(pet){
             <div class="gr-badge" style="background:${cfg.color}">${cfg.label}</div>
             <div class="gr-emoji">${pet.emoji}</div>
             <div class="gr-name">${pet.name}</div>
-            <div class="gr-desc">${(()=>{const def=PETS.find(x=>x.id===pet.id);return def?.flavor||pet.activeDesc||'';})()}</div>
+            <div class="gr-desc">${(()=>{const def=PETS.find(x=>x.id===pet.id);return def?.flavor||'';})()}</div>
             <div class="gr-btns">
                 <button class="btn-gold" onclick="setActive('${pet.instId||pet.id}');closeGacha()">ใช้งานเลย!</button>
                 <button class="btn-gray" onclick="closeGacha()">เก็บไว้ก่อน</button>
@@ -1282,39 +1262,49 @@ window.showPetInfo=async(petInstId)=>{
     const cfg=RARITY[p.rarity];
     const grade=p.grade||0;
     const daily=petDailyCoins(p);
+    const stats=petStats(p);
     const copiesOwned=owned.filter(x=>x.id===p.id).length;
     const isMax=grade>=5;
     const nextGrade=Math.min(5,grade+1);
     const neededForNext=isMax?0:GRADE_COPIES[nextGrade];
-    // ต้องมีตัวหลัก + neededForNext copies = neededForNext+1 รวม
     const totalNeeded=isMax?0:neededForNext+1;
     const canUpgrade=!isMax&&copiesOwned>=totalNeeded;
     const isActive=p.instId?String(userData?.activePet)===String(p.instId):userData?.activePet===p.id;
-    const effectLabel=activeEffectLabel(p.effect||'none');
+    const def=PETS.find(x=>x.id===p.id);
+    const el=def?.element;const elInfo=ELEMENTS[el]||null;
     const gradeHtml=grade>0?`<div class="gr-badge" style="background:#475569;margin-left:5px">Grade ${GRADE_LABELS[grade]}</div>`:'';
     document.getElementById('petinfo-content').innerHTML=
         '<div style="text-align:center">'
         +'<div style="display:flex;justify-content:center;gap:6px;margin-bottom:6px">'
         +`<div class="gr-badge" style="background:${cfg.color}">${cfg.label}</div>${gradeHtml}`
+        +(elInfo?`<div class="gr-badge" style="background:#334155;font-size:1rem">${elInfo.emoji}</div>`:'')
         +'</div>'
         +`<div style="font-size:3rem;margin:4px 0;filter:drop-shadow(0 0 10px ${cfg.glow})">${p.emoji}</div>`
         +`<div style="font-size:1.2rem;font-weight:800;margin-bottom:2px">${p.name}</div>`
-        +`<div style="font-size:0.76rem;color:var(--muted);margin-bottom:4px">ฟัก: ${HATCH_LABELS[p.rarity]||''} · มี ${copiesOwned} ตัว</div>`
-        +(()=>{const def=PETS.find(x=>x.id===p.id);return def?.flavor?`<div style="font-size:0.76rem;color:${cfg.color};font-style:italic;margin-bottom:10px;padding:6px 10px;background:${cfg.bg};border-radius:8px;border-left:3px solid ${cfg.color}44">"${def.flavor}"</div>`:'';})()
-        +`<div style="background:${cfg.bg};border:1.5px solid ${cfg.color}33;border-radius:11px;padding:11px;font-size:0.84rem;margin-bottom:8px">`
-        +'<div style="display:flex;justify-content:space-between;margin-bottom:5px">'
-        +`<span>💰 Passive daily</span><b style="color:${cfg.color}">+${daily}🪙/วัน</b>`
+        +`<div style="font-size:0.74rem;color:var(--muted);margin-bottom:8px">มี ${copiesOwned} ตัว</div>`
+        +(def?.flavor?`<div style="font-size:0.74rem;color:${cfg.color};font-style:italic;margin-bottom:10px;padding:6px 10px;background:${cfg.bg};border-radius:8px;border-left:3px solid ${cfg.color}44">"${def.flavor}"</div>`:'')
+        // stats block
+        +`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">`
+        +`<div style="background:${cfg.bg};border-radius:10px;padding:8px 4px;text-align:center">`
+        +`<div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">ATK</div>`
+        +`<div style="font-size:1.1rem;font-weight:800;color:#ef4444">⚔️ ${stats.atk}</div></div>`
+        +`<div style="background:${cfg.bg};border-radius:10px;padding:8px 4px;text-align:center">`
+        +`<div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">HP</div>`
+        +`<div style="font-size:1.1rem;font-weight:800;color:#10b981">❤️ ${stats.hp}</div></div>`
+        +`<div style="background:${cfg.bg};border-radius:10px;padding:8px 4px;text-align:center">`
+        +`<div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Daily</div>`
+        +`<div style="font-size:1.1rem;font-weight:800;color:${cfg.color}">+${daily}🪙</div></div>`
         +'</div>'
-        +'<div style="display:flex;justify-content:space-between">'
-        +`<span>⚡ Active effect</span><b style="color:${cfg.color}">${effectLabel}</b>`
-        +'</div></div>'
+        +(elInfo?`<div style="background:#0f172a;border-radius:10px;padding:8px 12px;font-size:0.78rem;color:rgba(255,255,255,.7);margin-bottom:8px;display:flex;align-items:center;gap:8px">`
+        +`<span style="font-size:1.1rem">${elInfo.emoji}</span>`
+        +`<span>ชนะ <b style="color:#fbbf24">${ELEMENTS[elInfo.beats]?.emoji||''}</b> · แพ้ <b style="color:#f87171">${Object.values(ELEMENTS).find(e=>e.beats===el)?.emoji||''}</b></span></div>`:'')
         +'<div style="background:#f8fafc;border-radius:11px;padding:10px;font-size:0.82rem;text-align:left">'
         +'<div style="font-weight:700;margin-bottom:5px">⬆ อัพเกรด</div>'
         +(isMax
             ?'<div style="color:var(--gold);font-weight:700;text-align:center">🏆 Max Grade V!</div>'
             :`<div style="color:var(--muted);margin-bottom:3px">Grade ${grade>0?GRADE_LABELS[grade]:'base'} → <b>Grade ${GRADE_LABELS[nextGrade]}</b></div>`
             +`<div style="margin-bottom:3px">ต้องการ copies อีก <b>${neededForNext}</b> ตัว · มีอยู่ <b>${copiesOwned-1}</b> ตัว</div>`
-            +`<div style="color:${cfg.color};font-weight:600">Daily จะเป็น +${RARITY[p.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน</div>`
+            +`<div style="color:${cfg.color};font-weight:600">ATK ${stats.atk} → ${Math.round(BASE_STATS[p.rarity].atk*STAT_MULTI[nextGrade])} · HP ${stats.hp} → ${Math.round(BASE_STATS[p.rarity].hp*STAT_MULTI[nextGrade])} · Daily +${RARITY[p.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙</div>`
             +(!canUpgrade?`<div style="color:#94a3b8;font-size:0.73rem;margin-top:3px">ต้องการอีก ${totalNeeded-copiesOwned} ตัวเพื่ออัพ</div>`:''))
         +`<button class="btn-gold full" style="margin-top:8px" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${isMax?'disabled':''}>⬆ อัพ Grade ${isMax?'(Max)':GRADE_LABELS[nextGrade]}</button>`
         +'</div></div>';
@@ -1378,8 +1368,7 @@ window.answerQ=async(btn,ans)=>{
     });
     if(ans===qAnswer){
         qScore++;
-        const disp=qScore*scoreMulti()+scoreBonus();
-        const qs=document.getElementById('q-score');qs.textContent=disp;qs.classList.remove('score-flash');void qs.offsetWidth;qs.classList.add('score-flash');
+        const qs=document.getElementById('q-score');qs.textContent=qScore;qs.classList.remove('score-flash');void qs.offsetWidth;qs.classList.add('score-flash');
         await window.awardCoins(5,'__qCoinsEarned');
         confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#10b981']});
         setTimeout(nextQ,700);
@@ -1399,10 +1388,8 @@ window.answerQ=async(btn,ans)=>{
         setTimeout(()=>{
             document.getElementById('quiz-start').style.display='block';
             document.getElementById('quiz-play').style.display='none';
-            const pet=activePet();
-            const base5=finalScore*5;const earned=window.__qCoinsEarned||0;
-            const bonusStr=earned>base5?` <span style="color:#6ee7b7;font-size:0.78rem">(+${earned-base5} bonus ${pet?pet.emoji:''})</span>`:'';
-            document.getElementById('q-msg').innerHTML=`ตอบผิด! ชื่อจริงคือ <b style="color:#fbbf24">${qAnswer}</b><br>คะแนน: ${finalScore} · ได้ <b style="color:#fbbf24">+${earned}🪙</b>${bonusStr}<br><span style="font-size:0.76rem;opacity:.7">สถิติ: ${Math.max(finalScore,qHigh)}</span>`;
+            const earned=window.__qCoinsEarned||0;
+            document.getElementById('q-msg').innerHTML=`ตอบผิด! ชื่อจริงคือ <b style="color:#fbbf24">${qAnswer}</b><br>คะแนน: ${finalScore} · ได้ <b style="color:#fbbf24">+${earned}🪙</b><br><span style="font-size:0.76rem;opacity:.7">สถิติ: ${Math.max(finalScore,qHigh)}</span>`;
             // refresh leaderboard
             const lbEl=document.getElementById('lb-container');if(lbEl)lbEl.innerHTML=buildLeaderboard();
         },1000);
@@ -1428,8 +1415,8 @@ window.nextDQ=()=>{
 window.answerDQ=async(btn,ans)=>{
     document.querySelectorAll('#dq-opts .q-btn').forEach(b=>{b.disabled=true;if(b.textContent===dqAnswer)b.classList.add('correct');else if(b.textContent===ans)b.classList.add('wrong');});
     if(ans===dqAnswer){
-        dqScore++;const disp=dqScore*scoreMulti()+scoreBonus();document.getElementById('dq-score').textContent=disp;
-        const ds=document.getElementById('dq-score');ds.textContent=disp;ds.classList.remove('score-flash');void ds.offsetWidth;ds.classList.add('score-flash');
+        dqScore++;
+        const ds=document.getElementById('dq-score');ds.textContent=dqScore;ds.classList.remove('score-flash');void ds.offsetWidth;ds.classList.add('score-flash');
         await window.awardCoins(5,'__dqCoinsEarned');confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#818cf8','#a5b4fc']});
         setTimeout(nextDQ,700);
     } else {
@@ -1446,10 +1433,8 @@ window.answerDQ=async(btn,ans)=>{
         setTimeout(()=>{
             document.getElementById('dquiz-start').style.display='block';
             document.getElementById('dquiz-play').style.display='none';
-            const pet2=activePet();
-            const base5d=finalScore*5;const earned2=window.__dqCoinsEarned||0;
-            const bonusStr2=earned2>base5d?` <span style="color:#6ee7b7;font-size:0.78rem">(+${earned2-base5d} bonus ${pet2?pet2.emoji:''})</span>`:'';
-            document.getElementById('dq-msg').innerHTML=`ตอบผิด! Drug Class คือ <b style="color:#a5b4fc">${dqAnswer}</b><br>คะแนน: ${finalScore} · ได้ <b style="color:#fbbf24">+${earned2}🪙</b>${bonusStr2}<br><span style="font-size:0.76rem;opacity:.7">สถิติ: ${Math.max(finalScore,dqHigh)}</span>`;
+            const earned2=window.__dqCoinsEarned||0;
+            document.getElementById('dq-msg').innerHTML=`ตอบผิด! Drug Class คือ <b style="color:#a5b4fc">${dqAnswer}</b><br>คะแนน: ${finalScore} · ได้ <b style="color:#fbbf24">+${earned2}🪙</b><br><span style="font-size:0.76rem;opacity:.7">สถิติ: ${Math.max(finalScore,dqHigh)}</span>`;
             const lbEl2=document.getElementById('lb-container');if(lbEl2)lbEl2.innerHTML=buildLeaderboard();
         },1000);
     }
@@ -1505,7 +1490,7 @@ function buildHome(){
     const linked=userData?.studentId;
     const flowerRecv=(()=>{const recv=userData?.flowersReceived||{};const t=Object.values(recv).reduce((a,b)=>a+b,0);return t>0?FLOWERS.filter(f=>(recv[f.id]||0)>0).map(f=>`${f.emoji}×${recv[f.id]}`).join(' '):''})();
     const flowerInHand=(()=>{const inv=userData?.flowerInv||{};const t=Object.values(inv).reduce((a,b)=>a+b,0);return t>0?FLOWERS.filter(f=>(inv[f.id]||0)>0).map(f=>`${f.emoji}${inv[f.id]}`).join(''):'';})();
-    const dailyTotal=(()=>{const d=calcTotalDaily(userData?.pets||[]);const e=activeExtraDaily();return d.total+e;})();
+    const dailyTotal=calcTotalDaily(userData?.pets||[]).total;
     const profileBlock=linked?`
         <div class="home-hero" style="margin:-12px -12px 10px">
             <div class="hero-bg ${badgeClass}">
@@ -1569,8 +1554,7 @@ function buildHome(){
     const nextTier=tiers.find(t=>uniqueIds.length<t.need);
     const achTitle=achieved.length?achieved[achieved.length-1].label:'';
     const {base,passive}=calcTotalDaily(pets);
-    const extra=activeExtraDaily();
-    const todayTotal=base+passive+extra;
+    const todayTotal=base+passive;
 
     const achieveBlock=`
     <div class="coll-card">
@@ -1622,7 +1606,7 @@ function buildHome(){
         }).join('')}</div>`:''
 
     const invBlock=pets.length===0?`<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ฟักไข่ใน 🛒 Shop ก่อน!</div>`
-        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg}" onclick="showPetInfo('${p.instId||p.id}')"><div class="inv-em">${p.emoji}</div><div class="inv-nm">${p.name}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}</div>`;}).join('')}</div>
+        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg}" onclick="showPetInfo('${p.instId||p.id}')"><div class="inv-em">${p.emoji}</div><div class="inv-nm">${p.name}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${elEmoji?' '+elEmoji:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}</div>`;}).join('')}</div>
         <div style="display:flex;gap:7px;justify-content:center;margin-top:8px">
             ${userData?.activePet?`<button class="btn-gray sm" onclick="unsetActive()">เอาออก</button>`:''}
             ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
@@ -1678,7 +1662,7 @@ function memberGrid(){
         return`<div class="mcard" onclick="openProfileModal('${s.id}')">
             <div style="position:relative;width:64px;height:64px;margin-bottom:4px">
                 <img src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:64px;height:64px">
-                ${petData?`<div style="position:absolute;bottom:-6px;right:-6px;font-size:1.25rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));line-height:1">${petData.emoji}${petGrade>0?`<span style="position:absolute;bottom:-1px;right:-4px;background:${petColor};color:#fff;font-size:0.38rem;font-weight:800;padding:1px 3px;border-radius:3px;line-height:1.4">${GRADE_LABELS[petGrade]}</span>`:''}
+                ${petData?`<div style="position:absolute;bottom:-6px;right:-6px;font-size:1.25rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));line-height:1">${petData.emoji}${petGrade>0?`<span style="position:absolute;bottom:-1px;right:-4px;background:${petColor};color:#fff;font-size:0.38rem;font-weight:800;padding:1px 3px;border-radius:3px;line-height:1.4">${GRADE_LABELS[petGrade]}</span>`:''}${(()=>{const pDef2=PETS.find(x=>x.id===petData.id);const elEm=ELEMENTS[pDef2?.element]?.emoji||'';return elEm?`<span style="position:absolute;top:-5px;left:-5px;font-size:0.6rem;line-height:1">${elEm}</span>`:''})()}
                 </div>`:''}
             </div>
             ${(()=>{if(!badge)return'<div class="mc-nick">'+s.nickname+'</div>';return'<div style="border-radius:7px;padding:1px 6px;font-size:0.82rem;font-weight:600;background:'+badge.bg+';border:1.5px solid '+badge.border+'">'+s.nickname+'</div>';})()}
@@ -1706,38 +1690,45 @@ window.openProfileModal=(id)=>{
     const nickHtml=pmBadge
         ?`<span style="background:${pmBadge.bg};border-radius:6px;padding:1px 8px;border:1.5px solid ${pmBadge.border}">${s.nickname}</span>`
         :s.nickname;
-    // สร้าง pet showcase section
+    // สร้าง active pet section (แสดงแค่ตัวที่ active)
     const allPets=liveData?.pets||[];
     const petShowcase=(()=>{
         if(!liveData)return'<div style="color:var(--muted);font-size:0.78rem;margin-top:8px">ยังไม่ได้ login</div>';
-        if(!allPets.length)return'<div style="color:var(--muted);font-size:0.78rem;margin-top:6px">ไม่มีสัตว์เลี้ยง</div>';
-        const activePetHtml=petData?`
-            <div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openFriendPetInfo('${s.id}','${String(petData.instId||petData.id)}')">
-                <div style="font-size:2rem;filter:drop-shadow(0 0 8px ${RARITY[petData.rarity]?.glow||'#fff'})">
-                    ${petData.emoji}
-                </div>
+        if(!petData)return`<div style="color:var(--muted);font-size:0.78rem;margin-top:6px">ไม่มีสัตว์ active${allPets.length?` (มี ${allPets.length} ตัว)`:''}</div>`;
+        const cfg=RARITY[petData.rarity];
+        const pDef=PETS.find(x=>x.id===petData.id);
+        const el=pDef?.element;const elInfo=ELEMENTS[el]||null;
+        const pStats=petStats(petData);
+        const grade=petData.grade||0;
+        return`<div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:14px;padding:12px 14px;cursor:pointer;text-align:left"
+            onclick="openFriendPetInfo('${s.id}','${String(petData.instId||petData.id)}')">
+            <div style="font-size:0.6rem;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Active Pet · แตะดูข้อมูล</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <div style="font-size:2.4rem;filter:drop-shadow(0 0 10px ${cfg.glow})">${petData.emoji}</div>
                 <div style="flex:1">
-                    <div style="font-size:0.62rem;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase">Active Pet</div>
-                    <div style="font-weight:800;color:#fff;font-size:0.92rem">${petData.name}${(petData.grade||0)>0?' <span style="background:'+RARITY[petData.rarity]?.color+';color:#fff;font-size:0.52rem;padding:1px 5px;border-radius:4px">'+GRADE_LABELS[petData.grade]+'</span>':''}</div>
-                    <div style="font-size:0.7rem;color:${RARITY[petData.rarity]?.color||'#64748b'};font-weight:700">${RARITY[petData.rarity]?.label||''} · +${petDailyCoins(petData)}🪙/วัน</div>
+                    <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+                        <span style="font-weight:800;color:#fff;font-size:0.95rem">${petData.name}</span>
+                        ${grade>0?`<span style="background:${cfg.color};color:#fff;font-size:0.5rem;padding:1px 5px;border-radius:4px;font-weight:800">${GRADE_LABELS[grade]}</span>`:''}
+                        ${elInfo?`<span style="font-size:0.9rem">${elInfo.emoji}</span>`:''}
+                    </div>
+                    <div style="font-size:0.68rem;color:${cfg.color};font-weight:700">${cfg.label}</div>
                 </div>
-                <div style="font-size:0.62rem;color:rgba(255,255,255,.35)">แตะดูข้อมูล →</div>
-            </div>`
-        :'<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">ไม่มีสัตว์ active</div>';
-        // mini grid สัตว์ทั้งหมด (คลิกดูรายละเอียดได้)
-        const gridHtml=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:5px">
-            ${allPets.map(p=>{
-                const cfg=RARITY[p.rarity];const gr=p.grade||0;
-                const isOn=petData&&String(p.instId||p.id)===String(petData.instId||petData.id);
-                return`<div onclick="openFriendPetInfo('${s.id}','${String(p.instId||p.id)}')"
-                    style="background:${cfg.bg};border:2px solid ${isOn?cfg.color:'transparent'};border-radius:9px;padding:5px 3px;text-align:center;cursor:pointer;position:relative">
-                    <div style="font-size:1.3rem">${p.emoji}</div>
-                    <div style="font-size:0.5rem;color:${cfg.color};font-weight:700;margin-top:1px">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}</div>
-                    ${isOn?'<div style="position:absolute;top:-4px;right:-4px;background:'+cfg.color+';color:#fff;font-size:0.38rem;padding:1px 3px;border-radius:3px;font-weight:800">ON</div>':''}
-                </div>`;
-            }).join('')}
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px">
+                <div style="background:rgba(239,68,68,.12);border-radius:8px;padding:5px 4px;text-align:center">
+                    <div style="font-size:0.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">ATK</div>
+                    <div style="font-size:0.9rem;font-weight:800;color:#f87171">⚔️ ${pStats.atk}</div>
+                </div>
+                <div style="background:rgba(16,185,129,.12);border-radius:8px;padding:5px 4px;text-align:center">
+                    <div style="font-size:0.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">HP</div>
+                    <div style="font-size:0.9rem;font-weight:800;color:#6ee7b7">❤️ ${pStats.hp}</div>
+                </div>
+                <div style="background:rgba(251,191,36,.1);border-radius:8px;padding:5px 4px;text-align:center">
+                    <div style="font-size:0.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">Daily</div>
+                    <div style="font-size:0.9rem;font-weight:800;color:#fbbf24">+${petDailyCoins(petData)}</div>
+                </div>
+            </div>
         </div>`;
-        return activePetHtml+`<div style="font-size:0.65rem;color:var(--muted);margin-bottom:5px;text-align:left">🐾 สัตว์ทั้งหมด (${allPets.length} ตัว)</div>`+gridHtml;
     })();
     document.getElementById('pm-content').innerHTML=`
         <img src="${photo}" onerror="this.onerror=null;this.src='${def}'" class="pm-img">
@@ -1747,7 +1738,6 @@ window.openProfileModal=(id)=>{
         <span class="track-badge" style="background:${tc};margin-bottom:8px;display:inline-block">${s.track.toUpperCase()}</span>
         ${liveData?`
         <div class="pm-stats">
-            <div class="pm-stat"><span>🪙</span><b>${(liveData.coins||0).toLocaleString()}</b><small>เหรียญ</small></div>
             <div class="pm-stat"><span>👥</span><b>${liveData.quizHigh||0}</b><small>Quiz Hi</small></div>
             <div class="pm-stat"><span>💊</span><b>${liveData.drugHigh||0}</b><small>Drug Hi</small></div>
         </div>`:''}
@@ -1785,38 +1775,40 @@ window.openFriendPetInfo=(studentId,instOrId)=>{
     const grade=p.grade||0;
     const daily=petDailyCoins(p);
     const def=PETS.find(x=>x.id===p.id);
-    const effectLabel=activeEffectLabel(p.effect||'none');
     // สร้าง overlay บน pm-content
     const overlay=document.createElement('div');
     overlay.style.cssText='position:absolute;inset:0;background:#fff;border-radius:20px;padding:20px 16px;overflow-y:auto;z-index:10;animation:popIn .25s ease';
+    const stats=petStats(p);
+    const el=def?.element;const elInfo=ELEMENTS[el]||null;
     overlay.innerHTML=`
         <button onclick="this.parentElement.remove()" style="position:absolute;top:10px;right:10px;background:var(--border);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.85rem">✕</button>
         <div style="text-align:center">
             <div style="display:flex;justify-content:center;gap:6px;margin-bottom:8px">
                 <span style="background:${cfg.color};color:#fff;padding:3px 12px;border-radius:16px;font-size:0.72rem;font-weight:800">${cfg.label}</span>
                 ${grade>0?`<span style="background:#475569;color:#fff;padding:3px 12px;border-radius:16px;font-size:0.72rem;font-weight:800">Grade ${GRADE_LABELS[grade]}</span>`:''}
+                ${elInfo?`<span style="background:#334155;color:#fff;padding:3px 10px;border-radius:16px;font-size:1rem">${elInfo.emoji}</span>`:''}
             </div>
             <div style="font-size:3.5rem;margin:4px 0;filter:drop-shadow(0 0 14px ${cfg.glow})">${p.emoji}</div>
             <div style="font-size:1.2rem;font-weight:800;margin-bottom:4px">${p.name}</div>
             ${def?.flavor?`<div style="font-size:0.74rem;color:${cfg.color};font-style:italic;padding:7px 12px;background:${cfg.bg};border-radius:9px;border-left:3px solid ${cfg.color}44;text-align:left;margin-bottom:10px">"${def.flavor}"</div>`:''}
-            <div style="background:${cfg.bg};border:1.5px solid ${cfg.color}33;border-radius:12px;padding:12px;font-size:0.84rem;margin-bottom:8px;text-align:left">
-                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                    <span>💰 Passive daily</span>
-                    <b style="color:${cfg.color}">+${daily}🪙/วัน</b>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+                <div style="background:${cfg.bg};border-radius:10px;padding:8px 4px">
+                    <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">ATK</div>
+                    <div style="font-size:1.15rem;font-weight:800;color:#ef4444">⚔️ ${stats.atk}</div>
                 </div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                    <span>⚡ Active effect</span>
-                    <b style="color:${cfg.color}">${effectLabel}</b>
+                <div style="background:${cfg.bg};border-radius:10px;padding:8px 4px">
+                    <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">HP</div>
+                    <div style="font-size:1.15rem;font-weight:800;color:#10b981">❤️ ${stats.hp}</div>
                 </div>
-                <div style="display:flex;justify-content:space-between">
-                    <span>⬆ Grade</span>
-                    <b style="color:${cfg.color}">${grade>0?GRADE_LABELS[grade]+' / V':'base'} (×${GRADE_MULTI[grade]} daily)</b>
+                <div style="background:${cfg.bg};border-radius:10px;padding:8px 4px">
+                    <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Daily</div>
+                    <div style="font-size:1.15rem;font-weight:800;color:${cfg.color}">+${petDailyCoins(p)}🪙</div>
                 </div>
             </div>
-            <div style="background:#f8fafc;border-radius:12px;padding:10px;font-size:0.78rem;color:var(--muted);text-align:left">
-                🥚 ฟักจาก: ${HATCH_LABELS[p.rarity]||''}<br>
-                🆔 instId: <span style="font-family:'Space Mono',monospace;font-size:0.66rem">${p.instId||'(legacy)'}</span>
-            </div>
+            ${elInfo?`<div style="background:#0f172a;border-radius:10px;padding:8px 12px;font-size:0.78rem;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <span style="font-size:1.1rem">${elInfo.emoji}</span>
+                <span>ชนะ <b style="color:#fbbf24">${ELEMENTS[elInfo.beats]?.emoji||''}</b> · แพ้ <b style="color:#f87171">${Object.values(ELEMENTS).find(e=>e.beats===el)?.emoji||''}</b></span>
+            </div>`:''}
         </div>`;
     const modalBox=document.querySelector('#profile-modal .modal-box');
     if(modalBox){modalBox.style.position='relative';modalBox.appendChild(overlay);}
@@ -1832,7 +1824,7 @@ window.openGuestList=()=>{
             <img src="${photo}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?&background=64748b&color=fff'">
             <div style="flex:1">
                 <div style="font-weight:700;font-size:0.88rem">${g.nickname||'ไม่ระบุ'} ${petData?petData.emoji:''}</div>
-                <div style="font-size:0.68rem;color:var(--muted)">🪙 ${(g.coins||0).toLocaleString()} • Quiz ${g.quizHigh||0} • Drug ${g.drugHigh||0}</div>
+                <div style="font-size:0.68rem;color:var(--muted)">Quiz ${g.quizHigh||0} • Drug ${g.drugHigh||0}</div>
             </div>
             <span style="background:#64748b;color:#fff;font-size:0.55rem;font-weight:700;padding:2px 7px;border-radius:5px">GUEST</span>
         </div>`;
@@ -2055,10 +2047,11 @@ function buildShop(){
                     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px">
                         ${list.map(p=>{
                             const have=owned.has(p.id);
+                            const elEm=ELEMENTS[p.element]?.emoji||'';
                             return`<div style="background:${have?cfg.bg:'#f8fafc'};border-radius:10px;padding:8px 4px;text-align:center;border:1.5px solid ${have?cfg.color+'66':cfg.color+'22'};position:relative;opacity:${have?1:0.55}">
                                 <div style="font-size:1.5rem">${have?p.emoji:'❓'}</div>
                                 <div style="font-size:0.64rem;font-weight:700;margin-top:2px">${have?p.name:'???'}</div>
-                                <div style="font-size:0.55rem;color:var(--muted);margin-top:1px">${have?activeEffectLabel(p.effect):'??'}</div>
+                                <div style="font-size:0.62rem;margin-top:1px">${have?elEm:'??'}</div>
                                 ${have?'<div style="position:absolute;top:3px;right:4px;font-size:0.5rem;color:'+cfg.color+'">✓</div>':''}
                             </div>`;
                         }).join('')}
