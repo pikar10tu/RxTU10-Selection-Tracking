@@ -417,8 +417,8 @@ const FLOWERS = [
 function rollPetFromEgg(eggType){
     const pool=PETS.filter(p=>p.rate[eggType]>0);
     const r=Math.random();let c=0;
-    for(const p of pool){c+=p.rate[eggType];if(r<=c)return{...p,instId:Date.now()+Math.random()};}
-    return{...pool[pool.length-1],instId:Date.now()};
+    for(const p of pool){c+=p.rate[eggType];if(r<=c)return{...p,instId:Date.now()+'_'+Math.random().toString(36).slice(2,8)};}
+    return{...pool[pool.length-1],instId:Date.now()+'_fallback'};
 }
 function petDailyCoins(p){
     // p = stored pet object {id, grade, rarity, ...}
@@ -904,7 +904,7 @@ function showDuplicatePopup(newPet,existing){
 window.upgradePet=async(instId)=>{
     if(!currentUser||!userData)return;
     const pets=[...(userData.pets||[])];
-    const idx=pets.findIndex(p=>p.instId==instId);if(idx<0)return;
+    const idx=pets.findIndex(p=>String(p.instId)===String(instId));if(idx<0){toast('ไม่พบสัตว์เลี้ยง','error');return;}
     const pet=pets[idx];
     const curGrade=pet.grade||0;if(curGrade>=5)return;
     const nextGrade=curGrade+1;
@@ -914,10 +914,10 @@ window.upgradePet=async(instId)=>{
     if(copies.length<needed+1){toast(`ต้องการ copies อีก ${needed+1-copies.length} ตัว!`,"error");return;}
     // ลบ copies ที่ใช้อัพ (ไม่ลบตัวที่ upgrade — ลบ needed ตัว)
     let removed=0;const newPets=pets.filter(p=>{
-        if(p.id===pet.id&&p.instId!=instId&&removed<needed){removed++;return false;}
+        if(p.id===pet.id&&String(p.instId)!==String(instId)&&removed<needed){removed++;return false;}
         return true;
     });
-    newPets[newPets.findIndex(p=>p.instId==instId)].grade=nextGrade;
+    newPets[newPets.findIndex(p=>String(p.instId)===String(instId))].grade=nextGrade;
     await updateDoc(doc(db,"users",currentUser.uid),{pets:newPets});
     toast(`${pet.emoji} อัพ Grade ${GRADE_LABELS[nextGrade]}! Daily +${RARITY[pet.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน`,"success");
     confetti({particleCount:100,spread:70,origin:{y:0.5}});
