@@ -381,7 +381,7 @@ const PETS = [
     { id:"penguin",   emoji:"🐧", name:"เพนกวิน",   rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.07,gold:0,rainbow:0}, hatchMins:5    },
     { id:"hedgehog",  emoji:"🦔", name:"เม่น",       rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.04,gold:0,rainbow:0}, hatchMins:5    },
     { id:"mouse",     emoji:"🐭", name:"หนูน้อย",   rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.015,gold:0,rainbow:0},hatchMins:5    },
-    { id:"chick",     emoji:"🐣", name:"ลูกไก่",    rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.005,gold:0,rainbow:0},hatchMins:5    },
+    { id:"chick",     emoji:"🐣", name:"ลูกไก่",    rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.025,gold:0,rainbow:0},hatchMins:5    },
     // ── RARE (rate รวม 0.30 ของ normal / 0.55 ของ gold) ──
     { id:"fox",       emoji:"🦊", name:"จิ้งจอก",   rarity:"rare",      effect:"coin+10",       activeDesc:"+10% เหรียญจากเกม",           rate:{normal:0.08,gold:0.12,rainbow:0},   hatchMins:60   },
     { id:"owl",       emoji:"🦉", name:"นกฮูก",     rarity:"rare",      effect:"score+3",       activeDesc:"+3 คะแนนต่อข้อใน Quiz",       rate:{normal:0.06,gold:0.11,rainbow:0},   hatchMins:60   },
@@ -528,7 +528,6 @@ onAuthStateChanged(auth,async u=>{
     if(u){
         await ensureDoc(u);
         if(unsub)unsub();
-        __petDailyChecked=false; // reset guard เมื่อ login ใหม่
         unsub=onSnapshot(doc(db,"users",u.uid),snap=>{userData=snap.data();qHigh=userData?.quizHigh||0;dqHigh=userData?.drugHigh||0;renderAll();checkDaily();});
         loadFbUsers();
         // checkPetDaily removed
@@ -538,7 +537,6 @@ onAuthStateChanged(auth,async u=>{
 // ════════════════════════════════════════
 //  DAILY
 // ════════════════════════════════════════
-let __petDailyChecked = false; // guard ไม่ให้ award ซ้ำใน session เดียว
 async function checkDaily(){
     if(!currentUser||!userData)return;
     const last=userData.lastDaily?.toDate?.();const now=new Date();
@@ -674,7 +672,7 @@ window.buyFlower=async(flowerId)=>{
     if(!currentUser||!userData){toast("กรุณา Login","error");return;}
     const f=FLOWERS.find(x=>x.id===flowerId);if(!f)return;
     if((userData.coins||0)<f.cost){toast(`เหรียญไม่พอ! ต้องการ ${f.cost}🪙`,"error");return;}
-    const inv=userData.flowerInv||{};
+    const inv={...(userData.flowerInv||{})};
     inv[flowerId]=(inv[flowerId]||0)+1;
     await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(-f.cost),flowerInv:inv});
     toast(`${f.emoji} ได้ ${f.name} แล้ว! มี ${inv[flowerId]} ดอก`,"success");
@@ -713,8 +711,10 @@ window.giveFlower=async(targetStudentId,flowerId)=>{
     const inv={...(userData.flowerInv||{})};
     if((inv[flowerId]||0)<1){toast("ไม่มีดอกไม้แล้ว","error");return;}
     // หา uid ของ target จาก __fbUsers
-    const liveTarget=window.__fbUsers?.[targetStudentId];
-    if(!liveTarget?.uid){toast("ไม่พบผู้ใช้","error");return;}
+    // ค้นหาทั้งใน student cache และ guest cache
+    const liveTarget=window.__fbUsers?.[targetStudentId]
+        ||(window.__guestUsers||[]).find(g=>g.studentId===targetStudentId);
+    if(!liveTarget?.uid){toast("ไม่พบผู้ใช้ หรือผู้รับยังไม่ได้ login","error");return;}
     if(liveTarget.uid===currentUser.uid){toast("ให้ตัวเองไม่ได้นะ 😅","error");return;}
     inv[flowerId]--;
     // เพิ่ม flowersReceived ที่ target (นับสะสม ส่งต่อไม่ได้)
@@ -875,6 +875,8 @@ function showDuplicatePopup(newPet,existing){
     const canUpgrade=curGrade<5;
     const copiesOwned=(userData.pets||[]).filter(p=>p.id===newPet.id).length;
     const neededForNext=canUpgrade?GRADE_COPIES[nextGrade]:0;
+    // ต้องมี neededForNext+1 (ตัวหลัก+copies)
+    const canUpgradeNow=canUpgrade&&copiesOwned>=neededForNext+1;
     document.getElementById('gacha-result').innerHTML=`
         <div class="gacha-inner" style="--glow:${cfg.glow}">
             <div class="gr-badge" style="background:${cfg.color}">ได้ซ้ำ!</div>
@@ -886,10 +888,12 @@ function showDuplicatePopup(newPet,existing){
             ${canUpgrade?`
             <div style="background:${cfg.bg};border-radius:11px;padding:10px;font-size:0.82rem;margin:6px 0;text-align:left">
                 <b>⬆ อัพเป็น Grade ${GRADE_LABELS[nextGrade]}</b><br>
-                ต้องการ ${neededForNext} copy · มี ${copiesOwned} · Daily จะเพิ่มเป็น <b>${RARITY[newPet.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน</b>
+                ต้องการ copies อีก <b>${neededForNext}</b> ตัว · มีอยู่ <b>${copiesOwned-1}</b> ตัว
+                ${canUpgradeNow?'':' · <span style="color:#94a3b8">ยังไม่พอ</span>'}
+                <br>Daily จะเพิ่มเป็น <b>${RARITY[newPet.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน</b>
             </div>
             <div class="gr-btns">
-                ${copiesOwned>=neededForNext?`<button class="btn-gold" onclick="upgradePet('${existing.instId}');closeGacha()">⬆ อัพ Grade ${GRADE_LABELS[nextGrade]}!</button>`:''}
+                <button class="btn-gold" onclick="upgradePet('${existing.instId}');closeGacha()" ${canUpgradeNow?'':'disabled'}>⬆ อัพ Grade ${GRADE_LABELS[nextGrade]}!</button>
                 <button class="btn-gray" onclick="closeGacha()">เก็บไว้ก่อน</button>
             </div>`:`<div style="color:var(--gold);font-weight:700;margin-top:8px">🏆 Max Grade V แล้ว!</div>
             <button class="btn-gray" style="margin-top:8px" onclick="closeGacha()">โอเค</button>`}
@@ -926,7 +930,7 @@ function showGachaResult(pet){
             <div class="gr-badge" style="background:${cfg.color}">${cfg.label}</div>
             <div class="gr-emoji">${pet.emoji}</div>
             <div class="gr-name">${pet.name}</div>
-            <div class="gr-desc">${pet.desc}</div>
+            <div class="gr-desc">${pet.activeDesc||''}</div>
             <div class="gr-btns">
                 <button class="btn-gold" onclick="setActive('${pet.id}');closeGacha()">ใช้งานเลย!</button>
                 <button class="btn-gray" onclick="closeGacha()">เก็บไว้ก่อน</button>
@@ -1003,10 +1007,18 @@ function renderTradeList(){const el=document.getElementById('trade-pets');if(!us
 window.pickTrade=i=>{tradeIdx=i;renderTradeList();};
 window.sendTrade=async()=>{
     const email=document.getElementById('trade-email').value.trim();if(!email||tradeIdx===null){toast("เลือกสัตว์และใส่ email","error");return;}
-    const pet=userData.pets[tradeIdx];const all=await getDocs(collection(db,"users"));let target=null;all.forEach(d=>{if(d.data().email===email)target=d;});
-    if(!target){toast("ไม่พบผู้ใช้","error");return;}
+    const pet=userData.pets[tradeIdx];
+    // หา target จาก cache ก่อน — fallback getDocs เฉพาะถ้าไม่เจอ
+    const allCached=[...Object.values(window.__fbUsers||{}),...(window.__guestUsers||[])];
+    let targetUid=allCached.find(u=>u.email===email)?.uid||null;
+    if(!targetUid){
+        const all=await getDocs(collection(db,"users"));
+        all.forEach(d=>{if(d.data().email===email)targetUid=d.id;});
+    }
+    if(!targetUid){toast("ไม่พบผู้ใช้","error");return;}
     const newPets=userData.pets.filter((_,i)=>i!==tradeIdx);
-    await setDoc(doc(db,"users",currentUser.uid),{pets:newPets},{merge:true});await updateDoc(doc(db,"users",target.id),{pets:arrayUnion(pet)});
+    await setDoc(doc(db,"users",currentUser.uid),{pets:newPets},{merge:true});
+    await updateDoc(doc(db,"users",targetUid),{pets:arrayUnion(pet)});
     toast(`ส่ง ${pet.emoji}${pet.name} ให้ ${email}!`,"success");closeTrade();tradeIdx=null;loadFbUsers();
 };
 
@@ -1139,7 +1151,7 @@ function buildHome(){
     const pet=activePet();const tc=userData?.track==='sci'?'var(--sci)':'var(--care)';
     const badge=getActiveBadge();
     const badgeClass=badge?({'gold_badge':'pet-badge-gold','rainbow_badge':'pet-badge-rainbow','kirin_badge':'pet-badge-kirin'}[pet?.effect]||''):'';
-    const nc=(pet?.effect==='gold_name'||pet?.effect==='all')?'gold-name':(pet?.effect==='rainbow'?'rainbow-name':'');
+    // nc removed — ใช้ badge system แทน (gold_badge/rainbow_badge/kirin_badge)
     const linked=userData?.studentId;
     const profileBlock=linked?`
         <div class="profile-card ${badgeClass}">
@@ -1148,7 +1160,7 @@ function buildHome(){
                 <button class="pc-cam" onclick="triggerPhoto()">📷</button>
             </div>
             <div class="pc-info" style="flex:1">
-                <div class="pc-nick">${nc?`<span class="${nc}">${userData.nickname}</span>`:userData.nickname}${pet?' '+pet.emoji:''}</div>
+                <div class="pc-nick">${userData.nickname}${pet?' '+pet.emoji:''}</div>
                 <div class="pc-real">${userData.realName}</div>
                 <div class="pc-id">${userData.studentId}</div>
                 <span class="track-badge" style="background:${tc}">${userData.track?.toUpperCase()}</span>
@@ -1328,8 +1340,10 @@ window.openProfileModal=(id)=>{
     const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=256`;
     const photo=liveData?.customPhoto||liveData?.googlePhoto||`img/${s.id}.jpg`;
     const petData=liveData?.activePet?(liveData.pets||[]).find(p=>p.id===liveData.activePet):null;
-    const nc=(petData?.effect==='gold_name'||petData?.effect==='all')?'gold-name':(petData?.effect==='rainbow'?'rainbow-name':'');
-    const nickHtml=nc?`<span class="${nc}">${s.nickname}</span>`:s.nickname;
+    const pmBadge=petData?BADGE_EFFECTS[petData.effect]:null;
+    const nickHtml=pmBadge
+        ?`<span style="background:${pmBadge.bg};border-radius:6px;padding:1px 8px;border:1.5px solid ${pmBadge.border}">${s.nickname}</span>`
+        :s.nickname;
     document.getElementById('pm-content').innerHTML=`
         <img src="${photo}" onerror="this.onerror=null;this.src='${def}'" class="pm-img">
         <div class="pm-nick">${nickHtml}</div>
@@ -1342,7 +1356,7 @@ window.openProfileModal=(id)=>{
             <div class="pm-stat"><span>👥</span><b>${liveData.quizHigh||0}</b><small>Quiz Hi</small></div>
             <div class="pm-stat"><span>💊</span><b>${liveData.drugHigh||0}</b><small>Drug Hi</small></div>
         </div>
-        ${petData?`<div class="pm-pet-row"><div style="font-size:1.8rem">${petData.emoji}</div><div><div style="font-weight:700;font-size:0.86rem">${petData.name}</div><div style="font-size:0.72rem;color:var(--muted)">${petData.desc}</div></div></div>`:'<div style="color:var(--muted);font-size:0.78rem;margin-top:6px">ไม่มีสัตว์เลี้ยง active</div>'}
+        ${petData?`<div class="pm-pet-row"><div style="font-size:1.8rem">${petData.emoji}</div><div><div style="font-weight:700;font-size:0.86rem">${petData.name}</div><div style="font-size:0.72rem;color:var(--muted)">${petData.activeDesc||''}</div></div></div>`:'<div style="color:var(--muted);font-size:0.78rem;margin-top:6px">ไม่มีสัตว์เลี้ยง active</div>'}
         `:'<div style="color:var(--muted);font-size:0.78rem;margin-top:8px">ยังไม่ได้ login</div>'}`;
     // เพิ่มปุ่มมอบดอกไม้ถ้าไม่ใช่โปรไฟล์ตัวเอง
     if(currentUser && s.id !== userData?.studentId){
@@ -1520,13 +1534,11 @@ function buildShop(){
 window.__tab='home';
 loadTicker();
 // Hatch timer refresh — only when eggs actively hatching, never during game
-setInterval(()=>{
+let __hatchTimer=setInterval(()=>{
     const eggs=(userData?.eggs||[]);
     const hasHatching=eggs.some(e=>e.startedAt&&Date.now()<e.startedAt+e.hatchMins*60000);
-    if(!hasHatching) return; // ไม่มีไข่ฟัก ไม่ต้อง re-render
-    const tab=window.__tab;
-    if(tab==='shop') renderTab('shop');
-    if(tab==='home') renderTab('home');
+    if(!hasHatching) return;
+    if(window.__tab==='home') renderTab('home'); // เฉพาะ home ที่มี egg UI
 },10000);
 
 </script>
