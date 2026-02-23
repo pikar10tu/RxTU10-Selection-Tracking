@@ -904,13 +904,13 @@ window.upgradePet=async(instId)=>{
     const pet=pets[idx];
     const curGrade=pet.grade||0;if(curGrade>=5)return;
     const nextGrade=curGrade+1;
-    const needed=GRADE_COPIES[nextGrade];
-    // นับ copies ที่มี (ทุกตัวที่มี id เดียวกัน)
+    const needed=GRADE_COPIES[nextGrade]; // จำนวน copies ที่ต้อง consume (ไม่นับตัวหลัก)
     const copies=pets.filter(p=>p.id===pet.id);
-    if(copies.length<needed){toast(`ต้องการ ${needed} copies!`,"error");return;}
-    // ลบ copies ที่ใช้อัพ (ไม่ลบตัวที่ upgrade)
+    // ต้องมี: ตัวหลัก 1 + copies ที่จะ consume = needed+1 ตัวรวม
+    if(copies.length<needed+1){toast(`ต้องการ copies อีก ${needed+1-copies.length} ตัว!`,"error");return;}
+    // ลบ copies ที่ใช้อัพ (ไม่ลบตัวที่ upgrade — ลบ needed ตัว)
     let removed=0;const newPets=pets.filter(p=>{
-        if(p.id===pet.id&&p.instId!=instId&&removed<needed-1){removed++;return false;}
+        if(p.id===pet.id&&p.instId!=instId&&removed<needed){removed++;return false;}
         return true;
     });
     newPets[newPets.findIndex(p=>p.instId==instId)].grade=nextGrade;
@@ -952,7 +952,9 @@ window.showPetInfo=(petInstId)=>{
     const isMax=grade>=5;
     const nextGrade=Math.min(5,grade+1);
     const neededForNext=isMax?0:GRADE_COPIES[nextGrade];
-    const canUpgrade=!isMax&&copiesOwned>=neededForNext;
+    // ต้องมีตัวหลัก + neededForNext copies = neededForNext+1 รวม
+    const totalNeeded=isMax?0:neededForNext+1;
+    const canUpgrade=!isMax&&copiesOwned>=totalNeeded;
     const isActive=userData?.activePet===p.id;
     const effectLabel=activeEffectLabel(p.effect||'none');
     const gradeHtml=grade>0?`<div class="gr-badge" style="background:#475569;margin-left:5px">Grade ${GRADE_LABELS[grade]}</div>`:'';
@@ -976,9 +978,9 @@ window.showPetInfo=(petInstId)=>{
         +(isMax
             ?'<div style="color:var(--gold);font-weight:700;text-align:center">🏆 Max Grade V!</div>'
             :`<div style="color:var(--muted);margin-bottom:3px">Grade ${grade>0?GRADE_LABELS[grade]:'base'} → <b>Grade ${GRADE_LABELS[nextGrade]}</b></div>`
-            +`<div style="margin-bottom:3px">ต้องการ <b>${neededForNext}</b> copies · มี <b>${copiesOwned}</b></div>`
+            +`<div style="margin-bottom:3px">ต้องการ copies อีก <b>${neededForNext}</b> ตัว · มีอยู่ <b>${copiesOwned-1}</b> ตัว</div>`
             +`<div style="color:${cfg.color};font-weight:600">Daily จะเป็น +${RARITY[p.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน</div>`
-            +(!canUpgrade?`<div style="color:#94a3b8;font-size:0.73rem;margin-top:3px">ต้องการ copies เพิ่มอีก ${neededForNext-copiesOwned} ตัว</div>`:''))
+            +(!canUpgrade?`<div style="color:#94a3b8;font-size:0.73rem;margin-top:3px">ต้องการอีก ${totalNeeded-copiesOwned} ตัวเพื่ออัพ</div>`:''))
         +`<button class="btn-gold full" style="margin-top:8px" onclick="upgradePet('${p.instId||p.id}');closePetInfo()" ${canUpgrade?'':'disabled'}>`
         +(isMax?'⬆ อัพเกรด (Max)':'⬆ อัพ Grade '+GRADE_LABELS[nextGrade])
         +'</button>'
