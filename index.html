@@ -56,18 +56,57 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .track-badge.sm{font-size:0.54rem;padding:2px 6px;}
 
 /* ── HOME ── */
-.profile-card{display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:14px;box-shadow:0 4px 14px rgba(0,0,0,.08);margin-bottom:10px;border:2px solid var(--gold);}
+/* Hero banner */
+.home-hero{border-radius:20px;overflow:hidden;margin-bottom:10px;position:relative;}
+.hero-bg{background:linear-gradient(160deg,#0c1445 0%,#1a237e 40%,#0d47a1 70%,#1565c0 100%);padding:20px 16px 0;position:relative;}
+.hero-bg::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
+.hero-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;position:relative;}
 .pc-img-wrap{position:relative;flex-shrink:0;}
-.pc-img{width:70px;height:70px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.12);}
-.pc-cam{position:absolute;bottom:-2px;right:-2px;background:#fff;border:2px solid var(--border);border-radius:50%;width:22px;height:22px;font-size:0.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.pc-nick{font-size:1.1rem;font-weight:800;} .pc-real{font-size:0.8rem;color:var(--muted);} .pc-id{font-size:0.68rem;color:var(--muted);font-family:'Space Mono',monospace;}
+.pc-img{width:68px;height:68px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.3);box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.pc-cam{position:absolute;bottom:-1px;right:-1px;background:rgba(255,255,255,.15);backdrop-filter:blur(4px);border:1.5px solid rgba(255,255,255,.3);border-radius:50%;width:22px;height:22px;font-size:0.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.pc-nick{font-size:1.05rem;font-weight:800;color:#fff;line-height:1.2;}
+.pc-real{font-size:0.76rem;color:rgba(255,255,255,.6);margin-top:1px;}
+.pc-id{font-size:0.64rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace;margin-top:2px;}
+/* action bar */
+.hero-actions{display:flex;align-items:center;gap:7px;position:relative;padding-bottom:14px;}
+.coin-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(4px);padding:7px 13px;border-radius:20px;font-size:0.88rem;font-weight:700;color:#fbbf24;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.15s;}
+.coin-pill:hover{background:rgba(255,255,255,.18);}
+.btn-daily{background:rgba(16,185,129,.2);border:1.5px solid rgba(16,185,129,.5);padding:7px 12px;border-radius:20px;font-size:0.84rem;cursor:pointer;color:#6ee7b7;font-family:inherit;font-weight:700;transition:.2s;}
+.btn-daily.ready{background:rgba(16,185,129,.3);border-color:#10b981;animation:pulse 2s ease infinite;color:#a7f3d0;}
+.btn-out-hero{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);padding:7px 11px;border-radius:20px;font-family:inherit;font-size:0.76rem;cursor:pointer;margin-left:auto;}
+/* hero stats strip */
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);background:rgba(0,0,0,.2);border-top:1px solid rgba(255,255,255,.07);}
+.hs-cell{padding:10px 6px;text-align:center;}
+.hs-cell b{display:block;font-size:1rem;font-weight:800;color:#fff;}
+.hs-cell small{font-size:0.62rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.5px;}
+/* track pill */
+.track-badge{padding:3px 8px;border-radius:5px;color:#fff;font-size:0.58rem;font-weight:700;text-transform:uppercase;}
+.track-badge.sm{font-size:0.54px;padding:2px 6px;}
+/* stats row (legacy compat) */
 .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
 .stat-box{background:#fff;border-radius:12px;padding:10px 5px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.04);}
 .sb-icon{font-size:1.1rem;margin-bottom:1px;} .stat-box b{display:block;font-size:0.9rem;font-weight:700;} .stat-box small{font-size:0.64rem;color:var(--muted);}
+/* unlinked */
 .unlinked-card{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;border:2px dashed var(--border);}
 .ul-left{display:flex;align-items:center;gap:9px;flex:1;}
 .ul-img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid var(--border);}
 .btn-link{background:linear-gradient(135deg,var(--sci),#1d4ed8);color:#fff;border:none;padding:7px 12px;border-radius:9px;font-family:inherit;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;}
+/* collection card upgrade */
+.coll-card{background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:16px;padding:14px;margin-bottom:10px;color:#fff;}
+.coll-bar-bg{height:7px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin:8px 0;}
+.coll-bar-fill{height:100%;background:linear-gradient(90deg,#3b82f6,#10b981);border-radius:50px;transition:.6s;}
+.rarity-chip{padding:4px 9px;border-radius:20px;font-size:0.65rem;font-weight:700;border:1px solid;}
+/* egg section */
+.egg-section-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0 7px;}
+.egg-section-head span{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+/* inv upgrade */
+.inv-item{background:var(--rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
+.inv-item:hover{transform:translateY(-2px);border-color:var(--rc);}
+.inv-item.on{border-color:var(--rc);box-shadow:0 0 10px color-mix(in srgb,var(--rc) 20%,transparent);}
+/* pet badge effects */
+.pet-badge-gold{background:linear-gradient(135deg,#fef3c7,#fde68a) !important;border-color:#f59e0b !important;box-shadow:0 0 14px #fbbf2455 !important;}
+.pet-badge-rainbow{background:linear-gradient(90deg,#fde68a,#fbcfe8,#bfdbfe,#bbf7d0) !important;border-color:#a855f7 !important;}
+.pet-badge-kirin{background:linear-gradient(135deg,#fef3c7,#fed7aa) !important;border-color:#f59e0b !important;box-shadow:0 0 18px #f59e0b55 !important;}
 
 /* Inventory */
 .inv-empty{text-align:center;color:var(--muted);font-size:0.82rem;padding:16px;}
@@ -1359,52 +1398,51 @@ function renderTab(tab){
 const GOOGLE_SVG=`<svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>`;
 function buildHome(){
     if(!currentUser)return`
-        <div class="login-card">
-            <div style="font-size:4rem;margin-bottom:10px">💊</div>
-            <div style="font-size:1.6rem;font-weight:800;margin-bottom:4px">RxTU10</div>
-            <div style="color:var(--muted);margin-bottom:22px;font-size:0.88rem">Class Dashboard — Rx 2565 | Thammasat</div>
-            <button class="btn-google big" onclick="loginGoogle()">${GOOGLE_SVG}Login ด้วย Google</button>
-            <p style="font-size:0.75rem;color:var(--muted);margin-top:12px">Login แล้วผูกรหัสนักศึกษาเพื่อเข้าถึงทุกฟีเจอร์</p>
+        <div style="background:linear-gradient(160deg,#0c1445,#1a237e,#0d47a1);border-radius:24px;padding:40px 20px 36px;text-align:center;color:#fff;box-shadow:0 8px 32px rgba(13,71,161,.4)">
+            <div style="font-size:4.5rem;margin-bottom:10px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))">💊</div>
+            <div style="font-size:2rem;font-weight:800;letter-spacing:-1px;margin-bottom:2px">RxTU10</div>
+            <div style="color:rgba(255,255,255,.5);margin-bottom:28px;font-size:0.84rem;letter-spacing:.5px">CLASS DASHBOARD · Rx 2565 · THAMMASAT</div>
+            <button class="btn-google big" onclick="loginGoogle()" style="border-radius:14px;padding:13px 22px;font-size:0.95rem">${GOOGLE_SVG}Login ด้วย Google</button>
+            <p style="font-size:0.74rem;color:rgba(255,255,255,.3);margin-top:14px">Login แล้วผูกรหัสนักศึกษาเพื่อเข้าถึงทุกฟีเจอร์</p>
         </div>`;
     const pet=activePet();const tc=userData?.track==='sci'?'var(--sci)':'var(--care)';
     const badge=getActiveBadge();
     const badgeClass=badge?({'gold_badge':'pet-badge-gold','rainbow_badge':'pet-badge-rainbow','kirin_badge':'pet-badge-kirin'}[pet?.effect]||''):'';
     // nc removed — ใช้ badge system แทน (gold_badge/rainbow_badge/kirin_badge)
     const linked=userData?.studentId;
+    const flowerRecv=(()=>{const recv=userData?.flowersReceived||{};const t=Object.values(recv).reduce((a,b)=>a+b,0);return t>0?FLOWERS.filter(f=>(recv[f.id]||0)>0).map(f=>`${f.emoji}×${recv[f.id]}`).join(' '):''})();
+    const flowerInHand=(()=>{const inv=userData?.flowerInv||{};const t=Object.values(inv).reduce((a,b)=>a+b,0);return t>0?FLOWERS.filter(f=>(inv[f.id]||0)>0).map(f=>`${f.emoji}${inv[f.id]}`).join(''):'';})();
+    const dailyTotal=(()=>{const d=calcTotalDaily(userData?.pets||[]);const e=activeExtraDaily();return d.total+e;})();
     const profileBlock=linked?`
-        <div class="profile-card ${badgeClass}">
-            <div class="pc-img-wrap">
-                <img src="${myPhoto()}" class="pc-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
-                <button class="pc-cam" onclick="triggerPhoto()">📷</button>
+        <div class="home-hero" style="margin:-12px -12px 10px">
+            <div class="hero-bg ${badgeClass}">
+                <div class="hero-top">
+                    <div class="pc-img-wrap">
+                        <img src="${myPhoto()}" class="pc-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
+                        <button class="pc-cam" onclick="triggerPhoto()">📷</button>
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <div class="pc-nick">${userData.nickname}${pet?' '+pet.emoji:''}</div>
+                        <div class="pc-real">${userData.realName}</div>
+                        <div class="pc-id">${userData.studentId}</div>
+                        <div style="display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap">
+                            <span class="track-badge" style="background:${tc}">${userData.track?.toUpperCase()}</span>
+                            ${flowerRecv?`<span style="font-size:0.74rem;color:rgba(255,255,255,.7)">${flowerRecv}</span>`:''}
+                            ${flowerInHand?`<span style="font-size:0.68rem;color:rgba(255,255,255,.4)">มือ: ${flowerInHand}</span>`:''}
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-actions">
+                    <div class="coin-pill" onclick="switchTab('shop')">🪙 ${(userData.coins||0).toLocaleString()}</div>
+                    <button id="daily-btn" class="btn-daily" onclick="openDailyModal()">🎁 ${dailyTotal}🪙</button>
+                    <button class="btn-out-hero" onclick="logoutUser()">ออก</button>
+                </div>
             </div>
-            <div class="pc-info" style="flex:1">
-                <div class="pc-nick">${userData.nickname}${pet?' '+pet.emoji:''}</div>
-                <div class="pc-real">${userData.realName}</div>
-                <div class="pc-id">${userData.studentId}</div>
-                <span class="track-badge" style="background:${tc}">${userData.track?.toUpperCase()}</span>
-                ${(()=>{
-                    const recv=userData?.flowersReceived||{};
-                    const inv=userData?.flowerInv||{};
-                    const recvTotal=Object.values(recv).reduce((a,b)=>a+b,0);
-                    const invTotal=Object.values(inv).reduce((a,b)=>a+b,0);
-                    let parts=[];
-                    if(recvTotal>0) parts.push(FLOWERS.filter(f=>(recv[f.id]||0)>0).map(f=>`${f.emoji}×${recv[f.id]}`).join(' '));
-                    if(invTotal>0) parts.push(`<span style="color:var(--muted);font-size:0.68rem">มือ: ${FLOWERS.filter(f=>(inv[f.id]||0)>0).map(f=>`${f.emoji}${inv[f.id]}`).join('')}</span>`);
-                    return parts.length?`<div style="margin-top:4px;font-size:0.76rem">${parts.join(' · ')}</div>`:'';
-                })()}
+            <div class="hero-stats">
+                <div class="hs-cell"><b>${(userData.coins||0).toLocaleString()}</b><small>🪙 เหรียญ</small></div>
+                <div class="hs-cell"><b>${userData.quizHigh||0}</b><small>👥 Quiz Hi</small></div>
+                <div class="hs-cell"><b>${userData.drugHigh||0}</b><small>💊 Drug Hi</small></div>
             </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-            <div class="coin-pill" onclick="switchTab('shop')">🪙 ${(userData.coins||0).toLocaleString()}</div>
-            <button id="daily-btn" class="btn-daily" onclick="openDailyModal()" title="Daily reward">
-                🎁 ${(()=>{const d=calcTotalDaily(userData?.pets||[]);const e=activeExtraDaily();return d.total+e;})()}🪙
-            </button>
-            <button class="btn-out" style="width:auto;padding:6px 14px" onclick="logoutUser()">ออกจากระบบ</button>
-        </div>
-        <div class="stats-row">
-            <div class="stat-box"><div class="sb-icon">🪙</div><b>${(userData.coins||0).toLocaleString()}</b><small>เหรียญ</small></div>
-            <div class="stat-box"><div class="sb-icon">👥</div><b>${userData.quizHigh||0}</b><small>Quiz Hi</small></div>
-            <div class="stat-box"><div class="sb-icon">💊</div><b>${userData.drugHigh||0}</b><small>Drug Hi</small></div>
         </div>`
         :`<div class="unlinked-card">
             <div class="ul-left">
@@ -1442,34 +1480,36 @@ function buildHome(){
     const todayTotal=base+passive+extra;
 
     const achieveBlock=`
-    <div class="sec-head">🏅 คอลเลกชัน</div>
-    <div class="card" style="padding:12px 14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div class="coll-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
             <div>
-                <div style="font-weight:800;font-size:0.95rem">${uniqueIds.length}/${total} สายพันธุ์</div>
-                ${achTitle?`<div style="font-size:0.75rem;color:var(--gold);font-weight:600">${achTitle}</div>`:''}
+                <div style="font-size:0.68rem;color:rgba(255,255,255,.4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px">🏅 คอลเลกชัน</div>
+                <div style="font-weight:800;font-size:1.1rem;color:#fff">${uniqueIds.length} <span style="color:rgba(255,255,255,.3);font-size:0.8rem">/ ${total} สายพันธุ์</span></div>
+                ${achTitle?`<div style="font-size:0.74rem;color:#fbbf24;font-weight:600;margin-top:2px">${achTitle}</div>`:''}
             </div>
             <div style="text-align:right">
-                <div style="font-size:0.78rem;color:var(--muted)">passive daily</div>
-                <div style="font-size:1rem;font-weight:800;color:var(--care)">+${todayTotal}🪙/วัน</div>
+                <div style="font-size:0.64rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px">daily income</div>
+                <div style="font-size:1.2rem;font-weight:800;color:#6ee7b7">+${todayTotal}🪙</div>
+                <div style="font-size:0.62rem;color:rgba(255,255,255,.3)">ต่อวัน</div>
             </div>
         </div>
-        <div style="background:var(--border);border-radius:50px;height:8px;overflow:hidden;margin-bottom:8px">
-            <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--sci),var(--care));border-radius:50px;transition:.5s"></div>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${[['common','#64748b'],[' rare','#3b82f6'],['epic','#a855f7'],['legendary','#f59e0b']].map(([r,c])=>`
-            <span style="background:${c}22;color:${c};border:1px solid ${c}44;border-radius:8px;padding:3px 8px;font-size:0.68rem;font-weight:700">
+        <div class="coll-bar-bg"><div class="coll-bar-fill" style="width:${pct}%"></div></div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:7px">
+            ${[['common','#94a3b8'],[' rare','#60a5fa'],['epic','#c084fc'],['legendary','#fbbf24']].map(([r,c])=>`
+            <span class="rarity-chip" style="background:${c}18;color:${c};border-color:${c}33">
                 ${r.trim().toUpperCase()} ${byRarity[r.trim()]}/${PETS.filter(p=>p.rarity===r.trim()).length}
             </span>`).join('')}
         </div>
-        ${nextTier?`<div style="margin-top:8px;font-size:0.74rem;color:var(--muted)">🎯 ถัดไป: <b>${nextTier.label}</b> (สะสม ${nextTier.need} สายพันธุ์)</div>`:'<div style="margin-top:8px;font-size:0.78rem;color:var(--gold);font-weight:700">🏆 Completed!</div>'}
+        ${nextTier
+            ?`<div style="margin-top:9px;font-size:0.74rem;color:rgba(255,255,255,.4)">🎯 ถัดไป: <span style="color:#fbbf24;font-weight:700">${nextTier.label}</span> (สะสม ${nextTier.need} สายพันธุ์)</div>`
+            :'<div style="margin-top:9px;font-size:0.78rem;color:#fbbf24;font-weight:700">🏆 Master Collector!</div>'}
     </div>`;
 
     // Inventory: hatching eggs first
     const eggs=userData?.eggs||[];const now=Date.now();
     const eggSection=eggs.length?`
-        <div class="sec-head">🥚 ฟักไข่</div><div class="card">${eggs.map(egg=>{
+        <div class="egg-section-head"><span>🥚 ไข่ที่มี (${eggs.length})</span></div>
+        <div class="card">${eggs.map(egg=>{
             const hatching=!!egg.startedAt;const done=hatching&&(now>=egg.startedAt+egg.hatchMins*60000);
             // ซ่อน rarity จนกว่าจะฟักเสร็จ — แสดงแค่เวลาฟัก
             const cfg=done?RARITY[egg.petRarity]:{color:'var(--muted)',bg:'#f1f5f9',label:'???'};
@@ -1499,7 +1539,8 @@ function buildHome(){
     return`${profileBlock}<input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhoto(event)">
         ${achieveBlock}
         ${eggSection}
-        <div class="sec-head">🐾 สัตว์เลี้ยง (${pets.length} ตัว)</div><div class="card">${invBlock}</div>`;
+        <div class="egg-section-head"><span>🐾 สัตว์เลี้ยง (${pets.length} ตัว)</span></div>
+        <div class="card">${invBlock}</div>`;
 }
 
 // ════════════════════════════════════════
