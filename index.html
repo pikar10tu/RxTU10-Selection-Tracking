@@ -98,14 +98,47 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .prog-lbls{display:flex;justify-content:space-between;font-size:0.76rem;font-weight:600;}
 
 /* ── PLAY ── */
-.q-nick{font-size:1.35rem;font-weight:800;color:var(--gold);text-align:center;margin-bottom:12px;}
+/* Game arena cards */
+.game-arena{border-radius:20px;overflow:hidden;margin-bottom:12px;position:relative;}
+.game-arena-header{padding:16px 18px 14px;display:flex;justify-content:space-between;align-items:center;}
+.game-arena-body{padding:0 14px 16px;}
+/* Quiz: ทายชื่อ — deep navy theme */
+.arena-name{background:linear-gradient(160deg,#0f172a 0%,#1e293b 60%,#1e3a5f 100%);}
+.arena-name .game-arena-header{border-bottom:1px solid rgba(255,255,255,.08);}
+/* Quiz: ทายยา — deep indigo theme */
+.arena-drug{background:linear-gradient(160deg,#1e1b4b 0%,#312e81 60%,#1e3a8a 100%);}
+.arena-drug .game-arena-header{border-bottom:1px solid rgba(255,255,255,.08);}
+
+/* score badge */
+.score-badge{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 14px;color:#fff;font-size:0.78rem;font-weight:700;display:flex;align-items:center;gap:5px;}
+.score-badge b{font-size:1rem;color:#fbbf24;}
+/* game title */
+.game-title{font-size:0.82rem;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:1px;text-transform:uppercase;}
+/* start screen */
+.game-start{text-align:center;padding:20px 0 8px;}
+.game-start-icon{font-size:3rem;margin-bottom:8px;display:block;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));}
+.game-start-desc{color:rgba(255,255,255,.55);font-size:0.82rem;margin-bottom:16px;line-height:1.5;}
+.game-start-hi{color:#fbbf24;font-weight:700;font-size:0.88rem;margin-bottom:14px;}
+.btn-play{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;padding:13px 32px;border-radius:14px;font-family:inherit;font-size:1rem;font-weight:800;cursor:pointer;transition:.2s;letter-spacing:.5px;box-shadow:0 4px 16px rgba(245,158,11,.4);}
+.btn-play:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,158,11,.5);}
+/* question display */
+.q-prompt{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:20px 16px;text-align:center;margin:12px 0 14px;}
+.q-nick{font-size:1.8rem;font-weight:800;color:#fff;line-height:1.2;}
+.q-drug-name{font-size:1.2rem;font-weight:800;color:#a5b4fc;line-height:1.3;}
+/* answer grid */
 .q-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.q-btn{background:#f8fafc;border:2px solid var(--border);padding:11px 6px;border-radius:11px;font-family:inherit;font-size:0.82rem;cursor:pointer;transition:.15s;color:var(--text);line-height:1.3;}
-.q-btn:hover:not(:disabled){background:#f1f5f9;}
-.q-btn.correct{background:#dcfce7;border-color:#10b981;color:#065f46;}
-.q-btn.wrong{background:#fee2e2;border-color:#ef4444;color:#7f1d1d;}
-.flashcard{background:#f8fafc;border-radius:13px;padding:22px;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:2px dashed var(--border);gap:5px;text-align:center;}
-.coming-soon{background:linear-gradient(135deg,#1e293b,#334155);border-radius:16px;padding:28px;text-align:center;color:#fff;margin-bottom:10px;}
+.q-btn{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);padding:14px 10px;border-radius:13px;font-family:inherit;font-size:0.82rem;cursor:pointer;transition:.2s;color:rgba(255,255,255,.9);line-height:1.4;font-weight:500;text-align:center;}
+.q-btn:hover:not(:disabled){background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);transform:translateY(-1px);}
+.q-btn.correct{background:rgba(16,185,129,.25);border-color:#10b981;color:#6ee7b7;font-weight:700;}
+.q-btn.wrong{background:rgba(239,68,68,.2);border-color:#ef4444;color:#fca5a5;}
+.q-btn:disabled{cursor:not-allowed;}
+/* result message */
+.q-result{color:rgba(255,255,255,.5);font-size:0.8rem;text-align:center;padding:10px 0 4px;}
+/* combo flash */
+@keyframes scoreFlash{0%{transform:scale(1.4);color:#fbbf24}100%{transform:scale(1);}}
+.score-flash{animation:scoreFlash .35s ease-out;}
+/* coming soon */
+.coming-soon{background:linear-gradient(135deg,#1e293b,#334155);border-radius:20px;padding:28px;text-align:center;color:#fff;margin-bottom:10px;}
 
 /* ── SHOP ── */
 .egg-wobble{font-size:3.8rem;animation:wobble 2.5s ease infinite;display:block;}
@@ -1211,7 +1244,7 @@ window.sendTrade=async()=>{
 // ════════════════════════════════════════
 window.startQuiz=()=>{
     qScore=0;__quizTop5Posted=false;
-    document.getElementById('q-score').textContent='0';
+    const qs=document.getElementById('q-score');if(qs){qs.textContent='0';qs.classList.remove('score-flash');}
     document.getElementById('quiz-start').style.display='none';document.getElementById('quiz-play').style.display='block';nextQ();
 };
 window.nextQ=()=>{
@@ -1231,7 +1264,7 @@ window.answerQ=async(btn,ans)=>{
     if(ans===qAnswer){
         qScore++;
         const disp=qScore*scoreMulti()+scoreBonus();
-        document.getElementById('q-score').textContent=disp;
+        const qs=document.getElementById('q-score');qs.textContent=disp;qs.classList.remove('score-flash');void qs.offsetWidth;qs.classList.add('score-flash');
         await window.awardCoins(5);
         confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#10b981']});
         setTimeout(nextQ,700);
@@ -1249,7 +1282,7 @@ window.answerQ=async(btn,ans)=>{
         setTimeout(()=>{
             document.getElementById('quiz-start').style.display='block';
             document.getElementById('quiz-play').style.display='none';
-            document.getElementById('q-msg').innerHTML=`ชื่อจริงคือ <b>${qAnswer}</b> | ไฮสกอร์: ${Math.max(finalScore,qHigh)}`;
+            document.getElementById('q-msg').innerHTML=`ตอบผิด! ชื่อจริงคือ <b style="color:#fbbf24">${qAnswer}</b><br>คะแนน: ${finalScore} · สถิติ: ${Math.max(finalScore,qHigh)}`;
         },1000);
     }
 };
@@ -1259,7 +1292,7 @@ window.answerQ=async(btn,ans)=>{
 // ════════════════════════════════════════
 window.startDrugQuiz=()=>{
     dqScore=0;__drugTop5Posted=false;
-    document.getElementById('dq-score').textContent='0';
+    const ds=document.getElementById('dq-score');if(ds){ds.textContent='0';ds.classList.remove('score-flash');}
     document.getElementById('dquiz-start').style.display='none';document.getElementById('dquiz-play').style.display='block';nextDQ();
 };
 window.nextDQ=()=>{
@@ -1273,7 +1306,8 @@ window.answerDQ=async(btn,ans)=>{
     document.querySelectorAll('#dq-opts .q-btn').forEach(b=>{b.disabled=true;if(b.textContent===dqAnswer)b.classList.add('correct');else if(b.textContent===ans)b.classList.add('wrong');});
     if(ans===dqAnswer){
         dqScore++;const disp=dqScore*scoreMulti()+scoreBonus();document.getElementById('dq-score').textContent=disp;
-        await window.awardCoins(5);confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#3b82f6']});
+        const ds=document.getElementById('dq-score');ds.textContent=disp;ds.classList.remove('score-flash');void ds.offsetWidth;ds.classList.add('score-flash');
+        await window.awardCoins(5);confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#818cf8','#a5b4fc']});
         setTimeout(nextDQ,700);
     } else {
         const finalScore=dqScore;
@@ -1285,7 +1319,7 @@ window.answerDQ=async(btn,ans)=>{
             __drugTop5Posted=true;
             await postNews("🎮",`${name2} ทำได้ ${finalScore} ข้อในเกมทายยา — Top 5%! 🔥`);
         }
-        setTimeout(()=>{document.getElementById('dquiz-start').style.display='block';document.getElementById('dquiz-play').style.display='none';document.getElementById('dq-msg').innerHTML=`ยาชนิดนี้คือ <b>${dqAnswer}</b> | ไฮสกอร์: ${Math.max(finalScore,dqHigh)}`;},1000);
+        setTimeout(()=>{document.getElementById('dquiz-start').style.display='block';document.getElementById('dquiz-play').style.display='none';document.getElementById('dq-msg').innerHTML=`ตอบผิด! Drug Class คือ <b style="color:#a5b4fc">${dqAnswer}</b><br>คะแนน: ${finalScore} · สถิติ: ${Math.max(finalScore,dqHigh)}`;},1000);
     }
 };
 
@@ -1596,29 +1630,56 @@ function buildPlay(){
         <div class="ticker-label">📢 ข่าว</div>
         <div class="ticker-scroll"><div class="ticker-inner">${tickerText}</div></div>
     </div>
-    <div class="sec-head">🕵️ ทายชื่อจริงเพื่อน</div>
-    <div class="card">
-        <div id="quiz-start">
-            <p id="q-msg" style="color:var(--muted);font-size:0.84rem;text-align:center;margin-bottom:12px">ทายชื่อจริงเพื่อนให้ถูกต่อเนื่อง +5🪙/ข้อ &nbsp;|&nbsp; Hi: ${qHigh}</p>
-            <button class="btn-gold full" onclick="startQuiz()">▶ เริ่มเกม</button>
+
+    <!-- QUIZ: ทายชื่อ -->
+    <div class="game-arena arena-name">
+        <div class="game-arena-header">
+            <span class="game-title">🕵️ ทายชื่อจริงเพื่อน</span>
+            <div class="score-badge">🏆 <b id="q-score">0</b></div>
         </div>
-        <div id="quiz-play" style="display:none">
-            <div style="font-size:0.84rem;color:var(--muted);margin-bottom:6px">คะแนน: <b id="q-score" style="color:var(--gold);font-size:1rem">0</b></div>
-            <div class="q-nick" id="q-nick">...</div>
-            <div class="q-grid" id="q-opts"></div>
+        <div class="game-arena-body">
+            <div id="quiz-start">
+                <div class="game-start">
+                    <span class="game-start-icon">🕵️</span>
+                    <div class="game-start-hi">สถิติสูงสุด: ${qHigh} คะแนน</div>
+                    <div class="game-start-desc" id="q-msg">เห็นชื่อเล่น → ทายชื่อจริง<br>ตอบถูกต่อเนื่อง +5🪙/ข้อ</div>
+                    <button class="btn-play" onclick="startQuiz()">▶ เริ่มเกม</button>
+                </div>
+            </div>
+            <div id="quiz-play" style="display:none">
+                <div class="q-prompt">
+                    <div style="font-size:0.72rem;color:rgba(255,255,255,.4);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">ชื่อเล่นคือ</div>
+                    <div class="q-nick" id="q-nick">...</div>
+                    <div style="font-size:0.72rem;color:rgba(255,255,255,.4);margin-top:6px">ชื่อจริงคืออะไร?</div>
+                </div>
+                <div class="q-grid" id="q-opts"></div>
+            </div>
         </div>
     </div>
 
-    <div class="sec-head">💊 ทายยา (Drug Class)</div>
-    <div class="card">
-        <div id="dquiz-start">
-            <p id="dq-msg" style="color:var(--muted);font-size:0.84rem;text-align:center;margin-bottom:12px">ทาย Drug Class ให้ถูกต่อเนื่อง +5🪙/ข้อ &nbsp;|&nbsp; Hi: ${dqHigh}</p>
-            <button class="btn-gold full" onclick="startDrugQuiz()">▶ เริ่มเกม</button>
+    <!-- QUIZ: ทายยา -->
+    <div class="game-arena arena-drug">
+        <div class="game-arena-header">
+            <span class="game-title">💊 ทายยา (Drug Class)</span>
+            <div class="score-badge">🏆 <b id="dq-score">0</b></div>
         </div>
-        <div id="dquiz-play" style="display:none">
-            <div style="font-size:0.84rem;color:var(--muted);margin-bottom:6px">คะแนน: <b id="dq-score" style="color:var(--gold);font-size:1rem">0</b></div>
-            <div style="font-size:1.3rem;font-weight:800;color:#3b82f6;text-align:center;margin-bottom:12px" id="dq-drug">...</div>
-            <div class="q-grid" id="dq-opts"></div>
+        <div class="game-arena-body">
+            <div id="dquiz-start">
+                <div class="game-start">
+                    <span class="game-start-icon">💊</span>
+                    <div class="game-start-hi">สถิติสูงสุด: ${dqHigh} คะแนน</div>
+                    <div class="game-start-desc" id="dq-msg">เห็นชื่อยา → ทาย Drug Class<br>ตอบถูกต่อเนื่อง +5🪙/ข้อ</div>
+                    <button class="btn-play" onclick="startDrugQuiz()">▶ เริ่มเกม</button>
+                </div>
+            </div>
+            <div id="dquiz-play" style="display:none">
+                <div class="q-prompt">
+                    <div style="font-size:0.72rem;color:rgba(255,255,255,.4);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase">ยาชนิดนี้คือ</div>
+                    <div class="q-drug-name" id="dq-drug">...</div>
+                    <div style="font-size:0.72rem;color:rgba(255,255,255,.4);margin-top:8px">จัดอยู่ใน Drug Class ใด?</div>
+                </div>
+                <div class="q-grid" id="dq-opts"></div>
+            </div>
         </div>
     </div>
 
