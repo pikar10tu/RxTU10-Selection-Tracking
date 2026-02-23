@@ -178,6 +178,20 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .score-flash{animation:scoreFlash .35s ease-out;}
 /* coming soon */
 .coming-soon{background:linear-gradient(135deg,#1e293b,#334155);border-radius:20px;padding:28px;text-align:center;color:#fff;margin-bottom:10px;}
+/* leaderboard */
+.lb-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.lb-card{border-radius:16px;overflow:hidden;}
+.lb-head{padding:10px 12px 8px;display:flex;align-items:center;justify-content:space-between;}
+.lb-title{font-size:0.68rem;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:1px;text-transform:uppercase;}
+.lb-row{display:flex;align-items:center;gap:7px;padding:6px 10px;border-top:1px solid rgba(255,255,255,.06);}
+.lb-rank{font-size:0.7rem;font-weight:800;color:rgba(255,255,255,.35);width:14px;text-align:center;flex-shrink:0;}
+.lb-rank.gold{color:#fbbf24;font-size:0.8rem;}
+.lb-rank.silver{color:#94a3b8;font-size:0.75rem;}
+.lb-rank.bronze{color:#b45309;font-size:0.72rem;}
+.lb-photo{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid rgba(255,255,255,.15);}
+.lb-name{flex:1;font-size:0.72rem;font-weight:600;color:rgba(255,255,255,.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lb-score{font-size:0.72rem;font-weight:800;color:#fbbf24;flex-shrink:0;}
+.lb-me{background:rgba(251,191,36,.1) !important;border-top-color:rgba(251,191,36,.2) !important;}
 
 /* ── SHOP ── */
 .egg-wobble{font-size:3.8rem;animation:wobble 2.5s ease infinite;display:block;}
@@ -574,15 +588,35 @@ window.__guestUsers = []; // guest users list
 async function loadFbUsers() {
     try {
         const snap = await getDocs(collection(db,"users"));
-        window.__guestUsers = []; // reset guest list
+        window.__guestUsers = [];
         snap.forEach(d => {
             const x = d.data();
             if (!x.studentId) return;
-            const xWithUid={...x,uid:d.id}; // เก็บ uid ด้วยสำหรับ giveFlower
+            // เก็บเฉพาะ field ที่ใช้ใน member grid — ตัด customPhoto ออก ประหยัด memory
+            // (customPhoto ยังอยู่ใน userData ของตัวเอง — ใช้ใน myPhoto())
+            const light={
+                uid:d.id,
+                studentId:x.studentId,
+                nickname:x.nickname,
+                realName:x.realName,
+                track:x.track,
+                coins:x.coins,
+                quizHigh:x.quizHigh,
+                drugHigh:x.drugHigh,
+                activePet:x.activePet,
+                pets:x.pets,
+                flowersReceived:x.flowersReceived,
+                email:x.email,
+                googlePhoto:x.googlePhoto,
+                // thumb: ถ้ามีใช้ thumb, ถ้าไม่มีใช้ full (compat เก่า)
+                customPhoto:x.customPhotoThumb||x.customPhoto||null,
+                // เก็บ full ไว้แยกสำหรับ profile modal
+                customPhotoFull:x.customPhoto||null,
+            };
             if (x.track === 'guest') {
-                window.__guestUsers.push(xWithUid);
+                window.__guestUsers.push(light);
             } else {
-                window.__fbUsers[x.studentId] = xWithUid;
+                window.__fbUsers[x.studentId] = light;
             }
         });
         if (window.__tab === 'members') {
@@ -604,7 +638,7 @@ window.loginGoogle=async()=>{
     try{provider.setCustomParameters({prompt:'select_account'});const r=await signInWithPopup(auth,provider);await ensureDoc(r.user);}
     catch(e){if(e.code!=='auth/popup-closed-by-user')toast("Login ไม่สำเร็จ","error");}
 };
-window.logoutUser=async()=>{try{await signOut(auth);}catch(e){}currentUser=userData=null;window.__fbUsers={};window.__tab='home';renderTab('home');};
+window.logoutUser=async()=>{if(!confirm('ออกจากระบบ?'))return;try{await signOut(auth);}catch(e){}currentUser=userData=null;window.__fbUsers={};window.__tab='home';renderTab('home');};
 
 async function ensureDoc(u){
     const ref=doc(db,"users",u.uid);const snap=await getDoc(ref);
@@ -861,8 +895,14 @@ function activeExtraDaily(){const p=activePet();if(!p)return 0;
     if(e==='rainbow_badge')return 100;if(e==='kirin_badge')return 80;
     return 0;}
 function getActiveBadge(){const p=activePet();if(!p)return null;return BADGE_EFFECTS[p.effect]||null;}
-window.awardCoins=async(base)=>{if(!currentUser)return base;const final=Math.floor(base*coinMulti());await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(final)});if(final!==base)toast(`${activePet().emoji} Effect! +${final} แทน +${base}`,"success");return final;};
-function myPhoto(){if(!userData)return null;return userData.customPhoto||userData.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name||'?')}&size=256`;}
+window.awardCoins=async(base,trackKey)=>{
+    if(!currentUser)return base;
+    const final=Math.floor(base*coinMulti());
+    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(final)});
+    if(trackKey)window[trackKey]=(window[trackKey]||0)+final;
+    return final;
+};
+function myPhoto(thumb=false){if(!userData)return null;if(thumb)return userData.customPhotoThumb||userData.customPhoto||userData.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name||'?')}&size=64`;return userData.customPhoto||userData.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name||'?')}&size=256`;}
 
 // ════════════════════════════════════════
 //  NEWS FEED
@@ -1073,16 +1113,37 @@ window.triggerPhoto=()=>document.getElementById('photo-input').click();
 window.handlePhoto=async(e)=>{
     const file=e.target.files[0];if(!file||!currentUser)return;
     if(!file.type.startsWith('image/')){toast("ไฟล์ต้องเป็นรูปภาพเท่านั้น","error");return;}
-    if(file.size>800*1024){toast("รูปใหญ่เกิน 800KB","error");return;}
-    toast("กำลังอัพโหลด...","info");
+    if(file.size>5*1024*1024){toast("ไฟล์ใหญ่เกิน 5MB","error");return;}
+    toast("กำลังประมวลผล...","info");
     const reader=new FileReader();
     reader.onload=ev=>{const img=new Image();img.onload=async()=>{
-        const canvas=document.createElement('canvas');const MAX=300;let w=img.width,h=img.height;
-        if(w>h){if(w>MAX){h=h*(MAX/w);w=MAX;}}else{if(h>MAX){w=w*(MAX/h);h=MAX;}}
-        canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
-        const b64=canvas.toDataURL('image/jpeg',0.75);
-        await updateDoc(doc(db,"users",currentUser.uid),{customPhoto:b64});
-        toast("อัพโหลดรูปสำเร็จ!","success");
+        // helper: resize canvas แล้ว return base64
+        function resizeToB64(maxPx,quality){
+            const c=document.createElement('canvas');
+            let w=img.width,h=img.height;
+            if(w>h){if(w>maxPx){h=Math.round(h*(maxPx/w));w=maxPx;}}
+            else{if(h>maxPx){w=Math.round(w*(maxPx/h));h=maxPx;}}
+            c.width=w;c.height=h;
+            c.getContext('2d').drawImage(img,0,0,w,h);
+            return c.toDataURL('image/jpeg',quality);
+        }
+        // full: 200px, quality 0.72
+        const full=resizeToB64(200,0.72);
+        // thumb: 60px, quality 0.60
+        const thumb=resizeToB64(60,0.60);
+        // ตรวจ size หลัง encode — Base64 1 char ≈ 0.75 byte
+        const fullKB=Math.round(full.length*0.75/1024);
+        const thumbKB=Math.round(thumb.length*0.75/1024);
+        // Firestore doc limit ~1MB, รูปต้องไม่เกิน 250KB รวมกัน
+        if(fullKB+thumbKB>250){
+            toast(`รูปหลัง compress ยังใหญ่เกิน (${fullKB+thumbKB}KB) ลองใช้รูปอื่น`,"error");
+            return;
+        }
+        await updateDoc(doc(db,"users",currentUser.uid),{
+            customPhoto:full,
+            customPhotoThumb:thumb
+        });
+        toast(`อัพโหลดสำเร็จ! (full ${fullKB}KB · thumb ${thumbKB}KB)`,"success");
     };img.src=ev.target.result;};
     reader.readAsDataURL(file);e.target.value='';
 };
@@ -1288,7 +1349,7 @@ window.sendTrade=async()=>{
 //  QUIZ — ทายชื่อเพื่อน
 // ════════════════════════════════════════
 window.startQuiz=()=>{
-    qScore=0;__quizTop5Posted=false;
+    qScore=0;__quizTop5Posted=false;window.__qCoinsEarned=0;
     const qs=document.getElementById('q-score');if(qs){qs.textContent='0';qs.classList.remove('score-flash');}
     document.getElementById('quiz-start').style.display='none';document.getElementById('quiz-play').style.display='block';nextQ();
 };
@@ -1310,7 +1371,7 @@ window.answerQ=async(btn,ans)=>{
         qScore++;
         const disp=qScore*scoreMulti()+scoreBonus();
         const qs=document.getElementById('q-score');qs.textContent=disp;qs.classList.remove('score-flash');void qs.offsetWidth;qs.classList.add('score-flash');
-        await window.awardCoins(5);
+        await window.awardCoins(5,'__qCoinsEarned');
         confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#10b981']});
         setTimeout(nextQ,700);
     } else {
@@ -1320,6 +1381,8 @@ window.answerQ=async(btn,ans)=>{
             qHigh=finalScore;
             await updateDoc(doc(db,"users",currentUser.uid),{quizHigh:finalScore});
             await postNews("🏆",`${name} ทำ High Score ใหม่ในเกมทายชื่อ: ${finalScore} คะแนน!`);
+            // อัพ quizHigh ใน cache ด้วย
+            if(userData?.studentId&&window.__fbUsers?.[userData.studentId])window.__fbUsers[userData.studentId].quizHigh=finalScore;
         } else if(currentUser&&finalScore>=10&&!__quizTop5Posted){
             __quizTop5Posted=true;
             await postNews("🎮",`${name} ทำได้ ${finalScore} ข้อในเกมทายชื่อ — Top 5%! 🔥`);
@@ -1327,7 +1390,12 @@ window.answerQ=async(btn,ans)=>{
         setTimeout(()=>{
             document.getElementById('quiz-start').style.display='block';
             document.getElementById('quiz-play').style.display='none';
-            document.getElementById('q-msg').innerHTML=`ตอบผิด! ชื่อจริงคือ <b style="color:#fbbf24">${qAnswer}</b><br>คะแนน: ${finalScore} · สถิติ: ${Math.max(finalScore,qHigh)}`;
+            const pet=activePet();
+            const base5=finalScore*5;const earned=window.__qCoinsEarned||0;
+            const bonusStr=earned>base5?` <span style="color:#6ee7b7;font-size:0.78rem">(+${earned-base5} bonus ${pet?pet.emoji:''})</span>`:'';
+            document.getElementById('q-msg').innerHTML=`ตอบผิด! ชื่อจริงคือ <b style="color:#fbbf24">${qAnswer}</b><br>คะแนน: ${finalScore} · ได้ <b style="color:#fbbf24">+${earned}🪙</b>${bonusStr}<br><span style="font-size:0.76rem;opacity:.7">สถิติ: ${Math.max(finalScore,qHigh)}</span>`;
+            // refresh leaderboard
+            const lbEl=document.getElementById('lb-container');if(lbEl)lbEl.innerHTML=buildLeaderboard();
         },1000);
     }
 };
@@ -1336,7 +1404,7 @@ window.answerQ=async(btn,ans)=>{
 //  DRUG QUIZ — MCQ
 // ════════════════════════════════════════
 window.startDrugQuiz=()=>{
-    dqScore=0;__drugTop5Posted=false;
+    dqScore=0;__drugTop5Posted=false;window.__dqCoinsEarned=0;
     const ds=document.getElementById('dq-score');if(ds){ds.textContent='0';ds.classList.remove('score-flash');}
     document.getElementById('dquiz-start').style.display='none';document.getElementById('dquiz-play').style.display='block';nextDQ();
 };
@@ -1352,7 +1420,7 @@ window.answerDQ=async(btn,ans)=>{
     if(ans===dqAnswer){
         dqScore++;const disp=dqScore*scoreMulti()+scoreBonus();document.getElementById('dq-score').textContent=disp;
         const ds=document.getElementById('dq-score');ds.textContent=disp;ds.classList.remove('score-flash');void ds.offsetWidth;ds.classList.add('score-flash');
-        await window.awardCoins(5);confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#818cf8','#a5b4fc']});
+        await window.awardCoins(5,'__dqCoinsEarned');confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#818cf8','#a5b4fc']});
         setTimeout(nextDQ,700);
     } else {
         const finalScore=dqScore;
@@ -1360,11 +1428,20 @@ window.answerDQ=async(btn,ans)=>{
         if(currentUser&&finalScore>dqHigh){
             dqHigh=finalScore;await updateDoc(doc(db,"users",currentUser.uid),{drugHigh:finalScore});
             await postNews("💊",`${name2} ทำ High Score ใหม่ในเกมทายยา: ${finalScore} คะแนน!`);
+            if(userData?.studentId&&window.__fbUsers?.[userData.studentId])window.__fbUsers[userData.studentId].drugHigh=finalScore;
         } else if(currentUser&&finalScore>=10&&!__drugTop5Posted){
             __drugTop5Posted=true;
             await postNews("🎮",`${name2} ทำได้ ${finalScore} ข้อในเกมทายยา — Top 5%! 🔥`);
         }
-        setTimeout(()=>{document.getElementById('dquiz-start').style.display='block';document.getElementById('dquiz-play').style.display='none';document.getElementById('dq-msg').innerHTML=`ตอบผิด! Drug Class คือ <b style="color:#a5b4fc">${dqAnswer}</b><br>คะแนน: ${finalScore} · สถิติ: ${Math.max(finalScore,dqHigh)}`;},1000);
+        setTimeout(()=>{
+            document.getElementById('dquiz-start').style.display='block';
+            document.getElementById('dquiz-play').style.display='none';
+            const pet2=activePet();
+            const base5d=finalScore*5;const earned2=window.__dqCoinsEarned||0;
+            const bonusStr2=earned2>base5d?` <span style="color:#6ee7b7;font-size:0.78rem">(+${earned2-base5d} bonus ${pet2?pet2.emoji:''})</span>`:'';
+            document.getElementById('dq-msg').innerHTML=`ตอบผิด! Drug Class คือ <b style="color:#a5b4fc">${dqAnswer}</b><br>คะแนน: ${finalScore} · ได้ <b style="color:#fbbf24">+${earned2}🪙</b>${bonusStr2}<br><span style="font-size:0.76rem;opacity:.7">สถิติ: ${Math.max(finalScore,dqHigh)}</span>`;
+            const lbEl2=document.getElementById('lb-container');if(lbEl2)lbEl2.innerHTML=buildLeaderboard();
+        },1000);
     }
 };
 
@@ -1580,18 +1657,23 @@ function memberGrid(){
         const live=window.__fbUsers?.[s.id];
         const photoSrc=live?.customPhoto||live?.googlePhoto||`img/${s.id}.jpg`;
         const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=128`;
-        const petData=live?.activePet?(live.pets||[]).find(p=>p.id===live.activePet):null;
-        const petEmoji=petData?petData.emoji:'';
+        // activePet: match instId ก่อน (ใหม่) fallback id (legacy)
+        const petData=live?.activePet
+            ?(live.pets||[]).find(p=>p.instId&&String(p.instId)===String(live.activePet))
+              ||(live.pets||[]).find(p=>p.id===live.activePet)
+            :null;
         const badge=petData?BADGE_EFFECTS[petData.effect]:null;
+        const petGrade=petData?(petData.grade||0):0;
+        const petColor=petData?(RARITY[petData.rarity]?.color||'#64748b'):'';
         return`<div class="mcard" onclick="openProfileModal('${s.id}')">
-            <div style="position:relative;width:56px;height:56px;margin-bottom:2px">
+            <div style="position:relative;width:56px;height:56px;margin-bottom:4px">
                 <img src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:56px;height:56px">
-                ${petEmoji?`<div style="position:absolute;bottom:-3px;right:-3px;font-size:0.9rem;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))">${petEmoji}</div>`:''}
+                ${petData?`<div style="position:absolute;bottom:-4px;right:-4px;font-size:1rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));line-height:1">${petData.emoji}${petGrade>0?`<span style="position:absolute;bottom:-1px;right:-4px;background:${petColor};color:#fff;font-size:0.38rem;font-weight:800;padding:1px 3px;border-radius:3px;line-height:1.4">${GRADE_LABELS[petGrade]}</span>`:''}
+                </div>`:''}
             </div>
             ${(()=>{if(!badge)return'<div class="mc-nick">'+s.nickname+'</div>';return'<div style="border-radius:7px;padding:1px 6px;font-size:0.82rem;font-weight:600;background:'+badge.bg+';border:1.5px solid '+badge.border+'">'+s.nickname+'</div>';})()}
-            ${petData?`<div style="font-size:0.58rem;color:${RARITY[petData.rarity]?.color||'#64748b'};font-weight:700">${petData.emoji} ${RARITY[petData.rarity]?.label||''}${(petData.grade||0)>0?' '+GRADE_LABELS[petData.grade||0]:''}</div>`:''}
-            <div class="mc-id">${s.id}</div>
-            <span class="track-badge sm" style="background:${tc}">${s.track.toUpperCase()}</span>
+            <div class="mc-id" style="font-size:0.6rem">${s.id}</div>
+            <span class="track-badge" style="background:${tc};font-size:0.52rem;padding:2px 6px">${s.track==='sci'?'SCI':'CARE'}</span>
         </div>`;
     }).join('')}</div>`;
 }
@@ -1604,7 +1686,7 @@ window.openProfileModal=(id)=>{
     const liveData=window.__fbUsers?.[id]||null;
     const tc=s.track==='sci'?'var(--sci)':'var(--care)';
     const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=256`;
-    const photo=liveData?.customPhoto||liveData?.googlePhoto||`img/${s.id}.jpg`;
+    const photo=liveData?.customPhotoFull||liveData?.customPhoto||liveData?.googlePhoto||`img/${s.id}.jpg`;
     const petData=liveData?.activePet?(liveData.pets||[]).find(p=>p.id===liveData.activePet):null;
     const pmBadge=petData?BADGE_EFFECTS[petData.effect]:null;
     const nickHtml=pmBadge
@@ -1651,7 +1733,7 @@ window.openGuestList=()=>{
     const guests=window.__guestUsers||[];
     if(!guests.length){toast("ยังไม่มี Guest","info");return;}
     const html=guests.map(g=>{
-        const photo=g.customPhoto||g.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(g.nickname||'?')}&background=64748b&color=fff&size=128`;
+        const photo=g.customPhotoFull||g.customPhoto||g.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(g.nickname||'?')}&background=64748b&color=fff&size=128`;
         const petData=g.activePet?(g.pets||[]).find(p=>p.id===g.activePet):null;
         return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
             <img src="${photo}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?&background=64748b&color=fff'">
@@ -1667,6 +1749,66 @@ window.openGuestList=()=>{
         ${html}`;
     document.getElementById('profile-modal').classList.add('active');
 };
+
+// ════════════════════════════════════════
+//  LEADERBOARD (ใช้ cache __fbUsers — ไม่ต้อง read Firestore เพิ่ม)
+// ════════════════════════════════════════
+function buildLeaderboard(){
+    const myStudentId=userData?.studentId;
+    // รวม fbUsers + guestUsers
+    const allUsers=[
+        ...Object.values(window.__fbUsers||{}),
+        ...(window.__guestUsers||[])
+    ];
+    // Quiz leaderboard: 1 คน 1 อันดับ (quizHigh สูงสุด)
+    const quizBoard=[...allUsers]
+        .filter(u=>u.quizHigh>0)
+        .sort((a,b)=>b.quizHigh-a.quizHigh)
+        .slice(0,7);
+    // Drug leaderboard
+    const drugBoard=[...allUsers]
+        .filter(u=>u.drugHigh>0)
+        .sort((a,b)=>b.drugHigh-a.drugHigh)
+        .slice(0,7);
+
+    function renderBoard(board,scoreKey,accentColor){
+        if(!board.length)return`<div style="padding:14px;text-align:center;color:rgba(255,255,255,.3);font-size:0.78rem">ยังไม่มีข้อมูล</div>`;
+        const rankIcon=['🥇','🥈','🥉'];
+        return board.map((u,i)=>{
+            const isMe=myStudentId&&u.studentId===myStudentId;
+            const petData=u.activePet
+                ?(u.pets||[]).find(p=>p.instId&&String(p.instId)===String(u.activePet))
+                 ||(u.pets||[]).find(p=>p.id===u.activePet)
+                :null;
+            const photo=u.customPhoto||u.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent((u.nickname||'?').slice(0,1))}&background=334155&color=fff&size=64`;
+            const def=`https://ui-avatars.com/api/?name=${encodeURIComponent((u.nickname||'?').slice(0,1))}&background=334155&color=fff&size=64`;
+            const rankClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+            return`<div class="lb-row${isMe?' lb-me':''}">
+                <div class="lb-rank ${rankClass}">${i<3?rankIcon[i]:i+1}</div>
+                <img src="${photo}" class="lb-photo" onerror="this.onerror=null;this.src='${def}'">
+                <div class="lb-name">${u.nickname||'?'}${petData?` ${petData.emoji}`:''}</div>
+                <div class="lb-score" style="color:${accentColor}">${u[scoreKey]}</div>
+            </div>`;
+        }).join('');
+    }
+
+    return`<div class="lb-wrap">
+        <div class="lb-card" style="background:linear-gradient(160deg,#0f172a,#1e293b)">
+            <div class="lb-head" style="background:rgba(16,185,129,.12)">
+                <span class="lb-title">🕵️ ทายชื่อ</span>
+                <span style="font-size:0.62rem;color:rgba(255,255,255,.3)">Top ${quizBoard.length}</span>
+            </div>
+            ${renderBoard(quizBoard,'quizHigh','#6ee7b7')}
+        </div>
+        <div class="lb-card" style="background:linear-gradient(160deg,#1e1b4b,#312e81)">
+            <div class="lb-head" style="background:rgba(129,140,248,.12)">
+                <span class="lb-title">💊 ทายยา</span>
+                <span style="font-size:0.62rem;color:rgba(255,255,255,.3)">Top ${drugBoard.length}</span>
+            </div>
+            ${renderBoard(drugBoard,'drugHigh','#a5b4fc')}
+        </div>
+    </div>`;
+}
 
 // ════════════════════════════════════════
 //  TAB: PLAY
@@ -1731,6 +1873,8 @@ function buildPlay(){
         </div>
     </div>
 
+    <div id="lb-container">${buildLeaderboard()}</div>
+
     <div class="coming-soon">
         <div style="font-size:2.5rem;margin-bottom:8px">🔜</div>
         <div style="font-weight:800;font-size:1rem;margin-bottom:4px">เกมใหม่กำลังมา!</div>
@@ -1746,7 +1890,17 @@ function buildShop(){
     const owned=new Set((userData?.pets||[]).map(p=>p.id));
     const pendingEgg=(userData?.eggs||[]).some(e=>!e.startedAt);
     return`
-        <div class="sec-head">🛒 ร้านค้า</div>
+        <div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+                <div style="font-size:0.68rem;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">🛒 ร้านค้า</div>
+                <div style="font-size:1.4rem;font-weight:800;color:#fbbf24">🪙 ${coins.toLocaleString()}</div>
+                <div style="font-size:0.68rem;color:rgba(255,255,255,.4)">เหรียญที่มี</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:0.68rem;color:rgba(255,255,255,.4);margin-bottom:4px">ซื้อไข่เพื่อฟักสัตว์เลี้ยง</div>
+                <div style="font-size:0.78rem;color:rgba(255,255,255,.5)">Normal → Rare → Epic → Legendary</div>
+            </div>
+        </div>
         <div class="card">
             <div style="font-weight:800;font-size:0.95rem;margin-bottom:10px;text-align:center">🥚 เลือกไข่</div>
             ${Object.entries(EGG_TYPES).map(([type,et])=>{
