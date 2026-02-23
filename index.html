@@ -305,6 +305,22 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
     <button class="btn-gold full" onclick="sendTrade()">ส่งให้เพื่อน ✉️</button>
 </div>
 
+<!-- DAILY BREAKDOWN MODAL -->
+<div class="modal-ov" id="daily-modal" onclick="if(event.target===this)closeDailyModal()">
+    <div class="modal-box" style="text-align:center">
+        <button class="mclose" onclick="closeDailyModal()">✕</button>
+        <div id="daily-content"></div>
+    </div>
+</div>
+
+<!-- UPGRADE SELECT MODAL -->
+<div class="modal-ov" id="upgrade-modal" onclick="if(event.target===this)closeUpgradeModal()">
+    <div class="modal-box">
+        <button class="mclose" onclick="closeUpgradeModal()">✕</button>
+        <div id="upgrade-content"></div>
+    </div>
+</div>
+
 <!-- FLOWER MODAL -->
 <div class="modal-ov" id="flower-modal" onclick="if(event.target===this)closeFlowerModal()">
     <div class="modal-box" style="text-align:center">
@@ -560,6 +576,185 @@ window.claimDaily=async()=>{
     if(passive>0||extra>0) msg+=` (${base}+${passive}passive${extra?'+'+extra+'active':''})`;
     toast(msg,"success");
     confetti({particleCount:80,spread:60,origin:{y:0.6}});
+};
+
+// ════════════════════════════════════════
+//  DAILY BREAKDOWN MODAL
+// ════════════════════════════════════════
+window.openDailyModal=()=>{
+    if(!currentUser){toast("กรุณา Login","error");return;}
+    const pets=userData?.pets||[];
+    const {base,passive}=calcTotalDaily(pets);
+    const extra=activeExtraDaily();
+    const total=base+passive+extra;
+    const activePetData=activePet();
+    const isReady=document.getElementById('daily-btn')?.classList.contains('ready');
+
+    // สร้าง rows แต่ละตัว
+    const petRows=pets.map(p=>{
+        const cfg=RARITY[p.rarity];
+        const daily=petDailyCoins(p);
+        const grade=p.grade||0;
+        return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:1.3rem">${p.emoji}</span>
+            <div style="flex:1;text-align:left">
+                <span style="font-weight:600;font-size:0.84rem">${p.name}</span>
+                <span style="color:${cfg.color};font-size:0.68rem;font-weight:700;margin-left:4px">${cfg.label}${grade>0?' Grade '+GRADE_LABELS[grade]:''}</span>
+            </div>
+            <span style="color:var(--care);font-weight:700;font-size:0.84rem">+${daily}🪙</span>
+        </div>`;
+    }).join('');
+
+    const activeRow=activePetData&&extra>0?`
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:1.3rem">${activePetData.emoji}</span>
+            <div style="flex:1;text-align:left">
+                <span style="font-weight:600;font-size:0.84rem">${activePetData.name}</span>
+                <span style="font-size:0.68rem;color:var(--muted);margin-left:4px">active bonus</span>
+            </div>
+            <span style="color:var(--sci);font-weight:700;font-size:0.84rem">+${extra}🪙</span>
+        </div>`:'';
+
+    document.getElementById('daily-content').innerHTML=`
+        <div style="font-size:1.8rem;margin-bottom:4px">🎁</div>
+        <div style="font-weight:800;font-size:1.1rem;margin-bottom:2px">Daily Reward</div>
+        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">${isReady?'พร้อมรับแล้ว!':'รับไปแล้ววันนี้'}</div>
+
+        <div style="background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:10px;text-align:left">
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+                <span>🎯 Base daily</span>
+                <span style="font-weight:700">+${base}🪙</span>
+            </div>
+            ${petRows||'<div style="color:var(--muted);font-size:0.78rem;padding:8px 0;text-align:center">ยังไม่มีสัตว์เลี้ยง</div>'}
+            ${activeRow}
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;padding:10px 14px;margin-bottom:12px">
+            <span style="font-weight:700">รวมทั้งหมด</span>
+            <span style="font-size:1.2rem;font-weight:800;color:#92400e">+${total}🪙</span>
+        </div>
+
+        ${isReady
+            ?`<button class="btn-gold full" onclick="claimDaily();closeDailyModal()">🎁 รับเลย!</button>`
+            :`<button class="btn-gray full" disabled>รับไปแล้ววันนี้ · รีเซ็ตเที่ยงคืน</button>`}
+    `;
+    document.getElementById('daily-modal').classList.add('active');
+};
+window.closeDailyModal=()=>document.getElementById('daily-modal').classList.remove('active');
+
+// ════════════════════════════════════════
+//  UPGRADE SELECT MODAL
+// ════════════════════════════════════════
+window.openUpgradeModal=async(petInstId)=>{
+    if(!currentUser||!userData){toast("กรุณา Login","error");return;}
+    let owned=userData?.pets||[];
+    // หา mainPet: ลอง match instId ก่อน แล้ว fallback id
+    let mainPet=owned.find(x=>x.instId&&String(x.instId)===String(petInstId))
+        ||owned.find(x=>!x.instId&&x.id===petInstId)
+        ||owned.find(x=>x.id===petInstId);
+    if(!mainPet){toast("ไม่พบสัตว์เลี้ยง","error");return;}
+    // ถ้า pet (หรือใครก็ตาม) ยังไม่มี instId → patch ทั้งหมดก่อน
+    if(owned.some(p=>!p.instId)){
+        const patchPets=owned.map(p=>({...p,instId:p.instId||(Date.now()+'_'+Math.random().toString(36).slice(2,8))}));
+        await updateDoc(doc(db,"users",currentUser.uid),{pets:patchPets});
+        // รอ snapshot update — ใช้ patchPets ทำงานต่อทันที
+        owned=patchPets;
+        // หา mainPet ใหม่จาก patched list (match ด้วย id เพราะ instId เพิ่งเปลี่ยน)
+        const origId=mainPet.id;
+        mainPet=patchPets.find(p=>p.id===origId&&p.instId)||(patchPets.find(p=>p.id===origId));
+        if(!mainPet){toast("เกิดข้อผิดพลาด","error");return;}
+    }
+    const cfg=RARITY[mainPet.rarity];
+    const grade=mainPet.grade||0;
+    if(grade>=5){toast("Max Grade แล้ว!","info");return;}
+    const nextGrade=grade+1;
+    const needed=GRADE_COPIES[nextGrade];
+    // สัตว์เดียวกันที่ไม่ใช่ตัวหลัก
+    const candidates=owned.filter(x=>x.id===mainPet.id&&String(x.instId)!==String(mainPet.instId));
+    window.__upgradeState={mainInstId:String(mainPet.instId),selected:[],needed,petId:mainPet.id};
+    renderUpgradeModal(mainPet,candidates,cfg,nextGrade);
+    document.getElementById('upgrade-modal').classList.add('active');
+};
+window.closeUpgradeModal=()=>{
+    window.__upgradeState=null;
+    document.getElementById('upgrade-modal').classList.remove('active');
+};
+
+function renderUpgradeModal(mainPet,candidates,cfg,nextGrade){
+    const state=window.__upgradeState;
+    const selCount=state.selected.length;
+    const canConfirm=selCount>=state.needed;
+    document.getElementById('upgrade-content').innerHTML=`
+        <div style="text-align:center;margin-bottom:12px">
+            <div style="font-size:2.4rem">${mainPet.emoji}</div>
+            <div style="font-weight:800;font-size:1rem">${mainPet.name}</div>
+            <div style="font-size:0.76rem;color:var(--muted)">
+                Grade ${mainPet.grade>0?GRADE_LABELS[mainPet.grade]:'base'} → <b style="color:${cfg.color}">Grade ${GRADE_LABELS[nextGrade]}</b>
+            </div>
+            <div style="margin-top:6px;font-size:0.84rem">
+                เลือก <b style="color:${cfg.color}">${selCount}/${state.needed}</b> ตัวเพื่อ consume
+            </div>
+            <div style="background:${cfg.bg};border-radius:8px;padding:5px 10px;font-size:0.76rem;margin-top:4px;display:inline-block">
+                Daily จะเพิ่มเป็น <b>+${RARITY[mainPet.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน</b>
+            </div>
+        </div>
+        ${candidates.length===0
+            ?`<div style="text-align:center;color:var(--muted);padding:16px;font-size:0.84rem">ไม่มี ${mainPet.name} สำรองในกระเป๋า<br><span style="font-size:0.74rem">ต้องการ ${state.needed} ตัวเพิ่ม</span></div>`
+            :`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;margin-bottom:12px">
+                ${candidates.map(c=>{
+                    const isSel=state.selected.includes(String(c.instId));
+                    const grade=c.grade||0;
+                    return`<div onclick="toggleUpgradeSelect('${c.instId}')"
+                        style="background:${isSel?cfg.color+'22':'#f8fafc'};border:2px solid ${isSel?cfg.color:'var(--border)'};border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;transition:.15s;position:relative">
+                        <div style="font-size:1.4rem">${mainPet.emoji}</div>
+                        <div style="font-size:0.6rem;font-weight:700;margin-top:2px">${grade>0?'Grade '+GRADE_LABELS[grade]:'base'}</div>
+                        <div style="font-size:0.55rem;color:var(--muted)">+${petDailyCoins(c)}🪙</div>
+                        ${isSel?`<div style="position:absolute;top:-5px;right:-5px;background:${cfg.color};color:#fff;width:16px;height:16px;border-radius:50%;font-size:0.6rem;display:flex;align-items:center;justify-content:center;font-weight:800">✓</div>`:''}
+                    </div>`;
+                }).join('')}
+            </div>`}
+        <div style="display:flex;gap:7px">
+            <button class="btn-gold" style="flex:1" onclick="confirmUpgrade()" ${canConfirm?'':'disabled'}>
+                ✅ ยืนยัน (${selCount}/${state.needed})
+            </button>
+            <button class="btn-gray" style="flex:1" onclick="closeUpgradeModal()">ยกเลิก</button>
+        </div>`;
+}
+
+window.toggleUpgradeSelect=(instId)=>{
+    const state=window.__upgradeState;if(!state)return;
+    const sid=String(instId);
+    const idx=state.selected.indexOf(sid);
+    if(idx>=0){state.selected.splice(idx,1);}
+    else if(state.selected.length<state.needed){state.selected.push(sid);}
+    else{toast(`เลือกได้แค่ ${state.needed} ตัว`,"info");return;}
+    // re-render
+    const owned=userData?.pets||[];
+    const mainPet=owned.find(x=>String(x.instId)===String(state.mainInstId));
+    const cfg=RARITY[mainPet.rarity];
+    const grade=mainPet.grade||0;
+    const candidates=owned.filter(x=>x.id===mainPet.id&&String(x.instId)!==String(state.mainInstId));
+    renderUpgradeModal(mainPet,candidates,cfg,grade+1);
+};
+
+window.confirmUpgrade=async()=>{
+    const state=window.__upgradeState;if(!state){toast("state หาย reload ใหม่","error");return;}
+    if(state.selected.length<state.needed){toast(`เลือกไม่ครบ (${state.selected.length}/${state.needed})`,"error");return;}
+    if(!currentUser||!userData)return;
+    const pets=[...(userData.pets||[])];
+    // ลบ selected copies ออก
+    const toRemove=new Set(state.selected);
+    const newPets=pets.filter(p=>!toRemove.has(String(p.instId)));
+    // อัพ grade ของตัวหลัก
+    const mainIdx=newPets.findIndex(p=>String(p.instId)===String(state.mainInstId));
+    if(mainIdx<0){toast("เกิดข้อผิดพลาด","error");return;}
+    const newGrade=(newPets[mainIdx].grade||0)+1;
+    newPets[mainIdx]={...newPets[mainIdx],grade:newGrade};
+    await updateDoc(doc(db,"users",currentUser.uid),{pets:newPets});
+    closeUpgradeModal();
+    const pet=newPets[mainIdx];
+    toast(`${pet.emoji} อัพ Grade ${GRADE_LABELS[newGrade]}! Daily +${RARITY[pet.rarity].dailyBase*GRADE_MULTI[newGrade]}🪙/วัน`,"success");
+    confetti({particleCount:120,spread:70,origin:{y:0.5}});
 };
 
 // ════════════════════════════════════════
@@ -893,7 +1088,7 @@ function showDuplicatePopup(newPet,existing){
                 <br>Daily จะเพิ่มเป็น <b>${RARITY[newPet.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน</b>
             </div>
             <div class="gr-btns">
-                <button class="btn-gold" onclick="upgradePet('${existing.instId}');closeGacha()" ${canUpgradeNow?'':'disabled'}>⬆ อัพ Grade ${GRADE_LABELS[nextGrade]}!</button>
+                <button class="btn-gold" onclick="closeGacha();openUpgradeModal('${existing.instId}')" ${canUpgradeNow?'':'disabled'}>⬆ อัพ Grade ${GRADE_LABELS[nextGrade]}!</button>
                 <button class="btn-gray" onclick="closeGacha()">เก็บไว้ก่อน</button>
             </div>`:`<div style="color:var(--gold);font-weight:700;margin-top:8px">🏆 Max Grade V แล้ว!</div>
             <button class="btn-gray" style="margin-top:8px" onclick="closeGacha()">โอเค</button>`}
@@ -901,27 +1096,7 @@ function showDuplicatePopup(newPet,existing){
     document.getElementById('gacha-modal').classList.add('active');
     confetti({particleCount:40,spread:60,origin:{y:0.5},colors:[cfg.color]});
 }
-window.upgradePet=async(instId)=>{
-    if(!currentUser||!userData)return;
-    const pets=[...(userData.pets||[])];
-    const idx=pets.findIndex(p=>String(p.instId)===String(instId));if(idx<0){toast('ไม่พบสัตว์เลี้ยง','error');return;}
-    const pet=pets[idx];
-    const curGrade=pet.grade||0;if(curGrade>=5)return;
-    const nextGrade=curGrade+1;
-    const needed=GRADE_COPIES[nextGrade]; // จำนวน copies ที่ต้อง consume (ไม่นับตัวหลัก)
-    const copies=pets.filter(p=>p.id===pet.id);
-    // ต้องมี: ตัวหลัก 1 + copies ที่จะ consume = needed+1 ตัวรวม
-    if(copies.length<needed+1){toast(`ต้องการ copies อีก ${needed+1-copies.length} ตัว!`,"error");return;}
-    // ลบ copies ที่ใช้อัพ (ไม่ลบตัวที่ upgrade — ลบ needed ตัว)
-    let removed=0;const newPets=pets.filter(p=>{
-        if(p.id===pet.id&&String(p.instId)!==String(instId)&&removed<needed){removed++;return false;}
-        return true;
-    });
-    newPets[newPets.findIndex(p=>String(p.instId)===String(instId))].grade=nextGrade;
-    await updateDoc(doc(db,"users",currentUser.uid),{pets:newPets});
-    toast(`${pet.emoji} อัพ Grade ${GRADE_LABELS[nextGrade]}! Daily +${RARITY[pet.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน`,"success");
-    confetti({particleCount:100,spread:70,origin:{y:0.5}});
-};
+// upgradePet ถูกแทนที่ด้วย openUpgradeModal + confirmUpgrade แล้ว
 
 function showGachaResult(pet){
     const cfg=RARITY[pet.rarity];
@@ -945,10 +1120,21 @@ window.closeGacha=()=>document.getElementById('gacha-modal').classList.remove('a
 window.setActive=async(id)=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:id});toast("เปลี่ยนสัตว์เลี้ยงแล้ว!","success");loadFbUsers();};
 window.unsetActive=async()=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:null});toast("เก็บสัตว์เลี้ยงแล้ว","info");loadFbUsers();};
 
-window.showPetInfo=(petInstId)=>{
+window.showPetInfo=async(petInstId)=>{
     const owned=userData?.pets||[];
-    const p=owned.find(x=>String(x.instId)===String(petInstId))||owned.find(x=>x.id===petInstId);
+    const p=owned.find(x=>x.instId&&String(x.instId)===String(petInstId))
+        ||owned.find(x=>x.id===petInstId);
     if(!p)return;
+    // patch instId ถ้า pet เก่าไม่มี
+    if(!p.instId&&currentUser){
+        p.instId=Date.now()+'_'+Math.random().toString(36).slice(2,8);
+        const patched=owned.map(q=>{
+            if(q===p)return{...q,instId:p.instId};
+            if(!q.instId)return{...q,instId:Date.now()+'_'+Math.random().toString(36).slice(2,8)};
+            return q;
+        });
+        await updateDoc(doc(db,"users",currentUser.uid),{pets:patched});
+    }
     const cfg=RARITY[p.rarity];
     const grade=p.grade||0;
     const daily=petDailyCoins(p);
@@ -985,9 +1171,7 @@ window.showPetInfo=(petInstId)=>{
             +`<div style="margin-bottom:3px">ต้องการ copies อีก <b>${neededForNext}</b> ตัว · มีอยู่ <b>${copiesOwned-1}</b> ตัว</div>`
             +`<div style="color:${cfg.color};font-weight:600">Daily จะเป็น +${RARITY[p.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน</div>`
             +(!canUpgrade?`<div style="color:#94a3b8;font-size:0.73rem;margin-top:3px">ต้องการอีก ${totalNeeded-copiesOwned} ตัวเพื่ออัพ</div>`:''))
-        +`<button class="btn-gold full" style="margin-top:8px" onclick="upgradePet('${p.instId||p.id}');closePetInfo()" ${canUpgrade?'':'disabled'}>`
-        +(isMax?'⬆ อัพเกรด (Max)':'⬆ อัพ Grade '+GRADE_LABELS[nextGrade])
-        +'</button>'
+        +`<button class="btn-gold full" style="margin-top:8px" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${isMax?'disabled':''}>⬆ อัพ Grade ${isMax?'(Max)':GRADE_LABELS[nextGrade]}</button>`
         +'</div></div>';
     const activeLabel=isActive?"🔴 เอาออก":"🟢 ใช้งาน";
     const activeAction=isActive?'unsetActive()':'setActive(\''+p.id+'\')';
@@ -1178,7 +1362,7 @@ function buildHome(){
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap">
             <div class="coin-pill" onclick="switchTab('shop')">🪙 ${(userData.coins||0).toLocaleString()}</div>
-            <button id="daily-btn" class="btn-daily" onclick="claimDaily()" title="Daily reward">
+            <button id="daily-btn" class="btn-daily" onclick="openDailyModal()" title="Daily reward">
                 🎁 ${(()=>{const d=calcTotalDaily(userData?.pets||[]);const e=activeExtraDaily();return d.total+e;})()}🪙
             </button>
             <button class="btn-out" style="width:auto;padding:6px 14px" onclick="logoutUser()">ออกจากระบบ</button>
