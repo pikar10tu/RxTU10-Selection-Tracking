@@ -75,10 +75,10 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .btn-daily.ready{background:rgba(16,185,129,.3);border-color:#10b981;animation:pulse 2s ease infinite;color:#a7f3d0;}
 .btn-out-hero{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);padding:7px 11px;border-radius:20px;font-family:inherit;font-size:0.76rem;cursor:pointer;margin-left:auto;}
 /* hero stats strip */
-.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);background:rgba(0,0,0,.2);border-top:1px solid rgba(255,255,255,.07);}
-.hs-cell{padding:10px 6px;text-align:center;}
-.hs-cell b{display:block;font-size:1rem;font-weight:800;color:#fff;}
-.hs-cell small{font-size:0.62rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.5px;}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);background:#0a0f2e;border-top:1px solid rgba(255,255,255,.1);}
+.hs-cell{padding:11px 6px;text-align:center;}
+.hs-cell b{display:block;font-size:1.05rem;font-weight:800;color:#fff;}
+.hs-cell small{font-size:0.62rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;}
 /* track pill */
 .track-badge{padding:3px 8px;border-radius:5px;color:#fff;font-size:0.58rem;font-weight:700;text-transform:uppercase;}
 .track-badge.sm{font-size:0.54px;padding:2px 6px;}
@@ -461,31 +461,31 @@ const BADGE_EFFECTS = {
 // PETS pool — flexible เพิ่มตัวได้ตลอด
 // eggTypes: ['normal'] | ['gold'] | ['rainbow'] | ['normal','gold'] ฯลฯ
 const PETS = [
-    // ── COMMON (rate รวม 0.70 ของ normal egg) ──
-    { id:"cat",       emoji:"🐱", name:"น้องแมว",    rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.20,gold:0,rainbow:0}, hatchMins:5    },
-    { id:"rabbit",    emoji:"🐰", name:"กระต่าย",   rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.15,gold:0,rainbow:0}, hatchMins:5    },
-    { id:"hamster",   emoji:"🐹", name:"แฮมสเตอร์", rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.12,gold:0,rainbow:0}, hatchMins:5    },
-    { id:"frog",      emoji:"🐸", name:"กบน้อย",    rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.10,gold:0,rainbow:0}, hatchMins:5    },
-    { id:"penguin",   emoji:"🐧", name:"เพนกวิน",   rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.07,gold:0,rainbow:0}, hatchMins:5    },
-    { id:"hedgehog",  emoji:"🦔", name:"เม่น",       rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.04,gold:0,rainbow:0}, hatchMins:5    },
-    { id:"mouse",     emoji:"🐭", name:"หนูน้อย",   rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.015,gold:0,rainbow:0},hatchMins:5    },
-    { id:"chick",     emoji:"🐣", name:"ลูกไก่",    rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          rate:{normal:0.025,gold:0,rainbow:0},hatchMins:5    },
-    // ── RARE (rate รวม 0.30 ของ normal / 0.55 ของ gold) ──
-    { id:"fox",       emoji:"🦊", name:"จิ้งจอก",   rarity:"rare",      effect:"coin+10",       activeDesc:"+10% เหรียญจากเกม",           rate:{normal:0.08,gold:0.12,rainbow:0},   hatchMins:60   },
-    { id:"owl",       emoji:"🦉", name:"นกฮูก",     rarity:"rare",      effect:"score+3",       activeDesc:"+3 คะแนนต่อข้อใน Quiz",       rate:{normal:0.06,gold:0.11,rainbow:0},   hatchMins:60   },
-    { id:"panda",     emoji:"🐼", name:"แพนด้า",    rarity:"rare",      effect:"coin+15",       activeDesc:"+15% เหรียญจากเกม",           rate:{normal:0.05,gold:0.10,rainbow:0},   hatchMins:60   },
-    { id:"butterfly", emoji:"🦋", name:"ผีเสื้อ",   rarity:"rare",      effect:"daily+20",      activeDesc:"+20 daily bonus พิเศษ",        rate:{normal:0.04,gold:0.09,rainbow:0},   hatchMins:60   },
-    { id:"wolf",      emoji:"🐺", name:"หมาป่า",    rarity:"rare",      effect:"scorex1.5",     activeDesc:"คะแนน Quiz ×1.5",              rate:{normal:0.03,gold:0.08,rainbow:0},   hatchMins:60   },
-    { id:"peacock",   emoji:"🦚", name:"นกยูง",     rarity:"rare",      effect:"gold_badge",    activeDesc:"ป้ายโปรไฟล์สีทอง ✨",          rate:{normal:0.02,gold:0.05,rainbow:0},   hatchMins:60   },
-    // ── EPIC (rate รวม 0 ของ normal / 0.40 ของ gold / 0.55 ของ rainbow) ──
-    { id:"dragon",    emoji:"🐲", name:"มังกรน้อย", rarity:"epic",      effect:"coinx2",        activeDesc:"เหรียญจากเกม ×2",              rate:{normal:0,gold:0.13,rainbow:0.16},  hatchMins:180  },
-    { id:"unicorn",   emoji:"🦄", name:"ยูนิคอร์น", rarity:"epic",      effect:"scorex2",       activeDesc:"คะแนน Quiz ×2",                rate:{normal:0,gold:0.11,rainbow:0.14},  hatchMins:180  },
-    { id:"phoenix",   emoji:"🦅", name:"ฟีนิกซ์",  rarity:"epic",      effect:"daily+50",      activeDesc:"+50 daily bonus พิเศษ",        rate:{normal:0,gold:0.09,rainbow:0.13},  hatchMins:180  },
-    { id:"spirit",    emoji:"🧿", name:"วิญญาณ",    rarity:"epic",      effect:"coinx2score+5", activeDesc:"เหรียญ ×2 + คะแนน +5/ข้อ",    rate:{normal:0,gold:0.07,rainbow:0.12},  hatchMins:180  },
-    // ── LEGENDARY (rate 0 / 0.05 gold / 0.45 rainbow) ──
-    { id:"celestial", emoji:"🌟", name:"เซเลสเชียล",rarity:"legendary", effect:"rainbow_badge", activeDesc:"ป้ายรุ้ง 🌈 + daily +100",     rate:{normal:0,gold:0.02,rainbow:0.18},  hatchMins:1440 },
-    { id:"bahamut",   emoji:"🐉", name:"พาฮามุท",   rarity:"legendary", effect:"coinx3scorex2", activeDesc:"เหรียญ ×3 + คะแนน ×2",         rate:{normal:0,gold:0.02,rainbow:0.15},  hatchMins:1440 },
-    { id:"kirin",     emoji:"🦁", name:"ไคริน",     rarity:"legendary", effect:"kirin_badge",   activeDesc:"ป้ายทอง 👑 + เหรียญ ×2 + daily +80", rate:{normal:0,gold:0.01,rainbow:0.12}, hatchMins:1440 },
+    // ── COMMON ──
+    { id:"cat",       emoji:"🐱", name:"น้องแมว",    rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"เพื่อนซี้ประจำห้องยา ชอบนั่งบนตำราและทำตัวเป็นที่ปรึกษา",                    rate:{normal:0.20,gold:0,rainbow:0}, hatchMins:5    },
+    { id:"rabbit",    emoji:"🐰", name:"กระต่าย",   rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"กระโดดไปมาระหว่าง Sci กับ Care ได้อย่างคล่องแคล่ว",                           rate:{normal:0.15,gold:0,rainbow:0}, hatchMins:5    },
+    { id:"hamster",   emoji:"🐹", name:"แฮมสเตอร์", rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"เก็บสะสมแคปซูลยาไว้เต็มแก้มทั้งสองข้าง",                                     rate:{normal:0.12,gold:0,rainbow:0}, hatchMins:5    },
+    { id:"frog",      emoji:"🐸", name:"กบน้อย",    rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"อาศัยอยู่ในห้องน้ำยาสมุนไพร ชอบนั่งดูน้ำต้มยา",                              rate:{normal:0.10,gold:0,rainbow:0}, hatchMins:5    },
+    { id:"penguin",   emoji:"🐧", name:"เพนกวิน",   rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"แต่งตัวด้วยชุดขาวดำเหมือนเภสัชกรทุกวัน",                                     rate:{normal:0.07,gold:0,rainbow:0}, hatchMins:5    },
+    { id:"hedgehog",  emoji:"🦔", name:"เม่น",       rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"ป้องกันตัวเองด้วยหนามเหมือนยา NSAIDs ป้องกัน COX",                            rate:{normal:0.04,gold:0,rainbow:0}, hatchMins:5    },
+    { id:"mouse",     emoji:"🐭", name:"หนูน้อย",   rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"อาสาเป็น lab model ทดสอบยาทุกชนิดด้วยใจกล้า",                                 rate:{normal:0.015,gold:0,rainbow:0},hatchMins:5    },
+    { id:"chick",     emoji:"🐣", name:"ลูกไก่",    rarity:"common",    effect:"none",          activeDesc:"ไม่มี effect พิเศษ",          flavor:"เพิ่งฟักออกมา ยังต้องเรียนรู้เรื่องยาอีกเยอะ",                                rate:{normal:0.025,gold:0,rainbow:0},hatchMins:5    },
+    // ── RARE ──
+    { id:"fox",       emoji:"🦊", name:"จิ้งจอก",   rarity:"rare",      effect:"coin+10",       activeDesc:"+10% เหรียญจากเกม",           flavor:"จมูกไว ได้กลิ่น drug interaction ก่อนใคร",                                   rate:{normal:0.08,gold:0.12,rainbow:0},   hatchMins:60   },
+    { id:"owl",       emoji:"🦉", name:"นกฮูก",     rarity:"rare",      effect:"score+3",       activeDesc:"+3 คะแนนต่อข้อใน Quiz",       flavor:"ตื่นอยู่ทั้งคืนอ่านตำราเหมือนนักศึกษาก่อน final",                           rate:{normal:0.06,gold:0.11,rainbow:0},   hatchMins:60   },
+    { id:"panda",     emoji:"🐼", name:"แพนด้า",    rarity:"rare",      effect:"coin+15",       activeDesc:"+15% เหรียญจากเกม",           flavor:"กินไผ่เหมือนกินยา TCM ได้ตลอดวัน",                                           rate:{normal:0.05,gold:0.10,rainbow:0},   hatchMins:60   },
+    { id:"butterfly", emoji:"🦋", name:"ผีเสื้อ",   rarity:"rare",      effect:"daily+20",      activeDesc:"+20 daily bonus พิเศษ",        flavor:"บินผ่านสวน herbal ได้ทุกเช้า นำพา bonus มาให้",                              rate:{normal:0.04,gold:0.09,rainbow:0},   hatchMins:60   },
+    { id:"wolf",      emoji:"🐺", name:"หมาป่า",    rarity:"rare",      effect:"scorex1.5",     activeDesc:"คะแนน Quiz ×1.5",              flavor:"เป็นผู้นำ pack กระตุ้นทีมให้ตอบ MCQ ได้เร็วขึ้น",                            rate:{normal:0.03,gold:0.08,rainbow:0},   hatchMins:60   },
+    { id:"peacock",   emoji:"🦚", name:"นกยูง",     rarity:"rare",      effect:"gold_badge",    activeDesc:"ป้ายโปรไฟล์สีทอง ✨",          flavor:"แผ่หางโชว์เหมือนเปิดตำราพร้อม counsel ผู้ป่วย",                             rate:{normal:0.02,gold:0.05,rainbow:0},   hatchMins:60   },
+    // ── EPIC ──
+    { id:"dragon",    emoji:"🐲", name:"มังกรน้อย", rarity:"epic",      effect:"coinx2",        activeDesc:"เหรียญจากเกม ×2",              flavor:"หายใจพ่นไฟ pyrolyze สิ่งเจือปนในยาได้ทันที",                                 rate:{normal:0,gold:0.13,rainbow:0.16},  hatchMins:180  },
+    { id:"unicorn",   emoji:"🦄", name:"ยูนิคอร์น", rarity:"epic",      effect:"scorex2",       activeDesc:"คะแนน Quiz ×2",                flavor:"เขาเป็น magic wand สำหรับ compounding pharmacy",                              rate:{normal:0,gold:0.11,rainbow:0.14},  hatchMins:180  },
+    { id:"phoenix",   emoji:"🦅", name:"ฟีนิกซ์",  rarity:"epic",      effect:"daily+50",      activeDesc:"+50 daily bonus พิเศษ",        flavor:"ฟื้นจากเถ้าได้เหมือนยา antidote ช่วยชีวิตผู้ป่วย",                          rate:{normal:0,gold:0.09,rainbow:0.13},  hatchMins:180  },
+    { id:"spirit",    emoji:"🧿", name:"วิญญาณ",    rarity:"epic",      effect:"coinx2score+5", activeDesc:"เหรียญ ×2 + คะแนน +5/ข้อ",    flavor:"แฝงอยู่ใน active ingredient ของทุกยา invisible แต่ powerful",               rate:{normal:0,gold:0.07,rainbow:0.12},  hatchMins:180  },
+    // ── LEGENDARY ──
+    { id:"celestial", emoji:"🌟", name:"เซเลสเชียล",rarity:"legendary", effect:"rainbow_badge", activeDesc:"ป้ายรุ้ง 🌈 + daily +100",     flavor:"เกิดจากการรวมพลังของ 7 กลุ่มยาในตำรา WHO Essential Medicines",              rate:{normal:0,gold:0.02,rainbow:0.18},  hatchMins:1440 },
+    { id:"bahamut",   emoji:"🐉", name:"พาฮามุท",   rarity:"legendary", effect:"coinx3scorex2", activeDesc:"เหรียญ ×3 + คะแนน ×2",         flavor:"มังกรแห่ง Pharmacopoeia ผู้รักษา knowledge ของโลกยาทั้งใบ",               rate:{normal:0,gold:0.02,rainbow:0.15},  hatchMins:1440 },
+    { id:"kirin",     emoji:"🦁", name:"ไคริน",     rarity:"legendary", effect:"kirin_badge",   activeDesc:"ป้ายทอง 👑 + เหรียญ ×2 + daily +80", flavor:"สัตว์ศักดิ์สิทธิ์แห่งวิชาเภสัช ปรากฏตัวเมื่อมีเภสัชกรผู้ยิ่งใหญ่", rate:{normal:0,gold:0.01,rainbow:0.12}, hatchMins:1440 },
 ];
 const HATCH_LABELS = { common:"5 นาที", rare:"1 ชั่วโมง", epic:"3 ชั่วโมง", legendary:"24 ชั่วโมง" };
 // ไข่ 3 ระดับ + instant hatch
@@ -832,7 +832,12 @@ window.confirmUpgrade=async()=>{
 // ════════════════════════════════════════
 //  HELPERS
 // ════════════════════════════════════════
-function activePet(){if(!userData?.activePet||!userData?.pets)return null;return userData.pets.find(p=>p.id===userData.activePet)||null;}
+function activePet(){
+    if(!userData?.activePet||!userData?.pets)return null;
+    // ลอง match instId ก่อน (ใหม่) แล้ว fallback id (legacy)
+    return userData.pets.find(p=>p.instId&&String(p.instId)===String(userData.activePet))
+        ||userData.pets.find(p=>p.id===userData.activePet)||null;
+}
 function coinMulti(){const p=activePet();if(!p)return 1;
     const e=p.effect;
     if(e==='coin+10')return 1.1;if(e==='coin+15')return 1.15;
@@ -1177,9 +1182,9 @@ function showGachaResult(pet){
             <div class="gr-badge" style="background:${cfg.color}">${cfg.label}</div>
             <div class="gr-emoji">${pet.emoji}</div>
             <div class="gr-name">${pet.name}</div>
-            <div class="gr-desc">${pet.activeDesc||''}</div>
+            <div class="gr-desc">${(()=>{const def=PETS.find(x=>x.id===pet.id);return def?.flavor||pet.activeDesc||'';})()}</div>
             <div class="gr-btns">
-                <button class="btn-gold" onclick="setActive('${pet.id}');closeGacha()">ใช้งานเลย!</button>
+                <button class="btn-gold" onclick="setActive('${pet.instId||pet.id}');closeGacha()">ใช้งานเลย!</button>
                 <button class="btn-gray" onclick="closeGacha()">เก็บไว้ก่อน</button>
             </div>
         </div>`;
@@ -1189,7 +1194,7 @@ function showGachaResult(pet){
 }
 window.closeGacha=()=>document.getElementById('gacha-modal').classList.remove('active');
 
-window.setActive=async(id)=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:id});toast("เปลี่ยนสัตว์เลี้ยงแล้ว!","success");loadFbUsers();};
+window.setActive=async(instId)=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:String(instId)});toast("เปลี่ยนสัตว์เลี้ยงแล้ว!","success");loadFbUsers();};
 window.unsetActive=async()=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:null});toast("เก็บสัตว์เลี้ยงแล้ว","info");loadFbUsers();};
 
 window.showPetInfo=async(petInstId)=>{
@@ -1217,7 +1222,7 @@ window.showPetInfo=async(petInstId)=>{
     // ต้องมีตัวหลัก + neededForNext copies = neededForNext+1 รวม
     const totalNeeded=isMax?0:neededForNext+1;
     const canUpgrade=!isMax&&copiesOwned>=totalNeeded;
-    const isActive=userData?.activePet===p.id;
+    const isActive=p.instId?String(userData?.activePet)===String(p.instId):userData?.activePet===p.id;
     const effectLabel=activeEffectLabel(p.effect||'none');
     const gradeHtml=grade>0?`<div class="gr-badge" style="background:#475569;margin-left:5px">Grade ${GRADE_LABELS[grade]}</div>`:'';
     document.getElementById('petinfo-content').innerHTML=
@@ -1227,7 +1232,8 @@ window.showPetInfo=async(petInstId)=>{
         +'</div>'
         +`<div style="font-size:3rem;margin:4px 0;filter:drop-shadow(0 0 10px ${cfg.glow})">${p.emoji}</div>`
         +`<div style="font-size:1.2rem;font-weight:800;margin-bottom:2px">${p.name}</div>`
-        +`<div style="font-size:0.76rem;color:var(--muted);margin-bottom:10px">ฟัก: ${HATCH_LABELS[p.rarity]||''} · มี ${copiesOwned} ตัว</div>`
+        +`<div style="font-size:0.76rem;color:var(--muted);margin-bottom:4px">ฟัก: ${HATCH_LABELS[p.rarity]||''} · มี ${copiesOwned} ตัว</div>`
+        +(()=>{const def=PETS.find(x=>x.id===p.id);return def?.flavor?`<div style="font-size:0.76rem;color:${cfg.color};font-style:italic;margin-bottom:10px;padding:6px 10px;background:${cfg.bg};border-radius:8px;border-left:3px solid ${cfg.color}44">"${def.flavor}"</div>`:'';})()
         +`<div style="background:${cfg.bg};border:1.5px solid ${cfg.color}33;border-radius:11px;padding:11px;font-size:0.84rem;margin-bottom:8px">`
         +'<div style="display:flex;justify-content:space-between;margin-bottom:5px">'
         +`<span>💰 Passive daily</span><b style="color:${cfg.color}">+${daily}🪙/วัน</b>`
@@ -1246,7 +1252,7 @@ window.showPetInfo=async(petInstId)=>{
         +`<button class="btn-gold full" style="margin-top:8px" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${isMax?'disabled':''}>⬆ อัพ Grade ${isMax?'(Max)':GRADE_LABELS[nextGrade]}</button>`
         +'</div></div>';
     const activeLabel=isActive?"🔴 เอาออก":"🟢 ใช้งาน";
-    const activeAction=isActive?'unsetActive()':'setActive(\''+p.id+'\')';
+    const activeAction=isActive?'unsetActive()':'setActive(\''+String(p.instId||p.id)+'\')';
     document.getElementById('petinfo-actions').innerHTML=
         `<button class="btn-gold" style="flex:1" onclick="${activeAction};closePetInfo()">${activeLabel}</button>`
         +`<button class="btn-gray" style="flex:1" onclick="closePetInfo()">ปิด</button>`;
@@ -1529,7 +1535,7 @@ function buildHome(){
         }).join('')}</div>`:''
 
     const invBlock=pets.length===0?`<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ฟักไข่ใน 🛒 Shop ก่อน!</div>`
-        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.id===userData?.activePet;const gr=p.grade||0;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg}" onclick="showPetInfo('${p.instId||p.id}')"><div class="inv-em">${p.emoji}</div><div class="inv-nm">${p.name}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}</div>`;}).join('')}</div>
+        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg}" onclick="showPetInfo('${p.instId||p.id}')"><div class="inv-em">${p.emoji}</div><div class="inv-nm">${p.name}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}</div>`;}).join('')}</div>
         <div style="display:flex;gap:7px;justify-content:center;margin-top:8px">
             ${userData?.activePet?`<button class="btn-gray sm" onclick="unsetActive()">เอาออก</button>`:''}
             ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
@@ -1583,6 +1589,7 @@ function memberGrid(){
                 ${petEmoji?`<div style="position:absolute;bottom:-3px;right:-3px;font-size:0.9rem;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))">${petEmoji}</div>`:''}
             </div>
             ${(()=>{if(!badge)return'<div class="mc-nick">'+s.nickname+'</div>';return'<div style="border-radius:7px;padding:1px 6px;font-size:0.82rem;font-weight:600;background:'+badge.bg+';border:1.5px solid '+badge.border+'">'+s.nickname+'</div>';})()}
+            ${petData?`<div style="font-size:0.58rem;color:${RARITY[petData.rarity]?.color||'#64748b'};font-weight:700">${petData.emoji} ${RARITY[petData.rarity]?.label||''}${(petData.grade||0)>0?' '+GRADE_LABELS[petData.grade||0]:''}</div>`:''}
             <div class="mc-id">${s.id}</div>
             <span class="track-badge sm" style="background:${tc}">${s.track.toUpperCase()}</span>
         </div>`;
