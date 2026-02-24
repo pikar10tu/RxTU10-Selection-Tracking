@@ -429,13 +429,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
     </div>
 </div>
 
-<!-- FLOWER MODAL -->
-<div class="modal-ov" id="flower-modal" onclick="if(event.target===this)closeFlowerModal()">
-    <div class="modal-box" style="text-align:center">
-        <button class="mclose" onclick="closeFlowerModal()">✕</button>
-        <div id="flower-content"></div>
-    </div>
-</div>
+
 
 
 <!-- BATTLE MODAL -->
@@ -464,7 +458,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot,
-         collection, getDocs, increment, serverTimestamp, arrayUnion, addDoc, orderBy, query, limit, deleteDoc, writeBatch }
+         collection, getDocs, increment, serverTimestamp, arrayUnion, addDoc, orderBy, query, limit, deleteDoc }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -592,9 +586,7 @@ const EGG_TYPES = {
 const INSTANT_COST = 100;
 const MEGA_COST = 25;
 const ADMIN_EMAIL = 'prawich.aum@dome.tu.ac.th';
-const FLOWERS = [
-    { id:'sakura', emoji:'🌸', name:'ดอกไม้', cost:10, desc:'มอบความนิยมให้ผู้เล่นอื่น' },
-];
+
 
 /** rollPetFromEgg(eggType) → pet object with instId
  *  eggType: 'normal' | 'gold' | 'rainbow'
@@ -704,7 +696,6 @@ async function loadFbUsers() {
                 drugHigh:x.drugHigh,
                 activePet:x.activePet,
                 pets:x.pets,
-                flowersReceived:x.flowersReceived,
                 email:x.email,
                 googlePhoto:x.googlePhoto,
                 // thumb: ถ้ามีใช้ thumb, ถ้าไม่มีใช้ full (compat เก่า)
@@ -757,7 +748,7 @@ window.logoutUser=()=>{
  *  eggs: [{eggId, eggType, petId, petEmoji, petName, petRarity, petInstId, hatchMins, startedAt}]
  *  activePet: instId string | null
  *  lastDaily: Timestamp | null
- *  flowerInv: {sakura: number, ...} | flowersReceived: {...} */
+ */
 async function ensureDoc(u){
     const ref=doc(db,"users",u.uid);const snap=await getDoc(ref);
     if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:200,pets:[],eggs:[],activePet:null,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,lastDaily:null,createdAt:serverTimestamp()});
@@ -1068,88 +1059,6 @@ window.sendMegaphone=async()=>{
     toast("ส่งข้อความแล้ว! 📣","success");
 };
 
-// ════════════════════════════════════════
-//  FLOWERS
-// ════════════════════════════════════════
-window.buyFlower=async(flowerId)=>{
-    if(!currentUser||!userData){toast("กรุณา Login","error");return;}
-    const f=FLOWERS.find(x=>x.id===flowerId);if(!f)return;
-    if((userData.coins||0)<f.cost){toast(`เหรียญไม่พอ! ต้องการ ${f.cost}🪙`,"error");return;}
-    const inv={...(userData.flowerInv||{})};
-    inv[flowerId]=(inv[flowerId]||0)+1;
-    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(-f.cost),flowerInv:inv});
-    toast(`${f.emoji} ได้ ${f.name} แล้ว! มี ${inv[flowerId]} ดอก`,"success");
-};
-
-window.openFlowerModal=(targetStudentId)=>{
-    // targetStudentId = student id (ไม่ใช่ uid)
-    if(!currentUser){toast("กรุณา Login","error");return;}
-    const inv=userData?.flowerInv||{};
-    const hasAny=FLOWERS.some(f=>(inv[f.id]||0)>0);
-    const s=window.__students?.find(x=>x.id===targetStudentId);
-    const name=s?.nickname||targetStudentId;
-    document.getElementById('flower-content').innerHTML=`
-        <div style="font-size:2rem;margin-bottom:6px">💐</div>
-        <div style="font-weight:800;font-size:1rem;margin-bottom:4px">มอบดอกไม้ให้ ${name}</div>
-        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:12px">ดอกไม้ที่มอบจะนับเป็นความนิยม ไม่สามารถส่งต่อได้</div>
-        ${hasAny?FLOWERS.map(f=>{
-            const cnt=inv[f.id]||0;
-            return`<div style="display:flex;align-items:center;gap:10px;padding:9px;border-radius:10px;background:var(--bg);margin-bottom:7px">
-                <div style="font-size:1.8rem">${f.emoji}</div>
-                <div style="flex:1;text-align:left">
-                    <div style="font-weight:700;font-size:0.9rem">${f.name}</div>
-                    <div style="font-size:0.72rem;color:var(--muted)">${f.desc} · มี <b>${cnt}</b> ดอก</div>
-                </div>
-                <button class="btn-gold sm" onclick="giveFlower('${targetStudentId}','${f.id}')" ${cnt>0?'':'disabled'}>มอบ ${f.emoji}</button>
-            </div>`;
-        }).join(''):`<div style="color:var(--muted);font-size:0.84rem;padding:16px">ยังไม่มีดอกไม้ในมือ<br><span style="font-size:0.76rem">ซื้อได้ที่ 🛒 Shop</span></div>`}
-        <button class="btn-gray full" style="margin-top:8px" onclick="closeFlowerModal()">ปิด</button>`;
-    document.getElementById('flower-modal').classList.add('active');
-};
-window.closeFlowerModal=()=>document.getElementById('flower-modal').classList.remove('active');
-
-window.giveFlower=async(targetStudentId,flowerId)=>{
-    if(!currentUser||!userData)return;
-    const f=FLOWERS.find(x=>x.id===flowerId);if(!f)return;
-    const inv={...(userData.flowerInv||{})};
-    if((inv[flowerId]||0)<1){toast("ไม่มีดอกไม้แล้ว","error");return;}
-    // หา uid ของ target จาก __fbUsers
-    // ค้นหาทั้งใน student cache และ guest cache
-    const liveTarget=window.__fbUsers?.[targetStudentId]
-        ||(window.__guestUsers||[]).find(g=>g.studentId===targetStudentId);
-    if(!liveTarget?.uid){toast("ไม่พบผู้ใช้ หรือผู้รับยังไม่ได้ login","error");return;}
-    if(liveTarget.uid===currentUser.uid){toast("ให้ตัวเองไม่ได้นะ 😅","error");return;}
-    inv[flowerId]--;
-    // เพิ่ม flowersReceived ที่ target — ใช้ batch เพื่อ atomic (ทั้งคู่สำเร็จหรือล้มเหลวพร้อมกัน)
-    const tRef=doc(db,"users",liveTarget.uid);
-    const tSnap=await getDoc(tRef);if(!tSnap.exists())return;
-    const tData=tSnap.data();
-    const recv={...(tData.flowersReceived||{})};
-    recv[flowerId]=(recv[flowerId]||0)+1;
-    const batch=writeBatch(db);
-    batch.update(doc(db,"users",currentUser.uid),{flowerInv:inv});
-    batch.update(tRef,{flowersReceived:recv});
-    await batch.commit();
-    closeFlowerModal();
-    const sName=userData.nickname||userData.name||'?';
-    const tName=window.__students?.find(x=>x.id===targetStudentId)?.nickname||targetStudentId;
-    toast(`${f.emoji} มอบ ${f.name} ให้ ${tName} แล้ว!`,"success");
-    confetti({particleCount:60,spread:70,origin:{y:0.5},colors:['#f43f5e','#fb7185','#fda4af']});
-    await postNews(f.emoji,`${sName} มอบ ${f.name} ให้ ${tName}!`);
-    loadFbUsers();
-};
-
-// ════════════════════════════════════════
-//  CONFIRM HELPER
-// ════════════════════════════════════════
-function _confirm(msg){
-    return new Promise(resolve=>{
-        document.getElementById('confirm-msg').textContent=msg;
-        document.getElementById('confirm-ok').onclick=()=>{document.getElementById('confirm-modal').classList.remove('active');resolve(true);};
-        document.getElementById('confirm-cancel').onclick=()=>{document.getElementById('confirm-modal').classList.remove('active');resolve(false);};
-        document.getElementById('confirm-modal').classList.add('active');
-    });
-}
 
 // ════════════════════════════════════════
 //  ADMIN
@@ -1615,8 +1524,6 @@ function buildHome(){
     const badge=getActiveBadge();
     const activeDef=pet?PETS.find(x=>x.id===pet.id):null;const badgeClass=badge?({'gold_badge':'pet-badge-gold','rainbow_badge':'pet-badge-rainbow','kirin_badge':'pet-badge-kirin'}[activeDef?.effect]||''):'';
     const linked=userData?.studentId;
-    const flowerRecv=(()=>{const recv=userData?.flowersReceived||{};const t=Object.values(recv).reduce((a,b)=>a+b,0);return t>0?FLOWERS.filter(f=>(recv[f.id]||0)>0).map(f=>`${f.emoji}×${recv[f.id]}`).join(' '):''})();
-    const flowerInHand=(()=>{const inv=userData?.flowerInv||{};const t=Object.values(inv).reduce((a,b)=>a+b,0);return t>0?FLOWERS.filter(f=>(inv[f.id]||0)>0).map(f=>`${f.emoji}${inv[f.id]}`).join(''):'';})();
     const dailyTotal=calcTotalDaily(userData?.pets||[]).total;
     const profileBlock=linked?`
         <div class="home-hero" style="margin:-12px -12px 10px">
@@ -1632,8 +1539,6 @@ function buildHome(){
                         <div class="pc-id">${userData.studentId}</div>
                         <div style="display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap">
                             <span class="track-badge" style="background:${tc}">${userData.track?.toUpperCase()}</span>
-                            ${flowerRecv?`<span style="font-size:0.74rem;color:rgba(255,255,255,.7)">${flowerRecv}</span>`:''}
-                            ${flowerInHand?`<span style="font-size:0.68rem;color:rgba(255,255,255,.4)">มือ: ${flowerInHand}</span>`:''}
                         </div>
                     </div>
                 </div>
@@ -1878,25 +1783,7 @@ window.openProfileModal=(id)=>{
             <div class="pm-stat"><span>💊</span><b>${liveData.drugHigh||0}</b><small>Drug Hi</small></div>
         </div>`:''}
         <div style="margin-top:8px;text-align:left">${petShowcase}</div>`;
-    // เพิ่มปุ่มมอบดอกไม้ถ้าไม่ใช่โปรไฟล์ตัวเอง
-    if(currentUser && s.id !== userData?.studentId){
-        const flowerBtn=document.createElement('div');
-        flowerBtn.style.cssText='margin-top:10px';
-        flowerBtn.innerHTML=`<button class="btn-gold full" style="background:linear-gradient(135deg,#f43f5e,#fb7185)" onclick="openFlowerModal('${s.id}')">💐 มอบดอกไม้</button>`;
-        document.getElementById('pm-content').appendChild(flowerBtn);
-        // แสดงดอกไม้ที่ได้รับ
-        if(liveData?.flowersReceived){
-            const recv=liveData.flowersReceived;
-            const total=Object.values(recv).reduce((a,b)=>a+b,0);
-            if(total>0){
-                const flowerRow=document.createElement('div');
-                flowerRow.style.cssText='margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap';
-                flowerRow.innerHTML=FLOWERS.filter(f=>(recv[f.id]||0)>0).map(f=>`<span style="background:#fff5f5;border:1px solid #fca5a5;border-radius:16px;padding:3px 10px;font-size:0.78rem">
-                    ${f.emoji} ×${recv[f.id]}</span>`).join('');
-                document.getElementById('pm-content').appendChild(flowerRow);
-            }
-        }
-    }
+
     document.getElementById('profile-modal').classList.add('active');
 };
 window.closePM=()=>document.getElementById('profile-modal').classList.remove('active');
@@ -2131,22 +2018,7 @@ function buildShop(){
             </div>
         </div>
 
-        <div class="sec-head">💐 ดอกไม้</div>
-        <div class="card">
-            <div style="font-size:0.8rem;color:var(--muted);margin-bottom:10px">ซื้อเก็บไว้แล้วมอบให้ผู้เล่นอื่น — เพิ่มคะแนนความนิยม</div>
-            ${FLOWERS.map(f=>{
-                const cnt=(userData?.flowerInv||{})[f.id]||0;
-                const canBuy=!!currentUser&&(userData?.coins||0)>=f.cost;
-                return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
-                    <div style="font-size:1.8rem;flex-shrink:0">${f.emoji}</div>
-                    <div style="flex:1">
-                        <div style="font-weight:700;font-size:0.9rem">${f.name}</div>
-                        <div style="font-size:0.72rem;color:var(--muted)">${f.desc} · มีในมือ <b>${cnt}</b> ดอก</div>
-                    </div>
-                    <button class="btn-gold sm" onclick="buyFlower('${f.id}')" ${canBuy?'':'disabled'}>${f.cost}🪙</button>
-                </div>`;
-            }).join('')}
-        </div>
+
 
         <div class="sec-head">📣 ไอเทมพิเศษ</div>
         <div class="card">
