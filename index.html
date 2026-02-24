@@ -583,7 +583,7 @@ const HATCH_LABELS = { common:"1 นาที", rare:"5 นาที", epic:"15 
 const EGG_TYPES = {
     pet: { label:"🥚 ไข่สัตว์เลี้ยง", cost:150, desc:"Common 40% · Rare 30% · Epic 20% · Legendary 10%", color:"#10b981" },
 };
-const INSTANT_COST = 100;
+const INSTANT_COST = 100; // ราคาซื้อ Instant Hatch Ticket
 const MEGA_COST = 25;
 const ADMIN_EMAIL = 'prawich.aum@dome.tu.ac.th';
 
@@ -1181,16 +1181,29 @@ window.buyEgg=async(eggType='pet')=>{
     await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(-et.cost),eggs:arrayUnion(egg)});
     toast(`${et.label} ได้แล้ว! ไปฟักใน Inventory 🥚`,"success");
 };
+// ซื้อ Instant Hatch Ticket เก็บไว้ใช้ทีหลัง
 window.buyInstantHatch=async()=>{
     if(!currentUser||!userData){toast("กรุณา Login","error");return;}
-    const pendingEggs=(userData.eggs||[]).filter(e=>!e.startedAt);
-    if(!pendingEggs.length){toast("ไม่มีไข่ที่รอฟัก","info");return;}
     if(userData.coins<INSTANT_COST){toast(`เหรียญไม่พอ! ต้องการ ${INSTANT_COST}🪙`,"error");return;}
-    // ฟักไข่ใบแรกที่ยังไม่ได้เริ่มทันที
-    const egg=pendingEggs[0];
-    const newEggs=(userData.eggs||[]).map(e=>e.eggId===egg.eggId?{...e,startedAt:1,hatchMins:0}:e);
-    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(-INSTANT_COST),eggs:newEggs});
-    toast("⚡ ฟักทันที!","success");
+    const tickets=(userData.instantTickets||0)+1;
+    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(-INSTANT_COST),instantTickets:tickets});
+    toast(`⚡ ได้ Instant Hatch Ticket! มี ${tickets} ใบ`,"success");
+};
+
+// ใช้ ticket กับไข่ที่เลือก (เรียกจากหน้า Home)
+window.useInstantHatch=async(eggId)=>{
+    if(!currentUser||!userData)return;
+    const tickets=userData.instantTickets||0;
+    if(tickets<1){toast("ไม่มี Instant Hatch Ticket — ซื้อได้ที่ Shop 🛒","info");return;}
+    const egg=(userData.eggs||[]).find(e=>e.eggId===eggId);
+    if(!egg){toast("ไม่พบไข่","error");return;}
+    if(egg.startedAt && Date.now() >= egg.startedAt + egg.hatchMins*60000){
+        toast("ฟักเสร็จแล้ว! กดรับได้เลย","info");return;
+    }
+    // ฟักทันที: set startedAt=1, hatchMins=0
+    const newEggs=(userData.eggs||[]).map(e=>e.eggId===eggId?{...e,startedAt:1,hatchMins:0}:e);
+    await updateDoc(doc(db,"users",currentUser.uid),{instantTickets:tickets-1,eggs:newEggs});
+    toast(`⚡ ฟักทันที! เหลือ ticket ${tickets-1} ใบ`,"success");
 };
 
 window.startHatch=async(eggId)=>{
@@ -1638,18 +1651,29 @@ function buildHome(){
                     ${done?`<div style="font-size:0.72rem;color:var(--care);font-weight:600">✅ ฟักเสร็จ!</div>`:''}
                     ${!hatching?`<div style="font-size:0.67rem;color:var(--muted)">กดปุ่มเพื่อเริ่มฟัก</div>`:''}
                 </div>
-                ${done?`<button class="btn-gold sm" onclick="claimEgg('${egg.eggId}')">รับ!</button>`:!hatching?`<button class="btn-gray sm" onclick="startHatch('${egg.eggId}')">🔥 ฟัก</button>`:`<span style="font-size:1.1rem">⏳</span>`}
+                <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0">
+                    ${done
+                        ? `<button class="btn-gold sm" onclick="claimEgg('${egg.eggId}')">รับ!</button>`
+                        : !hatching
+                            ? `<button class="btn-gray sm" onclick="startHatch('${egg.eggId}')">🔥 ฟัก</button>`
+                            : `<span style="font-size:1.1rem">⏳</span>`
+                    }
+                    ${!done && (userData?.instantTickets||0)>0
+                        ? `<button onclick="useInstantHatch('${egg.eggId}')" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:7px;padding:3px 8px;color:#fff;font-size:0.68rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit">⚡ ใช้ ticket</button>`
+                        : ''
+                    }
+                </div>
             </div>`;
         }).join('')}</div>`:''
 
     const invBlock=pets.length===0?`<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ฟักไข่ใน 🛒 Shop ก่อน!</div>`
         :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg}" onclick="showPetInfo('${p.instId||p.id}')"><div class="inv-em">${p.emoji}</div><div class="inv-nm">${p.name}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${elEmoji?' '+elEmoji:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}</div>`;}).join('')}</div>
-        <div style="display:flex;gap:7px;justify-content:center;margin-top:8px">
+        <div style="display:flex;gap:7px;justify-content:center;margin-top:8px;flex-wrap:wrap">
             ${userData?.activePet?`<button class="btn-gray sm" onclick="unsetActive()">เอาออก</button>`:''}
             ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
             <button class="btn-gray sm" onclick="openMega()">📣 โทรโข่ง</button>
+            ${pets.length?`<button onclick="openBattle()" style="background:linear-gradient(135deg,#ef4444,#dc2626);border:none;border-radius:9px;padding:5px 12px;color:#fff;font-family:inherit;font-size:0.76rem;font-weight:700;cursor:pointer;white-space:nowrap">⚔️ ลองต่อสู้</button>`:''}
         </div>
-        ${pets.length?`<button onclick="openBattle()" style="margin-top:10px;width:100%;background:linear-gradient(135deg,#7f1d1d,#991b1b);border:1.5px solid rgba(239,68,68,.35);border-radius:12px;padding:10px;color:#fca5a5;font-family:inherit;font-size:0.84rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;letter-spacing:.3px">⚔️ Sandbox Battle</button>`:''}
 `;
 
     const collBtn=`<div style="text-align:center;margin-bottom:8px"><button id="coll-toggle-btn" onclick="toggleCollection()" style="background:linear-gradient(135deg,#1e293b,#0f172a);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:9px 20px;color:rgba(255,255,255,.75);font-size:0.82rem;font-weight:600;cursor:pointer;font-family:inherit;width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗂️ ดูคอลเลกชั่น <span style="font-size:0.68rem;color:rgba(255,255,255,.35)">${uniqueIds.length}/${PETS.length} สายพันธุ์</span></button></div><div id="collection-panel" style="display:none" class="card"></div>`;
@@ -2011,10 +2035,10 @@ function buildShop(){
             <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;align-items:center;gap:10px">
                 <div style="font-size:1.5rem;flex-shrink:0">⚡</div>
                 <div style="flex:1">
-                    <div style="font-weight:700;font-size:0.88rem">Instant Hatch</div>
-                    <div style="font-size:0.72rem;color:var(--muted)">ฟักไข่ที่รออยู่ทันที 1 ใบ${!pendingEgg?' · (ไม่มีไข่รอฟัก)':''}</div>
+                    <div style="font-weight:700;font-size:0.88rem">Instant Hatch Ticket</div>
+                    <div style="font-size:0.72rem;color:var(--muted)">ซื้อเก็บไว้ กดใช้ที่ไข่ใบไหนก็ได้ · มีอยู่ <b>${userData?.instantTickets||0}</b> ใบ</div>
                 </div>
-                <button class="btn-gold sm" onclick="buyInstantHatch()" ${currentUser&&coins>=INSTANT_COST&&pendingEgg?'':'disabled'}>${INSTANT_COST}🪙</button>
+                <button class="btn-gold sm" onclick="buyInstantHatch()" ${currentUser&&coins>=INSTANT_COST?'':'disabled'}>${INSTANT_COST}🪙</button>
             </div>
         </div>
 
