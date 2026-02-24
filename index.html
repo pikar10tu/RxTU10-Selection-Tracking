@@ -1649,17 +1649,22 @@ function buildHome(){
                 <div class="hs-cell"><b>${userData.drugHigh||0}</b><small>💊 Drug Hi</small></div>
             </div>
         </div>`
-        :`<div class="unlinked-card">
-            <div class="ul-left">
-                <img src="${myPhoto()}" class="ul-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
-                <div>
-                    <div style="font-weight:700">${userData?.name||''}</div>
-                    <div style="font-size:0.76rem;color:var(--muted)">ยังไม่ได้ผูกรหัสนักศึกษา</div>
+        :`<div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:20px;padding:0;overflow:hidden;margin-bottom:10px;box-shadow:0 4px 16px rgba(0,0,0,.2)">
+            <div style="padding:20px 18px 16px;display:flex;align-items:center;gap:14px">
+                <img src="${myPhoto()}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.15);flex-shrink:0" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
+                <div style="flex:1;min-width:0">
+                    <div style="font-weight:800;font-size:1rem;color:#fff">${userData?.name||'ยินดีต้อนรับ!'}</div>
+                    <div style="font-size:0.78rem;color:rgba(255,255,255,.45);margin-top:2px">Login แล้ว — ผูกรหัสเพื่อเข้าถึงทุกฟีเจอร์</div>
                 </div>
+                <button class="btn-out-hero" onclick="logoutUser()" style="flex-shrink:0">ออก</button>
             </div>
-            <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
-                <button class="btn-link" onclick="openLinkModal()">🔗 ผูกรหัส</button>
-                <button class="btn-out" style="font-size:0.7rem;padding:4px 8px" onclick="logoutUser()">ออก</button>
+            <div style="padding:0 18px 18px">
+                <button onclick="openLinkModal()" style="width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:14px;padding:14px;font-family:inherit;font-size:1rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 14px rgba(37,99,235,.4);transition:.2s">
+                    🔗 ผูกรหัสนักศึกษา
+                </button>
+                <div style="text-align:center;margin-top:10px;font-size:0.74rem;color:rgba(255,255,255,.3)">
+                    ไม่มีรหัสนักศึกษา? <button onclick="openLinkModal()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:0.74rem;cursor:pointer;font-family:inherit;text-decoration:underline">เข้าแบบ Guest</button>
+                </div>
             </div>
         </div>`;
 
@@ -2018,7 +2023,7 @@ function buildPlay(){
             <span class="game-title">🕵️ ทายชื่อจริงเพื่อน</span>
             <div style="display:flex;align-items:center;gap:8px">
                 <button onclick="toggleLb('qlb')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 9px;color:rgba(255,255,255,.6);font-size:0.68rem;cursor:pointer;font-family:inherit">🏆 กระดาน</button>
-                <div class="score-badge">🏆 <b id="q-score">0</b></div>
+                <div class="score-badge">🏆 <b id="q-score">${qHigh}</b></div>
             </div>
         </div>
         <div class="game-arena-body">
@@ -2049,7 +2054,7 @@ function buildPlay(){
             <span class="game-title">💊 ทายยา (Drug Class)</span>
             <div style="display:flex;align-items:center;gap:8px">
                 <button onclick="toggleLb('dqlb')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 9px;color:rgba(255,255,255,.6);font-size:0.68rem;cursor:pointer;font-family:inherit">🏆 กระดาน</button>
-                <div class="score-badge">🏆 <b id="dq-score">0</b></div>
+                <div class="score-badge">🏆 <b id="dq-score">${dqHigh}</b></div>
             </div>
         </div>
         <div class="game-arena-body">
