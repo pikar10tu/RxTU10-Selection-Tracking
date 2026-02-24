@@ -2287,34 +2287,29 @@ window.bSetMode = (mode) => {
     _renderBattleSetup();
 };
 
-// ── Sandbox (ตีหุ่น) ──
+// ── Sandbox (ตีหุ่น) ── HP หุ่น = 1000 คงที่, ATK=0 ไม่โต้กลับ
 window.startSandbox = () => {
     const pets = userData?.pets || [];
     const petA = pets.find(p => p.instId === window.__bSelA);
     if (!petA) { toast('เลือกสัตว์ก่อน', 'error'); return; }
-
-    // สุ่ม AI จาก PETS pool (ต่างสายพันธุ์)
-    const pool = PETS.filter(x => x.id !== petA.id);
-    const rnd  = pool[Math.floor(Math.random() * pool.length)];
-    const petB = { id: rnd.id, emoji: rnd.emoji, name: rnd.name,
-                   rarity: rnd.rarity, grade: 0, instId: 'dummy_' + rnd.id };
-
+    const DUMMY_HP = 1000;
+    const dummyEl  = ['fist','scissors','paper'][Math.floor(Math.random()*3)];
+    const petB     = { id:'dummy', emoji:'🪆', name:'หุ่นทดสอบ',
+                       rarity:'common', grade:0, instId:'dummy_target' };
     const defA = PETS.find(x => x.id === petA.id);
-    const defB = rnd;
+    const defB = { id:'dummy', element: dummyEl };
     const sA   = petStats(petA);
-    const sB   = petStats(petB);
-    const firstIsA = Math.random() < 0.5;
-
+    const sB   = { atk: 0, hp: DUMMY_HP };
+    if (__battle?.timer) clearTimeout(__battle.timer);
     __battle = {
         pA: petA, pB: petB, defA, defB, sA, sB,
-        hpA: sA.hp, hpB: sB.hp, maxA: sA.hp, maxB: sB.hp,
-        whoseTurn: firstIsA ? 'A' : 'B',
+        hpA: sA.hp, hpB: DUMMY_HP, maxA: sA.hp, maxB: DUMMY_HP,
+        whoseTurn: 'A',
         turn: 0, log: [], running: true, timer: null,
-        isSandbox: true,
+        isSandbox: true, maxTurns: 100,
     };
-
     _renderBattleArena();
-    __battle.timer = setTimeout(_battleTick, 900);
+    __battle.timer = setTimeout(_battleTick, 600);
 };
 
 // ── Init Battle ──
@@ -2383,7 +2378,7 @@ function _renderBattleArena() {
         </div>`;
 
     const logHtml = b.log.length
-        ? b.log.slice(-3).map((l, i) =>
+        ? b.log.slice(-5).map((l, i) =>
             `<div style="opacity:${0.4 + i * 0.3}">${l}</div>`).join('')
         : `<span style="opacity:.3">เริ่มการสู้...</span>`;
 
@@ -2424,6 +2419,31 @@ function _battleResultHtml() {
     const winA = !draw && b.hpA > 0;
     const win  = draw ? null : (winA ? b.pA : b.pB);
     const lose = draw ? null : (winA ? b.pB : b.pA);
+
+    // Sandbox result — แสดง DPS summary
+    if (b.isSandbox) {
+        const hpLeft = b.hpB;
+        const beaten = b.hpB <= 0;
+        return `
+        <div style="text-align:center;padding:6px 0 2px">
+            <div style="font-size:3rem;animation:bBounce .5s ease">${beaten ? '💥' : '🪆'}</div>
+            <div style="font-size:1.05rem;font-weight:800;color:#fff;margin:6px 0">
+                ${beaten ? '🎉 ทำลายหุ่นสำเร็จ!' : `หุ่นเหลือ HP ${hpLeft}/1000`}
+            </div>
+            <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:10px;margin-bottom:12px;font-size:0.78rem;color:rgba(255,255,255,.7)">
+                ⚔️ ${b.turn} เทิร์น &nbsp;|&nbsp; 💥 ดาเมจรวม <b style="color:#fbbf24">${b.totalDmg||0}</b> &nbsp;|&nbsp;
+                📊 DPS เฉลี่ย <b style="color:#6ee7b7">${b.turn > 0 ? Math.round((b.totalDmg||0)/b.turn) : 0}</b>/เทิร์น
+            </div>
+            <div style="display:flex;gap:8px;justify-content:center">
+                <button class="btn-battle" style="width:auto;padding:10px 20px" onclick="openBattle()">🔄 ตีอีก</button>
+                <button style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+                               color:rgba(255,255,255,.65);padding:10px 16px;border-radius:12px;
+                               font-family:inherit;cursor:pointer;font-size:0.84rem"
+                        onclick="closeBattle()">ปิด</button>
+            </div>
+        </div>`;
+    }
+
     return `
     <div style="text-align:center;padding:6px 0 2px">
         <div style="font-size:3rem;animation:bBounce .5s ease">${draw ? '🤝' : win.emoji}</div>
@@ -2448,86 +2468,99 @@ function _battleTick() {
     const b = __battle;
     if (!b || !b.running) return;
 
+    const maxT = b.maxTurns || 40;
+
     // ตรวจจบ
-    if (b.hpA <= 0 || b.hpB <= 0 || b.turn >= 40) {
+    if (b.hpA <= 0 || b.hpB <= 0 || b.turn >= maxT) {
         b.running = false;
-        if (b.turn >= 40 && b.hpA > 0 && b.hpB > 0) {
-            b.hpA = 0; b.hpB = 0;
-            b.log.push('🏳️ 40 เทิร์น — เสมอ!');
+        if (b.turn >= maxT && b.hpA > 0 && b.hpB > 0) {
+            if (!b.isSandbox) { b.hpA = 0; b.hpB = 0; }
+            b.log.push(b.isSandbox ? `🏁 จบ ${maxT} เทิร์น! ทำดาเมจรวม ${b.totalDmg||0}` : '🏳️ 40 เทิร์น — เสมอ!');
         }
         _renderBattleArena();
         return;
     }
 
     b.turn++;
-    const aAtk = b.whoseTurn === 'A';
+    // sandbox: A ตีฝ่ายเดียว, battle: สลับ turn
+    const aAtk = b.isSandbox ? true : b.whoseTurn === 'A';
     const attPet  = aAtk ? b.pA : b.pB;
     const defPet  = aAtk ? b.pB : b.pA;
     const attDef  = aAtk ? b.defA : b.defB;
     const defDef  = aAtk ? b.defB : b.defA;
     const attStat = aAtk ? b.sA : b.sB;
 
-    // damage
-    const adv     = elementBeats(attDef?.element, defDef?.element);
-    const elemMul = adv ? 1.5 : 1.0;
-    const isCrit  = Math.random() < 0.20;
-    const critMul = isCrit ? 2.0 : 1.0;
-    const dmg     = Math.max(1, Math.round(attStat.atk * elemMul * critMul));
+    // damage (sandbox: ข้าม turn ของหุ่น)
+    let dmg = 0;
+    let adv = false, isCrit = false;
+    if (!b.isSandbox || aAtk) {
+        adv     = elementBeats(attDef?.element, defDef?.element);
+        const elemMul = adv ? 1.5 : 1.0;
+        isCrit  = Math.random() < 0.20;
+        const critMul = isCrit ? 2.0 : 1.0;
+        dmg = Math.max(1, Math.round(attStat.atk * elemMul * critMul));
+    }
 
     if (aAtk) b.hpB = Math.max(0, b.hpB - dmg);
     else      b.hpA = Math.max(0, b.hpA - dmg);
+    if (b.isSandbox) b.totalDmg = (b.totalDmg || 0) + dmg;
 
-    // log
+    // log (sandbox: แสดงทุก turn, battle: เหมือนเดิม)
     const elEmoji = ELEMENTS[attDef?.element]?.emoji || '';
-    const tag     = isCrit ? ` <b style="color:#fbbf24">💥CRIT!</b>` : adv ? ` <span style="color:#6ee7b7">🔥×1.5</span>` : '';
-    b.log.push(`${attPet.emoji}${elEmoji}→${defPet.emoji} <b style="color:#fca5a5">-${dmg}</b>${tag}`);
+    const tag = isCrit ? ` <b style="color:#fbbf24">💥CRIT!</b>` : adv ? ` <span style="color:#6ee7b7">🔥×1.5</span>` : '';
+    if (!b.isSandbox || dmg > 0) {
+        b.log.push(`${attPet.emoji}${elEmoji}→${defPet.emoji} <b style="color:#fca5a5">-${dmg}</b>${tag}`);
+    }
 
-    // สลับ turn
-    b.whoseTurn = aAtk ? 'B' : 'A';
+    // สลับ turn (battle only)
+    if (!b.isSandbox) b.whoseTurn = aAtk ? 'B' : 'A';
 
     _renderBattleArena();
 
     // animations
-    const attId = aAtk ? 'a' : 'b';
-    const defId = aAtk ? 'b' : 'a';
-    const attEl = document.getElementById('bem-' + attId);
-    const defEl = document.getElementById('bem-' + defId);
-    if (attEl) {
-        const dir = aAtk ? 36 : -36;
-        attEl.style.transition = 'transform .18s';
-        attEl.style.transform  = `translateX(${dir}px) scale(1.12)`;
-        setTimeout(() => { if (attEl) attEl.style.transform = ''; }, 200);
-    }
-    if (defEl) {
-        setTimeout(() => {
-            if (!defEl) return;
-            defEl.style.animation = 'none';
-            void defEl.offsetWidth;
-            defEl.style.animation = 'bShake .28s ease';
-            setTimeout(() => { if (defEl) defEl.style.animation = ''; }, 310);
-        }, 210);
+    if (dmg > 0) {
+        const attId = aAtk ? 'a' : 'b';
+        const defId = aAtk ? 'b' : 'a';
+        const attEl = document.getElementById('bem-' + attId);
+        const defEl = document.getElementById('bem-' + defId);
+        if (attEl) {
+            const dir = aAtk ? 36 : -36;
+            attEl.style.transition = 'transform .15s';
+            attEl.style.transform  = `translateX(${dir}px) scale(1.12)`;
+            setTimeout(() => { if (attEl) attEl.style.transform = ''; }, 180);
+        }
+        if (defEl) {
+            setTimeout(() => {
+                if (!defEl) return;
+                defEl.style.animation = 'none';
+                void defEl.offsetWidth;
+                defEl.style.animation = 'bShake .25s ease';
+                setTimeout(() => { if (defEl) defEl.style.animation = ''; }, 280);
+            }, 180);
+        }
+
+        // damage float
+        const field = document.getElementById('battle-field');
+        if (field) {
+            const dmgEl = document.createElement('div');
+            dmgEl.innerHTML = isCrit ? `💥${dmg}!` : `-${dmg}`;
+            dmgEl.style.cssText = `position:absolute;${aAtk?'right:6%':'left:6%'};
+                top:${8+Math.random()*28}%;font-size:${isCrit?'1.3rem':'1rem'};font-weight:900;
+                color:${isCrit?'#fbbf24':adv?'#6ee7b7':'#f87171'};pointer-events:none;z-index:10;
+                text-shadow:0 2px 8px rgba(0,0,0,.5);animation:dmgFloat .85s ease forwards;`;
+            field.style.position = 'relative';
+            field.appendChild(dmgEl);
+            setTimeout(() => dmgEl.remove(), 870);
+        }
     }
 
-    // damage float
-    const field = document.getElementById('battle-field');
-    if (field) {
-        const dmgEl = document.createElement('div');
-        dmgEl.innerHTML = isCrit ? `💥${dmg}!` : `-${dmg}`;
-        dmgEl.style.cssText = `position:absolute;${aAtk?'right:6%':'left:6%'};
-            top:${8+Math.random()*28}%;font-size:${isCrit?'1.3rem':'1rem'};font-weight:900;
-            color:${isCrit?'#fbbf24':adv?'#6ee7b7':'#f87171'};pointer-events:none;z-index:10;
-            text-shadow:0 2px 8px rgba(0,0,0,.5);animation:dmgFloat .95s ease forwards;`;
-        field.style.position = 'relative';
-        field.appendChild(dmgEl);
-        setTimeout(() => dmgEl.remove(), 980);
-    }
-
-    const over = b.hpA <= 0 || b.hpB <= 0;
-    if (!over && b.turn < 40) {
-        b.timer = setTimeout(_battleTick, 1050);
+    const over = b.hpA <= 0 || b.hpB <= 0 || b.turn >= maxT;
+    const tickSpeed = b.isSandbox ? 650 : 780;
+    if (!over) {
+        b.timer = setTimeout(_battleTick, tickSpeed);
     } else {
         b.running = false;
-        setTimeout(() => { if (__battle) _renderBattleArena(); }, 700);
+        setTimeout(() => { if (__battle) _renderBattleArena(); }, 500);
     }
 }
 
