@@ -31,12 +31,15 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* ── MAIN ── */
 #main-content{
-position:fixed;
-top:0;left:0;right:0;
-bottom:var(–btm);
-overflow-y:auto;
--webkit-overflow-scrolling:touch;
-padding:12px 12px 24px;
+    position:fixed;
+    top:0;left:0;right:0;
+    bottom:var(--btm);
+    height:calc(100dvh - var(--btm));
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    padding:12px 12px 24px;
+    overscroll-behavior:contain;
 }
 
 /* ── BOTTOM NAV ── */
@@ -2420,3 +2423,4 @@ window.toast=(msg,type='info')=>{const t=document.getElementById('toast');t.text
 
 </body>
 </html>
+
