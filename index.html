@@ -241,13 +241,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .btn-gray.full{width:100%;}
 
 /* Pet badge effects on profile card */
-.pet-badge-gold{background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid #f59e0b !important;box-shadow:0 0 14px #fbbf2455;}
-.pet-badge-rainbow{background:linear-gradient(90deg,#fde68a,#fbcfe8,#bfdbfe,#bbf7d0);border:2px solid #a855f7 !important;animation:rbShift 3s linear infinite;background-size:300% 100%;}
-.pet-badge-kirin{background:linear-gradient(135deg,#fef3c7,#fed7aa);border:2px solid #f59e0b !important;box-shadow:0 0 18px #f59e0b55;}
-@keyframes rbShift{0%{background-position:0% 50%}100%{background-position:300% 50%}}
-/* keep rainbow/gold name for member grid badges */
-.gold-name{background:linear-gradient(90deg,#f59e0b,#fbbf24,#f59e0b);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:sh 2s linear infinite;display:inline-block;}
-.rainbow-name{background:linear-gradient(90deg,#f59e0b,#ef4444,#a855f7,#3b82f6,#10b981,#f59e0b);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:sh 1.5s linear infinite;display:inline-block;}
+100%{background-position:300% 50%}}
 @keyframes sh{to{background-position:200% center}}
 
 
@@ -490,12 +484,7 @@ const GRADE_LABELS = ['','I','II','III','IV','V'];
 const GRADE_COPIES = [0,1,2,4,7,12]; // copies needed for each grade
 const GRADE_MULTI  = [1,2,4,8,16,32]; // ×base daily
 
-// Badge visual สำหรับ active pet (gold/rainbow/kirin ยังคงมีเพื่อแสดงผลบน profile)
-const BADGE_EFFECTS = {
-    'gold_badge':   { bg:'linear-gradient(135deg,#fef3c7,#fde68a)', border:'#f59e0b' },
-    'rainbow_badge':{ bg:'linear-gradient(90deg,#fde68a,#fbcfe8,#bfdbfe,#bbf7d0)', border:'#a855f7', anim:true },
-    'kirin_badge':  { bg:'linear-gradient(135deg,#fef3c7,#fed7aa)', border:'#f59e0b' },
-};
+
 
 // ── ELEMENT SYSTEM ──
 // ✊ค้อน ชนะ✌️กรรไกร | ✌️กรรไกร ชนะ✋กระดาษ | ✋กระดาษ ชนะ✊ค้อน
@@ -975,8 +964,7 @@ function activePet(){
     return userData.pets.find(p=>p.instId&&String(p.instId)===String(userData.activePet))
         ||userData.pets.find(p=>p.id===userData.activePet)||null;
 }
-function getPetBadge(p){if(!p)return null;const def=PETS.find(x=>x.id===p.id);return def?BADGE_EFFECTS[def.effect]||null:null;}
-function getActiveBadge(){return getPetBadge(activePet());}
+
 window.awardCoins=async(base,trackKey)=>{
     if(!currentUser)return base;
     await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(base)});
@@ -1534,13 +1522,12 @@ function buildHome(){
             <p style="font-size:0.74rem;color:rgba(255,255,255,.3);margin-top:14px">Login แล้วผูกรหัสนักศึกษาเพื่อเข้าถึงทุกฟีเจอร์</p>
         </div>`;
     const pet=activePet();const tc=userData?.track==='sci'?'var(--sci)':'var(--care)';
-    const badge=getActiveBadge();
-    const activeDef=pet?PETS.find(x=>x.id===pet.id):null;const badgeClass=badge?({'gold_badge':'pet-badge-gold','rainbow_badge':'pet-badge-rainbow','kirin_badge':'pet-badge-kirin'}[activeDef?.effect]||''):'';
+
     const linked=userData?.studentId;
     const dailyTotal=calcTotalDaily(userData?.pets||[]).total;
     const profileBlock=linked?`
         <div class="home-hero" style="margin:-12px -12px 10px">
-            <div class="hero-bg ${badgeClass}">
+            <div class="hero-bg">
                 <div class="hero-top">
                     <div class="pc-img-wrap">
                         <img src="${myPhoto()}" class="pc-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
@@ -1557,7 +1544,6 @@ function buildHome(){
                 </div>
                 <div class="hero-actions">
                     <div class="coin-pill" onclick="switchTab('shop')">🪙 ${(userData.coins||0).toLocaleString()}</div>
-                    <button id="daily-btn" class="btn-daily" onclick="openDailyModal()">🎁 ${dailyTotal}🪙</button>
                     <button class="btn-out-hero" onclick="logoutUser()">ออก</button>
                 </div>
             </div>
@@ -1566,6 +1552,16 @@ function buildHome(){
                 <div class="hs-cell"><b>${userData.quizHigh||0}</b><small>👥 Quiz Hi</small></div>
                 <div class="hs-cell"><b>${userData.drugHigh||0}</b><small>💊 Drug Hi</small></div>
             </div>
+        </div>
+        <div id="daily-card" style="margin:8px 0 0;background:linear-gradient(135deg,#052e16,#14532d);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+            <div style="flex:1">
+                <div style="font-size:0.65rem;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">รายได้ประจำวัน</div>
+                <div style="font-size:1.3rem;font-weight:800;color:#6ee7b7">+${dailyTotal}🪙</div>
+                <div style="font-size:0.67rem;color:rgba(255,255,255,.35);margin-top:1px">กดรับได้ทุกวัน · ดูรายละเอียด →</div>
+            </div>
+            <button id="daily-btn" class="btn-daily" onclick="openDailyModal()" style="flex-shrink:0;min-width:80px;text-align:center">
+                🎁 รับเลย
+            </button>
         </div>`
         :`<div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:20px;padding:0;overflow:hidden;margin-bottom:10px;box-shadow:0 4px 16px rgba(0,0,0,.2)">
             <div style="padding:20px 18px 16px;display:flex;align-items:center;gap:14px">
@@ -1721,7 +1717,6 @@ function memberGrid(){
             ?(live.pets||[]).find(p=>p.instId&&String(p.instId)===String(live.activePet))
               ||(live.pets||[]).find(p=>p.id===live.activePet)
             :null;
-        const badge=getPetBadge(petData);
         const petGrade=petData?(petData.grade||0):0;
         const petColor=petData?(RARITY[petData.rarity]?.color||'#64748b'):'';
         return`<div class="mcard" onclick="openProfileModal('${s.id}')">
@@ -1730,7 +1725,7 @@ function memberGrid(){
                 ${petData?`<div style="position:absolute;bottom:-6px;right:-6px;font-size:1.25rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));line-height:1">${petData.emoji}${petGrade>0?`<span style="position:absolute;bottom:-1px;right:-4px;background:${petColor};color:#fff;font-size:0.38rem;font-weight:800;padding:1px 3px;border-radius:3px;line-height:1.4">${GRADE_LABELS[petGrade]}</span>`:''}${(()=>{const pDef2=PETS.find(x=>x.id===petData.id);const elEm=ELEMENTS[pDef2?.element]?.emoji||'';return elEm?`<span style="position:absolute;top:-5px;left:-5px;font-size:0.6rem;line-height:1">${elEm}</span>`:''})()}
                 </div>`:''}
             </div>
-            ${(()=>{if(!badge)return'<div class="mc-nick">'+s.nickname+'</div>';return'<div style="border-radius:7px;padding:1px 6px;font-size:0.82rem;font-weight:600;background:'+badge.bg+';border:1.5px solid '+badge.border+'">'+s.nickname+'</div>';})()}
+            <div class="mc-nick">${s.nickname}</div>
             <div class="mc-id" style="font-size:0.6rem">${s.id}</div>
             <span class="track-badge" style="background:${tc};font-size:0.52rem;padding:2px 6px">${s.track==='sci'?'SCI':'CARE'}</span>
         </div>`;
@@ -1751,10 +1746,7 @@ window.openProfileModal=(id)=>{
         ?(liveData.pets||[]).find(p=>p.instId&&String(p.instId)===String(liveData.activePet))
           ||(liveData.pets||[]).find(p=>p.id===liveData.activePet)
         :null;
-    const pmBadge=getPetBadge(petData);
-    const nickHtml=pmBadge
-        ?`<span style="background:${pmBadge.bg};border-radius:6px;padding:1px 8px;border:1.5px solid ${pmBadge.border}">${s.nickname}</span>`
-        :s.nickname;
+    const nickHtml=s.nickname;
     // สร้าง active pet section (แสดงแค่ตัวที่ active)
     const allPets=liveData?.pets||[];
     const petShowcase=(()=>{
