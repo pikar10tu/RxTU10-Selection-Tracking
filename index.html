@@ -693,55 +693,44 @@ window.claimDaily=async()=>{
 window.openDailyModal=()=>{
     if(!currentUser){toast("กรุณา Login","error");return;}
     const pets=userData?.pets||[];
-    const {base,passive}=calcTotalDaily(pets);
-    const total=base+passive+extra;
-    const activePetData=activePet();
+    const {base,passive,total}=calcTotalDaily(pets);
     const isReady=document.getElementById('daily-btn')?.classList.contains('ready');
 
-    // สร้าง rows แต่ละตัว
-    const petRows=pets.map(p=>{
+    // rows สัตว์เลี้ยงแต่ละตัว + element + grade
+    const petRows=pets.length?pets.map(p=>{
         const cfg=RARITY[p.rarity];
         const daily=petDailyCoins(p);
         const grade=p.grade||0;
-        return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        const def=PETS.find(x=>x.id===p.id);
+        const elEmoji=ELEMENTS[def?.element]?.emoji||'';
+        return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
             <span style="font-size:1.3rem">${p.emoji}</span>
             <div style="flex:1;text-align:left">
                 <span style="font-weight:600;font-size:0.84rem">${p.name}</span>
-                <span style="color:${cfg.color};font-size:0.68rem;font-weight:700;margin-left:4px">${cfg.label}${grade>0?' Grade '+GRADE_LABELS[grade]:''}</span>
+                ${elEmoji?`<span style="margin-left:4px;font-size:0.8rem">${elEmoji}</span>`:''}
+                <div style="color:${cfg.color};font-size:0.65rem;font-weight:700">${cfg.label}${grade>0?' · Grade '+GRADE_LABELS[grade]:''}</div>
             </div>
-            <span style="color:var(--care);font-weight:700;font-size:0.84rem">+${daily}🪙</span>
+            <span style="color:#10b981;font-weight:800;font-size:0.9rem">+${daily}🪙</span>
         </div>`;
-    }).join('');
-
-    const activeRow=activePetData&&extra>0?`
-        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:1.3rem">${activePetData.emoji}</span>
-            <div style="flex:1;text-align:left">
-                <span style="font-weight:600;font-size:0.84rem">${activePetData.name}</span>
-                <span style="font-size:0.68rem;color:var(--muted);margin-left:4px">active bonus</span>
-            </div>
-            <span style="color:var(--sci);font-weight:700;font-size:0.84rem">+${extra}🪙</span>
-        </div>`:'';
+    }).join(''):'<div style="color:var(--muted);font-size:0.78rem;padding:12px 0;text-align:center">ยังไม่มีสัตว์เลี้ยง<br><span style="font-size:0.7rem">ฟักไข่ใน Shop เพื่อรับ passive income</span></div>';
 
     document.getElementById('daily-content').innerHTML=`
         <div style="font-size:1.8rem;margin-bottom:4px">🎁</div>
         <div style="font-weight:800;font-size:1.1rem;margin-bottom:2px">Daily Reward</div>
-        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">${isReady?'พร้อมรับแล้ว!':'รับไปแล้ววันนี้'}</div>
+        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">${isReady?'พร้อมรับแล้ว! 🟢':'รับไปแล้ววันนี้ · รีเซ็ตเที่ยงคืน'}</div>
 
         <div style="background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:10px;text-align:left">
-            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
-                <span>🎯 Base daily</span>
-                <span style="font-weight:700">+${base}🪙</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+                <span style="font-size:0.84rem">🎯 Base daily</span>
+                <span style="font-weight:700;color:#10b981">+${base}🪙</span>
             </div>
-            ${petRows||'<div style="color:var(--muted);font-size:0.78rem;padding:8px 0;text-align:center">ยังไม่มีสัตว์เลี้ยง</div>'}
-            ${activeRow}
+            ${petRows}
         </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;padding:10px 14px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;padding:11px 14px;margin-bottom:12px">
             <span style="font-weight:700">รวมทั้งหมด</span>
             <span style="font-size:1.2rem;font-weight:800;color:#92400e">+${total}🪙</span>
         </div>
-
         ${isReady
             ?`<button class="btn-gold full" onclick="claimDaily();closeDailyModal()">🎁 รับเลย!</button>`
             :`<button class="btn-gray full" disabled>รับไปแล้ววันนี้ · รีเซ็ตเที่ยงคืน</button>`}
@@ -1391,7 +1380,7 @@ window.answerQ=async(btn,ans)=>{
             const earned=window.__qCoinsEarned||0;
             document.getElementById('q-msg').innerHTML=`ตอบผิด! ชื่อจริงคือ <b style="color:#fbbf24">${qAnswer}</b><br>คะแนน: ${finalScore} · ได้ <b style="color:#fbbf24">+${earned}🪙</b><br><span style="font-size:0.76rem;opacity:.7">สถิติ: ${Math.max(finalScore,qHigh)}</span>`;
             // refresh leaderboard
-            const lbEl=document.getElementById('lb-container');if(lbEl)lbEl.innerHTML=buildLeaderboard();
+            const qlb=document.getElementById('qlb');if(qlb&&qlb.style.display!=='none')qlb.innerHTML=buildQuizLb();
         },1000);
     }
 };
@@ -1435,7 +1424,7 @@ window.answerDQ=async(btn,ans)=>{
             document.getElementById('dquiz-play').style.display='none';
             const earned2=window.__dqCoinsEarned||0;
             document.getElementById('dq-msg').innerHTML=`ตอบผิด! Drug Class คือ <b style="color:#a5b4fc">${dqAnswer}</b><br>คะแนน: ${finalScore} · ได้ <b style="color:#fbbf24">+${earned2}🪙</b><br><span style="font-size:0.76rem;opacity:.7">สถิติ: ${Math.max(finalScore,dqHigh)}</span>`;
-            const lbEl2=document.getElementById('lb-container');if(lbEl2)lbEl2.innerHTML=buildLeaderboard();
+            const dqlb=document.getElementById('dqlb');if(dqlb&&dqlb.style.display!=='none')dqlb.innerHTML=buildDrugLb();
         },1000);
     }
 };
@@ -1613,8 +1602,10 @@ function buildHome(){
             <button class="btn-gray sm" onclick="openMega()">📣 โทรโข่ง</button>
         </div>`;
 
+    const collBtn=`<div style="text-align:center;margin-bottom:8px"><button id="coll-toggle-btn" onclick="toggleCollection()" style="background:linear-gradient(135deg,#1e293b,#0f172a);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:9px 20px;color:rgba(255,255,255,.75);font-size:0.82rem;font-weight:600;cursor:pointer;font-family:inherit;width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗂️ ดูคอลเลกชั่น <span style="font-size:0.68rem;color:rgba(255,255,255,.35)">${uniqueIds.length}/${PETS.length} สายพันธุ์</span></button></div><div id="collection-panel" style="display:none" class="card"></div>`;
     return`${profileBlock}<input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhoto(event)">
         ${achieveBlock}
+        ${collBtn}
         ${eggSection}
         <div class="egg-section-head"><span>🐾 สัตว์เลี้ยง (${pets.length} ตัว)</span></div>
         <div class="card">${invBlock}</div>`;
@@ -1838,61 +1829,36 @@ window.openGuestList=()=>{
 // ════════════════════════════════════════
 //  LEADERBOARD (ใช้ cache __fbUsers — ไม่ต้อง read Firestore เพิ่ม)
 // ════════════════════════════════════════
-function buildLeaderboard(){
-    const myStudentId=userData?.studentId;
-    // รวม fbUsers + guestUsers
-    const allUsers=[
-        ...Object.values(window.__fbUsers||{}),
-        ...(window.__guestUsers||[])
-    ];
-    // Quiz leaderboard: 1 คน 1 อันดับ (quizHigh สูงสุด)
-    const quizBoard=[...allUsers]
-        .filter(u=>u.quizHigh>0)
-        .sort((a,b)=>b.quizHigh-a.quizHigh)
-        .slice(0,7);
-    // Drug leaderboard
-    const drugBoard=[...allUsers]
-        .filter(u=>u.drugHigh>0)
-        .sort((a,b)=>b.drugHigh-a.drugHigh)
-        .slice(0,7);
-
-    function renderBoard(board,scoreKey,accentColor){
-        if(!board.length)return`<div style="padding:14px;text-align:center;color:rgba(255,255,255,.3);font-size:0.78rem">ยังไม่มีข้อมูล</div>`;
-        const rankIcon=['🥇','🥈','🥉'];
-        return board.map((u,i)=>{
-            const isMe=myStudentId&&u.studentId===myStudentId;
-            const petData=u.activePet
-                ?(u.pets||[]).find(p=>p.instId&&String(p.instId)===String(u.activePet))
-                 ||(u.pets||[]).find(p=>p.id===u.activePet)
-                :null;
-            const photo=u.customPhoto||u.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent((u.nickname||'?').slice(0,1))}&background=334155&color=fff&size=64`;
-            const def=`https://ui-avatars.com/api/?name=${encodeURIComponent((u.nickname||'?').slice(0,1))}&background=334155&color=fff&size=64`;
-            const rankClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
-            return`<div class="lb-row${isMe?' lb-me':''}">
-                <div class="lb-rank ${rankClass}">${i<3?rankIcon[i]:i+1}</div>
-                <img src="${photo}" class="lb-photo" onerror="this.onerror=null;this.src='${def}'">
-                <div class="lb-name">${u.nickname||'?'}${petData?` ${petData.emoji}`:''}</div>
-                <div class="lb-score" style="color:${accentColor}">${u[scoreKey]}</div>
-            </div>`;
-        }).join('');
-    }
-
-    return`<div class="lb-wrap">
-        <div class="lb-card" style="background:linear-gradient(160deg,#0f172a,#1e293b)">
-            <div class="lb-head" style="background:rgba(16,185,129,.12)">
-                <span class="lb-title">🕵️ ทายชื่อ</span>
-                <span style="font-size:0.62rem;color:rgba(255,255,255,.3)">Top ${quizBoard.length}</span>
-            </div>
-            ${renderBoard(quizBoard,'quizHigh','#6ee7b7')}
-        </div>
-        <div class="lb-card" style="background:linear-gradient(160deg,#1e1b4b,#312e81)">
-            <div class="lb-head" style="background:rgba(129,140,248,.12)">
-                <span class="lb-title">💊 ทายยา</span>
-                <span style="font-size:0.62rem;color:rgba(255,255,255,.3)">Top ${drugBoard.length}</span>
-            </div>
-            ${renderBoard(drugBoard,'drugHigh','#a5b4fc')}
-        </div>
-    </div>`;
+function _lbUsers(){
+    return[...Object.values(window.__fbUsers||{}),...(window.__guestUsers||[])];
+}
+function _renderLbRows(board,scoreKey,accentColor){
+    const myId=userData?.studentId;
+    if(!board.length)return`<div style="padding:10px;text-align:center;color:rgba(255,255,255,.3);font-size:0.76rem">ยังไม่มีข้อมูล</div>`;
+    const icons=['🥇','🥈','🥉'];
+    return board.map((u,i)=>{
+        const isMe=myId&&u.studentId===myId;
+        const pet=u.activePet
+            ?(u.pets||[]).find(p=>p.instId&&String(p.instId)===String(u.activePet))
+             ||(u.pets||[]).find(p=>p.id===u.activePet):null;
+        const ph=u.customPhoto||u.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent((u.nickname||'?')[0])}&background=334155&color=fff&size=64`;
+        const fb=`https://ui-avatars.com/api/?name=${encodeURIComponent((u.nickname||'?')[0])}&background=334155&color=fff&size=64`;
+        const rc=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+        return`<div class="lb-row${isMe?' lb-me':''}">
+            <div class="lb-rank ${rc}">${i<3?icons[i]:i+1}</div>
+            <img src="${ph}" class="lb-photo" onerror="this.onerror=null;this.src='${fb}'">
+            <div class="lb-name">${u.nickname||'?'}${pet?` ${pet.emoji}`:''}</div>
+            <div class="lb-score" style="color:${accentColor}">${u[scoreKey]}</div>
+        </div>`;
+    }).join('');
+}
+function buildQuizLb(){
+    const board=[..._lbUsers()].filter(u=>u.quizHigh>0).sort((a,b)=>b.quizHigh-a.quizHigh).slice(0,7);
+    return _renderLbRows(board,'quizHigh','#6ee7b7');
+}
+function buildDrugLb(){
+    const board=[..._lbUsers()].filter(u=>u.drugHigh>0).sort((a,b)=>b.drugHigh-a.drugHigh).slice(0,7);
+    return _renderLbRows(board,'drugHigh','#a5b4fc');
 }
 
 // ════════════════════════════════════════
@@ -1910,9 +1876,14 @@ function buildPlay(){
     <div class="game-arena arena-name">
         <div class="game-arena-header">
             <span class="game-title">🕵️ ทายชื่อจริงเพื่อน</span>
-            <div class="score-badge">🏆 <b id="q-score">0</b></div>
+            <div style="display:flex;align-items:center;gap:8px">
+                <button onclick="toggleLb('qlb')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 9px;color:rgba(255,255,255,.6);font-size:0.68rem;cursor:pointer;font-family:inherit">🏆 กระดาน</button>
+                <div class="score-badge">🏆 <b id="q-score">0</b></div>
+            </div>
         </div>
         <div class="game-arena-body">
+            <!-- leaderboard (ซ่อนเริ่มต้น) -->
+            <div id="qlb" style="display:none;margin-bottom:10px">${buildQuizLb()}</div>
             <div id="quiz-start">
                 <div class="game-start">
                     <span class="game-start-icon">🕵️</span>
@@ -1936,9 +1907,14 @@ function buildPlay(){
     <div class="game-arena arena-drug">
         <div class="game-arena-header">
             <span class="game-title">💊 ทายยา (Drug Class)</span>
-            <div class="score-badge">🏆 <b id="dq-score">0</b></div>
+            <div style="display:flex;align-items:center;gap:8px">
+                <button onclick="toggleLb('dqlb')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 9px;color:rgba(255,255,255,.6);font-size:0.68rem;cursor:pointer;font-family:inherit">🏆 กระดาน</button>
+                <div class="score-badge">🏆 <b id="dq-score">0</b></div>
+            </div>
         </div>
         <div class="game-arena-body">
+            <!-- leaderboard (ซ่อนเริ่มต้น) -->
+            <div id="dqlb" style="display:none;margin-bottom:10px">${buildDrugLb()}</div>
             <div id="dquiz-start">
                 <div class="game-start">
                     <span class="game-start-icon">💊</span>
@@ -1958,14 +1934,13 @@ function buildPlay(){
         </div>
     </div>
 
-    <div id="lb-container">${buildLeaderboard()}</div>
-
     <div class="coming-soon">
         <div style="font-size:2.5rem;margin-bottom:8px">🔜</div>
         <div style="font-weight:800;font-size:1rem;margin-bottom:4px">เกมใหม่กำลังมา!</div>
         <div style="font-size:0.8rem;opacity:0.7">ข้อสอบใบประกอบวิชาชีพ • Drug Interaction • Spelling Sprint</div>
         <div style="font-size:0.72rem;opacity:0.5;margin-top:8px">Coming Soon...</div>
     </div>`;}
+window.toggleLb=(id)=>{const el=document.getElementById(id);if(!el)return;const show=el.style.display==='none';el.style.display=show?'block':'none';if(show){el.innerHTML=id==='qlb'?buildQuizLb():buildDrugLb();}}
 
 // ════════════════════════════════════════
 //  TAB: SHOP
@@ -2038,28 +2013,42 @@ function buildShop(){
             </div>
         </div>
 
-        <div class="sec-head">🐾 Pokedex สัตว์ทั้งหมด</div>
-        <div class="card">
-            ${['common','rare','epic','legendary'].map(r=>{
-                const list=PETS.filter(p=>p.rarity===r);const cfg=RARITY[r];
-                return`<div style="margin-bottom:14px">
-                    <div style="font-weight:700;color:${cfg.color};font-size:0.76rem;margin-bottom:6px">${cfg.label} · +${cfg.dailyBase}🪙/วัน · ฟัก ${HATCH_LABELS[r]}</div>
-                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px">
-                        ${list.map(p=>{
-                            const have=owned.has(p.id);
-                            const elEm=ELEMENTS[p.element]?.emoji||'';
-                            return`<div style="background:${have?cfg.bg:'#f8fafc'};border-radius:10px;padding:8px 4px;text-align:center;border:1.5px solid ${have?cfg.color+'66':cfg.color+'22'};position:relative;opacity:${have?1:0.55}">
-                                <div style="font-size:1.5rem">${have?p.emoji:'❓'}</div>
-                                <div style="font-size:0.64rem;font-weight:700;margin-top:2px">${have?p.name:'???'}</div>
-                                <div style="font-size:0.62rem;margin-top:1px">${have?elEm:'??'}</div>
-                                ${have?'<div style="position:absolute;top:3px;right:4px;font-size:0.5rem;color:'+cfg.color+'">✓</div>':''}
-                            </div>`;
-                        }).join('')}
-                    </div>
-                </div>`;
-            }).join('')}
-        </div>`;
+    `;
 }
+
+// คอลเลกชั่นสัตว์เลี้ยง — สร้าง HTML (เรียกจาก Home)
+function buildCollection(){
+    const owned=new Set((userData?.pets||[]).map(p=>p.id));
+    return['common','rare','epic','legendary'].map(r=>{
+        const list=PETS.filter(p=>p.rarity===r);const cfg=RARITY[r];
+        return`<div style="margin-bottom:14px">
+            <div style="font-weight:700;color:${cfg.color};font-size:0.74rem;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+                <span>${cfg.label}</span>
+                <span style="color:var(--muted);font-weight:400">+${cfg.dailyBase}🪙/วัน · ฟัก ${HATCH_LABELS[r]}</span>
+                <span style="margin-left:auto;font-size:0.68rem;color:${cfg.color}">${[...owned].filter(id=>PETS.find(p=>p.id===id&&p.rarity===r)).length}/${list.length}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:5px">
+                ${list.map(p=>{
+                    const have=owned.has(p.id);const elEm=ELEMENTS[p.element]?.emoji||'';
+                    return`<div style="background:${have?cfg.bg:'#f8fafc'};border-radius:10px;padding:7px 3px;text-align:center;border:1.5px solid ${have?cfg.color+'66':cfg.color+'22'};position:relative;opacity:${have?1:0.5}">
+                        <div style="font-size:1.4rem">${have?p.emoji:'❓'}</div>
+                        <div style="font-size:0.6rem;font-weight:700;margin-top:2px;line-height:1.2">${have?p.name:'???'}</div>
+                        <div style="font-size:0.65rem;margin-top:1px">${have?elEm:'??'}</div>
+                        ${have?`<div style="position:absolute;top:3px;right:4px;font-size:0.46rem;color:${cfg.color}">✓</div>`:''}
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>`;
+    }).join('');
+}
+window.toggleCollection=()=>{
+    const el=document.getElementById('collection-panel');
+    if(!el)return;
+    const show=el.style.display==='none'||!el.style.display;
+    el.style.display=show?'block':'none';
+    if(show)el.innerHTML=buildCollection();
+    document.getElementById('coll-toggle-btn').textContent=show?'▲ ซ่อน':'🗂️ ดูคอลเลกชั่น';
+};
 
 // ════════════════════════════════════════
 //  BOOT
