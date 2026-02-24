@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -16,7 +17,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 /* coin-pill และ btn-daily ถูกนิยามใหม่ใน HOME section ด้านล่าง */
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 .btn-out{background:none;border:1.5px solid #fca5a5;color:#ef4444;padding:7px 14px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;width:100%;}
-.btn-google{background:#fff;border:1.5px solid var(--border);padding:6px 11px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--text);font-weight:500;transition:.2s;}
+.btn-google{background:#fff;border:1.5px solid var(–border);padding:6px 11px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(–text);font-weight:500;transition:.2s;}
 .btn-google.big{padding:13px 22px;font-size:0.95rem;width:100%;justify-content:center;}
 
 /* ── NEWS TICKER ── */
@@ -30,24 +31,24 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* ── MAIN ── */
 #main-content{
-    position:fixed;
-    top:0;left:0;right:0;
-    bottom:var(--btm);
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    padding:12px 12px 24px;
+position:fixed;
+top:0;left:0;right:0;
+bottom:var(–btm);
+overflow-y:auto;
+-webkit-overflow-scrolling:touch;
+padding:12px 12px 24px;
 }
 
 /* ── BOTTOM NAV ── */
-#bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--btm);background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -3px 12px rgba(0,0,0,.07);padding-bottom:env(safe-area-inset-bottom,0px);}
-.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:none;background:none;font-family:inherit;color:var(--muted);font-size:0.67rem;font-weight:600;transition:.15s;padding:5px 2px;}
+#bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(–btm);background:#fff;border-top:1px solid var(–border);display:flex;z-index:200;box-shadow:0 -3px 12px rgba(0,0,0,.07);padding-bottom:env(safe-area-inset-bottom,0px);}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:none;background:none;font-family:inherit;color:var(–muted);font-size:0.67rem;font-weight:600;transition:.15s;padding:5px 2px;}
 .bn-icon{font-size:1.3rem;transition:.15s;}
-.bn-item.active{color:var(--gold);}
+.bn-item.active{color:var(–gold);}
 .bn-item.active .bn-icon{transform:translateY(-2px);}
 
 /* ── COMMON ── */
 .card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;}
-.sec-head{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin:16px 0 8px;}
+.sec-head{font-size:0.72rem;font-weight:700;color:var(–muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin:16px 0 8px;}
 .login-card{background:#fff;border-radius:20px;padding:36px 20px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.07);}
 .guest-badge{background:#64748b;}
 /* .track-badge นิยามใน HOME section */
@@ -56,14 +57,14 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 /* Hero banner */
 .home-hero{border-radius:20px;overflow:hidden;margin-bottom:10px;position:relative;}
 .hero-bg{background:linear-gradient(160deg,#0c1445 0%,#1a237e 40%,#0d47a1 70%,#1565c0 100%);padding:20px 16px 0;position:relative;}
-.hero-bg::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
+.hero-bg::before{content:’’;position:absolute;inset:0;background:url(“data:image/svg+xml,%3Csvg width=‘60’ height=‘60’ viewBox=‘0 0 60 60’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cg fill=‘none’ fill-rule=‘evenodd’%3E%3Cg fill=’%23ffffff’ fill-opacity=‘0.03’%3E%3Cpath d=‘M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z’/%3E%3C/g%3E%3C/g%3E%3C/svg%3E”);pointer-events:none;}
 .hero-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;position:relative;}
 .pc-img-wrap{position:relative;flex-shrink:0;}
 .pc-img{width:68px;height:68px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.3);box-shadow:0 4px 16px rgba(0,0,0,.3);}
 .pc-cam{position:absolute;bottom:-1px;right:-1px;background:rgba(255,255,255,.15);backdrop-filter:blur(4px);border:1.5px solid rgba(255,255,255,.3);border-radius:50%;width:22px;height:22px;font-size:0.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .pc-nick{font-size:1.05rem;font-weight:800;color:#fff;line-height:1.2;}
 .pc-real{font-size:0.76rem;color:rgba(255,255,255,.6);margin-top:1px;}
-.pc-id{font-size:0.64rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace;margin-top:2px;}
+.pc-id{font-size:0.64rem;color:rgba(255,255,255,.4);font-family:‘Space Mono’,monospace;margin-top:2px;}
 /* action bar */
 .hero-actions{display:flex;align-items:center;gap:7px;position:relative;padding-bottom:14px;}
 .coin-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(4px);padding:7px 13px;border-radius:20px;font-size:0.88rem;font-weight:700;color:#fbbf24;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.15s;}
@@ -81,10 +82,10 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .track-badge.sm{font-size:0.54px;padding:2px 6px;}
 /* .stats-row/.stat-box removed — replaced by hero-stats strip */
 /* unlinked */
-.unlinked-card{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;border:2px dashed var(--border);}
+.unlinked-card{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;border:2px dashed var(–border);}
 .ul-left{display:flex;align-items:center;gap:9px;flex:1;}
-.ul-img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid var(--border);}
-.btn-link{background:linear-gradient(135deg,var(--sci),#1d4ed8);color:#fff;border:none;padding:7px 12px;border-radius:9px;font-family:inherit;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;}
+.ul-img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid var(–border);}
+.btn-link{background:linear-gradient(135deg,var(–sci),#1d4ed8);color:#fff;border:none;padding:7px 12px;border-radius:9px;font-family:inherit;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;}
 /* collection card upgrade */
 .coll-card{background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:16px;padding:14px;margin-bottom:10px;color:#fff;}
 .coll-bar-bg{height:7px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin:8px 0;}
@@ -92,40 +93,41 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .rarity-chip{padding:4px 9px;border-radius:20px;font-size:0.65rem;font-weight:700;border:1px solid;}
 /* egg section */
 .egg-section-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0 7px;}
-.egg-section-head span{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+.egg-section-head span{font-size:0.72rem;font-weight:700;color:var(–muted);letter-spacing:1.5px;text-transform:uppercase;}
 /* inv upgrade */
-.inv-item{background:var(--rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
-.inv-item:hover{transform:translateY(-2px);border-color:var(--rc);}
-.inv-item.on{border-color:var(--rc);box-shadow:0 0 10px color-mix(in srgb,var(--rc) 20%,transparent);}
+.inv-item{background:var(–rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
+.inv-item:hover{transform:translateY(-2px);border-color:var(–rc);}
+.inv-item.on{border-color:var(–rc);box-shadow:0 0 10px color-mix(in srgb,var(–rc) 20%,transparent);}
 /* pet badge effects */
 /* pet-badge-gold/rainbow/kirin นิยามซ้ำด้านล่าง ลบ duplicate นี้ออก */
 
 /* Inventory */
-.inv-empty{text-align:center;color:var(--muted);font-size:0.82rem;padding:16px;}
+.inv-empty{text-align:center;color:var(–muted);font-size:0.82rem;padding:16px;}
 .inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;}
-.inv-item{background:var(--rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
-.inv-item:hover{transform:translateY(-2px);border-color:var(--rc);}
-.inv-item.on{border-color:var(--rc);box-shadow:0 0 10px color-mix(in srgb,var(--rc) 20%,transparent);}
+.inv-empty{text-align:center;color:var(–muted);padding:20px;font-size:0.84rem;}
+.inv-item{background:var(–rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
+.inv-item:hover{transform:translateY(-2px);border-color:var(–rc);}
+.inv-item.on{border-color:var(–rc);box-shadow:0 0 10px color-mix(in srgb,var(–rc) 20%,transparent);}
 .inv-em{font-size:1.6rem;} .inv-nm{font-size:0.62rem;font-weight:600;margin-top:2px;}
-.inv-on{position:absolute;top:-5px;right:-5px;background:var(--rc);color:#fff;font-size:0.46rem;font-weight:700;padding:2px 4px;border-radius:4px;}
+.inv-on{position:absolute;top:-5px;right:-5px;background:var(–rc);color:#fff;font-size:0.46rem;font-weight:700;padding:2px 4px;border-radius:4px;}
 
 /* ── MEMBERS ── */
 .filter-row{display:flex;gap:6px;margin-bottom:8px;}
-.fbtn{flex:1;padding:7px 3px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:inherit;font-size:0.76rem;font-weight:600;cursor:pointer;color:var(--muted);transition:.2s;}
-.fbtn.fa{border-color:var(--gold);background:#fffbeb;color:#92400e;}
-.fbtn.fs{border-color:var(--sci);background:#eff6ff;color:var(--sci);}
-.fbtn.fc{border-color:var(--care);background:#ecfdf5;color:var(--care);}
+.fbtn{flex:1;padding:7px 3px;border-radius:10px;border:2px solid var(–border);background:#fff;font-family:inherit;font-size:0.76rem;font-weight:600;cursor:pointer;color:var(–muted);transition:.2s;}
+.fbtn.fa{border-color:var(–gold);background:#fffbeb;color:#92400e;}
+.fbtn.fs{border-color:var(–sci);background:#eff6ff;color:var(–sci);}
+.fbtn.fc{border-color:var(–care);background:#ecfdf5;color:var(–care);}
 .search-box{margin-bottom:8px;}
 .srch-inp{width:100%;padding:10px 13px;border:2px solid #fff;border-radius:12px;font-family:inherit;font-size:0.9rem;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.07);outline:none;transition:.2s;}
-.srch-inp:focus{border-color:var(--gold);}
+.srch-inp:focus{border-color:var(–gold);}
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px;}
-.mcard{background:#fff;border-radius:13px;padding:11px 6px;cursor:pointer;text-align:center;border:1.5px solid var(--border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.mcard{background:#fff;border-radius:13px;padding:11px 6px;cursor:pointer;text-align:center;border:1.5px solid var(–border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
 .mcard:hover{transform:translateY(-2px);box-shadow:0 5px 12px rgba(0,0,0,.07);}
 .mc-img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);}
 /* .mc-emoji-fallback removed — not used */
-.mc-nick{font-weight:600;font-size:0.82rem;} .mc-id{font-size:0.62rem;color:var(--muted);}
-.prog-bar{height:16px;background:var(--border);border-radius:50px;overflow:hidden;display:flex;margin-bottom:4px;}
-.pb-sci{background:var(--sci);height:100%;} .pb-care{background:var(--care);height:100%;}
+.mc-nick{font-weight:600;font-size:0.82rem;} .mc-id{font-size:0.62rem;color:var(–muted);}
+.prog-bar{height:16px;background:var(–border);border-radius:50px;overflow:hidden;display:flex;margin-bottom:4px;}
+.pb-sci{background:var(–sci);height:100%;} .pb-care{background:var(–care);height:100%;}
 .prog-lbls{display:flex;justify-content:space-between;font-size:0.76rem;font-weight:600;}
 
 /* ── PLAY ── */
@@ -190,8 +192,8 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 @keyframes wobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
 .rates-wrap{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;}
 .rate-chip{padding:4px 10px;border-radius:16px;font-size:0.72rem;font-weight:700;}
-.egg-bag-item{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;background:var(--rb,#f8fafc);border:1.5px solid var(--rc,var(--border));margin-bottom:8px;}
-.hatch-bar{height:5px;background:var(--border);border-radius:8px;overflow:hidden;margin:4px 0 2px;}
+.egg-bag-item{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;background:var(–rb,#f8fafc);border:1.5px solid var(–rc,var(–border));margin-bottom:8px;}
+.hatch-bar{height:5px;background:var(–border);border-radius:8px;overflow:hidden;margin:4px 0 2px;}
 .hatch-fill{height:100%;border-radius:8px;transition:width .3s;}
 
 /* ── MODALS ── */
@@ -199,40 +201,40 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .modal-ov.active{display:flex;}
 .modal-box{background:#fff;border-radius:20px;padding:24px 18px;max-width:340px;width:100%;animation:popIn .35s cubic-bezier(.34,1.56,.64,1);position:relative;max-height:88vh;overflow-y:auto;}
 @keyframes popIn{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
-.mclose{position:absolute;top:10px;right:10px;background:var(--border);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;}
+.mclose{position:absolute;top:10px;right:10px;background:var(–border);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;}
 .pm-img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.12);margin-bottom:9px;}
-.pm-nick{font-size:1.25rem;font-weight:700;} .pm-real{color:var(--muted);font-size:0.88rem;} .pm-id{font-size:0.74rem;color:var(--muted);font-family:'Space Mono',monospace;margin:3px 0;}
+.pm-nick{font-size:1.25rem;font-weight:700;} .pm-real{color:var(–muted);font-size:0.88rem;} .pm-id{font-size:0.74rem;color:var(–muted);font-family:‘Space Mono’,monospace;margin:3px 0;}
 .pm-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:9px;}
-.pm-stat{background:var(--bg);border-radius:9px;padding:7px 3px;text-align:center;display:flex;flex-direction:column;align-items:center;}
-.pm-stat span{font-size:1rem;} .pm-stat b{font-size:0.85rem;font-weight:700;} .pm-stat small{font-size:0.62rem;color:var(--muted);}
-.pm-pet-row{display:flex;align-items:center;gap:9px;background:var(--bg);border-radius:11px;padding:9px;margin-top:4px;}
+.pm-stat{background:var(–bg);border-radius:9px;padding:7px 3px;text-align:center;display:flex;flex-direction:column;align-items:center;}
+.pm-stat span{font-size:1rem;} .pm-stat b{font-size:0.85rem;font-weight:700;} .pm-stat small{font-size:0.62rem;color:var(–muted);}
+.pm-pet-row{display:flex;align-items:center;gap:9px;background:var(–bg);border-radius:11px;padding:9px;margin-top:4px;}
 .link-irow{display:flex;gap:6px;margin:10px 0 3px;}
-.link-inp{flex:1;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.92rem;outline:none;transition:.2s;}
-.link-inp:focus{border-color:var(--sci);}
-.link-prev{background:var(--bg);border-radius:12px;padding:12px;margin:6px 0;display:none;}
+.link-inp{flex:1;padding:10px 12px;border:2px solid var(–border);border-radius:10px;font-family:inherit;font-size:0.92rem;outline:none;transition:.2s;}
+.link-inp:focus{border-color:var(–sci);}
+.link-prev{background:var(–bg);border-radius:12px;padding:12px;margin:6px 0;display:none;}
 .gacha-inner{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;}
 .gr-badge{padding:3px 12px;border-radius:16px;color:#fff;font-size:0.72rem;font-weight:800;letter-spacing:2px;}
-.gr-emoji{font-size:4.5rem;animation:gbounce .6s ease;filter:drop-shadow(0 0 16px var(--glow,#f59e0b));}
+.gr-emoji{font-size:4.5rem;animation:gbounce .6s ease;filter:drop-shadow(0 0 16px var(–glow,#f59e0b));}
 @keyframes gbounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
-.gr-name{font-size:1.3rem;font-weight:800;} .gr-desc{font-size:0.82rem;color:var(--muted);}
+.gr-name{font-size:1.3rem;font-weight:800;} .gr-desc{font-size:0.82rem;color:var(–muted);}
 .gr-btns{display:flex;gap:8px;margin-top:6px;}
 .slide-panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:18px 14px;box-shadow:0 -5px 24px rgba(0,0,0,.1);z-index:400;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);max-height:65vh;overflow-y:auto;}
 .slide-panel.active{transform:translateY(0);}
-.trade-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:9px;border:2px solid var(--border);cursor:pointer;margin-bottom:6px;transition:.15s;}
-.trade-item.sel{border-color:var(--sci);background:#eff6ff;}
-.trade-inp{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.86rem;outline:none;margin:8px 0;}
-.trade-inp:focus{border-color:var(--sci);}
+.trade-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:9px;border:2px solid var(–border);cursor:pointer;margin-bottom:6px;transition:.15s;}
+.trade-item.sel{border-color:var(–sci);background:#eff6ff;}
+.trade-inp{width:100%;padding:9px 12px;border:2px solid var(–border);border-radius:10px;font-family:inherit;font-size:0.86rem;outline:none;margin:8px 0;}
+.trade-inp:focus{border-color:var(–sci);}
 
 /* Feed/News modal */
-.feed-item{padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;}
+.feed-item{padding:10px 0;border-bottom:1px solid var(–border);display:flex;gap:10px;align-items:flex-start;}
 .feed-item:last-child{border-bottom:none;}
 .feed-icon{font-size:1.4rem;flex-shrink:0;}
-.feed-time{font-size:0.66rem;color:var(--muted);margin-top:2px;}
+.feed-time{font-size:0.66rem;color:var(–muted);margin-top:2px;}
 .feed-msg{font-size:0.84rem;}
 
 /* Megaphone modal */
-.mega-inp{width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.9rem;outline:none;margin:10px 0;resize:none;}
-.mega-inp:focus{border-color:var(--gold);}
+.mega-inp{width:100%;padding:10px 12px;border:2px solid var(–border);border-radius:10px;font-family:inherit;font-size:0.9rem;outline:none;margin:10px 0;resize:none;}
+.mega-inp:focus{border-color:var(–gold);}
 
 /* Buttons */
 .btn-gold{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;padding:9px 16px;border-radius:10px;font-family:inherit;font-size:0.9rem;font-weight:700;cursor:pointer;transition:.2s;}
@@ -240,7 +242,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .btn-gold:disabled{opacity:.5;cursor:not-allowed;}
 .btn-gold.full{width:100%;}
 .btn-gold.sm{padding:6px 11px;font-size:0.78rem;}
-.btn-gray{background:var(--border);color:var(--muted);border:none;padding:8px 14px;border-radius:10px;font-family:inherit;font-size:0.86rem;cursor:pointer;}
+.btn-gray{background:var(–border);color:var(–muted);border:none;padding:8px 14px;border-radius:10px;font-family:inherit;font-size:0.86rem;cursor:pointer;}
 .btn-gray.sm{padding:5px 10px;font-size:0.74rem;}
 .btn-gray.full{width:100%;}
 
@@ -254,13 +256,47 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .rainbow-name{background:linear-gradient(90deg,#f59e0b,#ef4444,#a855f7,#3b82f6,#10b981,#f59e0b);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:sh 1.5s linear infinite;display:inline-block;}
 @keyframes sh{to{background-position:200% center}}
 
+/* ── BATTLE ── */
+.battle-arena{background:linear-gradient(160deg,#0c1445 0%,#1a1a2e 50%,#16213e 100%);border-radius:20px;padding:16px 14px;margin-bottom:10px;overflow:hidden;position:relative;}
+.battle-arena::before{content:’’;position:absolute;inset:0;background:url(“data:image/svg+xml,%3Csvg width=‘40’ height=‘40’ viewBox=‘0 0 40 40’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cg fill=’%23ffffff’ fill-opacity=‘0.02’%3E%3Cpath d=‘M20 0l20 20-20 20L0 20z’/%3E%3C/g%3E%3C/svg%3E”);pointer-events:none;}
+.battle-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;}
+.battle-title{font-size:0.72rem;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:2px;text-transform:uppercase;}
+.battle-field{display:grid;grid-template-columns:1fr 40px 1fr;gap:8px;align-items:start;margin-bottom:12px;position:relative;}
+.battle-side{text-align:center;}
+.battle-pet-em{font-size:3.2rem;display:block;filter:drop-shadow(0 0 12px var(–pet-glow,#ffffff44));transition:transform .15s;}
+.battle-pet-em.shake{animation:bShake .3s ease;}
+.battle-pet-em.dead{filter:grayscale(1) opacity(.35);}
+@keyframes bShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes bBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.battle-pet-name{font-size:0.72rem;font-weight:700;color:rgba(255,255,255,.8);margin:3px 0 6px;}
+.battle-hp-bar{height:8px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px;}
+.battle-hp-fill{height:100%;border-radius:50px;transition:width .5s ease;}
+.battle-hp-txt{font-size:0.6rem;color:rgba(255,255,255,.45);text-align:center;}
+.battle-vs{display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:800;color:rgba(255,255,255,.25);padding-top:30px;}
+.battle-log{background:rgba(0,0,0,.25);border-radius:12px;padding:10px 12px;min-height:52px;font-size:0.74rem;color:rgba(255,255,255,.7);line-height:1.6;margin-bottom:12px;border:1px solid rgba(255,255,255,.06);}
+.battle-log-line{animation:fadeSlideIn .3s ease;}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.battle-select-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:7px;margin-bottom:10px;}
+.battle-pick{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.18s;}
+.battle-pick:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);transform:translateY(-2px);}
+.battle-pick.sel-a{border-color:#10b981;background:rgba(16,185,129,.15);}
+.battle-pick.sel-b{border-color:#f43f5e;background:rgba(244,63,94,.15);}
+.battle-dmg{position:absolute;font-weight:900;font-size:1.1rem;pointer-events:none;animation:dmgFloat .9s ease forwards;}
+@keyframes dmgFloat{0%{opacity:1;transform:translateY(0) scale(1.2)}100%{opacity:0;transform:translateY(-36px) scale(.8)}}
+.btn-battle{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;padding:11px 20px;border-radius:12px;font-family:inherit;font-size:0.9rem;font-weight:800;cursor:pointer;transition:.2s;width:100%;letter-spacing:.5px;box-shadow:0 4px 14px rgba(239,68,68,.4);}
+.btn-battle:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 18px rgba(239,68,68,.5);}
+.btn-battle:disabled{opacity:.4;cursor:not-allowed;}
+.battle-result{text-align:center;padding:14px 0 6px;}
+.battle-winner-em{font-size:4rem;animation:bBounce .5s ease;}
+
 /* Egg bag extras */
 
-#toast{position:fixed;bottom:calc(var(--btm)+16px);left:50%;transform:translateX(-50%);color:#fff;font-size:0.84rem;font-weight:500;z-index:1000;transition:opacity .2s;white-space:nowrap;pointer-events:none;opacity:0;}
+#toast{position:fixed;bottom:calc(var(–btm)+16px);left:50%;transform:translateX(-50%);color:#fff;font-size:0.84rem;font-weight:500;z-index:1000;transition:opacity .2s;white-space:nowrap;pointer-events:none;opacity:0;}
 #toast.show{opacity:1;background:#1e293b;padding:9px 15px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.2);}
 #toast.show.success{background:#065f46;} #toast.show.error{background:#7f1d1d;} #toast.show.info{background:#1e40af;}
 @media(max-width:360px){.mgrid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}}
 </style>
+
 </head>
 <body>
 
@@ -278,6 +314,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 </nav>
 
 <!-- PROFILE MODAL -->
+
 <div class="modal-ov" id="profile-modal" onclick="if(event.target===this)closePM()">
     <div class="modal-box" style="text-align:center">
         <button class="mclose" onclick="closePM()">✕</button>
@@ -286,6 +323,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 </div>
 
 <!-- LINK MODAL -->
+
 <div class="modal-ov" id="link-modal" onclick="if(event.target===this)closeLinkModal()">
     <div class="modal-box">
         <button class="mclose" onclick="closeLinkModal()">✕</button>
@@ -334,11 +372,13 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 </div>
 
 <!-- GACHA MODAL -->
+
 <div class="modal-ov" id="gacha-modal" onclick="if(event.target===this)closeGacha()">
     <div class="modal-box"><div id="gacha-result"></div></div>
 </div>
 
 <!-- PET INFO MODAL -->
+
 <div class="modal-ov" id="petinfo-modal" onclick="if(event.target===this)closePetInfo()">
     <div class="modal-box">
         <button class="mclose" onclick="closePetInfo()">✕</button>
@@ -348,6 +388,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 </div>
 
 <!-- FEED MODAL -->
+
 <div class="modal-ov" id="feed-modal" onclick="if(event.target===this)closeFeed()">
     <div class="modal-box">
         <button class="mclose" onclick="closeFeed()">✕</button>
@@ -357,6 +398,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 </div>
 
 <!-- MEGAPHONE MODAL -->
+
 <div class="modal-ov" id="mega-modal" onclick="if(event.target===this)closeMega()">
     <div class="modal-box">
         <button class="mclose" onclick="closeMega()">✕</button>
@@ -372,6 +414,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 </div>
 
 <!-- TRADE PANEL -->
+
 <div class="slide-panel" id="trade-panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-weight:700">🔄 Trade สัตว์เลี้ยง</span>
@@ -384,6 +427,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 </div>
 
 <!-- DAILY BREAKDOWN MODAL -->
+
 <div class="modal-ov" id="daily-modal" onclick="if(event.target===this)closeDailyModal()">
     <div class="modal-box" style="text-align:center">
         <button class="mclose" onclick="closeDailyModal()">✕</button>
@@ -392,6 +436,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 </div>
 
 <!-- UPGRADE SELECT MODAL -->
+
 <div class="modal-ov" id="upgrade-modal" onclick="if(event.target===this)closeUpgradeModal()">
     <div class="modal-box">
         <button class="mclose" onclick="closeUpgradeModal()">✕</button>
@@ -400,10 +445,19 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 </div>
 
 <!-- FLOWER MODAL -->
+
 <div class="modal-ov" id="flower-modal" onclick="if(event.target===this)closeFlowerModal()">
     <div class="modal-box" style="text-align:center">
         <button class="mclose" onclick="closeFlowerModal()">✕</button>
         <div id="flower-content"></div>
+    </div>
+</div>
+
+<!-- BATTLE MODAL -->
+
+<div class="modal-ov" id="battle-modal" onclick="if(event.target===this)closeBattle()">
+    <div class="modal-box" style="max-width:380px;padding:0;overflow:hidden;background:transparent;box-shadow:none">
+        <div id="battle-content"></div>
     </div>
 </div>
 
@@ -460,12 +514,12 @@ const ELEMENTS = {
     scissors:{ emoji:'✌️', beats:'paper'   },
     paper:   { emoji:'✋', beats:'fist'     },
 };
-// ชนะทาง = ATK ×1.5 (ใช้ใน battle ภายหลัง)
+/** elementBeats(attEl, defEl) → bool
+ *  attEl/defEl: 'fist' | 'scissors' | 'paper'
+ *  Returns true ถ้า attacker ได้เปรียบ → ATK ×1.5 ใน battle */
 function elementBeats(attEl,defEl){ return ELEMENTS[attEl]?.beats===defEl; }
 
-// ── BASE STATS ── (HP ≈ ATK × 5, เพิ่มตาม rarity)
-// ATK base: common 10 | rare 25 | epic 55 | legendary 120
-// HP  base: common 50 | rare 125 | epic 275 | legendary 600
+// ── BASE STATS ── (HP = ATK × 5, +5 ATK per rarity tier)
 const BASE_STATS = {
     common:    { atk:10, hp:50  },
     rare:      { atk:15, hp:75  },
@@ -475,6 +529,9 @@ const BASE_STATS = {
 // Grade multiplier สำหรับ stats (อ่อนกว่า daily ×)
 const STAT_MULTI = [1.0, 1.3, 1.7, 2.2, 2.8, 3.5];
 
+/** petStats(p) → {atk, hp}
+ *  p: stored pet object {rarity, grade}
+ *  Used by: showPetInfo, openFriendPetInfo, battle system */
 function petStats(p){
     const base=BASE_STATS[p.rarity]||BASE_STATS.common;
     const g=p.grade||0;
@@ -512,7 +569,6 @@ const PETS = [
     { id:"kirin",     emoji:"🦁", name:"ไคริน",     rarity:"legendary", element:"fist",  flavor:"สัตว์ศักดิ์สิทธิ์แห่งวิชาเภสัช ปรากฏตัวเมื่อมีเภสัชกรผู้ยิ่งใหญ่", rate:{normal:0,gold:0.01,rainbow:0.12}, hatchMins:60},
 ];
 const HATCH_LABELS = { common:"1 นาที", rare:"5 นาที", epic:"15 นาที", legendary:"1 ชั่วโมง" };
-// ไข่ 3 ระดับ + instant hatch
 const EGG_TYPES = {
     normal:  { label:"🥚 ธรรมดา",  cost:100, desc:"Common~Rare",        color:"#64748b" },
     gold:    { label:"🥚✨ ทอง",   cost:300, desc:"Rare~Epic~Legendary", color:"#f59e0b" },
@@ -525,7 +581,9 @@ const FLOWERS = [
     { id:'sakura', emoji:'🌸', name:'ดอกไม้', cost:10, desc:'มอบความนิยมให้ผู้เล่นอื่น' },
 ];
 
-// helpers
+/** rollPetFromEgg(eggType) → pet object with instId
+ *  eggType: 'normal' | 'gold' | 'rainbow'
+ *  Returns a pet def merged with fresh instId */
 function rollPetFromEgg(eggType){
     const pool=PETS.filter(p=>p.rate[eggType]>0);
     const r=Math.random();let c=0;
@@ -538,11 +596,29 @@ function petDailyCoins(p){
     const g=p.grade||0;
     return base*GRADE_MULTI[g];
 }
+/** calcTotalDaily(pets) → {base, passive, total}
+ *  base: login base (50🪙/day)
+ *  passive: sum ของ petDailyCoins ทุกตัว
+ *  total: base + passive */
 function calcTotalDaily(pets){
     const passive=(pets||[]).reduce((sum,p)=>sum+petDailyCoins(p),0);
     return {base:50, passive, total:50+passive};
 }
 
+
+// ════════════════════════════════════════
+//  BATTLE SYSTEM (future)
+//  ─────────────────────────────────────
+//  Data layer พร้อมแล้ว:
+//    - ELEMENTS (✊✌️✋) + elementBeats()
+//    - petStats(p) → {atk, hp}
+//    - STAT_MULTI[grade] (×1.0 – ×3.5)
+//  Battle logic ที่จะเพิ่ม:
+//    - initBattle(myPet, opponentSnapshot)
+//    - calcDamage(attacker, defender) → ATK ×(1.5 ถ้าได้เปรียบ element)
+//    - battleLoop(state) → turn-based rounds
+//    - Battle result → post news + reward coins
+// ════════════════════════════════════════
 
 // ════════════════════════════════════════
 //  STUDENT DATA
@@ -559,11 +635,14 @@ const DRUGS=[
 //  STATE
 // ════════════════════════════════════════
 let currentUser=null, userData=null, unsub=null;
+// UI state
 let mTrack='all', mSearch='';
+let tradeIdx=null;
+// Quiz state
 let qScore=0, qAnswer=null, qHigh=0;
 let dqScore=0, dqAnswer=null, dqHigh=0;
-let curDrug=null, tradeIdx=null;
-let __quizTop5Posted=false, __drugTop5Posted=false; // guard ไม่ให้ spam top5% news
+let __quizTop5Posted=false, __drugTop5Posted=false;
+// Battle state (future) — เพิ่ม: let battleState=null;
 
 // ════════════════════════════════════════
 //  INIT
@@ -637,9 +716,18 @@ window.loginGoogle=async()=>{
 };
 window.logoutUser=async()=>{if(!confirm('ออกจากระบบ?'))return;clearInterval(window.__hatchTimer);try{await signOut(auth);}catch(e){}currentUser=userData=null;window.__fbUsers={};window.__tab='home';renderTab('home');};
 
+/** Firestore User Document Schema (users/{uid}):
+ *  uid, name, email, googlePhoto, customPhoto, customPhotoThumb
+ *  coins: number | studentId: string|null | nickname, realName, track
+ *  quizHigh, drugHigh: number
+ *  pets: [{id, emoji, name, rarity, instId, grade}]  ← no 'effect' field
+ *  eggs: [{eggId, eggType, petId, petEmoji, petName, petRarity, petInstId, hatchMins, startedAt}]
+ *  activePet: instId string | null
+ *  lastDaily: Timestamp | null
+ *  flowerInv: {sakura: number, ...} | flowersReceived: {...} */
 async function ensureDoc(u){
     const ref=doc(db,"users",u.uid);const snap=await getDoc(ref);
-    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:200,pets:[],eggs:[],activePet:null,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,lastDaily:null,petLastDaily:null,createdAt:serverTimestamp()});
+    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:200,pets:[],eggs:[],activePet:null,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,lastDaily:null,createdAt:serverTimestamp()});
 }
 
 onAuthStateChanged(auth,async u=>{
@@ -671,18 +759,15 @@ async function checkDaily(){
     const sameDay=last&&last.toDateString()===now.toDateString();
     if(btn)btn.classList.toggle('ready',!last||!sameDay);
 }
-// checkPetDaily removed — passive daily รวมใน claimDaily แล้ว
 window.claimDaily=async()=>{
     if(!currentUser)return;
     const btn=document.getElementById('daily-btn');
     if(!btn?.classList.contains('ready')){toast("รับได้อีกครั้งพรุ่งนี้!","info");return;}
-    const {base,passive}=calcTotalDaily(userData?.pets||[]);
-    const total=base+passive+extra;
+    const {base,passive,total}=calcTotalDaily(userData?.pets||[]);
     await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(total),lastDaily:serverTimestamp()});
     btn.classList.remove('ready');
-    // breakdown toast
     let msg=`🎁 +${total}🪙`;
-    if(passive>0||extra>0) msg+=` (${base}+${passive}passive${extra?'+'+extra+'active':''})`;
+    if(passive>0) msg+=` (base ${base} + passive ${passive})`;
     toast(msg,"success");
     confetti({particleCount:80,spread:60,origin:{y:0.6}});
 };
@@ -863,7 +948,8 @@ function activePet(){
     return userData.pets.find(p=>p.instId&&String(p.instId)===String(userData.activePet))
         ||userData.pets.find(p=>p.id===userData.activePet)||null;
 }
-function getActiveBadge(){const p=activePet();if(!p)return null;const def=PETS.find(x=>x.id===p.id);return def?BADGE_EFFECTS[def.effect]||null:null;}
+function getPetBadge(p){if(!p)return null;const def=PETS.find(x=>x.id===p.id);return def?BADGE_EFFECTS[def.effect]||null:null;}
+function getActiveBadge(){return getPetBadge(activePet());}
 window.awardCoins=async(base,trackKey)=>{
     if(!currentUser)return base;
     await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(base)});
@@ -1126,8 +1212,7 @@ window.handlePhoto=async(e)=>{
 // ════════════════════════════════════════
 //  GACHA & HATCH
 // ════════════════════════════════════════
-function rollPet(){return rollPetFromEgg('normal');} // legacy compat
-
+function rollPet(){return rollPetFromEgg('normal');} 
 window.buyEgg=async(eggType='normal')=>{
     if(!currentUser||!userData){toast("กรุณา Login","error");return;}
     const et=EGG_TYPES[eggType];if(!et)return;
@@ -1209,8 +1294,6 @@ function showDuplicatePopup(newPet,existing){
     document.getElementById('gacha-modal').classList.add('active');
     confetti({particleCount:40,spread:60,origin:{y:0.5},colors:[cfg.color]});
 }
-// upgradePet ถูกแทนที่ด้วย openUpgradeModal + confirmUpgrade แล้ว
-
 function showGachaResult(pet){
     const cfg=RARITY[pet.rarity];
     document.getElementById('gacha-result').innerHTML=`
@@ -1432,12 +1515,14 @@ window.answerDQ=async(btn,ans)=>{
 // ════════════════════════════════════════
 //  RENDER ENGINE
 // ════════════════════════════════════════
+/** renderAll() — เรียกเมื่อ userData เปลี่ยน (Firestore snapshot)
+ *  Guard: ไม่ re-render ถ้ากำลังเล่นเกมอยู่ (จะทำลาย game state) */
 window.renderAll=()=>{
     const tab=window.__tab||'home';
     if(tab==='play'){
-        const quizActive=document.getElementById('quiz-play')?.style.display==='block';
-        const dquizActive=document.getElementById('dquiz-play')?.style.display==='block';
-        if(quizActive||dquizActive) return; // อย่า re-render ระหว่างเกม
+        const inGame=document.getElementById('quiz-play')?.style.display==='block'
+                  || document.getElementById('dquiz-play')?.style.display==='block';
+        if(inGame) return;
     }
     renderTab(tab);
 };
@@ -1474,8 +1559,7 @@ function buildHome(){
         </div>`;
     const pet=activePet();const tc=userData?.track==='sci'?'var(--sci)':'var(--care)';
     const badge=getActiveBadge();
-    const badgeClass=badge?({'gold_badge':'pet-badge-gold','rainbow_badge':'pet-badge-rainbow','kirin_badge':'pet-badge-kirin'}[pet?.effect]||''):'';
-    // nc removed — ใช้ badge system แทน (gold_badge/rainbow_badge/kirin_badge)
+    const activeDef=pet?PETS.find(x=>x.id===pet.id):null;const badgeClass=badge?({'gold_badge':'pet-badge-gold','rainbow_badge':'pet-badge-rainbow','kirin_badge':'pet-badge-kirin'}[activeDef?.effect]||''):'';
     const linked=userData?.studentId;
     const flowerRecv=(()=>{const recv=userData?.flowersReceived||{};const t=Object.values(recv).reduce((a,b)=>a+b,0);return t>0?FLOWERS.filter(f=>(recv[f.id]||0)>0).map(f=>`${f.emoji}×${recv[f.id]}`).join(' '):''})();
     const flowerInHand=(()=>{const inv=userData?.flowerInv||{};const t=Object.values(inv).reduce((a,b)=>a+b,0);return t>0?FLOWERS.filter(f=>(inv[f.id]||0)>0).map(f=>`${f.emoji}${inv[f.id]}`).join(''):'';})();
@@ -1600,7 +1684,8 @@ function buildHome(){
             ${userData?.activePet?`<button class="btn-gray sm" onclick="unsetActive()">เอาออก</button>`:''}
             ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
             <button class="btn-gray sm" onclick="openMega()">📣 โทรโข่ง</button>
-        </div>`;
+        </div>
+        ${pets.length>=1?`<button onclick="openBattle()" style="margin-top:10px;width:100%;background:linear-gradient(135deg,#7f1d1d,#991b1b);border:1.5px solid rgba(239,68,68,.4);border-radius:12px;padding:10px;color:#fca5a5;font-family:inherit;font-size:0.84rem;font-weight:700;cursor:pointer;letter-spacing:.5px;display:flex;align-items:center;justify-content:center;gap:7px">⚔️ Sandbox Battle <span style="font-size:0.68rem;opacity:.6">ลองตีหุ่น</span></button>`:''}`;
 
     const collBtn=`<div style="text-align:center;margin-bottom:8px"><button id="coll-toggle-btn" onclick="toggleCollection()" style="background:linear-gradient(135deg,#1e293b,#0f172a);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:9px 20px;color:rgba(255,255,255,.75);font-size:0.82rem;font-weight:600;cursor:pointer;font-family:inherit;width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗂️ ดูคอลเลกชั่น <span style="font-size:0.68rem;color:rgba(255,255,255,.35)">${uniqueIds.length}/${PETS.length} สายพันธุ์</span></button></div><div id="collection-panel" style="display:none" class="card"></div>`;
     return`${profileBlock}<input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhoto(event)">
@@ -1647,7 +1732,7 @@ function memberGrid(){
             ?(live.pets||[]).find(p=>p.instId&&String(p.instId)===String(live.activePet))
               ||(live.pets||[]).find(p=>p.id===live.activePet)
             :null;
-        const badge=petData?BADGE_EFFECTS[petData.effect]:null;
+        const badge=getPetBadge(petData);
         const petGrade=petData?(petData.grade||0):0;
         const petColor=petData?(RARITY[petData.rarity]?.color||'#64748b'):'';
         return`<div class="mcard" onclick="openProfileModal('${s.id}')">
@@ -1677,7 +1762,7 @@ window.openProfileModal=(id)=>{
         ?(liveData.pets||[]).find(p=>p.instId&&String(p.instId)===String(liveData.activePet))
           ||(liveData.pets||[]).find(p=>p.id===liveData.activePet)
         :null;
-    const pmBadge=petData?BADGE_EFFECTS[petData.effect]:null;
+    const pmBadge=getPetBadge(petData);
     const nickHtml=pmBadge
         ?`<span style="background:${pmBadge.bg};border-radius:6px;padding:1px 8px;border:1.5px solid ${pmBadge.border}">${s.nickname}</span>`
         :s.nickname;
@@ -2047,8 +2132,272 @@ window.toggleCollection=()=>{
     const show=el.style.display==='none'||!el.style.display;
     el.style.display=show?'block':'none';
     if(show)el.innerHTML=buildCollection();
-    document.getElementById('coll-toggle-btn').textContent=show?'▲ ซ่อน':'🗂️ ดูคอลเลกชั่น';
+    const tb=document.getElementById('coll-toggle-btn');if(tb)tb.innerHTML=show?'▲ ซ่อน':`🗂️ ดูคอลเลกชั่น <span style="font-size:0.68rem;color:rgba(255,255,255,.35)">${(userData?.pets||[]).filter((v,i,a)=>a.findIndex(x=>x.id===v.id)===i).length}/${PETS.length} สายพันธุ์</span>`;
 };
+
+
+// ════════════════════════════════════════
+//  BATTLE SYSTEM — Phase 1: Sandbox Dummy
+// ════════════════════════════════════════
+//  กลไก:
+//    - เลือก pet 1 ตัว → ตี dummy นิ่ง
+//    - กดปุ่ม ⚔️ Attack เองทีละครั้ง
+//    - Dummy: มี HP bar (regen เมื่อ HP = 0)
+//    - Damage float ลอยขึ้น
+//    - Element advantage → ×1.5 (เฉพาะฝ่ายได้เปรียบ ไม่มีลดฝ่ายเสียเปรียบ)
+//    - Critical 20% → ×2 (stack: max ×3.0)
+// ════════════════════════════════════════
+
+// DUMMY pool — หุ่นให้ตี (ธาตุต่างกัน)
+const DUMMIES = [
+    { id:'dummy_fist',    emoji:'🪨', name:'หุ่นหิน',   element:'fist',    hp:200, color:'#78716c' },
+    { id:'dummy_scissors',emoji:'✂️', name:'หุ่นกรรไกร', element:'scissors', hp:150, color:'#94a3b8' },
+    { id:'dummy_paper',   emoji:'📄', name:'หุ่นกระดาษ', element:'paper',   hp:100, color:'#bfdbfe' },
+];
+
+// Sandbox state
+let __sandbox = null;
+// { pet, petDef, petStats, dummy, dummyHp, dummyMaxHp, hits, totalDmg, crits }
+
+window.openBattle = () => {
+    if (!currentUser) { toast('กรุณา Login', 'error'); return; }
+    const pets = userData?.pets || [];
+    if (!pets.length) { toast('ยังไม่มีสัตว์เลี้ยง', 'info'); return; }
+    __sandbox = null;
+    window.__sandboxSelId = null;
+    document.getElementById('battle-content').innerHTML = renderSandboxSelect(pets);
+    document.getElementById('battle-modal').classList.add('active');
+};
+window.closeBattle = () => {
+    __sandbox = null;
+    document.getElementById('battle-modal').classList.remove('active');
+};
+
+/** renderSandboxSelect — เลือก pet ก่อนตี */
+function renderSandboxSelect(pets) {
+    const selId = window.__sandboxSelId;
+    const pet = selId ? pets.find(p => p.instId === selId) : null;
+    const defPet = pet ? PETS.find(x => x.id === pet.id) : null;
+    const elPet = defPet ? ELEMENTS[defPet.element] : null;
+
+    const pickHtml = pets.map(p => {
+        const cfg = RARITY[p.rarity];
+        const def = PETS.find(x => x.id === p.id);
+        const el = ELEMENTS[def?.element];
+        const gr = p.grade || 0;
+        const s = petStats(p);
+        const sel = p.instId === selId;
+        return `<div class="battle-pick${sel ? ' sel-a' : ''}" onclick="sandboxPick('${p.instId}')">
+            <div style="font-size:1.55rem">${p.emoji}</div>
+            <div style="font-size:0.58rem;font-weight:700;color:rgba(255,255,255,.85);margin-top:2px;line-height:1.3">${p.name}${gr > 0 ? ' ' + GRADE_LABELS[gr] : ''}</div>
+            <div style="font-size:0.56rem;color:${cfg.color}">${cfg.label}</div>
+            <div style="font-size:0.6rem;margin-top:2px">${el ? el.emoji : ''} <span style="color:rgba(255,255,255,.5)">ATK ${s.atk}</span></div>
+        </div>`;
+    }).join('');
+
+    // dummy preview ถ้าเลือก pet แล้ว
+    const dummyPreview = pet ? `
+        <div style="margin:10px 0 8px;font-size:0.68rem;color:rgba(255,255,255,.4);text-align:center;letter-spacing:1px">เลือกหุ่น</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px">
+            ${DUMMIES.map(d => {
+                const dEl = ELEMENTS[d.element];
+                const adv = defPet && elementBeats(defPet.element, d.element);
+                return `<div class="battle-pick" onclick="sandboxStart('${d.id}')" style="${adv ? 'border-color:#10b981;background:rgba(16,185,129,.12)' : ''}">
+                    <div style="font-size:1.5rem">${d.emoji}</div>
+                    <div style="font-size:0.58rem;font-weight:700;color:rgba(255,255,255,.75);margin-top:2px">${d.name}</div>
+                    <div style="font-size:0.62rem;margin-top:1px">${dEl ? dEl.emoji : ''}</div>
+                    ${adv ? '<div style="font-size:0.54rem;color:#10b981;font-weight:700">ได้เปรียบ!</div>' : ''}
+                </div>`;
+            }).join('')}
+        </div>` : '';
+
+    return `<div class="battle-arena" style="border-radius:20px;max-height:82vh;overflow-y:auto">
+        <div class="battle-header">
+            <span class="battle-title">⚔️ Sandbox — ลองตีหุ่น</span>
+            <button onclick="closeBattle()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem;flex-shrink:0">✕</button>
+        </div>
+        <div style="font-size:0.68rem;color:rgba(255,255,255,.4);text-align:center;margin-bottom:8px">เลือกสัตว์เลี้ยงที่จะใช้</div>
+        <div class="battle-select-grid" style="margin-bottom:4px">${pickHtml}</div>
+        ${dummyPreview}
+        ${!pet ? `<div style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,.25);padding:6px 0">↑ เลือกสัตว์ก่อน แล้วจะเลือกหุ่นได้</div>` : ''}
+    </div>`;
+}
+
+window.sandboxPick = (instId) => {
+    window.__sandboxSelId = window.__sandboxSelId === instId ? null : instId;
+    const pets = userData?.pets || [];
+    document.getElementById('battle-content').innerHTML = renderSandboxSelect(pets);
+};
+
+window.sandboxStart = (dummyId) => {
+    const pets = userData?.pets || [];
+    const pet = pets.find(p => p.instId === window.__sandboxSelId);
+    if (!pet) { toast('เลือกสัตว์ก่อน', 'error'); return; }
+    const dummy = DUMMIES.find(d => d.id === dummyId);
+    if (!dummy) return;
+    const defPet = PETS.find(x => x.id === pet.id);
+    const s = petStats(pet);
+    const dummyHp = dummy.hp;
+    __sandbox = {
+        pet, defPet, petStats: s,
+        dummy: { ...dummy },
+        dummyHp, dummyMaxHp: dummyHp,
+        hits: 0, totalDmg: 0, crits: 0,
+    };
+    renderSandboxArena();
+};
+
+/** renderSandboxArena — UI หลักระหว่าง sandbox */
+function renderSandboxArena() {
+    const sb = __sandbox;
+    if (!sb) return;
+    const cfg = RARITY[sb.pet.rarity];
+    const elPet = ELEMENTS[sb.defPet?.element];
+    const elDummy = ELEMENTS[sb.dummy.element];
+    const advantage = sb.defPet && elementBeats(sb.defPet.element, sb.dummy.element);
+    const pctDummy = Math.max(0, Math.round(sb.dummyHp / sb.dummyMaxHp * 100));
+    const hpColor = pctDummy > 50 ? '#10b981' : pctDummy > 25 ? '#f59e0b' : '#ef4444';
+    const avgDmg = sb.hits ? Math.round(sb.totalDmg / sb.hits) : 0;
+
+    document.getElementById('battle-content').innerHTML = `
+    <div class="battle-arena" style="border-radius:20px" id="sandbox-wrap">
+        <div class="battle-header">
+            <span class="battle-title">⚔️ Sandbox</span>
+            <button onclick="closeBattle()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem;flex-shrink:0">✕</button>
+        </div>
+
+        <!-- Arena field -->
+        <div style="display:grid;grid-template-columns:1fr 36px 1fr;gap:6px;align-items:center;margin-bottom:14px;position:relative" id="sandbox-field">
+
+            <!-- Pet -->
+            <div style="text-align:center">
+                <div style="font-size:3rem;filter:drop-shadow(0 0 12px ${cfg.glow})" id="sb-pet-em">${sb.pet.emoji}</div>
+                <div style="font-size:0.7rem;font-weight:700;color:rgba(255,255,255,.8);margin:4px 0 2px">${sb.pet.name}${sb.pet.grade > 0 ? ' ' + GRADE_LABELS[sb.pet.grade] : ''}</div>
+                <div style="font-size:0.58rem;color:${cfg.color}">${cfg.label}${elPet ? ' · ' + elPet.emoji : ''}</div>
+                <div style="font-size:0.6rem;color:rgba(255,255,255,.5);margin-top:2px">ATK ${sb.petStats.atk}</div>
+            </div>
+
+            <div style="text-align:center;font-size:0.9rem;font-weight:800;color:rgba(255,255,255,.2)">⚔️</div>
+
+            <!-- Dummy -->
+            <div style="text-align:center">
+                <div style="font-size:3rem;opacity:${sb.dummyHp <= 0 ? 0.3 : 1};transition:.3s" id="sb-dummy-em">${sb.dummy.emoji}</div>
+                <div style="font-size:0.7rem;font-weight:700;color:rgba(255,255,255,.8);margin:4px 0 2px">${sb.dummy.name}</div>
+                <div style="font-size:0.58rem;color:${sb.dummy.color}">${elDummy ? elDummy.emoji : ''}${advantage ? ' <span style="color:#10b981">เสียเปรียบ!</span>' : ''}</div>
+                <!-- HP bar -->
+                <div style="height:7px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin:6px 0 2px">
+                    <div style="width:${pctDummy}%;height:100%;background:${hpColor};border-radius:50px;transition:width .4s ease"></div>
+                </div>
+                <div style="font-size:0.58rem;color:rgba(255,255,255,.4)">${Math.max(0, sb.dummyHp)} / ${sb.dummyMaxHp}</div>
+            </div>
+        </div>
+
+        <!-- Element info -->
+        ${advantage ? `<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:10px;padding:7px 12px;font-size:0.72rem;color:#6ee7b7;text-align:center;margin-bottom:10px">
+            ${elPet?.emoji} ได้เปรียบ ${elDummy?.emoji} → ×1.5 damage!
+        </div>` : ''}
+
+        <!-- Stats bar -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px">
+            <div style="background:rgba(255,255,255,.05);border-radius:9px;padding:7px 4px;text-align:center">
+                <div style="font-size:0.56rem;color:rgba(255,255,255,.35);text-transform:uppercase">ตี</div>
+                <div style="font-size:0.95rem;font-weight:800;color:#fff">${sb.hits}</div>
+            </div>
+            <div style="background:rgba(255,255,255,.05);border-radius:9px;padding:7px 4px;text-align:center">
+                <div style="font-size:0.56rem;color:rgba(255,255,255,.35);text-transform:uppercase">รวม</div>
+                <div style="font-size:0.95rem;font-weight:800;color:#ef4444">${sb.totalDmg}</div>
+            </div>
+            <div style="background:rgba(255,255,255,.05);border-radius:9px;padding:7px 4px;text-align:center">
+                <div style="font-size:0.56rem;color:rgba(255,255,255,.35);text-transform:uppercase">เฉลี่ย</div>
+                <div style="font-size:0.95rem;font-weight:800;color:#fbbf24">${avgDmg}</div>
+            </div>
+            <div style="background:rgba(255,255,255,.05);border-radius:9px;padding:7px 4px;text-align:center">
+                <div style="font-size:0.56rem;color:rgba(255,255,255,.35);text-transform:uppercase">คริ</div>
+                <div style="font-size:0.95rem;font-weight:800;color:#f59e0b">${sb.crits}</div>
+            </div>
+        </div>
+
+        <!-- Attack button -->
+        <button class="btn-battle" onclick="sandboxAttack()">
+            ⚔️ Attack
+            ${advantage ? '<span style="font-size:0.7rem;opacity:.75"> (×1.5)</span>' : ''}
+        </button>
+        <div style="text-align:center;margin-top:8px">
+            <button onclick="openBattle()" style="background:none;border:none;color:rgba(255,255,255,.3);font-size:0.72rem;cursor:pointer;font-family:inherit;text-decoration:underline">เปลี่ยนสัตว์/หุ่น</button>
+        </div>
+    </div>`;
+}
+
+/** sandboxAttack() — คำนวณ damage 1 hit + animate */
+window.sandboxAttack = () => {
+    const sb = __sandbox;
+    if (!sb) return;
+
+    const defPet = sb.defPet;
+    const advantage = defPet && elementBeats(defPet.element, sb.dummy.element);
+    const elemMult = advantage ? 1.5 : 1.0;
+    const isCrit = Math.random() < 0.20;
+    const critMult = isCrit ? 2.0 : 1.0;
+    const dmg = Math.max(1, Math.round(sb.petStats.atk * elemMult * critMult));
+
+    sb.hits++;
+    sb.totalDmg += dmg;
+    if (isCrit) sb.crits++;
+
+    // ลด HP ถ้า HP ถึง 0 → regen
+    sb.dummyHp -= dmg;
+    if (sb.dummyHp <= 0) {
+        sb.dummyHp = sb.dummyMaxHp; // regen กลับ
+    }
+
+    // Render อัพเดต
+    renderSandboxArena();
+
+    // Animate: pet bounce
+    const petEm = document.getElementById('sb-pet-em');
+    if (petEm) {
+        petEm.style.animation = 'none';
+        void petEm.offsetWidth;
+        petEm.style.animation = 'bBounce .35s ease';
+        setTimeout(() => { if (petEm) petEm.style.animation = ''; }, 400);
+    }
+
+    // Animate: dummy shake
+    const dummyEm = document.getElementById('sb-dummy-em');
+    if (dummyEm) {
+        dummyEm.style.animation = 'none';
+        void dummyEm.offsetWidth;
+        dummyEm.style.animation = 'bShake .3s ease';
+        setTimeout(() => { if (dummyEm) dummyEm.style.animation = ''; }, 350);
+    }
+
+    // Damage float
+    spawnDmgFloat(dmg, isCrit, advantage);
+};
+
+/** spawnDmgFloat — สร้าง floating damage number */
+function spawnDmgFloat(dmg, isCrit, advantage) {
+    const field = document.getElementById('sandbox-field');
+    if (!field) return;
+    const el = document.createElement('div');
+    const color = isCrit ? '#fbbf24' : advantage ? '#6ee7b7' : '#fff';
+    const label = isCrit ? `💥${dmg}!` : `-${dmg}`;
+    el.innerHTML = label;
+    el.style.cssText = `
+        position:absolute;
+        right:${10 + Math.random() * 40}%;
+        top:${10 + Math.random() * 40}%;
+        font-size:${isCrit ? 1.4 : 1.0}rem;
+        font-weight:900;
+        color:${color};
+        pointer-events:none;
+        z-index:10;
+        text-shadow:0 2px 6px rgba(0,0,0,.5);
+        animation:dmgFloat .9s ease forwards;
+    `;
+    field.appendChild(el);
+    setTimeout(() => el.remove(), 950);
+}
 
 // ════════════════════════════════════════
 //  BOOT
@@ -2068,5 +2417,6 @@ let __hatchTimer=setInterval(()=>{
 <script>
 window.toast=(msg,type='info')=>{const t=document.getElementById('toast');t.textContent=msg;t.className='show '+type;clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);};
 </script>
+
 </body>
 </html>
