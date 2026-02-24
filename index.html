@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RxTU10</title>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
@@ -78,7 +78,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .hs-cell small{font-size:0.62rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;}
 /* track pill */
 .track-badge{padding:3px 8px;border-radius:5px;color:#fff;font-size:0.58rem;font-weight:700;text-transform:uppercase;}
-.track-badge.sm{font-size:0.54px;padding:2px 6px;}
+.track-badge.sm{font-size:0.54rem;padding:2px 6px;}
 /* .stats-row/.stat-box removed — replaced by hero-stats strip */
 /* unlinked */
 .unlinked-card{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;border:2px dashed var(--border);}
@@ -93,15 +93,10 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 /* egg section */
 .egg-section-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0 7px;}
 .egg-section-head span{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
-/* inv upgrade */
-.inv-item{background:var(--rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
-.inv-item:hover{transform:translateY(-2px);border-color:var(--rc);}
-.inv-item.on{border-color:var(--rc);box-shadow:0 0 10px color-mix(in srgb,var(--rc) 20%,transparent);}
+/* inv upgrade — defined below in Inventory section */
 /* pet badge effects */
-/* pet-badge-gold/rainbow/kirin นิยามซ้ำด้านล่าง ลบ duplicate นี้ออก */
 
 /* Inventory */
-.inv-empty{text-align:center;color:var(--muted);font-size:0.82rem;padding:16px;}
 .inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;}
 .inv-empty{text-align:center;color:var(--muted);padding:20px;font-size:0.84rem;}
 .inv-item{background:var(--rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
@@ -450,6 +445,18 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
     </div>
 </div>
 
+<!-- CONFIRM MODAL -->
+<div class="modal-ov" id="confirm-modal" onclick="if(event.target===this)document.getElementById('confirm-modal').classList.remove('active')">
+    <div class="modal-box" style="max-width:300px;text-align:center">
+        <div style="font-size:1.3rem;margin-bottom:8px">🤔</div>
+        <div style="font-weight:700;font-size:1rem;margin-bottom:18px" id="confirm-msg">ยืนยัน?</div>
+        <div style="display:flex;gap:8px">
+            <button class="btn-gold" style="flex:1" id="confirm-ok">ยืนยัน</button>
+            <button class="btn-gray" style="flex:1" id="confirm-cancel">ยกเลิก</button>
+        </div>
+    </div>
+</div>
+
 <div id="toast"></div>
 
 <script type="module">
@@ -457,7 +464,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot,
-         collection, getDocs, increment, serverTimestamp, arrayUnion, addDoc, orderBy, query, limit, deleteDoc }
+         collection, getDocs, increment, serverTimestamp, arrayUnion, addDoc, orderBy, query, limit, deleteDoc, writeBatch }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -650,7 +657,9 @@ initStudents();
 // ── MEMBER LIVE DATA CACHE ──
 window.__fbUsers = {}; // studentId -> liveData
 window.__guestUsers = []; // guest users list
+let __fbUsersLoading=false;
 async function loadFbUsers() {
+    if(__fbUsersLoading)return; __fbUsersLoading=true;
     try {
         const snap = await getDocs(collection(db,"users"));
         window.__guestUsers = [];
@@ -689,7 +698,7 @@ async function loadFbUsers() {
             if (g) g.innerHTML = memberGrid();
             updateGuestBadge();
         }
-    } catch(e) {}
+    } catch(e) {} finally{__fbUsersLoading=false;}
 }
 function updateGuestBadge(){
     const el=document.getElementById('guest-count-badge');
@@ -703,7 +712,17 @@ window.loginGoogle=async()=>{
     try{provider.setCustomParameters({prompt:'select_account'});const r=await signInWithPopup(auth,provider);await ensureDoc(r.user);}
     catch(e){if(e.code!=='auth/popup-closed-by-user')toast("Login ไม่สำเร็จ","error");}
 };
-window.logoutUser=async()=>{if(!confirm('ออกจากระบบ?'))return;clearInterval(window.__hatchTimer);try{await signOut(auth);}catch(e){}currentUser=userData=null;window.__fbUsers={};window.__tab='home';renderTab('home');};
+window.__confirmLogout=async()=>{
+    document.getElementById('confirm-modal').classList.remove('active');
+    clearInterval(window.__hatchTimer);
+    try{await signOut(auth);}catch(e){}
+    currentUser=userData=null;window.__fbUsers={};window.__tab='home';renderTab('home');
+};
+window.logoutUser=()=>{
+    document.getElementById('confirm-msg').textContent='ออกจากระบบ?';
+    document.getElementById('confirm-ok').onclick=window.__confirmLogout;
+    document.getElementById('confirm-modal').classList.add('active');
+};
 
 /** Firestore User Document Schema (users/{uid}):
  *  uid, name, email, googlePhoto, customPhoto, customPhotoThumb
@@ -912,6 +931,8 @@ window.confirmUpgrade=async()=>{
     const state=window.__upgradeState;if(!state){toast("state หาย reload ใหม่","error");return;}
     if(state.selected.length<state.needed){toast(`เลือกไม่ครบ (${state.selected.length}/${state.needed})`,"error");return;}
     if(!currentUser||!userData)return;
+    if(window.__upgradingPet){toast("กำลังดำเนินการ...","info");return;}
+    window.__upgradingPet=true;
     const pets=[...(userData.pets||[])];
     // ลบ selected copies ออก
     const toRemove=new Set(state.selected);
@@ -923,6 +944,7 @@ window.confirmUpgrade=async()=>{
     newPets[mainIdx]={...newPets[mainIdx],grade:newGrade};
     await updateDoc(doc(db,"users",currentUser.uid),{pets:newPets});
     closeUpgradeModal();
+    window.__upgradingPet=false;
     const pet=newPets[mainIdx];
     const ns=petStats({...pet,grade:newGrade});toast(`${pet.emoji} Grade ${GRADE_LABELS[newGrade]}! ATK ${ns.atk} · HP ${ns.hp} · +${RARITY[pet.rarity].dailyBase*GRADE_MULTI[newGrade]}🪙/วัน`,"success");
     confetti({particleCount:120,spread:70,origin:{y:0.5}});
@@ -992,7 +1014,7 @@ window.openFeed=async()=>{
 window.closeFeed=()=>document.getElementById('feed-modal').classList.remove('active');
 window.deleteNews=async(newsId)=>{
     if(!isAdmin())return;
-    if(!confirm('ลบข้อความนี้?'))return;
+    if(!await _confirm('ลบข้อความนี้?'))return;
     try{
         await deleteDoc(doc(db,"news",newsId));
         document.getElementById('news-'+newsId)?.remove();
@@ -1073,14 +1095,16 @@ window.giveFlower=async(targetStudentId,flowerId)=>{
     if(!liveTarget?.uid){toast("ไม่พบผู้ใช้ หรือผู้รับยังไม่ได้ login","error");return;}
     if(liveTarget.uid===currentUser.uid){toast("ให้ตัวเองไม่ได้นะ 😅","error");return;}
     inv[flowerId]--;
-    // เพิ่ม flowersReceived ที่ target (นับสะสม ส่งต่อไม่ได้)
+    // เพิ่ม flowersReceived ที่ target — ใช้ batch เพื่อ atomic (ทั้งคู่สำเร็จหรือล้มเหลวพร้อมกัน)
     const tRef=doc(db,"users",liveTarget.uid);
     const tSnap=await getDoc(tRef);if(!tSnap.exists())return;
     const tData=tSnap.data();
     const recv={...(tData.flowersReceived||{})};
     recv[flowerId]=(recv[flowerId]||0)+1;
-    await updateDoc(doc(db,"users",currentUser.uid),{flowerInv:inv});
-    await updateDoc(tRef,{flowersReceived:recv});
+    const batch=writeBatch(db);
+    batch.update(doc(db,"users",currentUser.uid),{flowerInv:inv});
+    batch.update(tRef,{flowersReceived:recv});
+    await batch.commit();
     closeFlowerModal();
     const sName=userData.nickname||userData.name||'?';
     const tName=window.__students?.find(x=>x.id===targetStudentId)?.nickname||targetStudentId;
@@ -1089,6 +1113,18 @@ window.giveFlower=async(targetStudentId,flowerId)=>{
     await postNews(f.emoji,`${sName} มอบ ${f.name} ให้ ${tName}!`);
     loadFbUsers();
 };
+
+// ════════════════════════════════════════
+//  CONFIRM HELPER
+// ════════════════════════════════════════
+function _confirm(msg){
+    return new Promise(resolve=>{
+        document.getElementById('confirm-msg').textContent=msg;
+        document.getElementById('confirm-ok').onclick=()=>{document.getElementById('confirm-modal').classList.remove('active');resolve(true);};
+        document.getElementById('confirm-cancel').onclick=()=>{document.getElementById('confirm-modal').classList.remove('active');resolve(false);};
+        document.getElementById('confirm-modal').classList.add('active');
+    });
+}
 
 // ════════════════════════════════════════
 //  ADMIN
@@ -1231,6 +1267,9 @@ window.startHatch=async(eggId)=>{
 
 window.claimEgg=async(eggId)=>{
     if(!currentUser||!userData)return;
+    // ป้องกัน double-tap — disable ปุ่มทันที
+    const claimBtn=document.querySelector(`[onclick*="claimEgg('${eggId}')"]`);
+    if(claimBtn){claimBtn.disabled=true;claimBtn.textContent='กำลังฟัก...';}
     const egg=(userData.eggs||[]).find(e=>e.eggId===eggId);if(!egg||!egg.startedAt)return;
     if(Date.now()<egg.startedAt+egg.hatchMins*60000){toast("ยังฟักไม่เสร็จ!","error");return;}
     const newEggs=(userData.eggs||[]).filter(e=>e.eggId!==eggId);
@@ -1305,6 +1344,7 @@ window.closeGacha=()=>document.getElementById('gacha-modal').classList.remove('a
 window.setActive=async(instId)=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:String(instId)});toast("เปลี่ยนสัตว์เลี้ยงแล้ว!","success");loadFbUsers();};
 window.unsetActive=async()=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:null});toast("เก็บสัตว์เลี้ยงแล้ว","info");loadFbUsers();};
 
+window.__claimingEgg=false; // reset after claim
 window.showPetInfo=async(petInstId)=>{
     const owned=userData?.pets||[];
     const p=owned.find(x=>x.instId&&String(x.instId)===String(petInstId))
@@ -1388,7 +1428,7 @@ window.pickTrade=i=>{tradeIdx=i;renderTradeList();};
 window.sendTrade=async()=>{
     const email=document.getElementById('trade-email').value.trim();if(!email||tradeIdx===null){toast("เลือกสัตว์และใส่ email","error");return;}
     const pet=userData.pets[tradeIdx];
-    if(!confirm(`ส่ง ${pet.emoji}${pet.name} ให้ ${email} จริงๆ?\nสัตว์จะออกจากกระเป๋าทันที!`))return;
+    if(!await _confirm(`ส่ง ${pet.emoji}${pet.name} ให้ ${email} จริงๆ?\nสัตว์จะออกจากกระเป๋าทันที!`))return;
     // หา target จาก cache ก่อน — fallback getDocs เฉพาะถ้าไม่เจอ
     const allCached=[...Object.values(window.__fbUsers||{}),...(window.__guestUsers||[])];
     let targetUid=allCached.find(u=>u.email===email)?.uid||null;
