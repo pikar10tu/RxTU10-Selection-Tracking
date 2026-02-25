@@ -2484,11 +2484,20 @@ window.startExpedition=async()=>{
     const newPets=(userData.pets||[]).map(p=>
         __expSelPets.includes(String(p.instId||p.id))?{...p,isExpedition:true}:p
     );
-    await updateDoc(doc(db,'users',currentUser.uid),{
-        expeditions:arrayUnion(newExp),pets:newPets,
-    });
-    __expSelPets=[];
+    // ── Optimistic update: อัปเดต userData local ทันที ไม่รอ onSnapshot ──
+    userData = {
+        ...userData,
+        expeditions: [...(userData.expeditions||[]), newExp],
+        pets: newPets,
+    };
+    __expSelPets = [];
+    // รีเฟรช UI ทันที
+    _refreshExpeditionUI();
     toast(`🗺️ ส่ง ${newExp.petInstIds.length} ตัวออกเดินทาง ${dur.label}!`,'success');
+    // เซฟ Firestore ใน background
+    updateDoc(doc(db,'users',currentUser.uid),{
+        expeditions:arrayUnion(newExp),pets:newPets,
+    }).catch(e=>{ toast('เซฟข้อมูลผิดพลาด','error'); console.error(e); });
 };
 
 window.claimExpedition=async(expId)=>{
@@ -2527,6 +2536,16 @@ window.claimExpedition=async(expId)=>{
     const logEntry={coins:coinReward,egg:gotEgg,dur:exp.durLabel,pets:epets.map(p=>p.emoji).join(''),ts:Date.now()};
     const newLogs=[...(userData.expeditionLogs||[]),logEntry].slice(-10);
     await updateDoc(doc(db,'users',currentUser.uid),{expeditionLogs:newLogs});
+    // ── Optimistic update: อัปเดต userData local แล้วรีเฟรช UI ทันที ──
+    userData = {
+        ...userData,
+        expeditions: remainExps,
+        pets: updatedPets,
+        coins: (userData.coins||0) + coinReward,
+        eggs: newEggs,
+        expeditionLogs: newLogs,
+    };
+    _refreshExpeditionUI();
     toast(`🎉 ได้รับ +${coinReward}🪙${eggMsg}`,'success',5000);
     confetti({particleCount:100,spread:70,origin:{y:0.5}});
 };
