@@ -284,6 +284,23 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 #toast.show{opacity:1;background:#1e293b;padding:9px 15px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.2);}
 #toast.show.success{background:#065f46;} #toast.show.error{background:#7f1d1d;} #toast.show.info{background:#1e40af;}
 @media(max-width:360px){.mgrid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}}
+
+/* ── Expedition ── */
+.arena-expedition{background:linear-gradient(160deg,#1a0533 0%,#2d1057 60%,#1e1b4b 100%);}
+.arena-expedition .game-arena-header{border-bottom:1px solid rgba(255,255,255,.08);}
+.exp-slot{border:2px dashed rgba(168,85,247,.3);border-radius:14px;padding:8px;text-align:center;cursor:pointer;transition:.2s;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;}
+.exp-slot.filled{border-color:#a855f7;background:rgba(168,85,247,.1);}
+.exp-slot.filled:hover{background:rgba(168,85,247,.18);}
+.exp-slot.empty{opacity:.6;}
+.exp-slot.empty:hover{border-color:#a855f7;opacity:1;}
+.exp-dur-btn{flex:1;padding:8px 4px;border-radius:10px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(255,255,255,.6);font-family:inherit;font-size:0.75rem;font-weight:700;cursor:pointer;transition:.2s;text-align:center;}
+.exp-dur-btn.sel{border-color:#a855f7;background:rgba(168,85,247,.18);color:#c4b5fd;}
+.exp-dur-btn:hover:not(.sel){background:rgba(255,255,255,.08);}
+.exp-active-card{background:rgba(168,85,247,.08);border:1.5px solid rgba(168,85,247,.25);border-radius:14px;padding:10px 12px;margin-bottom:8px;}
+.exp-timer{font-size:1.1rem;font-weight:800;color:#c4b5fd;font-variant-numeric:tabular-nums;}
+.exp-pets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px;margin:6px 0;}
+.inv-item.on-expedition{opacity:.5;cursor:default;}
+.inv-item.on-expedition::after{content:'⏳';position:absolute;bottom:2px;right:2px;font-size:0.65rem;}
 </style>
 </head>
 <body>
@@ -880,6 +897,7 @@ window.openUpgradeModal=async(petInstId)=>{
         ||owned.find(x=>!x.instId&&x.id===petInstId)
         ||owned.find(x=>x.id===petInstId);
     if(!mainPet){toast("ไม่พบสัตว์เลี้ยง","error");return;}
+    if(mainPet.isExpedition){toast("สัตว์กำลังผจญภัยอยู่ ไม่สามารถอัปเกรดได้","error");return;}
     // ถ้า pet (หรือใครก็ตาม) ยังไม่มี instId → patch ทั้งหมดก่อน
     if(owned.some(p=>!p.instId)){
         const patchPets=owned.map(p=>({...p,instId:p.instId||(Date.now()+'_'+Math.random().toString(36).slice(2,8))}));
@@ -897,7 +915,7 @@ window.openUpgradeModal=async(petInstId)=>{
     const nextGrade=grade+1;
     const needed=GRADE_COPIES[nextGrade];
     // สัตว์เดียวกันที่ไม่ใช่ตัวหลัก
-    const candidates=owned.filter(x=>x.id===mainPet.id&&String(x.instId)!==String(mainPet.instId));
+    const candidates=owned.filter(x=>x.id===mainPet.id&&String(x.instId)!==String(mainPet.instId)&&!x.isExpedition);
     window.__upgradeState={mainInstId:String(mainPet.instId),selected:[],needed,petId:mainPet.id};
     renderUpgradeModal(mainPet,candidates,cfg,nextGrade);
     document.getElementById('upgrade-modal').classList.add('active');
@@ -1308,7 +1326,13 @@ function showGachaResult(pet){
 }
 window.closeGacha=()=>document.getElementById('gacha-modal').classList.remove('active');
 
-window.setActive=async(instId)=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:String(instId)});toast("เปลี่ยนสัตว์เลี้ยงแล้ว!","success");loadFbUsers();};
+window.setActive=async(instId)=>{
+    if(!currentUser)return;
+    const _p=(userData?.pets||[]).find(x=>String(x.instId||x.id)===String(instId));
+    if(_p?.isExpedition){toast("สัตว์กำลังผจญภัยอยู่ ไม่สามารถ Active ได้","error");return;}
+    await updateDoc(doc(db,"users",currentUser.uid),{activePet:String(instId)});
+    toast("เปลี่ยนสัตว์เลี้ยงแล้ว!","success");loadFbUsers();
+};
 window.unsetActive=async()=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:null});toast("เก็บสัตว์เลี้ยงแล้ว","info");loadFbUsers();};
 
 window.__claimingEgg=false; // reset after claim
@@ -1338,6 +1362,7 @@ window.showPetInfo=async(petInstId)=>{
     const totalNeeded=isMax?0:neededForNext+1;
     const canUpgrade=!isMax&&copiesOwned>=totalNeeded;
     const isActive=p.instId?String(userData?.activePet)===String(p.instId):userData?.activePet===p.id;
+    const isOnExp=!!p.isExpedition;
     const def=PETS.find(x=>x.id===p.id);
     const el=def?.element;const elInfo=ELEMENTS[el]||null;
     const gradeHtml=grade>0?`<div class="gr-badge" style="background:#475569;margin-left:5px">Grade ${GRADE_LABELS[grade]}</div>`:'';
@@ -1374,10 +1399,10 @@ window.showPetInfo=async(petInstId)=>{
             +`<div style="margin-bottom:3px">ต้องการ copies อีก <b>${neededForNext}</b> ตัว · มีอยู่ <b>${copiesOwned-1}</b> ตัว</div>`
             +`<div style="color:${cfg.color};font-weight:600">ATK ${stats.atk} → ${Math.round(BASE_STATS[p.rarity].atk*STAT_MULTI[nextGrade])} · HP ${stats.hp} → ${Math.round(BASE_STATS[p.rarity].hp*STAT_MULTI[nextGrade])} · Daily +${RARITY[p.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙</div>`
             +(!canUpgrade?`<div style="color:#94a3b8;font-size:0.73rem;margin-top:3px">ต้องการอีก ${totalNeeded-copiesOwned} ตัวเพื่ออัพ</div>`:''))
-        +`<button class="btn-gold full" style="margin-top:8px" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${isMax?'disabled':''}>⬆ อัพ Grade ${isMax?'(Max)':GRADE_LABELS[nextGrade]}</button>`
+        +`<button class="btn-gold full" style="margin-top:8px" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${(isMax||isOnExp)?'disabled':''}>⬆ ${isOnExp?'⏳ กำลังผจญภัย':'อัพ Grade '+(isMax?'(Max)':GRADE_LABELS[nextGrade])}</button>`
         +'</div></div>';
-    const activeLabel=isActive?"🔴 เอาออก":"🟢 ใช้งาน";
-    const activeAction=isActive?'unsetActive()':'setActive(\''+String(p.instId||p.id)+'\')';
+    const activeLabel=isOnExp?"⏳ ผจญภัย":isActive?"🔴 เอาออก":"🟢 ใช้งาน";
+    const activeAction=isOnExp?`toast('สัตว์กำลังผจญภัยอยู่!','info')`:isActive?'unsetActive()':'setActive(\''+String(p.instId||p.id)+'\')';
     document.getElementById('petinfo-actions').innerHTML=
         `<button class="btn-gold" style="flex:1" onclick="${activeAction};closePetInfo()">${activeLabel}</button>`
         +`<button class="btn-gray" style="flex:1" onclick="closePetInfo()">ปิด</button>`;
@@ -1390,11 +1415,17 @@ window.closePetInfo=()=>document.getElementById('petinfo-modal').classList.remov
 // ════════════════════════════════════════
 window.openTrade=()=>{if(!currentUser){toast("Login ก่อน","error");return;}tradeIdx=null;renderTradeList();document.getElementById('trade-panel').classList.add('active');};
 window.closeTrade=()=>document.getElementById('trade-panel').classList.remove('active');
-function renderTradeList(){const el=document.getElementById('trade-pets');if(!userData?.pets?.length){el.innerHTML='<p style="color:#94a3b8;text-align:center;padding:8px">ยังไม่มีสัตว์เลี้ยง</p>';return;}el.innerHTML=userData.pets.map((p,i)=>{const c=RARITY[p.rarity];return`<div class="trade-item${tradeIdx===i?' sel':''}" onclick="pickTrade(${i})"><span style="font-size:1.4rem">${p.emoji}</span><div><div style="font-weight:600;font-size:0.82rem">${p.name}</div><div style="color:${c.color};font-size:0.68rem;font-weight:700">${c.label}</div></div></div>`;}).join('');}
+function renderTradeList(){
+    const el=document.getElementById('trade-pets');
+    const list=(userData?.pets||[]).filter(p=>!p.isExpedition);
+    window.__tradeList=list;
+    if(!list.length){el.innerHTML='<p style="color:#94a3b8;text-align:center;padding:8px">ไม่มีสัตว์ที่เทรดได้<br><small style="font-size:0.7rem;color:#64748b">(สัตว์ที่ผจญภัยอยู่เทรดไม่ได้)</small></p>';return;}
+    el.innerHTML=list.map((p,i)=>{const c=RARITY[p.rarity];
+    return`<div class="trade-item${tradeIdx===i?' sel':''}" onclick="pickTrade(${i})"><span style="font-size:1.4rem">${p.emoji}</span><div><div style="font-weight:600;font-size:0.82rem">${p.name}</div><div style="color:${c.color};font-size:0.68rem;font-weight:700">${c.label}</div></div></div>`;}).join('');}
 window.pickTrade=i=>{tradeIdx=i;renderTradeList();};
 window.sendTrade=async()=>{
     const email=document.getElementById('trade-email').value.trim();if(!email||tradeIdx===null){toast("เลือกสัตว์และใส่ email","error");return;}
-    const pet=userData.pets[tradeIdx];
+    const pet=(window.__tradeList||userData.pets)[tradeIdx];
     if(!await _confirm(`ส่ง ${pet.emoji}${pet.name} ให้ ${email} จริงๆ?\nสัตว์จะออกจากกระเป๋าทันที!`))return;
     // หา target จาก cache ก่อน — fallback getDocs เฉพาะถ้าไม่เจอ
     const allCached=[...Object.values(window.__fbUsers||{}),...(window.__guestUsers||[])];
@@ -1686,7 +1717,7 @@ function buildHome(){
         }).join('')}</div>`:''
 
     const invBlock=pets.length===0?`<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ฟักไข่ใน 🛒 Shop ก่อน!</div>`
-        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg}" onclick="showPetInfo('${p.instId||p.id}')"><div class="inv-em">${p.emoji}</div><div class="inv-nm">${p.name}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${elEmoji?' '+elEmoji:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}</div>`;}).join('')}</div>
+        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${p.name}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${elEmoji?' '+elEmoji:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
         <div style="display:flex;gap:7px;justify-content:center;margin-top:8px;flex-wrap:wrap">
             ${userData?.activePet?`<button class="btn-gray sm" onclick="unsetActive()">เอาออก</button>`:''}
             ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
@@ -1953,6 +1984,17 @@ function buildPlay(){
         <div class="ticker-scroll"><div class="ticker-inner">${tickerText}</div></div>
     </div>
 
+    <!-- EXPEDITION -->
+    <div class="game-arena arena-expedition">
+        <div class="game-arena-header">
+            <span class="game-title">🗺️ ส่งสัตว์ผจญภัย</span>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,.35)">Expedition</div>
+        </div>
+        <div class="game-arena-body" id="expedition-body">
+            ${buildExpeditionUI()}
+        </div>
+    </div>
+
     <!-- QUIZ: ทายชื่อ -->
     <div class="game-arena arena-name">
         <div class="game-arena-header">
@@ -2021,6 +2063,197 @@ function buildPlay(){
         <div style="font-size:0.8rem;opacity:0.7">ข้อสอบใบประกอบวิชาชีพ • Drug Interaction • Spelling Sprint</div>
         <div style="font-size:0.72rem;opacity:0.5;margin-top:8px">Coming Soon...</div>
     </div>`;}
+
+// ════════════════════════════════════════
+//  EXPEDITION SYSTEM
+// ════════════════════════════════════════
+const EXP_DURATIONS = [
+    { label:'15 นาที', mins:15,  mult:[0.1,0.75], eggVar:1 },
+    { label:'1 ชั่วโมง', mins:60,  mult:[0.2,1.5],  eggVar:2 },
+    { label:'8 ชั่วโมง', mins:480, mult:[1.0,4.0],  eggVar:5 },
+];
+let __expSelPets=[]; // instIds ที่เลือกสำหรับ expedition ใหม่
+let __expSelDur=0;   // index ของ EXP_DURATIONS ที่เลือก
+
+function buildExpeditionUI(){
+    if(!currentUser||!userData)return`<div style="color:rgba(255,255,255,.4);text-align:center;padding:16px;font-size:0.84rem">กรุณา Login</div>`;
+    const exps=userData.expeditions||[];
+    const now=Date.now();
+    const active=exps.filter(e=>now<e.endTime);
+    const done=exps.filter(e=>now>=e.endTime);
+    let out='';
+
+    // ── กำลังผจญภัย ──
+    active.forEach(e=>{
+        const epets=(userData.pets||[]).filter(p=>e.petInstIds.includes(String(p.instId||p.id)));
+        const ms=e.endTime-now;
+        const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000),s=Math.floor((ms%60000)/1000);
+        const tStr=h>0?`${h}ชม ${m}น ${s}ว`:m>0?`${m}น ${s}ว`:`${s}ว`;
+        out+=`<div class="exp-active-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                <div style="font-size:0.68rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px">🗺️ ${e.durLabel}</div>
+                <div class="exp-timer" id="exp-timer-${e.id}">${tStr}</div>
+            </div>
+            <div class="exp-pets-grid">${epets.map(p=>`<div style="text-align:center"><div style="font-size:1.5rem">${p.emoji}</div><div style="font-size:0.58rem;color:rgba(255,255,255,.45)">${p.name}</div></div>`).join('')}</div>
+        </div>`;
+    });
+
+    // ── รับรางวัล ──
+    done.forEach(e=>{
+        const epets=(userData.pets||[]).filter(p=>e.petInstIds.includes(String(p.instId||p.id)));
+        out+=`<div class="exp-active-card" style="border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.07)">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+                <div>
+                    <div style="font-size:0.7rem;color:#fbbf24;font-weight:700;margin-bottom:4px">✅ ผจญภัยสำเร็จ! · ${e.durLabel}</div>
+                    <div style="display:flex;gap:4px">${epets.map(p=>`<span style="font-size:1.4rem">${p.emoji}</span>`).join('')}</div>
+                </div>
+                <button onclick="claimExpedition('${e.id}')" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:10px;padding:8px 14px;color:#fff;font-family:inherit;font-size:0.82rem;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(245,158,11,.4);white-space:nowrap">🎁 รับรางวัล</button>
+            </div>
+        </div>`;
+    });
+
+    if(!active.length&&!done.length) out+=`<div style="text-align:center;color:rgba(255,255,255,.3);font-size:0.78rem;padding:4px 0 10px">ยังไม่มีการผจญภัย</div>`;
+
+    // ── ฟอร์มส่งใหม่ ──
+    const busyIds=exps.flatMap(e=>e.petInstIds);
+    const avail=(userData.pets||[]).filter(p=>
+        String(p.instId||p.id)!==String(userData.activePet) &&
+        !p.isExpedition &&
+        !busyIds.includes(String(p.instId||p.id))
+    );
+    const passive=calcTotalDaily(userData.pets||[]).passive||0;
+
+    out+=`<div style="border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:6px">
+        <div style="font-size:0.7rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px;margin-bottom:7px">🆕 ส่งออกเดินทาง (เลือก 1–3 ตัว)</div>
+        ${avail.length===0
+            ?`<div style="color:rgba(255,255,255,.3);font-size:0.78rem;text-align:center;padding:8px 0">ไม่มีสัตว์ว่าง</div>`
+            :`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px;margin-bottom:10px">
+                ${avail.map(p=>{
+                    const sel=__expSelPets.includes(String(p.instId||p.id));
+                    const cfg=RARITY[p.rarity];
+                    return`<div onclick="toggleExpPet('${p.instId||p.id}')"
+                        style="background:${sel?cfg.color+'22':'rgba(255,255,255,.04)'};border:2px solid ${sel?cfg.color:'rgba(255,255,255,.12)'};border-radius:12px;padding:6px 3px;text-align:center;cursor:pointer;transition:.15s;position:relative">
+                        <div style="font-size:1.4rem">${p.emoji}</div>
+                        <div style="font-size:0.58rem;font-weight:600;color:rgba(255,255,255,.7)">${p.name}</div>
+                        <div style="font-size:0.5rem;color:${cfg.color}">${cfg.label}</div>
+                        ${sel?`<div style="position:absolute;top:-4px;right:-4px;background:${cfg.color};color:#fff;width:14px;height:14px;border-radius:50%;font-size:0.55rem;display:flex;align-items:center;justify-content:center;font-weight:800">✓</div>`:''}
+                    </div>`;
+                }).join('')}
+            </div>`
+        }
+        <div style="font-size:0.7rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px;margin-bottom:6px">⏱️ ระยะเวลา</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+            ${EXP_DURATIONS.map((d,i)=>{
+                const sel=__expSelDur===i;
+                const n=__expSelPets.length||1;
+                const minC=Math.floor(d.mult[0]*passive),maxC=Math.floor(d.mult[1]*passive);
+                const drop=Math.min(100,5*n*d.eggVar);
+                return`<button class="exp-dur-btn${sel?' sel':''}" onclick="selectExpDur(${i})">
+                    <div style="font-size:0.78rem">${d.label}</div>
+                    <div style="font-size:0.62rem;color:${sel?'#c4b5fd':'rgba(255,255,255,.3)'};margin-top:2px">${minC}–${maxC}🪙</div>
+                    <div style="font-size:0.58rem;color:${sel?'#86efac':'rgba(255,255,255,.25)'}">🥚${drop}%</div>
+                </button>`;
+            }).join('')}
+        </div>
+        <button onclick="startExpedition()" ${__expSelPets.length>0?'':'disabled'}
+            style="width:100%;background:${__expSelPets.length>0?'linear-gradient(135deg,#7c3aed,#6d28d9)':'rgba(255,255,255,.06)'};border:none;border-radius:12px;padding:11px;color:${__expSelPets.length>0?'#fff':'rgba(255,255,255,.25)'};font-family:inherit;font-size:0.88rem;font-weight:800;cursor:${__expSelPets.length>0?'pointer':'not-allowed'};transition:.2s;box-shadow:${__expSelPets.length>0?'0 4px 14px rgba(124,58,237,.4)':'none'}">
+            🗺️ ${__expSelPets.length>0?`ส่ง ${__expSelPets.length} ตัวออกเดินทาง!`:'เลือกสัตว์ก่อน'}
+        </button>
+    </div>`;
+    return out;
+}
+
+function _refreshExpeditionUI(){
+    const body=document.getElementById('expedition-body');
+    if(!body)return;
+    body.innerHTML=buildExpeditionUI();
+    _startExpTimers();
+}
+
+function _startExpTimers(){
+    (userData?.expeditions||[]).filter(e=>Date.now()<e.endTime).forEach(e=>{
+        const el=document.getElementById(`exp-timer-${e.id}`);
+        if(!el||el.__running)return;
+        el.__running=true;
+        const tick=()=>{
+            if(!el.isConnected)return;
+            const ms=e.endTime-Date.now();
+            if(ms<=0){_refreshExpeditionUI();return;}
+            const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000),s=Math.floor((ms%60000)/1000);
+            el.textContent=h>0?`${h}ชม ${m}น ${s}ว`:m>0?`${m}น ${s}ว`:`${s}ว`;
+            setTimeout(tick,1000);
+        };
+        setTimeout(tick,1000);
+    });
+}
+
+window.toggleExpPet=(instId)=>{
+    const id=String(instId);
+    const i=__expSelPets.indexOf(id);
+    if(i>=0) __expSelPets.splice(i,1);
+    else if(__expSelPets.length<3) __expSelPets.push(id);
+    else{toast('เลือกได้สูงสุด 3 ตัว','info');return;}
+    _refreshExpeditionUI();
+};
+
+window.selectExpDur=(i)=>{ __expSelDur=i; _refreshExpeditionUI(); };
+
+window.startExpedition=async()=>{
+    if(!currentUser||!userData)return;
+    if(__expSelPets.length===0){toast('เลือกสัตว์ก่อน','error');return;}
+    if(__expSelPets.length>3){toast('เลือกได้สูงสุด 3 ตัว','error');return;}
+    const dur=EXP_DURATIONS[__expSelDur];
+    const now=Date.now();
+    const expId=`exp_${now}_${Math.random().toString(36).slice(2,7)}`;
+    const newExp={id:expId,petInstIds:[...__expSelPets],durLabel:dur.label,
+        durMins:dur.mins,multMin:dur.mult[0],multMax:dur.mult[1],eggVar:dur.eggVar,
+        endTime:now+dur.mins*60000,startTime:now};
+    const newPets=(userData.pets||[]).map(p=>
+        __expSelPets.includes(String(p.instId||p.id))?{...p,isExpedition:true}:p
+    );
+    await updateDoc(doc(db,'users',currentUser.uid),{
+        expeditions:arrayUnion(newExp),pets:newPets,
+    });
+    __expSelPets=[];
+    toast(`🗺️ ส่ง ${newExp.petInstIds.length} ตัวออกเดินทาง ${dur.label}!`,'success');
+};
+
+window.claimExpedition=async(expId)=>{
+    if(!currentUser||!userData)return;
+    const exps=userData.expeditions||[];
+    const exp=exps.find(e=>e.id===expId);
+    if(!exp){toast('ไม่พบข้อมูล','error');return;}
+    if(Date.now()<exp.endTime){toast('ยังไม่ถึงเวลา!','info');return;}
+    // รางวัล coins
+    const epets=(userData.pets||[]).filter(p=>exp.petInstIds.includes(String(p.instId||p.id)));
+    const passiveSum=epets.reduce((s,p)=>s+petDailyCoins(p),0);
+    const mult=exp.multMin+Math.random()*(exp.multMax-exp.multMin);
+    const coinReward=Math.max(1,Math.floor(mult*passiveSum));
+    // โอกาสดรอปไข่
+    const dropPct=Math.min(100,5*exp.petInstIds.length*exp.eggVar)/100;
+    const gotEgg=Math.random()<dropPct;
+    let newEggs=[...(userData.eggs||[])];
+    let eggMsg='';
+    if(gotEgg){
+        const pet=rollPetFromEgg('pet');
+        newEggs.push({eggId:Date.now()+'_'+Math.random().toString(36).slice(2,6),
+            eggType:'pet',petId:pet.id,petEmoji:pet.emoji,petName:pet.name,
+            petRarity:pet.rarity,petInstId:pet.instId,hatchMins:pet.hatchMins,startedAt:null});
+        eggMsg=` + 🥚 ได้ไข่ปริศนา (${pet.emoji}${pet.petRarity||''})!`;
+    }
+    // clear expedition + unmark pets
+    const remainExps=exps.filter(e=>e.id!==expId);
+    const updatedPets=(userData.pets||[]).map(p=>
+        exp.petInstIds.includes(String(p.instId||p.id))?{...p,isExpedition:false}:p
+    );
+    await updateDoc(doc(db,'users',currentUser.uid),{
+        expeditions:remainExps,pets:updatedPets,
+        coins:increment(coinReward),eggs:newEggs,
+    });
+    toast(`🎉 ได้รับ +${coinReward}🪙${eggMsg}`,'success',5000);
+    confetti({particleCount:100,spread:70,origin:{y:0.5}});
+};
+
 window.toggleLb=(id)=>{const el=document.getElementById(id);if(!el)return;const show=el.style.display==='none';el.style.display=show?'block':'none';if(show){el.innerHTML=id==='qlb'?buildQuizLb():buildDrugLb();}}
 
 // ════════════════════════════════════════
@@ -2143,7 +2376,7 @@ let __sandbox = null; // dummy sandbox state
 
 window.openBattle = () => {
     if (!currentUser) { toast('กรุณา Login', 'error'); return; }
-    const pets = userData?.pets || [];
+    const pets = (userData?.pets||[]).filter(p=>!p.isExpedition);
     if (!pets.length) { toast('ยังไม่มีสัตว์เลี้ยง', 'info'); return; }
     if (__battle?.timer) clearTimeout(__battle.timer);
     __battle = null; __sandbox = null;
