@@ -434,6 +434,52 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .forge-stat-after{color:#4ade80;font-weight:700;}
 .forge-chance-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin:8px 0;}
 .forge-chance-fill{height:100%;border-radius:99px;transition:width .3s;}
+
+/* ═══════════════════════════════
+   TOWER SYSTEM
+   ═══════════════════════════════ */
+.tower-sheet{width:100%;max-width:480px;margin:0 auto;max-height:92dvh;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+    padding:12px 12px 28px;box-sizing:border-box;border-radius:20px 20px 0 0;background:#0c1445;}
+.tower-arena{background:linear-gradient(160deg,#0c1445 0%,#1a1a2e 50%,#16213e 100%);
+    border-radius:20px;padding:16px 14px;margin-bottom:10px;position:relative;}
+.tower-arena::before{content:'';position:absolute;inset:0;
+    background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M20 0l20 20-20 20L0 20z'/%3E%3C/g%3E%3C/svg%3E");
+    pointer-events:none;border-radius:20px;}
+.tower-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;}
+.tower-title{font-size:1rem;font-weight:800;color:#fff;letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
+.floor-badge{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;
+    font-size:0.7rem;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.5px;}
+.tower-team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:7px;margin-bottom:10px;}
+.tower-pick{background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);border-radius:12px;
+    padding:8px 4px;text-align:center;cursor:pointer;transition:.12s;}
+.tower-pick:active{transform:scale(.94);}
+.tower-pick.sel{border-color:#a78bfa;background:rgba(167,139,250,.15);}
+.tower-pick.disabled{opacity:.35;pointer-events:none;}
+.tower-slot-row{display:flex;gap:6px;margin-bottom:12px;justify-content:center;}
+.tower-slot{width:56px;height:62px;border-radius:12px;border:2px dashed rgba(255,255,255,.2);
+    display:flex;align-items:center;justify-content:center;font-size:1.6rem;
+    background:rgba(255,255,255,.04);transition:.15s;position:relative;}
+.tower-slot.filled{border-style:solid;border-color:#a78bfa;background:rgba(167,139,250,.12);}
+.tower-slot .slot-num{position:absolute;top:-7px;left:50%;transform:translateX(-50%);
+    background:#7c3aed;color:#fff;font-size:0.45rem;font-weight:800;padding:1px 5px;
+    border-radius:8px;white-space:nowrap;}
+.tower-slot .slot-remove{position:absolute;top:-7px;right:-7px;width:16px;height:16px;
+    background:#ef4444;color:#fff;border-radius:50%;font-size:0.6rem;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:800;}
+.btn-tower{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;
+    padding:11px 20px;border-radius:12px;font-family:inherit;font-size:0.9rem;font-weight:800;
+    cursor:pointer;transition:.2s;width:100%;letter-spacing:.5px;
+    box-shadow:0 4px 14px rgba(124,58,237,.4);}
+.btn-tower:disabled{opacity:.4;cursor:not-allowed;}
+.tower-hp-bar{height:9px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px;}
+.tower-hp-fill{height:100%;border-radius:50px;transition:width .45s ease;}
+.tower-relay-row{display:flex;gap:5px;justify-content:center;margin-bottom:10px;}
+.relay-dot{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.15);
+    display:flex;align-items:center;justify-content:center;font-size:1rem;transition:.3s;}
+.relay-dot.active{border-color:#a78bfa;background:rgba(167,139,250,.2);
+    box-shadow:0 0 8px rgba(167,139,250,.5);}
+.relay-dot.dead{opacity:.2;filter:grayscale(1);}
 </style>
 </head>
 <body>
@@ -651,6 +697,7 @@ const ELEMENTS = {
     scissors:{ emoji:'✌️', beats:'paper'   },
     paper:   { emoji:'✋', beats:'fist'     },
 };
+const _EL_NAME={'fist':'✊ ค้อน','scissors':'✌️ กรรไกร','paper':'✋ กระดาษ'};
 /** elementBeats(attEl, defEl) → bool
  *  attEl/defEl: 'fist' | 'scissors' | 'paper'
  *  Returns true ถ้า attacker ได้เปรียบ → ATK ×1.5 ใน battle */
@@ -862,6 +909,7 @@ async function loadFbUsers() {
                 quizHigh:x.quizHigh,
                 drugHigh:x.drugHigh,
                 ctHigh:x.ctHigh,
+                towerBest:x.towerBest,
                 activePet:x.activePet,
                 pets:x.pets,
                 email:x.email,
@@ -944,7 +992,7 @@ window.logoutUser=()=>{
  */
 async function ensureDoc(u){
     const ref=doc(db,"users",u.uid);const snap=await getDoc(ref);
-    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:200,pets:[],eggs:[],activePet:null,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,ctHigh:0,lastDaily:null,createdAt:serverTimestamp()});
+    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:200,pets:[],eggs:[],activePet:null,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,ctHigh:0,towerFloor:1,towerBest:0,towerLastReset:null,lastDaily:null,createdAt:serverTimestamp()});
 }
 
 onAuthStateChanged(auth,async u=>{
@@ -1840,6 +1888,7 @@ function buildHome(){
                 <div class="hs-cell"><b>${(userData.coins||0).toLocaleString()}</b><small>🪙 เหรียญ</small></div>
                 <div class="hs-cell"><b>${userData.quizHigh||0}</b><small>👥 Quiz Hi</small></div>
                 <div class="hs-cell"><b>${userData.drugHigh||0}</b><small>💊 Drug Hi</small></div>
+                <div class="hs-cell"><b>${userData.towerBest||0}</b><small>🗼 Tower</small></div>
             </div>
         </div>
 `
@@ -2025,6 +2074,7 @@ function memberGrid(){
             <div class="mc-nick">${s.nickname}</div>
             <div class="mc-id" style="font-size:0.6rem">${s.id}</div>
             <span class="track-badge" style="background:${tc};font-size:0.52rem;padding:2px 6px">${s.track==='sci'?'SCI':'CARE'}</span>
+            ${(live?.towerBest||0)>0?`<div style="font-size:0.52rem;color:#a78bfa;font-weight:700;margin-top:2px">🗼${live.towerBest}</div>`:''}
         </div>`;
     }).join('')}</div>`;
 }
@@ -2094,6 +2144,8 @@ window.openProfileModal=(id)=>{
         <div class="pm-stats">
             <div class="pm-stat"><span>👥</span><b>${liveData.quizHigh||0}</b><small>Quiz Hi</small></div>
             <div class="pm-stat"><span>💊</span><b>${liveData.drugHigh||0}</b><small>Drug Hi</small></div>
+            <div class="pm-stat"><span>🗼</span><b>${liveData.towerBest||0}</b><small>Tower</small></div>
+            <div class="pm-stat"><span>🟩</span><b>${liveData.ctHigh||0}</b><small>Tiles Hi</small></div>
         </div>`:''}
         <div style="margin-top:8px;text-align:left">${petShowcase}</div>`;
 
@@ -2279,12 +2331,12 @@ function buildPlay(){
             <div class="hub-card-sub">Piano Tiles สไตล์<br>High Score: ${ctHigh} คะแนน</div>
         </div>
 
-        <!-- Coming Soon: หอคอย -->
-        <div class="hub-card soon" style="background:linear-gradient(145deg,#1e293b,#0f172a);border-color:rgba(255,255,255,.06);">
-            <div class="hub-badge">เร็วๆ นี้</div>
-            <div class="hub-card-icon" style="filter:grayscale(.6)">🗼</div>
-            <div class="hub-card-title" style="color:rgba(255,255,255,.5)">หอคอยไร้สิ้นสุด</div>
-            <div class="hub-card-sub">Endless Tower • Coming Soon</div>
+        <!-- Tower -->
+        <div class="hub-card live" style="--hc-glow:rgba(124,58,237,.4);background:linear-gradient(145deg,#2d1057,#1a0533);border-color:rgba(168,85,247,.25);" onclick="openTower()">
+            <div class="hub-badge" style="background:rgba(124,58,237,.35)">🗼 Tower</div>
+            <div class="hub-card-icon">🗼</div>
+            <div class="hub-card-title">หอคอยไร้สิ้นสุด</div>
+            <div class="hub-card-sub">ชั้นปัจจุบัน: ${userData?.towerFloor||1}<br>สูงสุด: ${userData?.towerBest||0} ชั้น</div>
         </div>
 
         <!-- Coming Soon: ข้อสอบ CC ย้อนหลัง -->
@@ -3761,6 +3813,435 @@ function _battleTick() {
 }
 
 // ════════════════════════════════════════
+// ▶ TOWER SYSTEM
+// ════════════════════════════════════════
+
+// ── Boss element cycle: floor%3 → 1=fist, 2=scissors, 0=paper
+function _towerBossEl(floor){
+    const r=floor%3;
+    return r===1?'fist':r===2?'scissors':'paper';
+}
+function _towerBossStats(floor){
+    return { hp:40+((floor-1)*5), atk:8+((floor-1)*1) };
+}
+
+// ── Tower state ──
+let __tower = null; // active fight state
+let __twSelTeam = []; // instIds ที่เลือกแล้ว (order matters)
+
+window.openTower = ()=>{
+    if(!currentUser){ toast('กรุณา Login ก่อน','error'); return; }
+    const pets=(userData?.pets||[]).filter(p=>!p.isExpedition);
+    if(!pets.length){ toast('ต้องมีสัตว์เลี้ยงก่อน','error'); return; }
+    if(__tower?.timer) clearInterval(__tower.timer);
+    __tower=null; __twSelTeam=[];
+    _renderTowerLobby();
+    document.getElementById('tower-modal').classList.add('active');
+};
+
+window.closeTower = ()=>{
+    if(__tower?.timer) clearInterval(__tower.timer);
+    __tower=null;
+    document.getElementById('tower-modal').classList.remove('active');
+};
+
+// ── Lobby (team select + floor info) ──
+function _renderTowerLobby(){
+    const floor = userData?.towerFloor||1;
+    const best  = userData?.towerBest||0;
+    const pets  = (userData?.pets||[]).filter(p=>!p.isExpedition);
+    const bStats= _towerBossStats(floor);
+    const bEl   = _towerBossEl(floor);
+    const bElInfo= ELEMENTS[bEl];
+
+    // check daily reset eligibility
+    const lastReset = userData?.towerLastReset||null;
+    const today = new Date().toDateString();
+    const canReset = floor>1 && (lastReset!==today);
+
+    // slots display
+    const slotHtml = [0,1,2].map(i=>{
+        const instId = __twSelTeam[i];
+        const p = instId ? pets.find(x=>String(x.instId||x.id)===instId) : null;
+        return `<div class="tower-slot${p?' filled':''}" onclick="${p?`twRemoveSlot(${i})`:'void 0'}">
+            <span class="slot-num">ไม้${i+1}</span>
+            ${p ? `<span>${p.emoji}</span><span class="slot-remove">✕</span>` : `<span style="opacity:.3;font-size:1rem">＋</span>`}
+        </div>`;
+    }).join('');
+
+    // pet cards
+    const petCards = pets.map(p=>{
+        const cfg=RARITY[p.rarity];
+        const sel=__twSelTeam.includes(String(p.instId||p.id));
+        const pos=__twSelTeam.indexOf(String(p.instId||p.id));
+        const s=calculatePetStats(p);
+        const def=PETS.find(x=>x.id===p.id);
+        const el=ELEMENTS[def?.element];
+        return `<div class="tower-pick${sel?' sel':''}" onclick="twPickPet('${String(p.instId||p.id)}')">
+            ${sel?`<div style="font-size:0.45rem;font-weight:800;color:#a78bfa;margin-bottom:1px">ไม้${pos+1}</div>`:''}
+            <div style="font-size:1.5rem">${p.emoji}</div>
+            <div style="font-size:0.52rem;font-weight:700;color:rgba(255,255,255,.8);margin-top:1px;line-height:1.2">${formatPetName(p)}</div>
+            <div style="font-size:0.5rem;color:${cfg.color}">${cfg.label}</div>
+            <div style="font-size:0.5rem;color:rgba(255,255,255,.4)">${el?el.emoji:''} ATK ${s.atk}</div>
+        </div>`;
+    }).join('');
+
+    const canFight = __twSelTeam.length>=1;
+
+    document.getElementById('tower-content').innerHTML=`
+    <div class="tower-arena">
+        <div class="tower-header">
+            <div class="tower-title">
+                🗼 หอคอยไร้สิ้นสุด
+                <span class="floor-badge">ชั้น ${floor}</span>
+            </div>
+            <button onclick="closeTower()" style="background:rgba(255,255,255,.1);border:none;
+                color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem;flex-shrink:0">✕</button>
+        </div>
+
+        <!-- Floor info -->
+        <div style="background:rgba(0,0,0,.3);border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+                <div style="font-size:0.7rem;color:rgba(255,255,255,.4);margin-bottom:2px">ศัตรูชั้นนี้</div>
+                <div style="font-size:1.1rem;font-weight:800;color:#fff">👾 ไวรัส ชั้นที่ ${floor}</div>
+                <div style="font-size:0.65rem;color:rgba(255,255,255,.5);margin-top:2px">
+                    ${bElInfo?bElInfo.emoji:''} ${_EL_NAME[bEl]||''} · HP ${bStats.hp} · ATK ${bStats.atk}
+                </div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:0.6rem;color:rgba(255,255,255,.35)">สถิติสูงสุด</div>
+                <div style="font-size:1.3rem;font-weight:800;color:#a78bfa">🏆 ${best}</div>
+            </div>
+        </div>
+
+        <!-- Reward preview -->
+        <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;
+                    padding:8px 12px;margin-bottom:12px;font-size:0.72rem;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:8px">
+            <span style="font-size:1.1rem">🪙</span>
+            <span>ผ่านชั้นได้ <b style="color:#fbbf24">${floor<=best ? floor*10 : floor*100}🪙</b>
+            ${floor<=best?'<span style="color:rgba(255,255,255,.4);font-size:0.65rem"> (ชั้นที่ผ่านแล้ว ×10)</span>':
+                          '<span style="color:#6ee7b7;font-size:0.65rem"> (ครั้งแรก! ×100)</span>'}</span>
+        </div>
+
+        <!-- Team slots -->
+        <div style="font-size:0.65rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px;margin-bottom:7px">
+            🧩 จัดทีม (1–3 ตัว) — ลำดับ = ลำดับไม้ผลัด
+        </div>
+        <div class="tower-slot-row">${slotHtml}</div>
+
+        <!-- Pet picker -->
+        <div class="tower-team-grid">${petCards}</div>
+
+        <!-- Actions -->
+        <button class="btn-tower" onclick="startTowerBattle()" ${canFight?'':'disabled'}>
+            ⚔️ ${canFight?`เริ่มสู้! ชั้น ${floor} (${__twSelTeam.length} ตัว)`:'เลือกสัตว์ก่อน'}
+        </button>
+        ${floor>1?`
+        <button onclick="${canReset?'resetTower()':'void 0'}"
+            style="width:100%;margin-top:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+            color:${canReset?'rgba(255,255,255,.5)':'rgba(255,255,255,.2)'};padding:9px;border-radius:10px;
+            font-family:inherit;font-size:0.76rem;cursor:${canReset?'pointer':'not-allowed'}">
+            🔄 เริ่มชั้น 1 ใหม่ (วันละครั้ง)${!canReset?' — ใช้ไปแล้ววันนี้':''}
+        </button>`:''}
+    </div>`;
+}
+
+window.twPickPet=(instId)=>{
+    const id=String(instId);
+    const idx=__twSelTeam.indexOf(id);
+    if(idx>=0){ __twSelTeam.splice(idx,1); }
+    else if(__twSelTeam.length<3){ __twSelTeam.push(id); }
+    else{ toast('เลือกได้สูงสุด 3 ตัว','info'); return; }
+    _renderTowerLobby();
+};
+window.twRemoveSlot=(i)=>{
+    if(i>=0&&i<__twSelTeam.length) __twSelTeam.splice(i,1);
+    _renderTowerLobby();
+};
+
+window.resetTower=async()=>{
+    const today=new Date().toDateString();
+    if(!await _confirm('🔄 เริ่มต้นใหม่จากชั้น 1\nรางวัลชั้นที่เคยผ่านแล้วจะเป็น ×10\n(ใช้ได้วันละ 1 ครั้ง)\n\nยืนยัน?')) return;
+    window.__blockSnapshot=true;
+    userData={...userData,towerFloor:1,towerLastReset:today};
+    await updateDoc(doc(db,'users',currentUser.uid),{towerFloor:1,towerLastReset:today});
+    setTimeout(()=>{window.__blockSnapshot=false;},1500);
+    __twSelTeam=[];
+    _renderTowerLobby();
+    toast('รีเซ็ตชั้น 1 แล้ว!','success');
+};
+
+// ══════════════════════════════════════════════════════
+// Tower Battle Engine
+// ══════════════════════════════════════════════════════
+window.startTowerBattle=()=>{
+    if(!__twSelTeam.length){ toast('เลือกสัตว์ก่อน','error'); return; }
+    const pets=userData?.pets||[];
+    const floor=userData?.towerFloor||1;
+
+    // Build selectedTeam array (ordered)
+    const selectedTeam=__twSelTeam.map(id=>pets.find(p=>String(p.instId||p.id)===id)).filter(Boolean);
+    if(!selectedTeam.length){ toast('ไม่พบข้อมูลสัตว์','error'); return; }
+
+    const bStats=_towerBossStats(floor);
+    const bEl=_towerBossEl(floor);
+    const bElDef={id:'boss',element:bEl};
+    const firstPet=selectedTeam[0];
+    const firstStats=calculatePetStats(firstPet);
+    const firstDef=PETS.find(x=>x.id===firstPet.id)||{element:'fist'};
+
+    if(__tower?.timer) clearInterval(__tower.timer);
+    __tower={
+        floor,
+        selectedTeam,
+        currentPetIndex:0,
+        // player side
+        pA:firstPet, defA:firstDef, sA:firstStats,
+        hpA:firstStats.hp, maxA:firstStats.hp,
+        // boss side (set ONCE — never reset between relays)
+        bossHP:bStats.hp, bossMaxHP:bStats.hp, bossATK:bStats.atk,
+        defB:bElDef,
+        // meta
+        turn:0, log:[], running:true, timer:null,
+        totalDmgDealt:0,
+    };
+
+    _renderTowerArena();
+    __tower.timer=setInterval(_towerTick, 900);
+};
+
+function _towerBossEl2(b){ return b.defB.element; } // helper
+
+function _renderTowerArena(){
+    const t=__tower; if(!t) return;
+    const floor=t.floor;
+    const cfgA=RARITY[t.pA.rarity];
+    const elA=ELEMENTS[t.defA?.element];
+    const elB=ELEMENTS[t.defB?.element];
+    const pctA=Math.max(0,t.hpA/t.maxA*100);
+    const pctB=Math.max(0,t.bossHP/t.bossMaxHP*100);
+    const hpCol=p=>p>50?'#10b981':p>20?'#f59e0b':'#ef4444';
+    const isOver=!t.running;
+
+    // relay dots
+    const relayDots=t.selectedTeam.map((p,i)=>{
+        const dead=i<t.currentPetIndex;
+        const active=i===t.currentPetIndex;
+        return `<div class="relay-dot${active?' active':dead?' dead':''}">${p.emoji}</div>`;
+    }).join('');
+
+    const logHtml=t.log.length
+        ?t.log.slice(-5).map((l,i)=>`<div style="opacity:${0.4+i*0.3}">${l}</div>`).join('')
+        :`<span style="opacity:.3">เริ่มการสู้...</span>`;
+
+    // result section
+    let resultHtml='';
+    if(isOver){
+        const won=t.bossHP<=0;
+        const reward=floor<=(t.towerBestAtStart||0)?floor*10:floor*100;
+        resultHtml=`
+        <div style="text-align:center;padding:6px 0 2px">
+            <div style="font-size:3rem;animation:bBounce .5s ease">${won?'🎉':'💀'}</div>
+            <div style="font-size:1.05rem;font-weight:800;color:#fff;margin:6px 0">
+                ${won?`✅ ผ่านชั้น ${floor} สำเร็จ!`:`❌ พ่ายแพ้ที่ชั้น ${floor}`}
+            </div>
+            ${won?`<div style="font-size:0.82rem;color:#fbbf24;margin-bottom:12px">+${reward}🪙</div>`
+                 :`<div style="font-size:0.76rem;color:rgba(255,255,255,.4);margin-bottom:12px">อยู่ชั้น ${floor} ต่อ</div>`}
+            <div style="display:flex;gap:8px;justify-content:center">
+                <button class="btn-tower" style="width:auto;padding:10px 20px"
+                    onclick="${won?'openTower()':'startTowerBattle()'}">${won?'⬆ ชั้นต่อไป':'🔄 ลองใหม่'}</button>
+                <button style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+                    color:rgba(255,255,255,.65);padding:10px 16px;border-radius:12px;
+                    font-family:inherit;cursor:pointer;font-size:0.84rem" onclick="closeTower()">ปิด</button>
+            </div>
+        </div>`;
+    }
+
+    document.getElementById('tower-content').innerHTML=`
+    <div class="tower-arena" id="tower-wrap">
+        <div class="tower-header">
+            <div class="tower-title">
+                👾 ไวรัส ชั้นที่ ${floor}
+                <span class="floor-badge">${_EL_NAME[t.defB.element]||''}</span>
+            </div>
+            <button onclick="closeTower()" style="background:rgba(255,255,255,.1);border:none;
+                color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem">✕</button>
+        </div>
+
+        <!-- Relay indicator -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div style="font-size:0.6rem;color:rgba(255,255,255,.35);font-weight:700">ทีม:</div>
+            <div class="tower-relay-row" style="margin-bottom:0">${relayDots}</div>
+            <div style="font-size:0.6rem;color:rgba(255,255,255,.35);margin-left:auto">เทิร์น ${t.turn}</div>
+        </div>
+
+        <!-- Battle field -->
+        <div style="display:grid;grid-template-columns:1fr 28px 1fr;gap:6px;align-items:start;
+                    margin-bottom:12px;position:relative" id="tower-field">
+            <!-- Player side -->
+            <div style="text-align:center">
+                <div style="font-size:3rem;filter:drop-shadow(0 0 10px ${t.hpA<=0?'#ffffff11':cfgA.glow});
+                            transition:transform .15s;${t.hpA<=0?'opacity:.3':''}"
+                     id="twem-a">${t.pA.emoji}</div>
+                <div style="font-size:0.7rem;font-weight:700;color:${t.hpA<=0?'rgba(255,255,255,.35)':'rgba(255,255,255,.85)'};margin:4px 0 2px">
+                    ${formatPetName(t.pA)}${elA?` <span style="font-size:.85rem">${elA.emoji}</span>`:''}
+                </div>
+                <div style="font-size:0.56rem;color:${cfgA.color};margin-bottom:5px">${cfgA.label} · ATK ${t.sA.atk}</div>
+                <div class="tower-hp-bar">
+                    <div id="twhp-a" class="tower-hp-fill" style="width:${pctA}%;background:${hpCol(pctA)}"></div>
+                </div>
+                <div style="font-size:0.6rem;color:rgba(255,255,255,.4)">${Math.max(0,t.hpA)} / ${t.maxA}</div>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:center;
+                        padding-top:20px;font-size:0.8rem;color:rgba(255,255,255,.2);font-weight:800">⚔️</div>
+
+            <!-- Boss side -->
+            <div style="text-align:center">
+                <div style="font-size:3rem;filter:drop-shadow(0 0 10px ${t.bossHP<=0?'#ffffff11':'rgba(239,68,68,.6)'});
+                            transition:transform .15s;${t.bossHP<=0?'opacity:.3':''}"
+                     id="twem-b">👾</div>
+                <div style="font-size:0.7rem;font-weight:700;color:${t.bossHP<=0?'rgba(255,255,255,.35)':'rgba(255,255,255,.85)'};margin:4px 0 2px">
+                    ไวรัส ชั้นที่ ${floor}${elB?` <span style="font-size:.85rem">${elB.emoji}</span>`:''}
+                </div>
+                <div style="font-size:0.56rem;color:#f87171;margin-bottom:5px">Boss · ATK ${t.bossATK}</div>
+                <div class="tower-hp-bar">
+                    <div id="twhp-b" class="tower-hp-fill" style="width:${pctB}%;background:${hpCol(pctB)}"></div>
+                </div>
+                <div style="font-size:0.6rem;color:rgba(255,255,255,.4)">${Math.max(0,t.bossHP)} / ${t.bossMaxHP}</div>
+            </div>
+        </div>
+
+        <!-- Battle log -->
+        <div style="background:rgba(0,0,0,.25);border-radius:11px;padding:9px 12px;min-height:50px;
+                    font-size:0.74rem;color:rgba(255,255,255,.7);line-height:1.7;margin-bottom:10px;
+                    border:1px solid rgba(255,255,255,.06)">
+            ${logHtml}
+        </div>
+        ${isOver ? resultHtml : `
+        <div style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,.35)">
+            ⚡ กำลังสู้...
+        </div>`}
+    </div>`;
+}
+
+// ── Tower tick (player always goes first each round, boss counters) ──
+function _towerTick(){
+    const t=__tower; if(!t||!t.running) return;
+    t.turn++;
+
+    const petDef=PETS.find(x=>x.id===t.pA.id)||{element:'fist'};
+
+    // Player → Boss
+    const advPlayer=elementBeats(petDef.element, t.defB.element);
+    const critPlayer=Math.random()<0.20;
+    const playerDmg=Math.max(1,Math.round(t.sA.atk*(advPlayer?1.5:1.0)*(critPlayer?2.0:1.0)));
+    t.bossHP=Math.max(0,t.bossHP-playerDmg);
+    t.totalDmgDealt=(t.totalDmgDealt||0)+playerDmg;
+
+    const tagP=critPlayer?` <b style="color:#fbbf24">💥CRIT!</b>`:advPlayer?` <span style="color:#6ee7b7">🔥×1.5</span>`:'';
+    t.log.push(`${t.pA.emoji}→👾 <b style="color:#fca5a5">-${playerDmg}</b>${tagP}`);
+
+    // ── Check boss death FIRST ──
+    if(t.bossHP<=0){
+        t.running=false;
+        clearInterval(t.timer);
+        // Set towerBestAtStart SYNC before render so result screen shows correct reward
+        t.towerBestAtStart = userData?.towerBest||0;
+        _renderTowerArena();   // render immediately with correct reward display
+        _towerTick_onWin(t);   // save to Firestore async in background
+        return;
+    }
+
+    // Boss → Player
+    const advBoss=elementBeats(t.defB.element, petDef.element);
+    const critBoss=Math.random()<0.15;
+    const bossDmg=Math.max(1,Math.round(t.bossATK*(advBoss?1.5:1.0)*(critBoss?2.0:1.0)));
+    t.hpA=Math.max(0,t.hpA-bossDmg);
+
+    const tagB=critBoss?` <b style="color:#fbbf24">💥CRIT!</b>`:advBoss?` <span style="color:#f87171">🔥×1.5</span>`:'';
+    t.log.push(`👾→${t.pA.emoji} <b style="color:#fca5a5">-${bossDmg}</b>${tagB}`);
+
+    // ── Check player death → relay ──
+    if(t.hpA<=0){
+        clearInterval(t.timer);
+        t.currentPetIndex++;
+        if(t.currentPetIndex<t.selectedTeam.length){
+            // สลับตัว — ห้ามแตะ bossHP
+            const nextPet=t.selectedTeam[t.currentPetIndex];
+            const nextStats=calculatePetStats(nextPet);
+            const nextDef=PETS.find(x=>x.id===nextPet.id)||{element:'fist'};
+            t.pA=nextPet; t.defA=nextDef; t.sA=nextStats;
+            t.hpA=nextStats.hp; t.maxA=nextStats.hp;
+            t.log.push(`🔄 ${nextPet.emoji} ${formatPetName(nextPet)} ออกสนาม!`);
+            _renderTowerArena();
+            t.timer=setInterval(_towerTick,900);
+        } else {
+            // ทีมหมด — แพ้
+            t.running=false;
+            t.log.push(`💀 ทีมทั้งหมดล้มแล้ว...`);
+            _renderTowerArena();
+        }
+        return;
+    }
+
+    _renderTowerArena();
+
+    // Animations
+    const attEl=document.getElementById('twem-a');
+    const defEl=document.getElementById('twem-b');
+    if(attEl){ attEl.style.transition='transform .15s'; attEl.style.transform='translateX(36px) scale(1.12)';
+        setTimeout(()=>{ if(attEl) attEl.style.transform=''; },180); }
+    if(defEl){ setTimeout(()=>{
+        if(!defEl) return;
+        defEl.style.animation='none'; void defEl.offsetWidth;
+        defEl.style.animation='bShake .25s ease';
+        setTimeout(()=>{ if(defEl) defEl.style.animation=''; },280);
+    },180); }
+    // damage float
+    const field=document.getElementById('tower-field');
+    if(field){
+        const dmgEl=document.createElement('div');
+        dmgEl.innerHTML=critPlayer?`💥${playerDmg}!`:`-${playerDmg}`;
+        dmgEl.style.cssText=`position:absolute;right:6%;top:${8+Math.random()*28}%;
+            font-size:${critPlayer?'1.3rem':'1rem'};font-weight:900;
+            color:${critPlayer?'#fbbf24':advPlayer?'#6ee7b7':'#f87171'};
+            pointer-events:none;z-index:10;text-shadow:0 2px 8px rgba(0,0,0,.5);
+            animation:dmgFloat .85s ease forwards;`;
+        field.style.position='relative'; field.appendChild(dmgEl);
+        setTimeout(()=>dmgEl.remove(),870);
+    }
+}
+
+async function _towerTick_onWin(t){
+    const floor=t.floor;
+    const best=userData?.towerBest||0;
+    const isFirstClear=floor>best;
+    const reward=isFirstClear?floor*100:floor*10;
+    const newFloor=floor+1;
+    const newBest=Math.max(best,floor);
+    const newCoins=(userData?.coins||0)+reward;
+
+    window.__blockSnapshot=true;
+    userData={...userData,towerFloor:newFloor,towerBest:newBest,coins:newCoins};
+    try{
+        await updateDoc(doc(db,'users',currentUser.uid),{
+            towerFloor:newFloor, towerBest:newBest, coins:increment(reward),
+        });
+        // Update cache for member grid
+        if(userData?.studentId&&window.__fbUsers?.[userData.studentId]){
+            window.__fbUsers[userData.studentId].towerBest=newBest;
+        }
+        if(isFirstClear && typeof postNews==='function') await postNews('🗼',`${userData?.nickname||userData?.name||'ผู้เล่น'} ผ่านหอคอยชั้น ${floor} ได้แล้ว!`).catch(()=>{});
+    }catch(e){ console.error('tower save',e); }
+    finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
+
+    if(isFirstClear&&floor%5===0){
+        confetti({particleCount:120,spread:70,origin:{y:0.5},colors:['#a78bfa','#fbbf24','#fff']});
+    }
+}
+
+// ════════════════════════════════════════
 //  BOOT
 // ════════════════════════════════════════
 window.__tab='home';
@@ -3852,6 +4333,13 @@ window.toast=(msg,type='info',duration=2800)=>{const t=document.getElementById('
             <button onclick="closeForgeModal()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:10px;padding:5px 12px;font-family:inherit;font-size:0.8rem;font-weight:700;cursor:pointer">✕ ปิด</button>
         </div>
         <div class="forge-body" id="forge-body"></div>
+    </div>
+</div>
+
+<!-- TOWER MODAL -->
+<div class="modal-ov" id="tower-modal" style="align-items:flex-end;padding:0" onclick="if(event.target===this)closeTower()">
+    <div class="tower-sheet" onclick="event.stopPropagation()">
+        <div id="tower-content"></div>
     </div>
 </div>
 </body>
