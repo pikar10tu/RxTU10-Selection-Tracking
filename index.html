@@ -866,6 +866,30 @@ window.loginGoogle=async()=>{
     try{provider.setCustomParameters({prompt:'select_account'});const r=await signInWithPopup(auth,provider);await ensureDoc(r.user);}
     catch(e){if(e.code!=='auth/popup-closed-by-user')toast("Login ไม่สำเร็จ","error");}
 };
+// _confirm(msg) → Promise<boolean> — ใช้ custom modal แทน window.confirm
+function _confirm(msg){
+    return new Promise(resolve=>{
+        const modal=document.getElementById('confirm-modal');
+        const msgEl=document.getElementById('confirm-msg');
+        const okBtn=document.getElementById('confirm-ok');
+        const cancelBtn=document.getElementById('confirm-cancel');
+        if(!modal||!okBtn||!cancelBtn){resolve(window.confirm(msg));return;}
+        // แสดงข้อความ (รองรับ \n)
+        msgEl.innerHTML=msg.split('\n').map(l=>`<div>${l}</div>`).join('');
+        modal.classList.add('active');
+        const cleanup=(result)=>{
+            modal.classList.remove('active');
+            okBtn.onclick=null; cancelBtn.onclick=null;
+            resolve(result);
+        };
+        okBtn.onclick=()=>cleanup(true);
+        cancelBtn.onclick=()=>cleanup(false);
+        // backdrop click = cancel
+        modal._confirmCleanup=(e)=>{if(e.target===modal)cleanup(false);};
+        modal.addEventListener('click',modal._confirmCleanup,{once:true});
+    });
+}
+
 window.__confirmLogout=async()=>{
     document.getElementById('confirm-modal').classList.remove('active');
     clearInterval(window.__hatchTimer);
@@ -982,7 +1006,7 @@ window.openDailyModal=()=>{
             </div>
             <span style="color:#10b981;font-weight:800;font-size:0.9rem">+${daily}🪙</span>
         </div>`;
-    }).join(''):'<div style="color:var(--muted);font-size:0.78rem;padding:12px 0;text-align:center">ยังไม่มีสัตว์เลี้ยง<br><span style="font-size:0.7rem">ฟักไข่ใน Shop เพื่อรับ passive income</span></div>';
+    }).join(''):'<div style="color:var(--muted);font-size:0.78rem;padding:12px 0;text-align:center">ยังไม่มีสัตว์เลี้ยง<br><span style="font-size:0.7rem">ฟักไข่ใน Shop เพื่อรับ รายได้สะสม</span></div>';
 
     document.getElementById('daily-content').innerHTML=`
         <div style="font-size:1.8rem;margin-bottom:4px">🎁</div>
@@ -991,7 +1015,7 @@ window.openDailyModal=()=>{
 
         <div style="background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:10px;text-align:left">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
-                <span style="font-size:0.84rem">🎯 Base daily</span>
+                <span style="font-size:0.84rem">🎯 รายได้พื้นฐาน</span>
                 <span style="font-weight:700;color:#10b981">+${base}🪙</span>
             </div>
             ${petRows}
@@ -1180,6 +1204,14 @@ async function loadTicker() {
         let items=[];
         snap.forEach(d=>{const x=d.data();items.push(`${sanitize(x.icon)} ${sanitize(x.msg)}`);});
         if(!items.length)items=['ยินดีต้อนรับสู่ RxTU10 Dashboard! 🎉'];
+        const tickerInnerEl=document.querySelector('.ticker-inner');
+        if(tickerInnerEl){
+            tickerInnerEl.textContent=items.join('  •  ');
+            // Reflow: รีเซ็ต CSS animation ให้เริ่มใหม่ทันที
+            tickerInnerEl.style.animation='none';
+            void tickerInnerEl.offsetWidth; // force reflow
+            tickerInnerEl.style.animation='';
+        }
         document.getElementById('ticker-text').textContent=items.join('  •  ');
     } catch(e){}
 }
@@ -1629,12 +1661,12 @@ window.answerQ=async(btn,ans)=>{
         if(currentUser&&finalScore>qHigh){
             qHigh=finalScore;
             await updateDoc(doc(db,"users",currentUser.uid),{quizHigh:finalScore});
-            await postNews("🏆",`${name} ทำ High Score ใหม่ในเกมทายชื่อ: ${finalScore} คะแนน!`);
+            if(finalScore>30) await postNews("🏆",`${name} ทำคะแนน ${finalScore} ในเกม ทายชื่อเพื่อน`);
             // อัพ quizHigh ใน cache ด้วย
             if(userData?.studentId&&window.__fbUsers?.[userData.studentId])window.__fbUsers[userData.studentId].quizHigh=finalScore;
         } else if(currentUser&&finalScore>=10&&!__quizTop5Posted){
             __quizTop5Posted=true;
-            await postNews("🎮",`${name} ทำได้ ${finalScore} ข้อในเกมทายชื่อ — Top 5%! 🔥`);
+            if(finalScore>30) await postNews("🎮",`${name} ทำคะแนน ${finalScore} ในเกม ทายชื่อเพื่อน`);
         }
         setTimeout(()=>{
             document.getElementById('quiz-start').style.display='block';
@@ -1675,11 +1707,11 @@ window.answerDQ=async(btn,ans)=>{
         const name2=userData?.nickname?.split(' ')[0]||userData?.name||'?';
         if(currentUser&&finalScore>dqHigh){
             dqHigh=finalScore;await updateDoc(doc(db,"users",currentUser.uid),{drugHigh:finalScore});
-            await postNews("💊",`${name2} ทำ High Score ใหม่ในเกมทายยา: ${finalScore} คะแนน!`);
+            if(finalScore>30) await postNews("💊",`${name2} ทำคะแนน ${finalScore} ในเกม ทายยา`);
             if(userData?.studentId&&window.__fbUsers?.[userData.studentId])window.__fbUsers[userData.studentId].drugHigh=finalScore;
         } else if(currentUser&&finalScore>=10&&!__drugTop5Posted){
             __drugTop5Posted=true;
-            await postNews("🎮",`${name2} ทำได้ ${finalScore} ข้อในเกมทายยา — Top 5%! 🔥`);
+            if(finalScore>30) await postNews("🎮",`${name2} ทำคะแนน ${finalScore} ในเกม ทายยา`);
         }
         setTimeout(()=>{
             document.getElementById('dquiz-start').style.display='block';
@@ -1889,7 +1921,7 @@ function buildHome(){
     const {base:dBase,passive:dPassive,total:dTotal}=calcTotalDaily(pets);
     const dailyBreakdown=`<div id="daily-breakdown" style="display:none" class="card">
         <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px">💰 รายได้/วัน · รวม <span style="color:#10b981">+${dTotal}🪙</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.82rem"><span>🎯 Base daily</span><span style="font-weight:700;color:#10b981">+${dBase}🪙</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.82rem"><span>🎯 รายได้พื้นฐาน</span><span style="font-weight:700;color:#10b981">+${dBase}🪙</span></div>
         ${pets.length?pets.map(p=>{const cfg=RARITY[p.rarity];const d=petDailyCoins(p);const gr=p.grade||0;const def=PETS.find(x=>x.id===p.id);const el=ELEMENTS[def?.element]?.emoji||'';return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:1.1rem">${p.emoji}</span><div style="flex:1;font-size:0.8rem"><span style="font-weight:600">${petDisplayName(p)}</span>${el?` ${el}`:''}<div style="color:${cfg.color};font-size:0.6rem">${cfg.label}${gr>0?' · Grade '+GRADE_LABELS[gr]:''}</div></div><span style="color:#10b981;font-weight:800">+${d}🪙</span></div>`;}).join(''):'<div style="color:var(--muted);font-size:0.78rem;padding:10px 0;text-align:center">ยังไม่มีสัตว์เลี้ยง</div>'}
     </div>`;
     const collBtn=`<div style="margin-bottom:8px">
@@ -1985,7 +2017,7 @@ window.openProfileModal=(id)=>{
         const grade=petData.grade||0;
         return`<div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:14px;padding:12px 14px;cursor:pointer;text-align:left"
             onclick="openFriendPetInfo('${s.id}','${String(petData.instId||petData.id)}')">
-            <div style="font-size:0.6rem;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Active Pet · แตะดูข้อมูล</div>
+            <div style="font-size:0.6rem;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">สัตว์เลี้ยงหลัก · แตะดูข้อมูล</div>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
                 <div style="font-size:2.4rem;filter:drop-shadow(0 0 10px ${cfg.glow})">${petData.emoji}</div>
                 <div style="flex:1">
@@ -2126,6 +2158,12 @@ function _renderLbRows(board,scoreKey,accentColor){
         </div>`;
     }).join('');
 }
+
+// ── Global Top 1 score helpers ──
+function _globalTop1(scoreKey){ const all=_lbUsers(); if(!all.length)return 0; return Math.max(...all.map(u=>u[scoreKey]||0)); }
+function _qTop1(){ return _globalTop1('quizHigh'); }
+function _dqTop1(){ return _globalTop1('drugHigh'); }
+function _ctTop1(){ return _globalTop1('ctHigh'); }
 function buildQuizLb(){
     const board=[..._lbUsers()].filter(u=>u.quizHigh>0).sort((a,b)=>b.quizHigh-a.quizHigh).slice(0,7);
     return _renderLbRows(board,'quizHigh','#6ee7b7');
@@ -2185,29 +2223,37 @@ function buildPlay(){
         <div class="hub-card live" style="--hc-glow:rgba(37,99,235,.4);background:linear-gradient(145deg,#1e3a5f,#0f172a);border-color:rgba(96,165,250,.25);" onclick="openQuizModal()">
             <div class="hub-card-icon">🕵️</div>
             <div class="hub-card-title">ทายชื่อเพื่อน</div>
-            <div class="hub-card-sub">เห็นชื่อเล่น → ทายชื่อจริง<br>Hi: ${qHigh} คะแนน</div>
+            <div class="hub-card-sub">เห็นชื่อเล่น → ทายชื่อจริง<br>High Score: ${qHigh} คะแนน</div>
         </div>
 
         <!-- Quiz: ยา -->
         <div class="hub-card live" style="--hc-glow:rgba(99,102,241,.4);background:linear-gradient(145deg,#312e81,#1e1b4b);border-color:rgba(165,180,252,.2);" onclick="openDrugModal()">
             <div class="hub-card-icon">💊</div>
             <div class="hub-card-title">ทายยา</div>
-            <div class="hub-card-sub">Drug Class Quiz<br>Hi: ${dqHigh} คะแนน</div>
+            <div class="hub-card-sub">Drug Class Quiz<br>High Score: ${dqHigh} คะแนน</div>
         </div>
 
         <!-- Color Tiles -->
         <div class="hub-card live" style="--hc-glow:rgba(16,185,129,.4);background:linear-gradient(145deg,#052e16,#0a1a0a);border-color:rgba(34,197,94,.25);" onclick="openColorTilesModal()">
             <div class="hub-card-icon">🟩</div>
             <div class="hub-card-title">Color Tiles</div>
-            <div class="hub-card-sub">Piano Tiles สไตล์<br>Hi: ${ctHigh} คะแนน</div>
+            <div class="hub-card-sub">Piano Tiles สไตล์<br>High Score: ${ctHigh} คะแนน</div>
         </div>
 
         <!-- Coming Soon: หอคอย -->
-        <div class="hub-card soon" style="grid-column:1/-1;background:linear-gradient(145deg,#1e293b,#0f172a);border-color:rgba(255,255,255,.06);">
+        <div class="hub-card soon" style="background:linear-gradient(145deg,#1e293b,#0f172a);border-color:rgba(255,255,255,.06);">
             <div class="hub-badge">เร็วๆ นี้</div>
             <div class="hub-card-icon" style="filter:grayscale(.6)">🗼</div>
             <div class="hub-card-title" style="color:rgba(255,255,255,.5)">หอคอยไร้สิ้นสุด</div>
             <div class="hub-card-sub">Endless Tower • Coming Soon</div>
+        </div>
+
+        <!-- Coming Soon: ข้อสอบ CC ย้อนหลัง -->
+        <div class="hub-card soon" style="background:linear-gradient(145deg,#1a1000,#120d00);border-color:rgba(255,255,255,.06);">
+            <div class="hub-badge">เร็วๆ นี้</div>
+            <div class="hub-card-icon" style="filter:grayscale(.4)">📝</div>
+            <div class="hub-card-title" style="color:rgba(255,255,255,.5)">ข้อสอบ CC ย้อนหลัง</div>
+            <div class="hub-card-sub">Pharm Board Exam<br>Coming Soon</div>
         </div>
 
     </div>`;
@@ -2495,14 +2541,14 @@ function buildQuizBody(){
             <div style="font-size:0.8rem;color:rgba(255,255,255,.5)">เห็นชื่อเล่น → ทายชื่อจริง<br><span style="font-size:0.7rem;color:rgba(255,255,255,.35)">ตอบถูกต่อเนื่อง +5🪙/ข้อ</span></div>
             <div style="display:flex;align-items:center;gap:8px">
                 <button onclick="toggleLb('qlb')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 9px;color:rgba(255,255,255,.6);font-size:0.68rem;cursor:pointer;font-family:inherit">🏆 กระดาน</button>
-                <div class="score-badge">🏆 <b id="q-score">${qHigh}</b></div>
+                <div class="score-badge">🏆 <b id="q-score">${_qTop1()}</b></div>
             </div>
         </div>
         <div id="qlb" style="display:none;margin-bottom:10px">${buildQuizLb()}</div>
         <div id="quiz-start">
             <div class="game-start">
                 <span class="game-start-icon">🕵️</span>
-                <div class="game-start-hi">สถิติสูงสุด: ${qHigh} คะแนน</div>
+                <div class="game-start-hi">High Score: ${qHigh} คะแนน</div>
                 <div class="game-start-desc" id="q-msg">เห็นชื่อเล่น → ทายชื่อจริง<br>ตอบถูกต่อเนื่อง +5🪙/ข้อ</div>
                 <button class="btn-play" onclick="startQuiz()">▶ เริ่มเกม</button>
             </div>
@@ -2524,14 +2570,14 @@ function buildDrugBody(){
             <div style="font-size:0.8rem;color:rgba(255,255,255,.5)">เห็นชื่อยา → ทาย Drug Class<br><span style="font-size:0.7rem;color:rgba(255,255,255,.35)">ตอบถูกต่อเนื่อง +5🪙/ข้อ</span></div>
             <div style="display:flex;align-items:center;gap:8px">
                 <button onclick="toggleLb('dqlb')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 9px;color:rgba(255,255,255,.6);font-size:0.68rem;cursor:pointer;font-family:inherit">🏆 กระดาน</button>
-                <div class="score-badge">🏆 <b id="dq-score">${dqHigh}</b></div>
+                <div class="score-badge">🏆 <b id="dq-score">${_dqTop1()}</b></div>
             </div>
         </div>
         <div id="dqlb" style="display:none;margin-bottom:10px">${buildDrugLb()}</div>
         <div id="dquiz-start">
             <div class="game-start">
                 <span class="game-start-icon">💊</span>
-                <div class="game-start-hi">สถิติสูงสุด: ${dqHigh} คะแนน</div>
+                <div class="game-start-hi">High Score: ${dqHigh} คะแนน</div>
                 <div class="game-start-desc" id="dq-msg">เห็นชื่อยา → ทาย Drug Class<br>ตอบถูกต่อเนื่อง +5🪙/ข้อ</div>
                 <button class="btn-play" onclick="startDrugQuiz()">▶ เริ่มเกม</button>
             </div>
@@ -2697,7 +2743,7 @@ async function _ctGameOver(isMiss){
     const score   = __ct.score;
     const coins   = score * CT_COIN_PER_SCORE;
     const isHigh  = score > (userData?.ctHigh||0);
-    const reason  = isMiss ? '❌ กดผิดเลน!' : '⏰ หมดเวลา!';
+    const reason  = isMiss ? '❌ กดพลาด!' : '⏰ หมดเวลา!';
 
     // Show overlay on field
     const field = document.getElementById('ct-field');
@@ -2727,6 +2773,10 @@ async function _ctGameOver(isMiss){
             await updateDoc(doc(db,'users',currentUser.uid), updates);
             if(isHigh && userData?.studentId && window.__fbUsers?.[userData.studentId])
                 window.__fbUsers[userData.studentId].ctHigh = score;
+            if(score>30){
+                const ctName=userData?.nickname||userData?.name||'ผู้เล่น';
+                await postNews("🟩",`${ctName} ทำคะแนน ${score} ในเกม Color Tiles`).catch(()=>{});
+            }
         } catch(e){ console.warn('ct save err',e); }
     }
 
@@ -2746,7 +2796,7 @@ function _ctGameHTML(){
             <div style="font-size:0.72rem;color:rgba(255,255,255,.4)">คะแนน</div>
             <div style="font-size:1.6rem;font-weight:800;color:#4ade80" id="ct-score-live">0</div>
             <div style="text-align:right">
-                <div style="font-size:0.6rem;color:rgba(255,255,255,.35)">สถิติ</div>
+                <div style="font-size:0.6rem;color:rgba(255,255,255,.35)">High Score</div>
                 <div style="font-size:0.88rem;font-weight:800;color:#fbbf24">🏆 ${ctHigh}</div>
             </div>
         </div>
@@ -2821,7 +2871,7 @@ function buildColorTilesBody(){
     <div style="padding:4px 0">
         <div class="game-start">
             <span class="game-start-icon">🟩</span>
-            <div class="game-start-hi">สถิติสูงสุด: ${ctHigh} คะแนน</div>
+            <div class="game-start-hi">High Score: ${ctHigh} คะแนน</div>
             <div class="game-start-desc">
                 กดปุ่มสี <b style="color:#ef4444">🔴</b> <b style="color:#22c55e">🟢</b> <b style="color:#3b82f6">🔵</b> ให้ตรงกับแผ่นที่อยู่แถวล่างสุด<br>
                 <span style="font-size:0.74rem;color:rgba(255,255,255,.35)">1 คะแนน = ${CT_COIN_PER_SCORE}🪙 • เวลาจะสั้นลงเรื่อยๆ</span>
@@ -2843,7 +2893,7 @@ window.openColorTilesModal = ()=>{
     clearInterval(__ct.tick);
     // Update hi badge
     const hiBadge = document.getElementById('ct-hi-badge');
-    if(hiBadge) hiBadge.innerHTML = `🏆 <b>${userData?.ctHigh||0}</b>`;
+    if(hiBadge) hiBadge.innerHTML = `🏆 <b>${_ctTop1()}</b>`;
     // Render start screen
     document.getElementById('ct-modal-body').innerHTML = buildColorTilesBody();
     document.getElementById('ct-modal').classList.add('active');
