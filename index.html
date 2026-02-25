@@ -480,6 +480,68 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .relay-dot.active{border-color:#a78bfa;background:rgba(167,139,250,.2);
     box-shadow:0 0 8px rgba(167,139,250,.5);}
 .relay-dot.dead{opacity:.2;filter:grayscale(1);}
+
+/* ═══════════════════════════════
+   PVP & PROFILE REDESIGN
+   ═══════════════════════════════ */
+/* Profile modal — dark card layout */
+.pm-card{background:linear-gradient(160deg,#0f172a,#1e293b);border-radius:20px;overflow:hidden;text-align:left;}
+.pm-hero{display:flex;align-items:center;gap:12px;padding:16px 16px 12px;}
+.pm-avatar{width:68px;height:68px;border-radius:50%;object-fit:cover;border:2.5px solid rgba(255,255,255,.18);flex-shrink:0;}
+.pm-info{flex:1;min-width:0;}
+.pm-info .name{font-size:1.05rem;font-weight:800;color:#fff;line-height:1.2;}
+.pm-info .realname{font-size:0.75rem;color:rgba(255,255,255,.45);margin-top:1px;}
+.pm-info .sid{font-size:0.68rem;color:rgba(255,255,255,.3);font-family:'Space Mono',monospace;}
+.pm-section{padding:10px 16px;border-top:1px solid rgba(255,255,255,.06);}
+.pm-section-label{font-size:0.58rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:8px;}
+.pm-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.pm-stat-cell{background:rgba(255,255,255,.05);border-radius:10px;padding:7px 4px;text-align:center;}
+.pm-stat-cell b{display:block;font-size:0.9rem;font-weight:800;color:#fff;}
+.pm-stat-cell small{font-size:0.56rem;color:rgba(255,255,255,.4);margin-top:1px;display:block;}
+.pm-team{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:2px;}
+.pm-team-slot{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;
+    padding:8px 4px;text-align:center;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.pm-team-slot.filled{border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.06);}
+.pm-team-slot .slot-em{font-size:1.8rem;line-height:1;}
+.pm-team-slot .slot-name{font-size:0.5rem;color:rgba(255,255,255,.6);margin-top:3px;line-height:1.3;font-weight:600;}
+.pm-team-slot .slot-stats{font-size:0.48rem;color:rgba(255,255,255,.35);margin-top:2px;}
+.btn-pvp{width:100%;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border:none;
+    padding:13px;border-radius:14px;font-family:inherit;font-size:0.95rem;font-weight:800;
+    cursor:pointer;letter-spacing:.5px;box-shadow:0 4px 14px rgba(220,38,38,.4);
+    display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;}
+.btn-pvp:hover{transform:translateY(-1px);}
+
+/* Active Pets selector (own profile) */
+.active-slots-row{display:flex;gap:8px;margin-bottom:10px;}
+.active-slot{flex:1;background:rgba(255,255,255,.05);border:2px dashed rgba(255,255,255,.15);
+    border-radius:12px;padding:8px 4px;text-align:center;cursor:pointer;transition:.12s;min-height:64px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.active-slot.filled{border-style:solid;border-color:#a78bfa;background:rgba(167,139,250,.1);}
+.active-slot:active{transform:scale(.96);}
+.active-slot .slot-label{font-size:0.48rem;font-weight:800;color:rgba(255,255,255,.3);margin-bottom:3px;}
+.active-slot .slot-label.filled{color:#a78bfa;}
+
+/* PvP battle modal */
+.pvp-sheet{width:100%;max-width:480px;margin:0 auto;max-height:92dvh;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+    padding:12px 12px 28px;box-sizing:border-box;border-radius:20px 20px 0 0;background:#100020;}
+.pvp-arena{background:linear-gradient(160deg,#1a0030 0%,#200040 50%,#160028 100%);
+    border-radius:20px;padding:16px 14px;position:relative;}
+.pvp-arena::before{content:'';position:absolute;inset:0;
+    background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Cpath d='M20 0l20 20-20 20L0 20z'/%3E%3C/g%3E%3C/svg%3E");
+    pointer-events:none;border-radius:20px;}
+.pvp-relay-row{display:flex;gap:5px;}
+.pvp-dot{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.12);
+    font-size:0.95rem;display:flex;align-items:center;justify-content:center;transition:.3s;}
+.pvp-dot.active{border-color:#f43f5e;box-shadow:0 0 8px rgba(244,63,94,.5);}
+.pvp-dot.enemy-active{border-color:#818cf8;box-shadow:0 0 8px rgba(129,140,248,.5);}
+.pvp-dot.dead{opacity:.2;filter:grayscale(1);}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+@keyframes fadeSlideInLeft{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:translateX(0)}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+.pvp-fade-in{animation:fadeSlideIn .5s ease forwards;}
+.pvp-fade-in-left{animation:fadeSlideInLeft .5s ease forwards;}
+.pvp-fade-out{animation:fadeOut .4s ease forwards;}
 </style>
 </head>
 <body>
@@ -499,8 +561,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 
 <!-- PROFILE MODAL -->
 <div class="modal-ov" id="profile-modal" onclick="if(event.target===this)closePM()">
-    <div class="modal-box" style="text-align:center">
-        <button class="mclose" onclick="closePM()">✕</button>
+    <div class="modal-box" style="text-align:center;max-width:400px;padding:0;overflow:hidden;background:transparent;border-radius:20px;box-shadow:none;">
         <div id="pm-content"></div>
     </div>
 </div>
@@ -911,6 +972,8 @@ async function loadFbUsers() {
                 ctHigh:x.ctHigh,
                 towerBest:x.towerBest,
                 activePet:x.activePet,
+                activePets:x.activePets||[null,null,null],
+                pvpVictories:x.pvpVictories||0,
                 pets:x.pets,
                 email:x.email,
                 googlePhoto:x.googlePhoto,
@@ -992,7 +1055,7 @@ window.logoutUser=()=>{
  */
 async function ensureDoc(u){
     const ref=doc(db,"users",u.uid);const snap=await getDoc(ref);
-    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:200,pets:[],eggs:[],activePet:null,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,ctHigh:0,towerFloor:1,towerBest:0,towerLastReset:null,lastDaily:null,createdAt:serverTimestamp()});
+    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:200,pets:[],eggs:[],activePet:null,activePets:[null,null,null],pvpVictories:0,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,ctHigh:0,towerFloor:1,towerBest:0,towerLastReset:null,lastDaily:null,createdAt:serverTimestamp()});
 }
 
 onAuthStateChanged(auth,async u=>{
@@ -1254,10 +1317,35 @@ function petDisplayName(p){
 }
 
 function activePet(){
-    if(!userData?.activePet||!userData?.pets)return null;
-    // ลอง match instId ก่อน (ใหม่) แล้ว fallback id (legacy)
+    if(!userData?.pets) return null;
+    // ลอง activePets[0] ก่อน (ใหม่) fallback activePet (legacy)
+    const slots = userData.activePets||[];
+    const slot0 = slots[0];
+    if(slot0){
+        const p=userData.pets.find(p=>p.instId&&String(p.instId)===String(slot0))
+               ||userData.pets.find(p=>p.id===slot0);
+        if(p) return p;
+    }
+    if(!userData.activePet) return null;
     return userData.pets.find(p=>p.instId&&String(p.instId)===String(userData.activePet))
         ||userData.pets.find(p=>p.id===userData.activePet)||null;
+}
+/** getActivePetsArray() — return array ของ pet objects ตาม activePets slots [0..2] */
+function getActivePetsArray(userData_){
+    const ud=userData_||userData;
+    if(!ud?.pets) return [];
+    const slots=ud.activePets||[];
+    // legacy: ถ้าไม่มี activePets ให้ใช้ activePet เดี่ยว
+    if(!slots.some(Boolean) && ud.activePet){
+        const p=ud.pets.find(x=>x.instId&&String(x.instId)===String(ud.activePet))
+               ||ud.pets.find(x=>x.id===ud.activePet);
+        return p?[p]:[];
+    }
+    return slots.map(id=>id
+        ?(ud.pets.find(x=>x.instId&&String(x.instId)===String(id))
+         ||ud.pets.find(x=>x.id===id)||null)
+        :null
+    ).filter(Boolean);
 }
 
 window.awardCoins=async(base,trackKey)=>{
@@ -2059,9 +2147,10 @@ function memberGrid(){
         const photoSrc=live?.customPhoto||live?.googlePhoto||`img/${s.id}.jpg`;
         const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=128`;
         // activePet: match instId ก่อน (ใหม่) fallback id (legacy)
-        const petData=live?.activePet
-            ?(live.pets||[]).find(p=>p.instId&&String(p.instId)===String(live.activePet))
-              ||(live.pets||[]).find(p=>p.id===live.activePet)
+        const _apSlot0=(live?.activePets||[])[0]||live?.activePet||null;
+        const petData=_apSlot0
+            ?(live.pets||[]).find(p=>p.instId&&String(p.instId)===String(_apSlot0))
+              ||(live.pets||[]).find(p=>p.id===_apSlot0)
             :null;
         const petGrade=petData?(petData.grade||0):0;
         const petColor=petData?(RARITY[petData.rarity]?.color||'#64748b'):'';
@@ -2072,9 +2161,8 @@ function memberGrid(){
                 </div>`:''}
             </div>
             <div class="mc-nick">${s.nickname}</div>
-            <div class="mc-id" style="font-size:0.6rem">${s.id}</div>
-            <span class="track-badge" style="background:${tc};font-size:0.52rem;padding:2px 6px">${s.track==='sci'?'SCI':'CARE'}</span>
-            ${(live?.towerBest||0)>0?`<div style="font-size:0.52rem;color:#a78bfa;font-weight:700;margin-top:2px">🗼${live.towerBest}</div>`:''}
+            <span class="track-badge" style="background:${tc};font-size:0.52rem;padding:2px 6px;margin-top:1px">${s.track==='sci'?'SCI':'CARE'}</span>
+            
         </div>`;
     }).join('')}</div>`;
 }
@@ -2083,75 +2171,150 @@ window.mSearchFn=v=>{mSearch=v;const g=document.getElementById('mgrid');if(g)g.i
 
 window.openProfileModal=(id)=>{
     const s=window.__students?.find(x=>x.id===id);if(!s)return;
-    // ใช้ cache แทน getDocs — ไม่เสีย reads
     const liveData=window.__fbUsers?.[id]||null;
+    const isMe = userData?.studentId === id;
     const tc=s.track==='sci'?'var(--sci)':'var(--care)';
     const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=256`;
     const photo=liveData?.customPhotoFull||liveData?.customPhoto||liveData?.googlePhoto||`img/${s.id}.jpg`;
-    // activePet: instId match ก่อน fallback id (compat)
-    const petData=liveData?.activePet
-        ?(liveData.pets||[]).find(p=>p.instId&&String(p.instId)===String(liveData.activePet))
-          ||(liveData.pets||[]).find(p=>p.id===liveData.activePet)
-        :null;
-    const nickHtml=s.nickname;
-    // สร้าง active pet section (แสดงแค่ตัวที่ active)
-    const allPets=liveData?.pets||[];
-    const petShowcase=(()=>{
-        if(!liveData)return'<div style="color:var(--muted);font-size:0.78rem;margin-top:8px">ยังไม่ได้ login</div>';
-        if(!petData)return`<div style="color:var(--muted);font-size:0.78rem;margin-top:6px">ไม่มีสัตว์ active${allPets.length?` (มี ${allPets.length} ตัว)`:''}</div>`;
-        const cfg=RARITY[petData.rarity];
-        const pDef=PETS.find(x=>x.id===petData.id);
-        const el=pDef?.element;const elInfo=ELEMENTS[el]||null;
-        const pStats=calculatePetStats(petData);
-        const grade=petData.grade||0;
-        return`<div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:14px;padding:12px 14px;cursor:pointer;text-align:left"
-            onclick="openFriendPetInfo('${s.id}','${String(petData.instId||petData.id)}')">
-            <div style="font-size:0.6rem;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">สัตว์เลี้ยงหลัก · แตะดูข้อมูล</div>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-                <div style="font-size:2.4rem;filter:drop-shadow(0 0 10px ${cfg.glow})">${petData.emoji}</div>
-                <div style="flex:1">
-                    <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
-                        <span style="font-weight:800;color:#fff;font-size:0.95rem">${petData.name}</span>
-                        ${grade>0?`<span style="background:${cfg.color};color:#fff;font-size:0.5rem;padding:1px 5px;border-radius:4px;font-weight:800">${GRADE_LABELS[grade]}</span>`:''}
-                        ${elInfo?`<span style="font-size:0.9rem">${elInfo.emoji}</span>`:''}
-                    </div>
-                    <div style="font-size:0.68rem;color:${cfg.color};font-weight:700">${cfg.label}</div>
-                </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px">
-                <div style="background:rgba(239,68,68,.12);border-radius:8px;padding:5px 4px;text-align:center">
-                    <div style="font-size:0.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">ATK</div>
-                    <div style="font-size:0.9rem;font-weight:800;color:#f87171">⚔️ ${pStats.atk}</div>
-                </div>
-                <div style="background:rgba(16,185,129,.12);border-radius:8px;padding:5px 4px;text-align:center">
-                    <div style="font-size:0.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">HP</div>
-                    <div style="font-size:0.9rem;font-weight:800;color:#6ee7b7">❤️ ${pStats.hp}</div>
-                </div>
-                <div style="background:rgba(251,191,36,.1);border-radius:8px;padding:5px 4px;text-align:center">
-                    <div style="font-size:0.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">Daily</div>
-                    <div style="font-size:0.9rem;font-weight:800;color:#fbbf24">+${petDailyCoins(petData)}</div>
-                </div>
-            </div>
-        </div>`;
-    })();
-    document.getElementById('pm-content').innerHTML=`
-        <img loading="lazy" src="${photo}" onerror="this.onerror=null;this.src='${def}'" class="pm-img">
-        <div class="pm-nick">${nickHtml}</div>
-        <div class="pm-real">${s.realName}</div>
-        <div class="pm-id">${s.id}</div>
-        <span class="track-badge" style="background:${tc};margin-bottom:8px;display:inline-block">${s.track.toUpperCase()}</span>
-        ${liveData?`
-        <div class="pm-stats">
-            <div class="pm-stat"><span>👥</span><b>${liveData.quizHigh||0}</b><small>Quiz Hi</small></div>
-            <div class="pm-stat"><span>💊</span><b>${liveData.drugHigh||0}</b><small>Drug Hi</small></div>
-            <div class="pm-stat"><span>🗼</span><b>${liveData.towerBest||0}</b><small>Tower</small></div>
-            <div class="pm-stat"><span>🟩</span><b>${liveData.ctHigh||0}</b><small>Tiles Hi</small></div>
-        </div>`:''}
-        <div style="margin-top:8px;text-align:left">${petShowcase}</div>`;
 
+    // ── Team slots (activePets 3 slots) ──
+    const buildTeamSlots=(ud,clickable)=>{
+        const slots=(ud?.activePets||[null,null,null]).slice(0,3);
+        // ensure 3 slots
+        while(slots.length<3) slots.push(null);
+        return slots.map((instId,i)=>{
+            const p=instId?(ud.pets||[]).find(x=>String(x.instId||x.id)===String(instId)):null;
+            if(!p) return `<div class="pm-team-slot${clickable?' active-slot':''}" ${clickable?`onclick="pmPickSlot(${i})"`:''}><span class="slot-label${clickable?' filled':''}">ไม้ ${i+1}</span><span style="opacity:.3;font-size:1.1rem">＋</span></div>`;
+            const cfg=RARITY[p.rarity];
+            const s2=calculatePetStats(p);
+            const r=p.refine||0;
+            return `<div class="pm-team-slot filled${clickable?' active-slot':''}" ${clickable?`onclick="pmPickSlot(${i})"`:''}><span class="slot-label filled">ไม้ ${i+1}</span><div class="slot-em">${p.emoji}</div><div class="slot-name">${formatPetName(p)}</div><div class="slot-stats">⚔️${s2.atk} ❤️${s2.hp}</div></div>`;
+        }).join('');
+    };
+
+    // ── Stats section ──
+    const statsHtml=liveData?`
+    <div class="pm-section">
+        <div class="pm-section-label">สถิติการเล่น</div>
+        <div class="pm-stats-grid">
+            <div class="pm-stat-cell"><b>🏰${liveData.towerFloor||1}</b><small>หอคอยชั้นนี้</small></div>
+            <div class="pm-stat-cell"><b>🗼${liveData.towerBest||0}</b><small>Tower Best</small></div>
+            <div class="pm-stat-cell"><b>🏆${liveData.pvpVictories||0}</b><small>PvP ชนะ</small></div>
+            <div class="pm-stat-cell"><b>${liveData.quizHigh||0}</b><small>👥 Quiz</small></div>
+            <div class="pm-stat-cell"><b>${liveData.drugHigh||0}</b><small>💊 Drug</small></div>
+            <div class="pm-stat-cell"><b>${liveData.ctHigh||0}</b><small>🟩 Tiles</small></div>
+        </div>
+    </div>`:'';
+
+    // ── My profile: slot editor ──
+    const myTeamEditor=isMe?`
+    <div class="pm-section">
+        <div class="pm-section-label">🧩 ทีมสู้รบ (กดไม้เพื่อเปลี่ยน)</div>
+        <div id="pm-team-slots" class="pm-team">${buildTeamSlots(userData,true)}</div>
+        <div id="pm-pick-grid" style="display:none;margin-top:10px"></div>
+        <button id="pm-save-team-btn" onclick="pmSaveTeam()" style="display:none;width:100%;margin-top:8px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:10px;padding:10px;color:#fff;font-family:inherit;font-size:0.82rem;font-weight:800;cursor:pointer">💾 บันทึกทีม</button>
+    </div>`:`
+    <div class="pm-section">
+        <div class="pm-section-label">🧩 ทีมสู้รบ</div>
+        <div class="pm-team">${buildTeamSlots(liveData,false)}</div>
+    </div>`;
+
+    // ── Challenge button ──
+    const challengeBtn=(!isMe&&liveData)?`
+    <div class="pm-section" style="padding-bottom:16px">
+        <button class="btn-pvp" onclick="startPvpChallenge('${id}')">⚔️ ท้าทาย ${s.nickname}</button>
+    </div>`:'';
+
+    document.getElementById('pm-content').innerHTML=`
+    <div class="pm-card">
+        <div class="pm-hero">
+            <img loading="lazy" src="${photo}" onerror="this.onerror=null;this.src='${def}'" class="pm-avatar">
+            <div class="pm-info">
+                <div class="name">${s.nickname}${(()=>{ const slot0=(liveData?.activePets||[])[0]||liveData?.activePet||null; if(!slot0)return ''; const ep=(liveData?.pets||[]).find(p=>p.instId&&String(p.instId)===String(slot0)||(p.id===slot0)); return ep?' '+ep.emoji:''; })()}</div>
+                <div class="realname">${s.realName}</div>
+                <div class="sid">${s.id}</div>
+                <div style="margin-top:5px;display:flex;gap:5px;align-items:center">
+                    <span class="track-badge" style="background:${tc};display:inline-block">${s.track.toUpperCase()}</span>
+                    ${(liveData?.pvpVictories||0)>0?`<span style="font-size:0.68rem;color:#fbbf24;font-weight:700">🏆 ${liveData.pvpVictories} ชัยชนะ</span>`:''}
+                </div>
+            </div>
+            <button onclick="closePM()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem;flex-shrink:0;align-self:flex-start">✕</button>
+        </div>
+        ${statsHtml}
+        ${myTeamEditor}
+        ${challengeBtn}
+    </div>`;
     document.getElementById('profile-modal').classList.add('active');
+    // Store for slot picker
+    window.__pmEditId = id;
+    window.__pmPickingSlot = null;
 };
 window.closePM=()=>document.getElementById('profile-modal').classList.remove('active');
+
+// ── Active Pets Slot Picker ──
+let __pmSlots = [null,null,null]; // working copy
+window.pmPickSlot=(slotIdx)=>{
+    window.__pmPickingSlot = slotIdx;
+    __pmSlots = [...(userData?.activePets||[null,null,null])].slice(0,3);
+    while(__pmSlots.length<3)__pmSlots.push(null);
+    const pets=(userData?.pets||[]).filter(p=>!p.isExpedition);
+    const grid=document.getElementById('pm-pick-grid');
+    if(!grid) return;
+    grid.style.display='grid';
+    grid.style.gridTemplateColumns='repeat(auto-fill,minmax(64px,1fr))';
+    grid.style.gap='6px';
+    grid.innerHTML=`<div style="grid-column:1/-1;font-size:0.62rem;color:rgba(255,255,255,.4);margin-bottom:4px">เลือกสัตว์สำหรับไม้ ${slotIdx+1} (กดอีกครั้งเพื่อเอาออก)</div>`
+    +pets.map(p=>{
+        const cfg=RARITY[p.rarity];
+        const isSel=__pmSlots[slotIdx]===String(p.instId||p.id);
+        const usedInOther=__pmSlots.some((id,i)=>i!==slotIdx&&id===String(p.instId||p.id));
+        const onExp=!!p.isExpedition;
+        return `<div onclick="pmSelectPet('${String(p.instId||p.id)}')" style="background:${isSel?'rgba(167,139,250,.2)':'rgba(255,255,255,.05)'};border:2px solid ${isSel?'#a78bfa':'rgba(255,255,255,.1)'};border-radius:10px;padding:7px 3px;text-align:center;cursor:pointer;opacity:${usedInOther?.5:1};position:relative">
+            ${onExp?'<span style="position:absolute;top:2px;right:3px;font-size:0.4rem;color:#f59e0b;font-weight:800">⏳</span>':''}
+            <div style="font-size:1.4rem">${p.emoji}</div>
+            <div style="font-size:0.48rem;color:rgba(255,255,255,.7);font-weight:700;margin-top:2px;line-height:1.2">${formatPetName(p)}</div>
+            <div style="font-size:0.44rem;color:${cfg.color}">${cfg.label}</div>
+        </div>`;
+    }).join('');
+    document.getElementById('pm-save-team-btn').style.display='block';
+};
+window.pmSelectPet=(instOrId)=>{
+    const slot=window.__pmPickingSlot;
+    if(slot===null) return;
+    const id=String(instOrId);
+    // toggle: ถ้าเลือกซ้ำ = เอาออก
+    if(__pmSlots[slot]===id) __pmSlots[slot]=null;
+    else __pmSlots[slot]=id;
+    window.__pmPickingSlot=null;
+    document.getElementById('pm-pick-grid').style.display='none';
+    // refresh slot display
+    const buildSlotsForEdit=()=>{
+        return [0,1,2].map(i=>{
+            const iid=__pmSlots[i];
+            const p=iid?(userData?.pets||[]).find(x=>String(x.instId||x.id)===iid):null;
+            if(!p) return `<div class="pm-team-slot active-slot" onclick="pmPickSlot(${i})"><span class="slot-label">ไม้ ${i+1}</span><span style="opacity:.3;font-size:1.1rem">＋</span></div>`;
+            const s2=calculatePetStats(p);
+            return `<div class="pm-team-slot filled active-slot" onclick="pmPickSlot(${i})"><span class="slot-label filled">ไม้ ${i+1}</span><div class="slot-em">${p.emoji}</div><div class="slot-name">${formatPetName(p)}</div><div class="slot-stats">⚔️${s2.atk} ❤️${s2.hp}</div></div>`;
+        }).join('');
+    };
+    const slotsEl=document.getElementById('pm-team-slots');
+    if(slotsEl) slotsEl.innerHTML=buildSlotsForEdit();
+};
+window.pmSaveTeam=async()=>{
+    if(!currentUser) return;
+    const newSlots=[...__pmSlots];
+    window.__blockSnapshot=true;
+    userData={...userData,activePets:newSlots};
+    try{
+        await updateDoc(doc(db,'users',currentUser.uid),{activePets:newSlots});
+        toast('💾 บันทึกทีมแล้ว!','success');
+        loadFbUsers();
+    } catch(e){ toast('เซฟผิดพลาด','error'); }
+    finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
+    document.getElementById('pm-save-team-btn').style.display='none';
+    document.getElementById('pm-pick-grid').style.display='none';
+};
+
 
 // แสดงรายละเอียด pet ของเพื่อน (read-only) — เปิดบน profile modal
 window.openFriendPetInfo=(studentId,instOrId)=>{
@@ -3061,10 +3224,10 @@ function calculatePetStats(p){
 // ── Refine color ──
 function refineColor(r){
     if(!r||r<=0)  return 'rgba(255,255,255,.6)';
-    if(r<=4)      return '#fff';
-    if(r<=9)      return '#10b981';
-    if(r<=14)     return '#a855f7';
-    return '#eab308';
+    if(r<=4)      return '#334155';
+    if(r<=9)      return '#047857';
+    if(r<=14)     return '#581c87';
+    return '#9a3412';  // deep gold-brown for +15
 }
 
 // ── formatPetName(p) ──
@@ -3073,7 +3236,7 @@ function formatPetName(p){
     const grade = p.grade||0;
     const refine = p.refine||0;
     const gradePart  = grade>=1 ? ' '+GRADE_LABELS[grade] : '';
-    const refinePart = refine>=1 ? ` <span style="color:${refineColor(refine)};font-weight:800">+${refine}</span>` : '';
+    const refinePart = refine>=1 ? ` <span style="color:${refineColor(refine)};font-weight:800">+${refine}${refine>=15?' 👑':''}</span>` : '';
     return base + gradePart + refinePart;
 }
 
@@ -4242,6 +4405,263 @@ async function _towerTick_onWin(t){
 }
 
 // ════════════════════════════════════════
+// ▶ PVP SYSTEM
+// ════════════════════════════════════════
+let __pvp = null;
+
+window.closePvp = ()=>{
+    if(__pvp?.timer) clearInterval(__pvp.timer);
+    __pvp = null;
+    document.getElementById('pvp-modal').classList.remove('active');
+};
+
+window.startPvpChallenge = async (targetStudentId)=>{
+    if(!currentUser){ toast('กรุณา Login','error'); return; }
+    const myTeam = getActivePetsArray(userData);
+    if(!myTeam.length){ toast('ตั้งทีมสัตว์เลี้ยงก่อน! (กดแก้ไขโปรไฟล์ตัวเอง)','error'); return; }
+
+    const ts = window.__students?.find(x=>x.id===targetStudentId);
+    const tLive = window.__fbUsers?.[targetStudentId];
+    if(!tLive){ toast('ยังโหลดข้อมูลไม่ครบ','error'); return; }
+    const enemyTeam = getActivePetsArray(tLive);
+    if(!enemyTeam.length){ toast(`${ts?.nickname||targetStudentId} ยังไม่มีทีมสัตว์เลี้ยง`,'info'); return; }
+
+    if(!await _confirm(`⚔️ ท้าทาย ${ts?.nickname||targetStudentId}\n\nทีมเรา: ${myTeam.map(p=>p.emoji).join(' ')}\nทีมเขา: ${enemyTeam.map(p=>p.emoji).join(' ')}\n\nยืนยันเริ่มต่อสู้?`)) return;
+
+    closePM();
+    _initPvpBattle(myTeam, enemyTeam, ts?.nickname||targetStudentId, targetStudentId);
+    document.getElementById('pvp-modal').classList.add('active');
+};
+
+function _initPvpBattle(myTeam, enemyTeam, enemyName, enemyStudentId){
+    if(__pvp?.timer) clearInterval(__pvp.timer);
+
+    const buildSide = (team)=> team.map((p,i)=>({
+        pet:p,
+        def: PETS.find(x=>x.id===p.id)||{element:'fist'},
+        stats: calculatePetStats(p),
+        hp: calculatePetStats(p).hp,
+        maxHp: calculatePetStats(p).hp,
+        alive: true,
+    }));
+
+    const mySide   = buildSide(myTeam);
+    const enemySide= buildSide(enemyTeam);
+    const firstIsMe= Math.random()<0.5;
+
+    __pvp = {
+        my: mySide,    myIdx:0,
+        en: enemySide, enIdx:0,
+        myName: userData?.nickname||'เรา',
+        enName: enemyName,
+        enStudentId: enemyStudentId,
+        whoseTurn: firstIsMe?'my':'en',
+        turn:0, log:[], running:true, timer:null,
+    };
+
+    _renderPvpArena();
+    __pvp.timer = setInterval(_pvpTick, 900);
+}
+
+function _renderPvpArena(){
+    const v=__pvp; if(!v) return;
+    const my = v.my[v.myIdx];
+    const en = v.en[v.enIdx];
+    const cfgA=RARITY[my.pet.rarity], cfgB=RARITY[en.pet.rarity];
+    const elA=ELEMENTS[my.def?.element], elB=ELEMENTS[en.def?.element];
+    const pctA=Math.max(0,my.hp/my.maxHp*100);
+    const pctB=Math.max(0,en.hp/en.maxHp*100);
+    const hpCol=p=>p>50?'#10b981':p>20?'#f59e0b':'#ef4444';
+    const isOver=!v.running;
+
+    // relay dots
+    const myDots = v.my.map((s,i)=>`<div class="pvp-dot${i===v.myIdx?' active':!s.alive?' dead':''}">${s.pet.emoji}</div>`).join('');
+    const enDots = v.en.map((s,i)=>`<div class="pvp-dot${i===v.enIdx?' enemy-active':!s.alive?' dead':''}">${s.pet.emoji}</div>`).join('');
+
+    const logHtml = v.log.length
+        ? v.log.slice(-5).map((l,i)=>`<div style="opacity:${0.4+i*0.3}">${l}</div>`).join('')
+        : `<span style="opacity:.3">เริ่มการต่อสู้...</span>`;
+
+    let resultHtml='';
+    if(isOver){
+        const won = v.en.every(s=>!s.alive);
+        resultHtml=`
+        <div style="text-align:center;padding:6px 0 4px">
+            <div style="font-size:3rem;animation:bBounce .5s ease">${won?'🎉':'💀'}</div>
+            <div style="font-size:1.05rem;font-weight:800;color:#fff;margin:8px 0 4px">
+                ${won?`🏆 ชนะ! บันทึกสถิติแล้ว`:`💔 พ่ายแพ้...`}
+            </div>
+            <div style="font-size:0.78rem;color:rgba(255,255,255,.45);margin-bottom:14px">
+                ${won?`+1 ชัยชนะ PvP`:`${v.enName} ได้ +1 ชัยชนะ`}
+            </div>
+            <button onclick="closePvp()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);
+                color:rgba(255,255,255,.7);padding:10px 24px;border-radius:12px;font-family:inherit;cursor:pointer;font-size:0.9rem">ปิด</button>
+        </div>`;
+    }
+
+    document.getElementById('pvp-content').innerHTML=`
+    <div class="pvp-arena">
+        <div class="battle-header">
+            <span class="battle-title">⚔️ PvP: ${v.myName} vs ${v.enName}</span>
+            <button onclick="closePvp()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.5);
+                width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem">✕</button>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+            <div style="display:flex;flex-direction:column;gap:3px">
+                <div style="font-size:0.56rem;color:rgba(255,255,255,.35);font-weight:700">ทีมเรา</div>
+                <div class="pvp-relay-row">${myDots}</div>
+            </div>
+            <div style="font-size:0.62rem;color:rgba(255,255,255,.2);font-weight:800;align-self:center">เทิร์น ${v.turn}</div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+                <div style="font-size:0.56rem;color:rgba(255,255,255,.35);font-weight:700">ทีมเขา</div>
+                <div class="pvp-relay-row">${enDots}</div>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 28px 1fr;gap:6px;align-items:start;
+                    margin-bottom:12px;position:relative" id="pvp-field">
+            <div style="text-align:center" id="pvp-slot-my">
+                <div style="font-size:3rem;filter:drop-shadow(0 0 10px ${cfgA.glow});transition:transform .15s" id="pvpem-a">${my.pet.emoji}</div>
+                <div style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,.85);margin:4px 0 2px">
+                    ${formatPetName(my.pet)}${elA?` <span style="font-size:.85rem">${elA.emoji}</span>`:''}
+                </div>
+                <div style="font-size:0.54rem;color:${cfgA.color};margin-bottom:5px">${cfgA.label} · ATK ${my.stats.atk}</div>
+                <div style="height:8px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px">
+                    <div style="width:${pctA}%;height:100%;background:${hpCol(pctA)};border-radius:50px;transition:width .45s ease"></div>
+                </div>
+                <div style="font-size:0.58rem;color:rgba(255,255,255,.4)">${Math.max(0,my.hp)} / ${my.maxHp}</div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;padding-top:18px;
+                        font-size:0.8rem;color:rgba(255,255,255,.2);font-weight:800">⚔️</div>
+            <div style="text-align:center" id="pvp-slot-en">
+                <div style="font-size:3rem;filter:drop-shadow(0 0 10px ${cfgB.glow});transition:transform .15s" id="pvpem-b">${en.pet.emoji}</div>
+                <div style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,.85);margin:4px 0 2px">
+                    ${formatPetName(en.pet)}${elB?` <span style="font-size:.85rem">${elB.emoji}</span>`:''}
+                </div>
+                <div style="font-size:0.54rem;color:${cfgB.color};margin-bottom:5px">${cfgB.label} · ATK ${en.stats.atk}</div>
+                <div style="height:8px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px">
+                    <div style="width:${pctB}%;height:100%;background:${hpCol(pctB)};border-radius:50px;transition:width .45s ease"></div>
+                </div>
+                <div style="font-size:0.58rem;color:rgba(255,255,255,.4)">${Math.max(0,en.hp)} / ${en.maxHp}</div>
+            </div>
+        </div>
+
+        <div style="background:rgba(0,0,0,.25);border-radius:11px;padding:9px 12px;min-height:50px;
+                    font-size:0.74rem;color:rgba(255,255,255,.7);line-height:1.7;margin-bottom:10px;
+                    border:1px solid rgba(255,255,255,.06)">${logHtml}</div>
+        ${isOver ? resultHtml : `<div style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,.35)">⚡ ${v.whoseTurn==='my'?v.myName:v.enName} กำลังโจมตี...</div>`}
+    </div>`;
+}
+
+function _pvpTick(){
+    const v=__pvp; if(!v||!v.running) return;
+    v.turn++;
+
+    const isMyTurn = v.whoseTurn==='my';
+    const attSide  = isMyTurn ? v.my[v.myIdx] : v.en[v.enIdx];
+    const defSide  = isMyTurn ? v.en[v.enIdx] : v.my[v.myIdx];
+
+    const adv  = elementBeats(attSide.def?.element, defSide.def?.element);
+    const crit = Math.random()<0.20;
+    const dmg  = Math.max(1,Math.round(attSide.stats.atk*(adv?1.5:1.0)*(crit?2.0:1.0)));
+    defSide.hp = Math.max(0, defSide.hp - dmg);
+
+    const tag  = crit?` <b style="color:#fbbf24">💥CRIT!</b>`:adv?` <span style="color:#6ee7b7">🔥×1.5</span>`:'';
+    v.log.push(`${attSide.pet.emoji}→${defSide.pet.emoji} <b style="color:#fca5a5">-${dmg}</b>${tag}`);
+
+    // animations
+    const attId=isMyTurn?'a':'b', defId=isMyTurn?'b':'a';
+    const dir  =isMyTurn?36:-36;
+    const attEl=document.getElementById('pvpem-'+attId);
+    const defEl=document.getElementById('pvpem-'+defId);
+    if(attEl){ attEl.style.transition='transform .15s'; attEl.style.transform=`translateX(${dir}px) scale(1.12)`;
+        setTimeout(()=>{ if(attEl) attEl.style.transform=''; },180); }
+    if(defEl){ setTimeout(()=>{ if(!defEl)return; defEl.style.animation='none'; void defEl.offsetWidth;
+        defEl.style.animation='bShake .25s ease'; setTimeout(()=>{ if(defEl) defEl.style.animation=''; },280); },180); }
+    const field=document.getElementById('pvp-field');
+    if(field&&dmg>0){
+        const fl=document.createElement('div');
+        fl.innerHTML=crit?`💥${dmg}!`:`-${dmg}`;
+        fl.style.cssText=`position:absolute;${isMyTurn?'right:6%':'left:6%'};top:${8+Math.random()*28}%;
+            font-size:${crit?'1.3rem':'1rem'};font-weight:900;color:${crit?'#fbbf24':adv?'#6ee7b7':'#f87171'};
+            pointer-events:none;z-index:10;text-shadow:0 2px 8px rgba(0,0,0,.5);animation:dmgFloat .85s ease forwards;`;
+        field.style.position='relative'; field.appendChild(fl); setTimeout(()=>fl.remove(),870);
+    }
+
+    // check death
+    if(defSide.hp<=0){
+        defSide.alive=false;
+        clearInterval(v.timer);
+        v.timer=null;
+
+        // find next alive on def side
+        const defTeam   = isMyTurn?v.en:v.my;
+        const defIdxKey = isMyTurn?'enIdx':'myIdx';
+        let nextIdx = (isMyTurn?v.enIdx:v.myIdx)+1;
+        while(nextIdx<defTeam.length && !defTeam[nextIdx]) nextIdx++;
+        const hasNext = nextIdx<defTeam.length;
+
+        _renderPvpArena();
+
+        // fade out dead pet
+        const deadSlot=document.getElementById('pvp-slot-'+(isMyTurn?'en':'my'));
+        if(deadSlot){ deadSlot.querySelector('div[id^="pvpem"]')?.classList.add('pvp-fade-out'); }
+
+        setTimeout(()=>{
+            if(!__pvp) return;
+            if(!hasNext){
+                // losing side exhausted
+                v.running=false;
+                _renderPvpArena();
+                _pvpHandleResult(isMyTurn); // isMyTurn=true → enemy lost → we won
+                return;
+            }
+            // relay next
+            if(isMyTurn){ v.enIdx=nextIdx; }
+            else        { v.myIdx=nextIdx; }
+            const next=isMyTurn?v.en[v.enIdx]:v.my[v.myIdx];
+            v.log.push(`🔄 ${next.pet.emoji} ${formatPetName(next.pet)} ออกมาแล้ว!`);
+            v.whoseTurn = isMyTurn?'en':'my'; // swap so newcomer goes first
+            _renderPvpArena();
+            // fade in new pet
+            const newSlot=document.getElementById('pvp-slot-'+(isMyTurn?'en':'my'));
+            if(newSlot){ newSlot.classList.add(isMyTurn?'pvp-fade-in':'pvp-fade-in-left'); }
+            setTimeout(()=>{ if(__pvp){ v.timer=setInterval(_pvpTick,900); } },300);
+        }, 1600);
+        return;
+    }
+
+    // swap turn
+    v.whoseTurn = isMyTurn?'en':'my';
+    _renderPvpArena();
+}
+
+async function _pvpHandleResult(weWon){
+    const v=__pvp; if(!v) return;
+    const newsMsg = weWon
+        ? `${v.myName} ได้ท้าทาย ${v.enName} และได้รับชัยชนะ! 🏆`
+        : `${v.myName} ได้ท้าทาย ${v.enName} แต่พ่ายแพ้กลับมา... 💀`;
+
+    if(weWon){
+        const newVic=(userData?.pvpVictories||0)+1;
+        window.__blockSnapshot=true;
+        userData={...userData,pvpVictories:newVic};
+        try{
+            await updateDoc(doc(db,'users',currentUser.uid),{pvpVictories:newVic});
+        }catch(e){ console.error('pvp save',e); }
+        finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
+    } else {
+        // bump enemy victories (best-effort, may fail if they're offline)
+        const enUid=(window.__fbUsers?.[v.enStudentId])?.uid;
+        if(enUid){
+            try{ await updateDoc(doc(db,'users',enUid),{pvpVictories:increment(1)}); }catch(e){}
+        }
+    }
+    if(typeof postNews==='function') await postNews(weWon?'🏆':'💀', newsMsg).catch(()=>{});
+}
+
+// ════════════════════════════════════════
 //  BOOT
 // ════════════════════════════════════════
 window.__tab='home';
@@ -4340,6 +4760,13 @@ window.toast=(msg,type='info',duration=2800)=>{const t=document.getElementById('
 <div class="modal-ov" id="tower-modal" style="align-items:flex-end;padding:0" onclick="if(event.target===this)closeTower()">
     <div class="tower-sheet" onclick="event.stopPropagation()">
         <div id="tower-content"></div>
+    </div>
+</div>
+
+<!-- PVP MODAL -->
+<div class="modal-ov" id="pvp-modal" style="align-items:flex-end;padding:0;z-index:800" onclick="if(event.target===this)closePvp()">
+    <div class="pvp-sheet" onclick="event.stopPropagation()">
+        <div id="pvp-content"></div>
     </div>
 </div>
 </body>
