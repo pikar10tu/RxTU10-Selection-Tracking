@@ -329,6 +329,31 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .exp-pets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px;margin:6px 0;}
 .inv-item.on-expedition{opacity:.5;cursor:default;}
 .inv-item.on-expedition::after{content:'⏳';position:absolute;bottom:2px;right:2px;font-size:0.65rem;}
+
+/* ═══════════════════════════════
+   GAME HUB
+   ═══════════════════════════════ */
+.hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;}
+.hub-card{border-radius:18px;padding:18px 14px 16px;cursor:pointer;transition:transform .15s,box-shadow .15s;border:1.5px solid transparent;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;position:relative;overflow:hidden;}
+.hub-card:active{transform:scale(.96);}
+.hub-card.live{box-shadow:0 6px 24px var(--hc-glow,rgba(0,0,0,.3));}
+.hub-card.live:hover{transform:translateY(-2px);box-shadow:0 10px 28px var(--hc-glow,rgba(0,0,0,.35));}
+.hub-card.soon{opacity:.55;cursor:default;}
+.hub-card-icon{font-size:2.6rem;line-height:1;filter:drop-shadow(0 2px 8px var(--hc-glow,#0005));}
+.hub-card-title{font-size:0.86rem;font-weight:800;color:#fff;}
+.hub-card-sub{font-size:0.65rem;color:rgba(255,255,255,.5);line-height:1.4;}
+.hub-badge{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.15);border-radius:20px;padding:2px 7px;font-size:0.58rem;font-weight:700;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.12);}
+.hub-notify{position:absolute;top:7px;right:7px;width:10px;height:10px;border-radius:50%;background:#f59e0b;box-shadow:0 0 6px #f59e0b;border:1.5px solid rgba(0,0,0,.3);}
+
+/* ── Expedition Full-Screen Modal ── */
+.exp-modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:600;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);}
+.exp-modal-ov.active{display:flex;}
+.exp-modal-sheet{width:100%;max-width:520px;background:linear-gradient(175deg,#1a0533 0%,#160426 40%,#0d0220 100%);border-radius:24px 24px 0 0;max-height:92dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 0 32px;}
+.exp-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:0;background:linear-gradient(175deg,#1a0533,#160426);z-index:2;}
+.exp-modal-title{display:flex;align-items:center;gap:10px;}
+.exp-modal-title span{font-size:1.5rem;}
+.exp-modal-title h2{font-size:1rem;font-weight:800;color:#fff;margin:0;}
+.exp-modal-body{padding:14px 16px 4px;}
 </style>
 </head>
 <body>
@@ -900,7 +925,7 @@ window.openDailyModal=()=>{
         return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
             <span style="font-size:1.3rem">${p.emoji}</span>
             <div style="flex:1;text-align:left">
-                <span style="font-weight:600;font-size:0.84rem">${p.name}</span>
+                <span style="font-weight:600;font-size:0.84rem">${petDisplayName(p)}</span>
                 ${elEmoji?`<span style="margin-left:4px;font-size:0.8rem">${elEmoji}</span>`:''}
                 <div style="color:${cfg.color};font-size:0.65rem;font-weight:700">${cfg.label}${grade>0?' · Grade '+GRADE_LABELS[grade]:''}</div>
             </div>
@@ -1060,9 +1085,17 @@ window.confirmUpgrade=async()=>{
 //  HELPERS
 // ════════════════════════════════════════
 
+
 // ════════════════════════════════════════
 // ▶ HELPER UTILITIES
 // ════════════════════════════════════════
+/** petDisplayName(p) — ใช้ชื่อจาก PETS master (อัปเดตล่าสุด) ก่อน fallback ไป p.name ที่เก็บใน Firestore */
+function petDisplayName(p){
+    if(!p) return '???';
+    const def=PETS.find(x=>x.id===p.id);
+    return def?.name||p.name||'???';
+}
+
 function activePet(){
     if(!userData?.activePet||!userData?.pets)return null;
     // ลอง match instId ก่อน (ใหม่) แล้ว fallback id (legacy)
@@ -1437,7 +1470,7 @@ window.showPetInfo=async(petInstId)=>{
         +(elInfo?`<div class="gr-badge" style="background:#334155;font-size:1rem">${elInfo.emoji}</div>`:'')
         +'</div>'
         +`<div style="font-size:3rem;margin:4px 0;filter:drop-shadow(0 0 10px ${cfg.glow})">${p.emoji}</div>`
-        +`<div style="font-size:1.2rem;font-weight:800;margin-bottom:2px">${p.name}</div>`
+        +`<div style="font-size:1.2rem;font-weight:800;margin-bottom:2px">${petDisplayName(p)}</div>`
         +`<div style="font-size:0.74rem;color:var(--muted);margin-bottom:8px">มี ${copiesOwned} ตัว</div>`
         +(def?.flavor?`<div style="font-size:0.74rem;color:${cfg.color};font-style:italic;margin-bottom:10px;padding:6px 10px;background:${cfg.bg};border-radius:8px;border-left:3px solid ${cfg.color}44">"${def.flavor}"</div>`:'')
         // stats block
@@ -1489,7 +1522,7 @@ function renderTradeList(){
     window.__tradeList=list;
     if(!list.length){el.innerHTML='<p style="color:#94a3b8;text-align:center;padding:8px">ไม่มีสัตว์ที่เทรดได้<br><small style="font-size:0.7rem;color:#64748b">(สัตว์ที่ผจญภัยอยู่เทรดไม่ได้)</small></p>';return;}
     el.innerHTML=list.map((p,i)=>{const c=RARITY[p.rarity];
-    return`<div class="trade-item${tradeIdx===i?' sel':''}" onclick="pickTrade(${i})"><span style="font-size:1.4rem">${p.emoji}</span><div><div style="font-weight:600;font-size:0.82rem">${p.name}</div><div style="color:${c.color};font-size:0.68rem;font-weight:700">${c.label}</div></div></div>`;}).join('');}
+    return`<div class="trade-item${tradeIdx===i?' sel':''}" onclick="pickTrade(${i})"><span style="font-size:1.4rem">${p.emoji}</span><div><div style="font-weight:600;font-size:0.82rem">${petDisplayName(p)}</div><div style="color:${c.color};font-size:0.68rem;font-weight:700">${c.label}</div></div></div>`;}).join('');}
 window.pickTrade=i=>{tradeIdx=i;renderTradeList();};
 window.sendTrade=async()=>{
     const email=document.getElementById('trade-email').value.trim();if(!email||tradeIdx===null){toast("เลือกสัตว์และใส่ email","error");return;}
@@ -1792,7 +1825,7 @@ function buildHome(){
         }).join('')}</div>`:''
 
     const invBlock=pets.length===0?`<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ฟักไข่ใน 🛒 Shop ก่อน!</div>`
-        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${p.name}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${elEmoji?' '+elEmoji:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
+        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${petDisplayName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${elEmoji?' '+elEmoji:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
         <div style="display:flex;gap:7px;justify-content:center;margin-top:8px;flex-wrap:wrap">
             ${userData?.activePet?`<button class="btn-gray sm" onclick="unsetActive()">เอาออก</button>`:''}
             ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
@@ -1806,7 +1839,7 @@ function buildHome(){
     const dailyBreakdown=`<div id="daily-breakdown" style="display:none" class="card">
         <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px">💰 รายได้/วัน · รวม <span style="color:#10b981">+${dTotal}🪙</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.82rem"><span>🎯 Base daily</span><span style="font-weight:700;color:#10b981">+${dBase}🪙</span></div>
-        ${pets.length?pets.map(p=>{const cfg=RARITY[p.rarity];const d=petDailyCoins(p);const gr=p.grade||0;const def=PETS.find(x=>x.id===p.id);const el=ELEMENTS[def?.element]?.emoji||'';return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:1.1rem">${p.emoji}</span><div style="flex:1;font-size:0.8rem"><span style="font-weight:600">${p.name}</span>${el?` ${el}`:''}<div style="color:${cfg.color};font-size:0.6rem">${cfg.label}${gr>0?' · Grade '+GRADE_LABELS[gr]:''}</div></div><span style="color:#10b981;font-weight:800">+${d}🪙</span></div>`;}).join(''):'<div style="color:var(--muted);font-size:0.78rem;padding:10px 0;text-align:center">ยังไม่มีสัตว์เลี้ยง</div>'}
+        ${pets.length?pets.map(p=>{const cfg=RARITY[p.rarity];const d=petDailyCoins(p);const gr=p.grade||0;const def=PETS.find(x=>x.id===p.id);const el=ELEMENTS[def?.element]?.emoji||'';return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:1.1rem">${p.emoji}</span><div style="flex:1;font-size:0.8rem"><span style="font-weight:600">${petDisplayName(p)}</span>${el?` ${el}`:''}<div style="color:${cfg.color};font-size:0.6rem">${cfg.label}${gr>0?' · Grade '+GRADE_LABELS[gr]:''}</div></div><span style="color:#10b981;font-weight:800">+${d}🪙</span></div>`;}).join(''):'<div style="color:var(--muted);font-size:0.78rem;padding:10px 0;text-align:center">ยังไม่มีสัตว์เลี้ยง</div>'}
     </div>`;
     const collBtn=`<div style="margin-bottom:8px">
         <button id="coll-toggle-btn" onclick="toggleCollection()" style="width:100%;background:linear-gradient(135deg,#1e293b,#0f172a);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:9px 14px;color:rgba(255,255,255,.75);font-size:0.82rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">🗂️ คอลเลกชั่น <span style="font-size:0.68rem;color:rgba(255,255,255,.35)">${uniqueIds.length}/${PETS.length}</span></button>
@@ -1970,7 +2003,7 @@ window.openFriendPetInfo=(studentId,instOrId)=>{
                 ${elInfo?`<span style="background:#334155;color:#fff;padding:3px 10px;border-radius:16px;font-size:1rem">${elInfo.emoji}</span>`:''}
             </div>
             <div style="font-size:3.5rem;margin:4px 0;filter:drop-shadow(0 0 14px ${cfg.glow})">${p.emoji}</div>
-            <div style="font-size:1.2rem;font-weight:800;margin-bottom:4px">${p.name}</div>
+            <div style="font-size:1.2rem;font-weight:800;margin-bottom:4px">${petDisplayName(p)}</div>
             ${def?.flavor?`<div style="font-size:0.74rem;color:${cfg.color};font-style:italic;padding:7px 12px;background:${cfg.bg};border-radius:9px;border-left:3px solid ${cfg.color}44;text-align:left;margin-bottom:10px">"${def.flavor}"</div>`:''}
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
                 <div style="background:${cfg.bg};border-radius:10px;padding:8px 4px">
@@ -2060,91 +2093,108 @@ function buildDrugLb(){
 // ════════════════════════════════════════
 function buildPlay(){
     const tickerText=(document.getElementById('ticker-text')?.textContent||'').trim()||'ยินดีต้อนรับสู่ RxTU10 Dashboard! 🎉';
+
+    // ── นับสถานะ expedition เพื่อแสดง notify dot ──
+    const exps=userData?.expeditions||[];
+    const now=Date.now();
+    const expActive=exps.some(e=>now<e.endTime);
+    const expDone=exps.some(e=>now>=e.endTime);
+    const expNotify=expDone; // มีรางวัลรอรับ = dot สีเหลือง
+
     return`
     <div class="news-banner" onclick="openFeed()">
         <div class="ticker-label">📢 ข่าว</div>
         <div class="ticker-scroll"><div class="ticker-inner">${tickerText}</div></div>
     </div>
 
-    <!-- EXPEDITION -->
-    <div class="game-arena arena-expedition">
-        <div class="game-arena-header">
-            <span class="game-title">🗺️ ส่งสัตว์ผจญภัย</span>
-            <div style="font-size:0.72rem;color:rgba(255,255,255,.35)">Expedition</div>
-        </div>
-        <div class="game-arena-body" id="expedition-body">
-            ${buildExpeditionUI()}
-        </div>
+    <!-- GAME HUB HEADER -->
+    <div style="padding:2px 0 14px">
+        <div style="font-size:0.65rem;color:rgba(0,0,0,.35);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:4px">🎮 Game Hub</div>
+        <div style="font-size:0.82rem;color:var(--muted)">เลือกโหมดเกมที่ต้องการเล่น</div>
     </div>
 
-    <!-- QUIZ: ทายชื่อ -->
-    <div class="game-arena arena-name">
-        <div class="game-arena-header">
-            <span class="game-title">🕵️ ทายชื่อจริงเพื่อน</span>
-            <div style="display:flex;align-items:center;gap:8px">
-                <button onclick="toggleLb('qlb')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 9px;color:rgba(255,255,255,.6);font-size:0.68rem;cursor:pointer;font-family:inherit">🏆 กระดาน</button>
-                <div class="score-badge">🏆 <b id="q-score">${qHigh}</b></div>
-            </div>
-        </div>
-        <div class="game-arena-body">
-            <!-- leaderboard (ซ่อนเริ่มต้น) -->
-            <div id="qlb" style="display:none;margin-bottom:10px">${buildQuizLb()}</div>
-            <div id="quiz-start">
-                <div class="game-start">
-                    <span class="game-start-icon">🕵️</span>
-                    <div class="game-start-hi">สถิติสูงสุด: ${qHigh} คะแนน</div>
-                    <div class="game-start-desc" id="q-msg">เห็นชื่อเล่น → ทายชื่อจริง<br>ตอบถูกต่อเนื่อง +5🪙/ข้อ</div>
-                    <button class="btn-play" onclick="startQuiz()">▶ เริ่มเกม</button>
-                </div>
-            </div>
-            <div id="quiz-play" style="display:none">
-                <div class="q-prompt">
-                    <div style="font-size:0.72rem;color:rgba(255,255,255,.4);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">ชื่อเล่นคือ</div>
-                    <div class="q-nick" id="q-nick">...</div>
-                    <div style="font-size:0.72rem;color:rgba(255,255,255,.4);margin-top:6px">ชื่อจริงคืออะไร?</div>
-                </div>
-                <div class="q-grid" id="q-opts"></div>
-            </div>
-        </div>
-    </div>
+    <!-- MAIN GAME CARDS -->
+    <div class="hub-grid">
 
-    <!-- QUIZ: ทายยา -->
-    <div class="game-arena arena-drug">
-        <div class="game-arena-header">
-            <span class="game-title">💊 ทายยา (Drug Class)</span>
-            <div style="display:flex;align-items:center;gap:8px">
-                <button onclick="toggleLb('dqlb')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 9px;color:rgba(255,255,255,.6);font-size:0.68rem;cursor:pointer;font-family:inherit">🏆 กระดาน</button>
-                <div class="score-badge">🏆 <b id="dq-score">${dqHigh}</b></div>
-            </div>
+        <!-- Expedition -->
+        <div class="hub-card live" style="--hc-glow:rgba(124,58,237,.4);background:linear-gradient(145deg,#2d1057,#1a0533);border-color:rgba(168,85,247,.25);" onclick="openExpModal()">
+            ${expNotify?'<div class="hub-notify"></div>':''}
+            ${expActive&&!expNotify?'<div class="hub-badge">⏳ กำลังไป</div>':''}
+            <div class="hub-card-icon">🏕️</div>
+            <div class="hub-card-title">ส่งสัตว์ผจญภัย</div>
+            <div class="hub-card-sub">${expNotify?'🎁 มีรางวัลรอรับ!':expActive?'กำลังออกเดินทาง...':'ส่งสัตว์หาของรางวัล'}</div>
         </div>
-        <div class="game-arena-body">
-            <!-- leaderboard (ซ่อนเริ่มต้น) -->
-            <div id="dqlb" style="display:none;margin-bottom:10px">${buildDrugLb()}</div>
-            <div id="dquiz-start">
-                <div class="game-start">
-                    <span class="game-start-icon">💊</span>
-                    <div class="game-start-hi">สถิติสูงสุด: ${dqHigh} คะแนน</div>
-                    <div class="game-start-desc" id="dq-msg">เห็นชื่อยา → ทาย Drug Class<br>ตอบถูกต่อเนื่อง +5🪙/ข้อ</div>
-                    <button class="btn-play" onclick="startDrugQuiz()">▶ เริ่มเกม</button>
-                </div>
-            </div>
-            <div id="dquiz-play" style="display:none">
-                <div class="q-prompt">
-                    <div style="font-size:0.72rem;color:rgba(255,255,255,.4);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase">ยาชนิดนี้คือ</div>
-                    <div class="q-drug-name" id="dq-drug">...</div>
-                    <div style="font-size:0.72rem;color:rgba(255,255,255,.4);margin-top:8px">จัดอยู่ใน Drug Class ใด?</div>
-                </div>
-                <div class="q-grid" id="dq-opts"></div>
-            </div>
-        </div>
-    </div>
 
-    <div class="coming-soon">
-        <div style="font-size:2.5rem;margin-bottom:8px">🔜</div>
-        <div style="font-weight:800;font-size:1rem;margin-bottom:4px">เกมใหม่กำลังมา!</div>
-        <div style="font-size:0.8rem;opacity:0.7">ข้อสอบใบประกอบวิชาชีพ • Drug Interaction • Spelling Sprint</div>
-        <div style="font-size:0.72rem;opacity:0.5;margin-top:8px">Coming Soon...</div>
-    </div>`;}
+        <!-- Quiz: ชื่อเพื่อน -->
+        <div class="hub-card live" style="--hc-glow:rgba(37,99,235,.4);background:linear-gradient(145deg,#1e3a5f,#0f172a);border-color:rgba(96,165,250,.25);" onclick="openQuizModal()">
+            <div class="hub-card-icon">🕵️</div>
+            <div class="hub-card-title">ทายชื่อเพื่อน</div>
+            <div class="hub-card-sub">เห็นชื่อเล่น → ทายชื่อจริง<br>Hi: ${qHigh} คะแนน</div>
+        </div>
+
+        <!-- Quiz: ยา -->
+        <div class="hub-card live" style="--hc-glow:rgba(99,102,241,.4);background:linear-gradient(145deg,#312e81,#1e1b4b);border-color:rgba(165,180,252,.2);" onclick="openDrugModal()">
+            <div class="hub-card-icon">💊</div>
+            <div class="hub-card-title">ทายยา</div>
+            <div class="hub-card-sub">Drug Class Quiz<br>Hi: ${dqHigh} คะแนน</div>
+        </div>
+
+        <!-- Coming Soon: หอคอย -->
+        <div class="hub-card soon" style="background:linear-gradient(145deg,#1e293b,#0f172a);border-color:rgba(255,255,255,.06);">
+            <div class="hub-badge">เร็วๆ นี้</div>
+            <div class="hub-card-icon" style="filter:grayscale(.6)">🗼</div>
+            <div class="hub-card-title" style="color:rgba(255,255,255,.5)">หอคอยไร้สิ้นสุด</div>
+            <div class="hub-card-sub">Endless Tower<br>Coming Soon</div>
+        </div>
+
+    </div>`;
+}
+
+// ════════════════════════════════════════
+// ▶ GAME HUB — MODAL OPENERS
+// ════════════════════════════════════════
+
+// ── Expedition Modal ──
+window.openExpModal=()=>{
+    if(!currentUser){toast('กรุณา Login ก่อน','error');return;}
+    __expSelPets=[];
+    document.getElementById('exp-modal-body').innerHTML=buildExpeditionUI();
+    document.getElementById('exp-modal').classList.add('active');
+    _startExpTimers();
+};
+window.closeExpModal=()=>{
+    document.getElementById('exp-modal').classList.remove('active');
+};
+
+// ── Quiz Modal: ชื่อเพื่อน ──
+window.openQuizModal=()=>{
+    window.__quizModalOpen=true;
+    const el=document.getElementById('quiz-modal');
+    if(el){
+        document.getElementById('quiz-modal-body').innerHTML=buildQuizBody();
+        el.classList.add('active');
+    }
+};
+window.closeQuizModal=()=>{
+    window.__quizModalOpen=false;
+    const el=document.getElementById('quiz-modal');
+    if(el) el.classList.remove('active');
+};
+
+// ── Drug Quiz Modal ──
+window.openDrugModal=()=>{
+    window.__drugModalOpen=true;
+    const el=document.getElementById('drug-modal');
+    if(el){
+        document.getElementById('drug-modal-body').innerHTML=buildDrugBody();
+        el.classList.add('active');
+    }
+};
+window.closeDrugModal=()=>{
+    window.__drugModalOpen=false;
+    const el=document.getElementById('drug-modal');
+    if(el) el.classList.remove('active');
+};
 
 // ════════════════════════════════════════
 //  EXPEDITION SYSTEM
@@ -2183,7 +2233,7 @@ function buildExpeditionUI(){
                 <div style="font-size:0.68rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px">🗺️ ${e.durLabel}</div>
                 <div class="exp-timer" id="exp-timer-${e.id}">${tStr}</div>
             </div>
-            <div class="exp-pets-grid">${epets.map(p=>`<div style="text-align:center"><div style="font-size:1.5rem">${p.emoji}</div><div style="font-size:0.58rem;color:rgba(255,255,255,.45)">${p.name}</div></div>`).join('')}</div>
+            <div class="exp-pets-grid">${epets.map(p=>`<div style="text-align:center"><div style="font-size:1.5rem">${p.emoji}</div><div style="font-size:0.58rem;color:rgba(255,255,255,.45)">${petDisplayName(p)}</div></div>`).join('')}</div>
         </div>`;
     }
 
@@ -2224,7 +2274,7 @@ function buildExpeditionUI(){
                         return`<div onclick="toggleExpPet('${p.instId||p.id}')"
                             style="background:${sel?cfg.color+'22':'rgba(255,255,255,.04)'};border:2px solid ${sel?cfg.color:'rgba(255,255,255,.12)'};border-radius:12px;padding:6px 3px;text-align:center;cursor:pointer;transition:.15s;position:relative">
                             <div style="font-size:1.4rem">${p.emoji}</div>
-                            <div style="font-size:0.58rem;font-weight:600;color:rgba(255,255,255,.7)">${p.name}</div>
+                            <div style="font-size:0.58rem;font-weight:600;color:rgba(255,255,255,.7)">${petDisplayName(p)}</div>
                             <div style="font-size:0.5rem;color:${cfg.color}">${cfg.label}</div>
                             <div style="font-size:0.48rem;color:rgba(255,255,255,.35)">+${petDailyCoins(p)}🪙/วัน</div>
                             ${sel?`<div style="position:absolute;top:-4px;right:-4px;background:${cfg.color};color:#fff;width:14px;height:14px;border-radius:50%;font-size:0.55rem;display:flex;align-items:center;justify-content:center;font-weight:800">✓</div>`:''}
@@ -2275,10 +2325,12 @@ function buildExpeditionUI(){
     return out;
 }
 function _refreshExpeditionUI(){
-    const body=document.getElementById('expedition-body');
-    if(!body)return;
-    body.innerHTML=buildExpeditionUI();
+    // Update modal body (primary)
+    const modalBody=document.getElementById('exp-modal-body');
+    if(modalBody) modalBody.innerHTML=buildExpeditionUI();
     _startExpTimers();
+    // Also refresh play tab hub notify dot if visible
+    if(window.__tab==='play') renderTab('play');
 }
 
 function _startExpTimers(){
@@ -2370,6 +2422,67 @@ window.claimExpedition=async(expId)=>{
     confetti({particleCount:100,spread:70,origin:{y:0.5}});
 };
 
+
+// ════════════════════════════════════════
+// ▶ GAME MODAL BODY BUILDERS
+// ════════════════════════════════════════
+function buildQuizBody(){
+    return`<div style="padding:4px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:0.8rem;color:rgba(255,255,255,.5)">เห็นชื่อเล่น → ทายชื่อจริง<br><span style="font-size:0.7rem;color:rgba(255,255,255,.35)">ตอบถูกต่อเนื่อง +5🪙/ข้อ</span></div>
+            <div style="display:flex;align-items:center;gap:8px">
+                <button onclick="toggleLb('qlb')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 9px;color:rgba(255,255,255,.6);font-size:0.68rem;cursor:pointer;font-family:inherit">🏆 กระดาน</button>
+                <div class="score-badge">🏆 <b id="q-score">${qHigh}</b></div>
+            </div>
+        </div>
+        <div id="qlb" style="display:none;margin-bottom:10px">${buildQuizLb()}</div>
+        <div id="quiz-start">
+            <div class="game-start">
+                <span class="game-start-icon">🕵️</span>
+                <div class="game-start-hi">สถิติสูงสุด: ${qHigh} คะแนน</div>
+                <div class="game-start-desc" id="q-msg">เห็นชื่อเล่น → ทายชื่อจริง<br>ตอบถูกต่อเนื่อง +5🪙/ข้อ</div>
+                <button class="btn-play" onclick="startQuiz()">▶ เริ่มเกม</button>
+            </div>
+        </div>
+        <div id="quiz-play" style="display:none">
+            <div class="q-prompt">
+                <div style="font-size:0.72rem;color:rgba(255,255,255,.4);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">ชื่อเล่นคือ</div>
+                <div class="q-nick" id="q-nick">...</div>
+                <div style="font-size:0.72rem;color:rgba(255,255,255,.4);margin-top:6px">ชื่อจริงคืออะไร?</div>
+            </div>
+            <div class="q-grid" id="q-opts"></div>
+        </div>
+    </div>`;
+}
+
+function buildDrugBody(){
+    return`<div style="padding:4px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:0.8rem;color:rgba(255,255,255,.5)">เห็นชื่อยา → ทาย Drug Class<br><span style="font-size:0.7rem;color:rgba(255,255,255,.35)">ตอบถูกต่อเนื่อง +5🪙/ข้อ</span></div>
+            <div style="display:flex;align-items:center;gap:8px">
+                <button onclick="toggleLb('dqlb')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 9px;color:rgba(255,255,255,.6);font-size:0.68rem;cursor:pointer;font-family:inherit">🏆 กระดาน</button>
+                <div class="score-badge">🏆 <b id="dq-score">${dqHigh}</b></div>
+            </div>
+        </div>
+        <div id="dqlb" style="display:none;margin-bottom:10px">${buildDrugLb()}</div>
+        <div id="dquiz-start">
+            <div class="game-start">
+                <span class="game-start-icon">💊</span>
+                <div class="game-start-hi">สถิติสูงสุด: ${dqHigh} คะแนน</div>
+                <div class="game-start-desc" id="dq-msg">เห็นชื่อยา → ทาย Drug Class<br>ตอบถูกต่อเนื่อง +5🪙/ข้อ</div>
+                <button class="btn-play" onclick="startDrugQuiz()">▶ เริ่มเกม</button>
+            </div>
+        </div>
+        <div id="dquiz-play" style="display:none">
+            <div class="q-prompt">
+                <div style="font-size:0.72rem;color:rgba(255,255,255,.4);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase">ยาชนิดนี้คือ</div>
+                <div class="q-drug-name" id="dq-drug">...</div>
+                <div style="font-size:0.72rem;color:rgba(255,255,255,.4);margin-top:8px">จัดอยู่ใน Drug Class ใด?</div>
+            </div>
+            <div class="q-grid" id="dq-opts"></div>
+        </div>
+    </div>`;
+}
 
 // ════════════════════════════════════════
 // ▶ LEADERBOARD
@@ -2544,7 +2657,7 @@ function _renderBattleSetup() {
         return `<div class="${cls}" onclick="bPick('${p.instId}','${slot}')" style="${dim?'opacity:.3;':''}">
             <div style="font-size:1.55rem">${p.emoji}</div>
             <div style="font-size:0.57rem;font-weight:700;color:rgba(255,255,255,.85);margin-top:2px;line-height:1.3">
-                ${p.name}${gr > 0 ? ' ' + GRADE_LABELS[gr] : ''}
+                ${petDisplayName(p)}${gr > 0 ? ' ' + GRADE_LABELS[gr] : ''}
             </div>
             <div style="font-size:0.55rem;color:${cfg.color}">${cfg.label}</div>
             <div style="font-size:0.57rem;margin-top:2px">${el ? el.emoji : ''} <span style="color:rgba(255,255,255,.4)">ATK ${s.atk}</span></div>
@@ -2946,5 +3059,48 @@ let __hatchTimer=setInterval(()=>{
 <script>
 window.toast=(msg,type='info',duration=2800)=>{const t=document.getElementById('toast');t.textContent=msg;t.className='show '+type;clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),duration);};
 </script>
+
+<!-- GAME HUB: EXPEDITION MODAL -->
+<div class="exp-modal-ov" id="exp-modal" onclick="if(event.target===this)closeExpModal()">
+    <div class="exp-modal-sheet" onclick="event.stopPropagation()">
+        <div class="exp-modal-header">
+            <div class="exp-modal-title">
+                <span>🗺️</span>
+                <h2>ส่งสัตว์ผจญภัย</h2>
+            </div>
+            <button onclick="closeExpModal()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:10px;padding:5px 12px;font-family:inherit;font-size:0.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">⬅️ กลับ</button>
+        </div>
+        <div class="exp-modal-body" id="exp-modal-body">
+        </div>
+    </div>
+</div>
+
+<!-- GAME HUB: QUIZ MODAL (ทายชื่อเพื่อน) -->
+<div class="exp-modal-ov" id="quiz-modal" onclick="if(event.target===this)closeQuizModal()">
+    <div class="exp-modal-sheet" style="background:linear-gradient(175deg,#0f172a 0%,#1e293b 40%,#1e3a5f 100%)" onclick="event.stopPropagation()">
+        <div class="exp-modal-header" style="background:linear-gradient(175deg,#0f172a,#1e293b)">
+            <div class="exp-modal-title">
+                <span>🕵️</span>
+                <h2>ทายชื่อจริงเพื่อน</h2>
+            </div>
+            <button onclick="closeQuizModal()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:10px;padding:5px 12px;font-family:inherit;font-size:0.8rem;font-weight:700;cursor:pointer">⬅️ กลับ</button>
+        </div>
+        <div class="exp-modal-body" id="quiz-modal-body"></div>
+    </div>
+</div>
+
+<!-- GAME HUB: DRUG QUIZ MODAL (ทายยา) -->
+<div class="exp-modal-ov" id="drug-modal" onclick="if(event.target===this)closeDrugModal()">
+    <div class="exp-modal-sheet" style="background:linear-gradient(175deg,#1e1b4b 0%,#312e81 40%,#1e3a8a 100%)" onclick="event.stopPropagation()">
+        <div class="exp-modal-header" style="background:linear-gradient(175deg,#1e1b4b,#312e81)">
+            <div class="exp-modal-title">
+                <span>💊</span>
+                <h2>ทายยา (Drug Class)</h2>
+            </div>
+            <button onclick="closeDrugModal()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:10px;padding:5px 12px;font-family:inherit;font-size:0.8rem;font-weight:700;cursor:pointer">⬅️ กลับ</button>
+        </div>
+        <div class="exp-modal-body" id="drug-modal-body"></div>
+    </div>
+</div>
 </body>
 </html>
