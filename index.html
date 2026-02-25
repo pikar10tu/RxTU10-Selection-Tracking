@@ -404,6 +404,36 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 /* Overlays */
 .ct-overlay{position:absolute;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;border-radius:14px;z-index:10;backdrop-filter:blur(4px);}
 .ct-overlay-box{text-align:center;padding:10px;}
+
+/* ═══════════════════════════════
+   FORGE (ตีบวก) SYSTEM
+   ═══════════════════════════════ */
+.forge-modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:700;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);}
+.forge-modal-ov.active{display:flex;}
+.forge-sheet{width:100%;max-width:420px;background:linear-gradient(175deg,#1a1100 0%,#0d0900 60%,#120d00 100%);border-radius:24px 24px 0 0;max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 0 28px;}
+.forge-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid rgba(255,180,0,.1);position:sticky;top:0;background:linear-gradient(175deg,#1a1100,#0d0900);z-index:2;}
+.forge-body{padding:16px 16px 4px;}
+
+/* Refine level badge colors */
+.rf-0{color:rgba(255,255,255,.6);}
+.rf-1,.rf-2,.rf-3,.rf-4{color:rgba(255,255,255,.85);}
+.rf-5,.rf-6,.rf-7,.rf-8,.rf-9{color:#10b981;}
+.rf-10,.rf-11,.rf-12,.rf-13,.rf-14{color:#a855f7;}
+.rf-15{color:#eab308;}
+
+/* Pet select grid in forge */
+.forge-pet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:6px;margin-bottom:12px;}
+.forge-pet-card{border-radius:12px;padding:8px 4px;text-align:center;cursor:pointer;transition:.12s;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);}
+.forge-pet-card:active{transform:scale(.94);}
+.forge-pet-card.sel{border-color:#f59e0b;background:rgba(245,158,11,.12);}
+
+/* Forge confirm box */
+.forge-stat-row{display:grid;grid-template-columns:1fr auto 1fr;gap:4px;align-items:center;margin-bottom:6px;font-size:0.82rem;}
+.forge-stat-before{text-align:right;color:rgba(255,255,255,.5);}
+.forge-stat-arrow{color:rgba(255,255,255,.3);text-align:center;font-size:0.7rem;}
+.forge-stat-after{color:#4ade80;font-weight:700;}
+.forge-chance-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin:8px 0;}
+.forge-chance-fill{height:100%;border-radius:99px;transition:width .3s;}
 </style>
 </head>
 <body>
@@ -1048,7 +1078,7 @@ window.openUpgradeModal=async(petInstId)=>{
         ||owned.find(x=>!x.instId&&x.id===petInstId)
         ||owned.find(x=>x.id===petInstId);
     if(!mainPet){toast("ไม่พบสัตว์เลี้ยง","error");return;}
-    if(mainPet.isExpedition){toast("สัตว์กำลังผจญภัยอยู่ ไม่สามารถอัปเกรดได้","error");return;}
+    if(mainPet.isExpedition){toast("สัตว์กำลังผจญภัยอยู่ ไม่สามารถวิวัฒนาการยีนได้","error");return;}
     // ถ้า pet (หรือใครก็ตาม) ยังไม่มี instId → patch ทั้งหมดก่อน
     if(owned.some(p=>!p.instId)){
         const patchPets=owned.map(p=>({...p,instId:p.instId||(Date.now()+'_'+Math.random().toString(36).slice(2,8))}));
@@ -1152,7 +1182,7 @@ window.confirmUpgrade=async()=>{
     closeUpgradeModal();
     window.__upgradingPet=false;
     const pet=newPets[mainIdx];
-    const ns=petStats({...pet,grade:newGrade});toast(`${pet.emoji} Grade ${GRADE_LABELS[newGrade]}! ATK ${ns.atk} · HP ${ns.hp} · +${RARITY[pet.rarity].dailyBase*GRADE_MULTI[newGrade]}🪙/วัน`,"success");
+    const ns=calculatePetStats({...pet,grade:newGrade});toast(`${pet.emoji} Grade ${GRADE_LABELS[newGrade]}! ATK ${ns.atk} · HP ${ns.hp} · +${RARITY[pet.rarity].dailyBase*GRADE_MULTI[newGrade]}🪙/วัน`,"success");
     confetti({particleCount:120,spread:70,origin:{y:0.5}});
 };
 
@@ -1473,13 +1503,13 @@ function showDuplicatePopup(newPet,existing){
             </div>
             ${canUpgrade?`
             <div style="background:${cfg.bg};border-radius:11px;padding:10px;font-size:0.82rem;margin:6px 0;text-align:left">
-                <b>⬆ อัพเป็น Grade ${GRADE_LABELS[nextGrade]}</b><br>
+                <b>🧬 วิวัฒนาการยีน → ${GRADE_LABELS[nextGrade]}</b><br>
                 ต้องการ copies อีก <b>${neededForNext}</b> ตัว · มีอยู่ <b>${copiesOwned-1}</b> ตัว
                 ${canUpgradeNow?'':' · <span style="color:#94a3b8">ยังไม่พอ</span>'}
                 <br>Daily: <b>+${RARITY[newPet.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙/วัน</b>
             </div>
             <div class="gr-btns">
-                <button class="btn-gold" onclick="closeGacha();openUpgradeModal('${existing.instId}')" ${canUpgradeNow?'':'disabled'}>⬆ อัพ Grade ${GRADE_LABELS[nextGrade]}!</button>
+                <button class="btn-gold" onclick="closeGacha();openUpgradeModal('${existing.instId}')" ${canUpgradeNow?'':'disabled'}>🧬 วิวัฒนาการยีน ${GRADE_LABELS[nextGrade]}!</button>
                 <button class="btn-gray" onclick="closeGacha()">เก็บไว้ก่อน</button>
             </div>`:`<div style="color:var(--gold);font-weight:700;margin-top:8px">🏆 Max Grade V แล้ว!</div>
             <button class="btn-gray" style="margin-top:8px" onclick="closeGacha()">โอเค</button>`}
@@ -1534,7 +1564,7 @@ window.showPetInfo=async(petInstId)=>{
     const cfg=RARITY[p.rarity];
     const grade=p.grade||0;
     const daily=petDailyCoins(p);
-    const stats=petStats(p);
+    const stats=calculatePetStats(p);
     const copiesOwned=owned.filter(x=>x.id===p.id).length;
     const isMax=grade>=5;
     const nextGrade=Math.min(5,grade+1);
@@ -1545,15 +1575,18 @@ window.showPetInfo=async(petInstId)=>{
     const isOnExp=!!p.isExpedition;
     const def=PETS.find(x=>x.id===p.id);
     const el=def?.element;const elInfo=ELEMENTS[el]||null;
+    const refine=p.refine||0;
     const gradeHtml=grade>0?`<div class="gr-badge" style="background:#475569;margin-left:5px">Grade ${GRADE_LABELS[grade]}</div>`:'';
-    document.getElementById('petinfo-content').innerHTML=
+    const refineHtml=refine>0?`<div class="gr-badge" style="background:rgba(0,0,0,.5);color:${refineColor(refine)};margin-left:5px;border:1px solid ${refineColor(refine)}44">+${refine}${refine>=15?' 👑':''}</div>`:''; 
+        document.getElementById('petinfo-content').innerHTML=
         '<div style="text-align:center">'
         +'<div style="display:flex;justify-content:center;gap:6px;margin-bottom:6px">'
         +`<div class="gr-badge" style="background:${cfg.color}">${cfg.label}</div>${gradeHtml}`
+        +refineHtml
         +(elInfo?`<div class="gr-badge" style="background:#334155;font-size:1rem">${elInfo.emoji}</div>`:'')
         +'</div>'
         +`<div style="font-size:3rem;margin:4px 0;filter:drop-shadow(0 0 10px ${cfg.glow})">${p.emoji}</div>`
-        +`<div style="font-size:1.2rem;font-weight:800;margin-bottom:2px">${petDisplayName(p)}</div>`
+        +`<div style="font-size:1.2rem;font-weight:800;margin-bottom:2px">${formatPetName(p)}</div>`
         +`<div style="font-size:0.74rem;color:var(--muted);margin-bottom:8px">มี ${copiesOwned} ตัว</div>`
         +(def?.flavor?`<div style="font-size:0.74rem;color:${cfg.color};font-style:italic;margin-bottom:10px;padding:6px 10px;background:${cfg.bg};border-radius:8px;border-left:3px solid ${cfg.color}44">"${def.flavor}"</div>`:'')
         // stats block
@@ -1572,14 +1605,15 @@ window.showPetInfo=async(petInstId)=>{
         +`<span style="font-size:1.1rem">${elInfo.emoji}</span>`
         +`<span>ชนะ <b style="color:#fbbf24">${ELEMENTS[elInfo.beats]?.emoji||''}</b> · แพ้ <b style="color:#f87171">${Object.values(ELEMENTS).find(e=>e.beats===el)?.emoji||''}</b></span></div>`:'')
         +'<div style="background:#f8fafc;border-radius:11px;padding:10px;font-size:0.82rem;text-align:left">'
-        +'<div style="font-weight:700;margin-bottom:5px">⬆ อัพเกรด</div>'
+        +'<div style="font-weight:700;margin-bottom:5px">🧬 วิวัฒนาการยีน</div>'
         +(isMax
             ?'<div style="color:var(--gold);font-weight:700;text-align:center">🏆 Max Grade V!</div>'
             :`<div style="color:var(--muted);margin-bottom:3px">Grade ${grade>0?GRADE_LABELS[grade]:'base'} → <b>Grade ${GRADE_LABELS[nextGrade]}</b></div>`
             +`<div style="margin-bottom:3px">ต้องการ copies อีก <b>${neededForNext}</b> ตัว · มีอยู่ <b>${copiesOwned-1}</b> ตัว</div>`
             +`<div style="color:${cfg.color};font-weight:600">ATK ${stats.atk} → ${Math.round(BASE_STATS[p.rarity].atk*STAT_MULTI[nextGrade])} · HP ${stats.hp} → ${Math.round(BASE_STATS[p.rarity].hp*STAT_MULTI[nextGrade])} · Daily +${RARITY[p.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙</div>`
             +(!canUpgrade?`<div style="color:#94a3b8;font-size:0.73rem;margin-top:3px">ต้องการอีก ${totalNeeded-copiesOwned} ตัวเพื่ออัพ</div>`:''))
-        +`<button class="btn-gold full" style="margin-top:8px" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${(isMax||isOnExp)?'disabled':''}>⬆ ${isOnExp?'⏳ กำลังผจญภัย':'อัพ Grade '+(isMax?'(Max)':GRADE_LABELS[nextGrade])}</button>`
+        +`<button class="btn-gold full" style="margin-top:8px" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${(isMax||isOnExp)?'disabled':''}>🧬 ${isOnExp?'⏳ กำลังผจญภัย':'วิวัฒนาการยีน '+(isMax?'(Max)':GRADE_LABELS[nextGrade])}</button>`
+        +`<button style="width:100%;margin-top:6px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:10px;padding:10px;color:#fff;font-family:inherit;font-size:0.85rem;font-weight:800;cursor:pointer" onclick="closePetInfo();openForgeModal()">🔨 ตีบวก</button>`
         +'</div></div>';
     const activeLabel=isOnExp?"⏳ ผจญภัย":isActive?"🔴 เอาออก":"🟢 ใช้งาน";
     const activeAction=isOnExp?`toast('สัตว์กำลังผจญภัยอยู่!','info')`:isActive?'unsetActive()':'setActive(\''+String(p.instId||p.id)+'\')';
@@ -1908,11 +1942,12 @@ function buildHome(){
         }).join('')}</div>`:''
 
     const invBlock=pets.length===0?`<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ฟักไข่ใน 🛒 Shop ก่อน!</div>`
-        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${petDisplayName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${elEmoji?' '+elEmoji:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
+        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${petDisplayName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${(p.refine||0)>0?` +${p.refine}`:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
         <div style="display:flex;gap:7px;justify-content:center;margin-top:8px;flex-wrap:wrap">
             ${userData?.activePet?`<button class="btn-gray sm" onclick="unsetActive()">เอาออก</button>`:''}
             ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
             <button class="btn-gray sm" onclick="openMega()">📣 โทรโข่ง</button>
+            ${pets.length?`<button onclick="openForgeModal()" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:9px;padding:5px 12px;color:#fff;font-family:inherit;font-size:0.76rem;font-weight:700;cursor:pointer;white-space:nowrap">🔨 ตีบวก</button>`:''}
             ${pets.length?`<button onclick="openBattle()" style="background:linear-gradient(135deg,#ef4444,#dc2626);border:none;border-radius:9px;padding:5px 12px;color:#fff;font-family:inherit;font-size:0.76rem;font-weight:700;cursor:pointer;white-space:nowrap">⚔️ ลองต่อสู้</button>`:''}
         </div>
 `;
@@ -1980,7 +2015,7 @@ function memberGrid(){
         return`<div class="mcard" onclick="openProfileModal('${s.id}')">
             <div style="position:relative;width:64px;height:64px;margin-bottom:4px">
                 <img loading="lazy" src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:64px;height:64px">
-                ${petData?`<div style="position:absolute;bottom:-6px;right:-6px;font-size:1.25rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));line-height:1">${petData.emoji}${petGrade>0?`<span style="position:absolute;bottom:-1px;right:-4px;background:${petColor};color:#fff;font-size:0.38rem;font-weight:800;padding:1px 3px;border-radius:3px;line-height:1.4">${GRADE_LABELS[petGrade]}</span>`:''}${(()=>{const pDef2=PETS.find(x=>x.id===petData.id);const elEm=ELEMENTS[pDef2?.element]?.emoji||'';return elEm?`<span style="position:absolute;top:-5px;left:-5px;font-size:0.6rem;line-height:1">${elEm}</span>`:''})()}
+                ${petData?`<div style="position:absolute;bottom:-6px;right:-6px;font-size:1.25rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));line-height:1">${petData.emoji}${petGrade>0?`<span style="position:absolute;bottom:-1px;right:-4px;background:${petColor};color:#fff;font-size:0.38rem;font-weight:800;padding:1px 3px;border-radius:3px;line-height:1.4">${GRADE_LABELS[petGrade]}</span>`:''}${(()=>{(()=>{const petR=petData.refine||0;if(!petR)return '';const rc=refineColor(petR);return `<span style="position:absolute;top:-5px;left:-5px;background:rgba(0,0,0,.75);color:${rc};font-size:0.42rem;font-weight:900;padding:1px 3px;border-radius:3px;line-height:1.4;border:1px solid ${rc}55">+${petR}</span>`;})()}
                 </div>`:''}
             </div>
             <div class="mc-nick">${s.nickname}</div>
@@ -2013,7 +2048,7 @@ window.openProfileModal=(id)=>{
         const cfg=RARITY[petData.rarity];
         const pDef=PETS.find(x=>x.id===petData.id);
         const el=pDef?.element;const elInfo=ELEMENTS[el]||null;
-        const pStats=petStats(petData);
+        const pStats=calculatePetStats(petData);
         const grade=petData.grade||0;
         return`<div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:14px;padding:12px 14px;cursor:pointer;text-align:left"
             onclick="openFriendPetInfo('${s.id}','${String(petData.instId||petData.id)}')">
@@ -2075,7 +2110,7 @@ window.openFriendPetInfo=(studentId,instOrId)=>{
     // สร้าง overlay บน pm-content
     const overlay=document.createElement('div');
     overlay.style.cssText='position:absolute;inset:0;background:#fff;border-radius:20px;padding:20px 16px;overflow-y:auto;z-index:10;animation:popIn .25s ease';
-    const stats=petStats(p);
+    const stats=calculatePetStats(p);
     const el=def?.element;const elInfo=ELEMENTS[el]||null;
     overlay.innerHTML=`
         <button onclick="this.parentElement.remove()" style="position:absolute;top:10px;right:10px;background:var(--border);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.85rem">✕</button>
@@ -2925,6 +2960,239 @@ window.closeColorTilesModal = ()=>{
 };
 
 // ════════════════════════════════════════
+// ▶ FORGE (ตีบวก) SYSTEM
+// ════════════════════════════════════════
+
+// ── Forge rate table ──
+const FORGE_RATES = [
+    null, // 0 = unused
+    {cost:100,  chance:100}, // +1
+    {cost:200,  chance:95},  // +2
+    {cost:300,  chance:90},  // +3
+    {cost:400,  chance:85},  // +4
+    {cost:500,  chance:80},  // +5
+    {cost:600,  chance:75},  // +6
+    {cost:700,  chance:70},  // +7
+    {cost:800,  chance:65},  // +8
+    {cost:1000, chance:60},  // +9
+    {cost:1200, chance:55},  // +10
+    {cost:1500, chance:50},  // +11
+    {cost:1800, chance:45},  // +12
+    {cost:2200, chance:40},  // +13
+    {cost:2600, chance:30},  // +14
+    {cost:3000, chance:25},  // +15
+];
+
+// ── Forge bonus % per refine level ──
+function forgeBonus(refine){
+    if(refine<=0)  return 0;
+    if(refine<=5)  return refine*5;           // +5% per level (×1→×5)
+    if(refine<=10) return 25+(refine-5)*8;    // +8% per level (×6→×10)
+    return 65+(refine-10)*12;                 // +12% per level (×11→×15)
+}
+
+/** calculatePetStats(p) — realtime stats พร้อม grade + forge bonus */
+function calculatePetStats(p){
+    const base = BASE_STATS[p.rarity]||BASE_STATS.common;
+    const gm   = STAT_MULTI[p.grade||0];
+    const fb   = 1 + forgeBonus(p.refine||0)/100;
+    return {
+        atk: Math.round(base.atk * gm * fb),
+        hp:  Math.round(base.hp  * gm * fb),
+    };
+}
+
+// ── Refine color ──
+function refineColor(r){
+    if(!r||r<=0)  return 'rgba(255,255,255,.6)';
+    if(r<=4)      return '#fff';
+    if(r<=9)      return '#10b981';
+    if(r<=14)     return '#a855f7';
+    return '#eab308';
+}
+
+// ── formatPetName(p) ──
+function formatPetName(p){
+    const base = petDisplayName(p);
+    const grade = p.grade||0;
+    const refine = p.refine||0;
+    const gradePart  = grade>=1 ? ' '+GRADE_LABELS[grade] : '';
+    const refinePart = refine>=1 ? ` <span style="color:${refineColor(refine)};font-weight:800">+${refine}</span>` : '';
+    return base + gradePart + refinePart;
+}
+
+// ── Forge Modal state ──
+let __forgeSelPet = null; // instId ที่เลือก
+
+window.openForgeModal = ()=>{
+    if(!currentUser){ toast('กรุณา Login ก่อน','error'); return; }
+    __forgeSelPet = null;
+    _renderForgeBody();
+    document.getElementById('forge-modal').classList.add('active');
+};
+window.closeForgeModal = ()=>{
+    document.getElementById('forge-modal').classList.remove('active');
+    __forgeSelPet = null;
+};
+
+window.forgeSelectPet = (instId)=>{
+    __forgeSelPet = instId;
+    _renderForgeBody();
+};
+
+function _renderForgeBody(){
+    const body = document.getElementById('forge-body');
+    if(!body) return;
+    const pets = (userData?.pets||[]).filter(p=>!p.isExpedition);
+    const coins = userData?.coins||0;
+
+    if(!pets.length){
+        body.innerHTML = `<div style="text-align:center;color:rgba(255,255,255,.4);padding:24px;font-size:0.84rem">ยังไม่มีสัตว์เลี้ยง</div>`;
+        return;
+    }
+
+    // Pet select
+    const petListHTML = `
+    <div style="font-size:0.7rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px;margin-bottom:8px">เลือกสัตว์ที่ต้องการตีบวก</div>
+    <div class="forge-pet-grid">
+        ${pets.map(p=>{
+            const cfg = RARITY[p.rarity];
+            const r = p.refine||0;
+            const sel = __forgeSelPet===String(p.instId||p.id);
+            const maxed = r>=15;
+            return `<div class="forge-pet-card${sel?' sel':''}" onclick="forgeSelectPet('${String(p.instId||p.id)}')" style="${maxed?'opacity:.45;cursor:default;':''}">
+                <div style="font-size:1.5rem">${p.emoji}</div>
+                <div style="font-size:0.55rem;font-weight:700;color:${cfg.color};margin-top:2px">${cfg.label}</div>
+                <div style="font-size:0.6rem;font-weight:800;color:${refineColor(r)}">${r>0?'+'+r:p.grade>0?GRADE_LABELS[p.grade]:'—'}</div>
+                ${maxed?'<div style="font-size:0.5rem;color:#eab308">MAX</div>':''}
+            </div>`;
+        }).join('')}
+    </div>`;
+
+    // Detail panel
+    let detailHTML = '';
+    if(__forgeSelPet){
+        const p = pets.find(x=>String(x.instId||x.id)===String(__forgeSelPet));
+        if(p){
+            const r = p.refine||0;
+            const cfg = RARITY[p.rarity];
+            if(r>=15){
+                detailHTML = `<div style="text-align:center;color:#eab308;font-weight:800;padding:16px;font-size:1rem">👑 ตีบวก +15 สูงสุดแล้ว!</div>`;
+            } else {
+                const nextR = r+1;
+                const rate = FORGE_RATES[nextR];
+                const canAfford = coins >= rate.cost;
+                const statNow  = calculatePetStats(p);
+                const statNext = calculatePetStats({...p, refine:nextR});
+                const chancePct = rate.chance;
+                const chanceColor = chancePct>=80?'#4ade80':chancePct>=50?'#fbbf24':'#f87171';
+
+                detailHTML = `
+                <div style="background:rgba(255,255,255,.04);border-radius:16px;padding:14px;border:1px solid rgba(255,180,0,.12);margin-top:4px">
+                    <!-- Pet header -->
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+                        <div style="font-size:2.5rem;filter:drop-shadow(0 0 8px ${cfg.glow})">${p.emoji}</div>
+                        <div>
+                            <div style="font-size:0.9rem;font-weight:800;color:#fff">${petDisplayName(p)}</div>
+                            <div style="font-size:0.7rem;color:${cfg.color}">${cfg.label}${p.grade>0?' · Grade '+GRADE_LABELS[p.grade]:''}</div>
+                            <div style="font-size:0.78rem;margin-top:2px">
+                                <span style="color:rgba(255,255,255,.5)">ระดับปัจจุบัน: </span>
+                                <span style="color:${refineColor(r)};font-weight:800">${r>0?'+'+r:'ยังไม่ได้ตี'}</span>
+                                <span style="color:rgba(255,255,255,.3);margin:0 4px">→</span>
+                                <span style="color:${refineColor(nextR)};font-weight:800">+${nextR}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats preview -->
+                    <div style="background:rgba(0,0,0,.3);border-radius:10px;padding:10px;margin-bottom:10px">
+                        <div class="forge-stat-row">
+                            <div class="forge-stat-before">⚔️ ${statNow.atk}</div>
+                            <div class="forge-stat-arrow">→</div>
+                            <div class="forge-stat-after">⚔️ ${statNext.atk}</div>
+                        </div>
+                        <div class="forge-stat-row">
+                            <div class="forge-stat-before">❤️ ${statNow.hp}</div>
+                            <div class="forge-stat-arrow">→</div>
+                            <div class="forge-stat-after">❤️ ${statNext.hp}</div>
+                        </div>
+                        <div style="font-size:0.65rem;color:rgba(255,255,255,.3);text-align:center;margin-top:4px">
+                            โบนัส ${forgeBonus(r)}% → ${forgeBonus(nextR)}% (+${forgeBonus(nextR)-forgeBonus(r)}%)
+                        </div>
+                    </div>
+
+                    <!-- Cost + Chance -->
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                        <div>
+                            <div style="font-size:0.65rem;color:rgba(255,255,255,.35)">ราคา</div>
+                            <div style="font-size:1rem;font-weight:800;color:${canAfford?'#fbbf24':'#f87171'}">${rate.cost.toLocaleString()}🪙</div>
+                            ${!canAfford?`<div style="font-size:0.6rem;color:#f87171">เหรียญไม่พอ (มี ${coins.toLocaleString()})</div>`:`<div style="font-size:0.6rem;color:rgba(255,255,255,.3)">คงเหลือ ${(coins-rate.cost).toLocaleString()}🪙</div>`}
+                        </div>
+                        <div style="text-align:right">
+                            <div style="font-size:0.65rem;color:rgba(255,255,255,.35)">โอกาสสำเร็จ</div>
+                            <div style="font-size:1.3rem;font-weight:800;color:${chanceColor}">${chancePct}%</div>
+                        </div>
+                    </div>
+                    <div class="forge-chance-bar">
+                        <div class="forge-chance-fill" style="width:${chancePct}%;background:${chanceColor}"></div>
+                    </div>
+                    <div style="font-size:0.66rem;color:rgba(255,255,255,.3);margin-bottom:10px">ตีแหก = เสียแค่เงิน ระดับไม่ลด</div>
+
+                    <button onclick="confirmForge()" ${canAfford?'':'disabled'}
+                        style="width:100%;background:${canAfford?'linear-gradient(135deg,#f59e0b,#d97706)':'rgba(255,255,255,.06)'};border:none;border-radius:12px;padding:12px;color:${canAfford?'#fff':'rgba(255,255,255,.25)'};font-family:inherit;font-size:0.95rem;font-weight:800;cursor:${canAfford?'pointer':'not-allowed'};box-shadow:${canAfford?'0 4px 14px rgba(245,158,11,.4)':'none'}">
+                        🔨 ยืนยันตีบวก +${nextR} (${rate.cost.toLocaleString()}🪙 · ${chancePct}%)
+                    </button>
+                </div>`;
+            }
+        }
+    }
+
+    body.innerHTML = petListHTML + detailHTML;
+}
+
+window.confirmForge = async ()=>{
+    if(!currentUser||!userData) return;
+    if(!__forgeSelPet){ toast('เลือกสัตว์ก่อน','error'); return; }
+    const pets = userData.pets||[];
+    const p = pets.find(x=>String(x.instId||x.id)===String(__forgeSelPet));
+    if(!p){ toast('ไม่พบสัตว์','error'); return; }
+    const r = p.refine||0;
+    if(r>=15){ toast('ตีบวก +15 สูงสุดแล้ว!','info'); return; }
+    const nextR = r+1;
+    const rate = FORGE_RATES[nextR];
+    const coins = userData.coins||0;
+    if(coins < rate.cost){ toast(`เหรียญไม่พอ! ต้องการ ${rate.cost}🪙`,'error'); return; }
+    if(!await _confirm(`🔨 ตีบวก +${nextR}
+${petDisplayName(p)} ${p.grade>0?'Grade '+GRADE_LABELS[p.grade]:''}
+ราคา ${rate.cost.toLocaleString()}🪙 · โอกาส ${rate.chance}%
+
+ยืนยันการตีบวก?`)) return;
+
+    const success = Math.random()*100 < rate.chance;
+    const newPets = pets.map(x=>{
+        if(String(x.instId||x.id)!==String(__forgeSelPet)) return x;
+        return success ? {...x, refine:nextR} : x; // fail = ไม่เปลี่ยน refine
+    });
+    const newCoins = coins - rate.cost;
+
+    // Optimistic update
+    userData = {...userData, pets:newPets, coins:newCoins};
+    _renderForgeBody();
+
+    if(success){
+        const statNew = calculatePetStats({...p, refine:nextR});
+        toast(`✨ ตีบวก +${nextR} สำเร็จ! ATK ${statNew.atk} · HP ${statNew.hp}`,'success',4000);
+        if(nextR>=10) confetti({particleCount:80,spread:60,origin:{y:0.5},colors:['#f59e0b','#a855f7','#fff']});
+    } else {
+        toast(`💔 ตีแหก! +${r} → +${r} (เสียแค่ ${rate.cost}🪙)`,'error',3500);
+    }
+
+    // Save Firestore in background
+    updateDoc(doc(db,'users',currentUser.uid),{pets:newPets,coins:newCoins})
+        .catch(e=>console.error('forge save',e));
+};
+
+// ════════════════════════════════════════
 // ▶ LEADERBOARD
 // ════════════════════════════════════════
 window.toggleLb=(id)=>{const el=document.getElementById(id);if(!el)return;const show=el.style.display==='none';el.style.display=show?'block':'none';if(show){el.innerHTML=id==='qlb'?buildQuizLb():id==='dqlb'?buildDrugLb():buildCtLb();}}
@@ -3558,6 +3826,20 @@ window.toast=(msg,type='info',duration=2800)=>{const t=document.getElementById('
         </div>
         <div class="exp-modal-body" id="ct-modal-body">
         </div>
+    </div>
+</div>
+
+<!-- FORGE MODAL (ตีบวก) -->
+<div class="forge-modal-ov" id="forge-modal" onclick="if(event.target===this)closeForgeModal()">
+    <div class="forge-sheet" onclick="event.stopPropagation()">
+        <div class="forge-header">
+            <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:1.4rem">🔨</span>
+                <h2 style="font-size:1rem;font-weight:800;color:#fff;margin:0">ตีบวก</h2>
+            </div>
+            <button onclick="closeForgeModal()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:10px;padding:5px 12px;font-family:inherit;font-size:0.8rem;font-weight:700;cursor:pointer">✕ ปิด</button>
+        </div>
+        <div class="forge-body" id="forge-body"></div>
     </div>
 </div>
 </body>
