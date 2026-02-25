@@ -775,7 +775,7 @@ function calcTotalDaily(pets){
 //  ─────────────────────────────────────
 //  Data layer พร้อมแล้ว:
 //    - ELEMENTS (✊✌️✋) + elementBeats()
-//    - petStats(p) → {atk, hp}
+//    - calculatePetStats(p) → {atk, hp} (พร้อม forge bonus)
 //    - STAT_MULTI[grade] (×1.0 – ×3.5)
 //  Battle logic ที่จะเพิ่ม:
 //    - initBattle(myPet, opponentSnapshot)
@@ -1032,7 +1032,7 @@ window.openDailyModal=()=>{
         return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
             <span style="font-size:1.3rem">${p.emoji}</span>
             <div style="flex:1;text-align:left">
-                <span style="font-weight:600;font-size:0.84rem">${petDisplayName(p)}</span>
+                <span style="font-weight:600;font-size:0.84rem">${formatPetName(p)}</span>
                 ${elEmoji?`<span style="margin-left:4px;font-size:0.8rem">${elEmoji}</span>`:''}
                 <div style="color:${cfg.color};font-size:0.65rem;font-weight:700">${cfg.label}${grade>0?' · Grade '+GRADE_LABELS[grade]:''}</div>
             </div>
@@ -1180,7 +1180,9 @@ window.confirmUpgrade=async()=>{
     if(mainIdx<0){toast("เกิดข้อผิดพลาด","error");return;}
     const newGrade=(newPets[mainIdx].grade||0)+1;
     newPets[mainIdx]={...newPets[mainIdx],grade:newGrade};
+    window.__blockSnapshot=true;
     await updateDoc(doc(db,"users",currentUser.uid),{pets:newPets});
+    setTimeout(()=>{window.__blockSnapshot=false;},1500);
     closeUpgradeModal();
     window.__upgradingPet=false;
     const pet=newPets[mainIdx];
@@ -1641,7 +1643,7 @@ function renderTradeList(){
     window.__tradeList=list;
     if(!list.length){el.innerHTML='<p style="color:#94a3b8;text-align:center;padding:8px">ไม่มีสัตว์ที่เทรดได้<br><small style="font-size:0.7rem;color:#64748b">(สัตว์ที่ผจญภัยอยู่เทรดไม่ได้)</small></p>';return;}
     el.innerHTML=list.map((p,i)=>{const c=RARITY[p.rarity];
-    return`<div class="trade-item${tradeIdx===i?' sel':''}" onclick="pickTrade(${i})"><span style="font-size:1.4rem">${p.emoji}</span><div><div style="font-weight:600;font-size:0.82rem">${petDisplayName(p)}</div><div style="color:${c.color};font-size:0.68rem;font-weight:700">${c.label}</div></div></div>`;}).join('');}
+    return`<div class="trade-item${tradeIdx===i?' sel':''}" onclick="pickTrade(${i})"><span style="font-size:1.4rem">${p.emoji}</span><div><div style="font-weight:600;font-size:0.82rem">${formatPetName(p)}</div><div style="color:${c.color};font-size:0.68rem;font-weight:700">${c.label}</div></div></div>`;}).join('');}
 window.pickTrade=i=>{tradeIdx=i;renderTradeList();};
 window.sendTrade=async()=>{
     const email=document.getElementById('trade-email').value.trim();if(!email||tradeIdx===null){toast("เลือกสัตว์และใส่ email","error");return;}
@@ -1944,7 +1946,7 @@ function buildHome(){
         }).join('')}</div>`:''
 
     const invBlock=pets.length===0?`<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ฟักไข่ใน 🛒 Shop ก่อน!</div>`
-        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${petDisplayName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${(p.refine||0)>0?` +${p.refine}`:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
+        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${formatPetName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${(p.refine||0)>0?` +${p.refine}`:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
         <div style="display:flex;gap:7px;justify-content:center;margin-top:8px;flex-wrap:wrap">
             ${userData?.activePet?`<button class="btn-gray sm" onclick="unsetActive()">เอาออก</button>`:''}
             ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
@@ -1959,7 +1961,7 @@ function buildHome(){
     const dailyBreakdown=`<div id="daily-breakdown" style="display:none" class="card">
         <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px">💰 รายได้/วัน · รวม <span style="color:#10b981">+${dTotal}🪙</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.82rem"><span>🎯 รายได้พื้นฐาน</span><span style="font-weight:700;color:#10b981">+${dBase}🪙</span></div>
-        ${pets.length?pets.map(p=>{const cfg=RARITY[p.rarity];const d=petDailyCoins(p);const gr=p.grade||0;const def=PETS.find(x=>x.id===p.id);const el=ELEMENTS[def?.element]?.emoji||'';return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:1.1rem">${p.emoji}</span><div style="flex:1;font-size:0.8rem"><span style="font-weight:600">${petDisplayName(p)}</span>${el?` ${el}`:''}<div style="color:${cfg.color};font-size:0.6rem">${cfg.label}${gr>0?' · Grade '+GRADE_LABELS[gr]:''}</div></div><span style="color:#10b981;font-weight:800">+${d}🪙</span></div>`;}).join(''):'<div style="color:var(--muted);font-size:0.78rem;padding:10px 0;text-align:center">ยังไม่มีสัตว์เลี้ยง</div>'}
+        ${pets.length?pets.map(p=>{const cfg=RARITY[p.rarity];const d=petDailyCoins(p);const gr=p.grade||0;const def=PETS.find(x=>x.id===p.id);const el=ELEMENTS[def?.element]?.emoji||'';return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:1.1rem">${p.emoji}</span><div style="flex:1;font-size:0.8rem"><span style="font-weight:600">${formatPetName(p)}</span>${el?` ${el}`:''}<div style="color:${cfg.color};font-size:0.6rem">${cfg.label}${gr>0?' · Grade '+GRADE_LABELS[gr]:''}</div></div><span style="color:#10b981;font-weight:800">+${d}🪙</span></div>`;}).join(''):'<div style="color:var(--muted);font-size:0.78rem;padding:10px 0;text-align:center">ยังไม่มีสัตว์เลี้ยง</div>'}
     </div>`;
     const collBtn=`<div style="margin-bottom:8px">
         <button id="coll-toggle-btn" onclick="toggleCollection()" style="width:100%;background:linear-gradient(135deg,#1e293b,#0f172a);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:9px 14px;color:rgba(255,255,255,.75);font-size:0.82rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">🗂️ คอลเลกชั่น <span style="font-size:0.68rem;color:rgba(255,255,255,.35)">${uniqueIds.length}/${PETS.length}</span></button>
@@ -2123,7 +2125,7 @@ window.openFriendPetInfo=(studentId,instOrId)=>{
                 ${elInfo?`<span style="background:#334155;color:#fff;padding:3px 10px;border-radius:16px;font-size:1rem">${elInfo.emoji}</span>`:''}
             </div>
             <div style="font-size:3.5rem;margin:4px 0;filter:drop-shadow(0 0 14px ${cfg.glow})">${p.emoji}</div>
-            <div style="font-size:1.2rem;font-weight:800;margin-bottom:4px">${petDisplayName(p)}</div>
+            <div style="font-size:1.2rem;font-weight:800;margin-bottom:4px">${formatPetName(p)}</div>
             ${def?.flavor?`<div style="font-size:0.74rem;color:${cfg.color};font-style:italic;padding:7px 12px;background:${cfg.bg};border-radius:9px;border-left:3px solid ${cfg.color}44;text-align:left;margin-bottom:10px">"${def.flavor}"</div>`:''}
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
                 <div style="background:${cfg.bg};border-radius:10px;padding:8px 4px">
@@ -2379,7 +2381,7 @@ function buildExpeditionUI(){
                 <div style="font-size:0.68rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px">🗺️ ${e.durLabel}</div>
                 <div class="exp-timer" id="exp-timer-${e.id}">${tStr}</div>
             </div>
-            <div class="exp-pets-grid">${epets.map(p=>`<div style="text-align:center"><div style="font-size:1.5rem">${p.emoji}</div><div style="font-size:0.58rem;color:rgba(255,255,255,.45)">${petDisplayName(p)}</div></div>`).join('')}</div>
+            <div class="exp-pets-grid">${epets.map(p=>`<div style="text-align:center"><div style="font-size:1.5rem">${p.emoji}</div><div style="font-size:0.58rem;color:rgba(255,255,255,.45)">${formatPetName(p)}</div></div>`).join('')}</div>
         </div>`;
     }
 
@@ -2420,7 +2422,7 @@ function buildExpeditionUI(){
                         return`<div onclick="toggleExpPet('${p.instId||p.id}')"
                             style="background:${sel?cfg.color+'22':'rgba(255,255,255,.04)'};border:2px solid ${sel?cfg.color:'rgba(255,255,255,.12)'};border-radius:12px;padding:6px 3px;text-align:center;cursor:pointer;transition:.15s;position:relative">
                             <div style="font-size:1.4rem">${p.emoji}</div>
-                            <div style="font-size:0.58rem;font-weight:600;color:rgba(255,255,255,.7)">${petDisplayName(p)}</div>
+                            <div style="font-size:0.58rem;font-weight:600;color:rgba(255,255,255,.7)">${formatPetName(p)}</div>
                             <div style="font-size:0.5rem;color:${cfg.color}">${cfg.label}</div>
                             <div style="font-size:0.48rem;color:rgba(255,255,255,.35)">+${petDailyCoins(p)}🪙/วัน</div>
                             ${sel?`<div style="position:absolute;top:-4px;right:-4px;background:${cfg.color};color:#fff;width:14px;height:14px;border-radius:50%;font-size:0.55rem;display:flex;align-items:center;justify-content:center;font-weight:800">✓</div>`:''}
@@ -3095,7 +3097,7 @@ function _renderForgeBody(){
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
                         <div style="font-size:2.5rem;filter:drop-shadow(0 0 8px ${cfg.glow})">${p.emoji}</div>
                         <div>
-                            <div style="font-size:0.9rem;font-weight:800;color:#fff">${petDisplayName(p)}</div>
+                            <div style="font-size:0.9rem;font-weight:800;color:#fff">${formatPetName(p)}</div>
                             <div style="font-size:0.7rem;color:${cfg.color}">${cfg.label}${p.grade>0?' · Grade '+GRADE_LABELS[p.grade]:''}</div>
                             <div style="font-size:0.78rem;margin-top:2px">
                                 <span style="color:rgba(255,255,255,.5)">ระดับปัจจุบัน: </span>
@@ -3165,7 +3167,7 @@ window.confirmForge = async ()=>{
     const coins = userData.coins||0;
     if(coins < rate.cost){ toast(`เหรียญไม่พอ! ต้องการ ${rate.cost}🪙`,'error'); return; }
     if(!await _confirm(`🔨 ตีบวก +${nextR}
-${petDisplayName(p)} ${p.grade>0?'Grade '+GRADE_LABELS[p.grade]:''}
+${formatPetName(p)}
 ราคา ${rate.cost.toLocaleString()}🪙 · โอกาส ${rate.chance}%
 
 ยืนยันการตีบวก?`)) return;
@@ -3368,14 +3370,14 @@ function _renderBattleSetup() {
         const def = PETS.find(x => x.id === p.id);
         const el  = ELEMENTS[def?.element];
         const gr  = p.grade || 0;
-        const s   = petStats(p);
+        const s   = calculatePetStats(p);
         const isA = p.instId === selA, isB = p.instId === selB;
         const cls = isA ? 'battle-pick sel-a' : isB ? 'battle-pick sel-b' : 'battle-pick';
         const dim = mode === 'battle' && ((slot==='A' && isB) || (slot==='B' && isA));
         return `<div class="${cls}" onclick="bPick('${p.instId}','${slot}')" style="${dim?'opacity:.3;':''}">
             <div style="font-size:1.55rem">${p.emoji}</div>
             <div style="font-size:0.57rem;font-weight:700;color:rgba(255,255,255,.85);margin-top:2px;line-height:1.3">
-                ${petDisplayName(p)}${gr > 0 ? ' ' + GRADE_LABELS[gr] : ''}
+                ${formatPetName(p)}
             </div>
             <div style="font-size:0.55rem;color:${cfg.color}">${cfg.label}</div>
             <div style="font-size:0.57rem;margin-top:2px">${el ? el.emoji : ''} <span style="color:rgba(255,255,255,.4)">ATK ${s.atk}</span></div>
@@ -3492,7 +3494,7 @@ window.startSandbox = () => {
                        rarity:'common', grade:0, instId:'dummy_target' };
     const defA = PETS.find(x => x.id === petA.id);
     const defB = { id:'dummy', element: dummyEl };
-    const sA   = petStats(petA);
+    const sA   = calculatePetStats(petA);
     const sB   = { atk: 0, hp: DUMMY_HP };
     if (__battle?.timer) clearTimeout(__battle.timer);
     __battle = {
@@ -3526,8 +3528,8 @@ window.startBattle = () => {
 
     const defA = PETS.find(x => x.id === petA.id);
     const defB = PETS.find(x => x.id === petB.id);
-    const sA   = petStats(petA);
-    const sB   = petStats(petB);
+    const sA   = calculatePetStats(petA);
+    const sB   = calculatePetStats(petB);
 
     // สุ่ม 50/50 ว่าใครเริ่มก่อน (ไม่เกี่ยวกับ ATK)
     const firstIsA = Math.random() < 0.5;
