@@ -1066,9 +1066,11 @@ onAuthStateChanged(auth,async u=>{
         unsub=onSnapshot(doc(db,"users",u.uid),snap=>{
             if(window.__blockSnapshot){return;}  // forge/trade กำลัง write อยู่
             userData=snap.data();qHigh=userData?.quizHigh||0;dqHigh=userData?.drugHigh||0;
-            // migrate: ถ้า activePet เป็น id เก่า (ไม่มี _) ให้ clear เพื่อป้องกัน multi-highlight
-            if(userData?.activePet&&!String(userData.activePet).includes('_')){
-                updateDoc(doc(db,"users",u.uid),{activePet:null});
+            // migrate: activePet → activePets[0] (one-time migration)
+            if(userData?.activePet && !(userData?.activePets||[]).some(Boolean)){
+                const migrateSlots=[userData.activePet,null,null];
+                userData={...userData, activePets:migrateSlots};
+                updateDoc(doc(db,'users',u.uid),{activePets:migrateSlots}).catch(()=>{});
             }
             renderAll();checkDaily();
         });
@@ -1317,18 +1319,12 @@ function petDisplayName(p){
 }
 
 function activePet(){
+    // slot[0] only — legacy activePet handled by migration
     if(!userData?.pets) return null;
-    // ลอง activePets[0] ก่อน (ใหม่) fallback activePet (legacy)
-    const slots = userData.activePets||[];
-    const slot0 = slots[0];
-    if(slot0){
-        const p=userData.pets.find(p=>p.instId&&String(p.instId)===String(slot0))
-               ||userData.pets.find(p=>p.id===slot0);
-        if(p) return p;
-    }
-    if(!userData.activePet) return null;
-    return userData.pets.find(p=>p.instId&&String(p.instId)===String(userData.activePet))
-        ||userData.pets.find(p=>p.id===userData.activePet)||null;
+    const slot0=(userData.activePets||[])[0];
+    if(!slot0) return null;
+    return userData.pets.find(p=>p.instId&&String(p.instId)===String(slot0))
+          ||userData.pets.find(p=>p.id===slot0)||null;
 }
 /** getActivePetsArray() — return array ของ pet objects ตาม activePets slots [0..2] */
 function getActivePetsArray(userData_){
@@ -1676,14 +1672,43 @@ function showGachaResult(pet){
 }
 window.closeGacha=()=>document.getElementById('gacha-modal').classList.remove('active');
 
-window.setActive=async(instId)=>{
-    if(!currentUser)return;
-    const _p=(userData?.pets||[]).find(x=>String(x.instId||x.id)===String(instId));
-    if(_p?.isExpedition){toast("สัตว์กำลังผจญภัยอยู่ ไม่สามารถ Active ได้","error");return;}
-    await updateDoc(doc(db,"users",currentUser.uid),{activePet:String(instId)});
-    toast("เปลี่ยนสัตว์เลี้ยงแล้ว!","success");loadFbUsers();
+/** togglePetSlot(slotIdx, instOrId) — ใส่/ถอด activePets slot 0-2 */
+window.togglePetSlot=async(slotIdx, instOrId)=>{
+    if(!currentUser) return;
+    const id=String(instOrId);
+    const slots=[...(userData?.activePets||[null,null,null])];
+    while(slots.length<3) slots.push(null);
+    const curSlot=slots.findIndex(s=>s&&String(s)===id);
+    const p=(userData?.pets||[]).find(x=>String(x.instId||x.id)===id);
+    if(curSlot===slotIdx){
+        slots[slotIdx]=null;
+        toast(`ถอด ${p?.emoji||''} ออกจาก ไม้${slotIdx+1}`,'info');
+    } else {
+        if(curSlot>=0) slots[curSlot]=null;
+        const oldId=slots[slotIdx];
+        slots[slotIdx]=id;
+        toast(`${p?.emoji||''} ${p?formatPetName(p):''} → ไม้${slotIdx+1}${oldId?' (แทนที่)':''}!`,'success');
+    }
+    window.__blockSnapshot=true;
+    userData={...userData, activePets:slots};
+    renderAll();
+    try{
+        await updateDoc(doc(db,'users',currentUser.uid),{activePets:slots});
+        loadFbUsers();
+    }catch(e){ toast('เซฟผิดพลาด','error'); }
+    finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
 };
-window.unsetActive=async()=>{if(!currentUser)return;await updateDoc(doc(db,"users",currentUser.uid),{activePet:null});toast("เก็บสัตว์เลี้ยงแล้ว","info");loadFbUsers();};
+// Legacy shim — gacha "ใช้งานเลย!" button uses setActive
+window.setActive=async(instId)=>togglePetSlot(0, instId);
+window.unsetActive=async()=>{
+    const slots=[null,null,null];
+    window.__blockSnapshot=true;
+    userData={...userData,activePets:slots};
+    renderAll();
+    await updateDoc(doc(db,'users',currentUser.uid),{activePets:slots}).catch(()=>{});
+    setTimeout(()=>{window.__blockSnapshot=false;},1500);
+    toast('เอาสัตว์ออกทั้งหมดแล้ว','info'); loadFbUsers();
+};
 
 window.__claimingEgg=false; // reset after claim
 window.showPetInfo=async(petInstId)=>{
@@ -1711,7 +1736,9 @@ window.showPetInfo=async(petInstId)=>{
     const neededForNext=isMax?0:GRADE_COPIES[nextGrade];
     const totalNeeded=isMax?0:neededForNext+1;
     const canUpgrade=!isMax&&copiesOwned>=totalNeeded;
-    const isActive=p.instId?String(userData?.activePet)===String(p.instId):userData?.activePet===p.id;
+    const _slots=(userData?.activePets||[]);
+    const _mySlot=_slots.findIndex(id=>id&&String(id)===String(p.instId||p.id));
+    const isActive=_mySlot>=0;
     const isOnExp=!!p.isExpedition;
     const def=PETS.find(x=>x.id===p.id);
     const el=def?.element;const elInfo=ELEMENTS[el]||null;
@@ -1755,11 +1782,20 @@ window.showPetInfo=async(petInstId)=>{
         +`<button class="btn-gold full" style="margin-top:8px" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${(isMax||isOnExp)?'disabled':''}>🧬 ${isOnExp?'⏳ กำลังผจญภัย':'วิวัฒนาการยีน '+(isMax?'(Max)':GRADE_LABELS[nextGrade])}</button>`
         +`<button style="width:100%;margin-top:6px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:10px;padding:10px;color:#fff;font-family:inherit;font-size:0.85rem;font-weight:800;cursor:pointer" onclick="closePetInfo();openForgeModal()">🔨 ตีบวก</button>`
         +'</div></div>';
-    const activeLabel=isOnExp?"⏳ ผจญภัย":isActive?"🔴 เอาออก":"🟢 ใช้งาน";
-    const activeAction=isOnExp?`toast('สัตว์กำลังผจญภัยอยู่!','info')`:isActive?'unsetActive()':'setActive(\''+String(p.instId||p.id)+'\')';
-    document.getElementById('petinfo-actions').innerHTML=
-        `<button class="btn-gold" style="flex:1" onclick="${activeAction};closePetInfo()">${activeLabel}</button>`
-        +`<button class="btn-gray" style="flex:1" onclick="closePetInfo()">ปิด</button>`;
+    // Build slot buttons — 3 slots
+    const _buildSlotButtons=()=>{
+        const slots=userData?.activePets||[null,null,null];
+        return [0,1,2].map(i=>{
+            const isMine=slots[i]&&String(slots[i])===String(p.instId||p.id);
+            const hasOther=slots[i]&&!isMine;
+            const label=isMine?`✅ ไม้${i+1} (ถอด)`:hasOther?`🔄 ไม้${i+1}`:`➕ ไม้${i+1}`;
+            const bg=isMine?'#dc2626':hasOther?'#7c3aed':'#059669';
+            return `<button onclick="togglePetSlot(${i},'${String(p.instId||p.id)}');closePetInfo()" style="flex:1;background:${bg};color:#fff;border:none;border-radius:9px;padding:7px 4px;font-family:inherit;font-size:0.68rem;font-weight:700;cursor:pointer">${label}</button>`;
+        }).join('');
+    };
+    document.getElementById('petinfo-actions').innerHTML=isOnExp
+        ?`<button class="btn-gray" style="flex:1" disabled>⏳ ผจญภัย</button><button class="btn-gray" style="flex:1" onclick="closePetInfo()">ปิด</button>`
+        :`<div style="display:flex;gap:5px;width:100%">${_buildSlotButtons()}</div><button class="btn-gray" style="margin-top:6px;width:100%" onclick="closePetInfo()">ปิด</button>`;
     document.getElementById('petinfo-modal').classList.add('active');
 };
 window.closePetInfo=()=>document.getElementById('petinfo-modal').classList.remove('active');
@@ -1959,7 +1995,8 @@ function buildHome(){
                         <button class="pc-cam" onclick="triggerPhoto()">📷</button>
                     </div>
                     <div style="flex:1;min-width:0">
-                        <div class="pc-nick">${userData.nickname}${pet?' '+pet.emoji:''}</div>
+                        <div class="pc-nick">${userData.nickname}</div>
+                        <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap">${getActivePetsArray().map((p,i)=>`<span style="font-size:1.15rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))" title="ไม้${i+1}">${p.emoji}</span>`).join('')}</div>
                         <div class="pc-real">${userData.realName}</div>
                         <div class="pc-id">${userData.studentId}</div>
                         <div style="display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap">
@@ -2083,9 +2120,9 @@ function buildHome(){
         }).join('')}</div>`:''
 
     const invBlock=pets.length===0?`<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ฟักไข่ใน 🛒 Shop ก่อน!</div>`
-        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const on=p.instId&&String(p.instId)===String(userData?.activePet);const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${formatPetName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${(p.refine||0)>0?` +${p.refine}`:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?'<div class="inv-on">ON</div>':''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
+        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const _activePetSlots=(userData?.activePets||[]);const _slotIdx=_activePetSlots.findIndex(id=>id&&String(id)===String(p.instId||p.id));const on=_slotIdx>=0;const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${formatPetName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${(p.refine||0)>0?` +${p.refine}`:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?`<div class="inv-on" style="font-size:0.5rem">ไม้${_slotIdx+1}</div>`:''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
         <div style="display:flex;gap:7px;justify-content:center;margin-top:8px;flex-wrap:wrap">
-            ${userData?.activePet?`<button class="btn-gray sm" onclick="unsetActive()">เอาออก</button>`:''}
+            
             ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
             <button class="btn-gray sm" onclick="openMega()">📣 โทรโข่ง</button>
             ${pets.length?`<button onclick="openForgeModal()" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:9px;padding:5px 12px;color:#fff;font-family:inherit;font-size:0.76rem;font-weight:700;cursor:pointer;white-space:nowrap">🔨 ตีบวก</button>`:''}
@@ -2308,7 +2345,7 @@ window.pmSaveTeam=async()=>{
     try{
         await updateDoc(doc(db,'users',currentUser.uid),{activePets:newSlots});
         toast('💾 บันทึกทีมแล้ว!','success');
-        loadFbUsers();
+        renderAll(); loadFbUsers();
     } catch(e){ toast('เซฟผิดพลาด','error'); }
     finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
     document.getElementById('pm-save-team-btn').style.display='none';
@@ -2370,7 +2407,8 @@ window.openGuestList=()=>{
     if(!guests.length){toast("ยังไม่มี Guest","info");return;}
     const html=guests.map(g=>{
         const photo=g.customPhotoFull||g.customPhoto||g.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(g.nickname||'?')}&background=64748b&color=fff&size=128`;
-        const petData=g.activePet?(g.pets||[]).find(p=>p.id===g.activePet):null;
+        const _g_slot0=(g.activePets||[])[0]||g.activePet||null;
+        const petData=_g_slot0?(g.pets||[]).find(p=>String(p.instId||p.id)===String(_g_slot0)):null;
         return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
             <img loading="lazy" src="${photo}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?&background=64748b&color=fff'">
             <div style="flex:1">
@@ -2398,9 +2436,10 @@ function _renderLbRows(board,scoreKey,accentColor){
     const icons=['🥇','🥈','🥉'];
     return board.map((u,i)=>{
         const isMe=myId&&u.studentId===myId;
-        const pet=u.activePet
-            ?(u.pets||[]).find(p=>p.instId&&String(p.instId)===String(u.activePet))
-             ||(u.pets||[]).find(p=>p.id===u.activePet):null;
+        const _lb_slot0=(u.activePets||[])[0]||u.activePet||null;
+        const pet=_lb_slot0
+            ?(u.pets||[]).find(p=>p.instId&&String(p.instId)===String(_lb_slot0))
+             ||(u.pets||[]).find(p=>p.id===_lb_slot0):null;
         const ph=u.customPhoto||u.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent((u.nickname||'?')[0])}&background=334155&color=fff&size=64`;
         const fb=`https://ui-avatars.com/api/?name=${encodeURIComponent((u.nickname||'?')[0])}&background=334155&color=fff&size=64`;
         const rc=i===0?'gold':i===1?'silver':i===2?'bronze':'';
@@ -3375,6 +3414,7 @@ window.confirmForge = async ()=>{
     const pets = userData.pets||[];
     const p = pets.find(x=>String(x.instId||x.id)===String(__forgeSelPet));
     if(!p){ toast('ไม่พบสัตว์','error'); return; }
+    if(p.isExpedition){ toast('สัตว์กำลังผจญภัยอยู่ ไม่สามารถตีบวกได้','error'); return; }
     const r = p.refine||0;
     if(r>=15){ toast('ตีบวก +15 สูงสุดแล้ว!','info'); return; }
     const nextR = r+1;
