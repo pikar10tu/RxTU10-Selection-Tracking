@@ -7,15 +7,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 <style>
+
+/* ═══════════════════════════════
+   VARIABLES & RESET
+   ═══════════════════════════════ */
 :root{--sci:#2563eb;--care:#10b981;--gold:#f59e0b;--bg:#f0f4f8;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--ticker:34px;--btm:66px;}
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(--text);}
+html,
+/* ═══════════════════════════════
+   BASE LAYOUT
+   ═══════════════════════════════ */
+body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(--text);}
 
 /* ── TOP BAR ── */
 /* top-bar removed */
 /* coin-pill และ btn-daily ถูกนิยามใหม่ใน HOME section ด้านล่าง */
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 .btn-out{background:none;border:1.5px solid #fca5a5;color:#ef4444;padding:7px 14px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;width:100%;}
+
+/* ═══════════════════════════════
+   BUTTONS
+   ═══════════════════════════════ */
 .btn-google{background:#fff;border:1.5px solid var(--border);padding:6px 11px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--text);font-weight:500;transition:.2s;}
 .btn-google.big{padding:13px 22px;font-size:0.95rem;width:100%;justify-content:center;}
 
@@ -23,9 +35,17 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 /* ticker now inline in Play tab */
 .ticker-label{background:#f59e0b;color:#1e293b;padding:3px 9px;font-weight:800;font-size:0.72rem;white-space:nowrap;border-radius:6px 0 0 6px;}
 .ticker-scroll{flex:1;overflow:hidden;position:relative;height:34px;}
-.ticker-inner{position:absolute;white-space:nowrap;animation:tickerMove 22s linear infinite;padding:0 12px;line-height:34px;font-size:0.8rem;}
+.ticker-inner{position:absolute;white-space:nowrap;animation:tickerMove 22s linear infinite;padding:0 12px;line-height:34px;font-size:0.8rem;will-change:transform;}
+
+/* ═══════════════════════════════
+   KEYFRAME ANIMATIONS
+   ═══════════════════════════════ */
 @keyframes tickerMove{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 .ticker-inner:hover{animation-play-state:paused;}
+
+/* ═══════════════════════════════
+   COMPONENTS — CARDS & BANNERS
+   ═══════════════════════════════ */
 .news-banner{background:linear-gradient(135deg,#1e293b,#334155);color:#fde68a;font-weight:600;display:flex;align-items:center;border-radius:12px;overflow:hidden;cursor:pointer;margin-bottom:10px;height:36px;}
 
 /* ── MAIN ── */
@@ -47,13 +67,14 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* ── COMMON ── */
 .card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;}
-.sec-head{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin:16px 0 8px;}
-.login-card{background:#fff;border-radius:20px;padding:36px 20px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.07);}
-.guest-badge{background:#64748b;}
-/* .track-badge นิยามใน HOME section */
+.sec-head{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin:16px 0 8px;}/* .track-badge นิยามใน HOME section */
 
 /* ── HOME ── */
 /* Hero banner */
+
+/* ═══════════════════════════════
+   HOME — HERO PROFILE
+   ═══════════════════════════════ */
 .home-hero{border-radius:20px;overflow:hidden;margin-bottom:10px;position:relative;}
 .hero-bg{background:linear-gradient(160deg,#0c1445 0%,#1a237e 40%,#0d47a1 70%,#1565c0 100%);padding:20px 16px 0;position:relative;}
 .hero-bg::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
@@ -69,7 +90,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .coin-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(4px);padding:7px 13px;border-radius:20px;font-size:0.88rem;font-weight:700;color:#fbbf24;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.15s;}
 .coin-pill:hover{background:rgba(255,255,255,.18);}
 .btn-daily{background:rgba(16,185,129,.2);border:1.5px solid rgba(16,185,129,.5);padding:7px 12px;border-radius:20px;font-size:0.84rem;cursor:pointer;color:#6ee7b7;font-family:inherit;font-weight:700;transition:.2s;}
-.btn-daily.ready{background:rgba(16,185,129,.3);border-color:#10b981;animation:pulse 2s ease infinite;color:#a7f3d0;}
+.btn-daily.ready{background:rgba(16,185,129,.3);border-color:#10b981;animation:pulse 2s ease infinite;color:#a7f3d0;will-change:opacity;}
 .btn-out-hero{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);padding:7px 11px;border-radius:20px;font-family:inherit;font-size:0.76rem;cursor:pointer;margin-left:auto;}
 /* hero stats strip */
 .hero-stats{display:grid;grid-template-columns:repeat(3,1fr);background:#0a0f2e;border-top:1px solid rgba(255,255,255,.1);}
@@ -80,12 +101,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .track-badge{padding:3px 8px;border-radius:5px;color:#fff;font-size:0.58rem;font-weight:700;text-transform:uppercase;}
 .track-badge.sm{font-size:0.54rem;padding:2px 6px;}
 /* .stats-row/.stat-box removed — replaced by hero-stats strip */
-/* unlinked */
-.unlinked-card{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;border:2px dashed var(--border);}
-.ul-left{display:flex;align-items:center;gap:9px;flex:1;}
-.ul-img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid var(--border);}
-.btn-link{background:linear-gradient(135deg,var(--sci),#1d4ed8);color:#fff;border:none;padding:7px 12px;border-radius:9px;font-family:inherit;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;}
-/* collection card upgrade */
+/* unlinked *//* collection card upgrade */
 .coll-card{background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:16px;padding:14px;margin-bottom:10px;color:#fff;}
 .coll-bar-bg{height:7px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin:8px 0;}
 .coll-bar-fill{height:100%;background:linear-gradient(90deg,#3b82f6,#10b981);border-radius:50px;transition:.6s;}
@@ -97,6 +113,10 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 /* pet badge effects */
 
 /* Inventory */
+
+/* ═══════════════════════════════
+   HOME — INVENTORY
+   ═══════════════════════════════ */
 .inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;}
 .inv-empty{text-align:center;color:var(--muted);padding:20px;font-size:0.84rem;}
 .inv-item{background:var(--rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
@@ -115,6 +135,10 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .srch-inp{width:100%;padding:10px 13px;border:2px solid #fff;border-radius:12px;font-family:inherit;font-size:0.9rem;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.07);outline:none;transition:.2s;}
 .srch-inp:focus{border-color:var(--gold);}
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px;}
+
+/* ═══════════════════════════════
+   MEMBERS GRID
+   ═══════════════════════════════ */
 .mcard{background:#fff;border-radius:13px;padding:11px 6px;cursor:pointer;text-align:center;border:1.5px solid var(--border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
 .mcard:hover{transform:translateY(-2px);box-shadow:0 5px 12px rgba(0,0,0,.07);}
 .mc-img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);}
@@ -126,6 +150,10 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* ── PLAY ── */
 /* Game arena cards */
+
+/* ═══════════════════════════════
+   PLAY — GAME ARENA
+   ═══════════════════════════════ */
 .game-arena{border-radius:20px;overflow:hidden;margin-bottom:12px;position:relative;}
 .game-arena-header{padding:16px 18px 14px;display:flex;justify-content:space-between;align-items:center;}
 .game-arena-body{padding:0 14px 16px;}
@@ -159,19 +187,12 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .q-btn.correct{background:rgba(16,185,129,.25);border-color:#10b981;color:#6ee7b7;font-weight:700;}
 .q-btn.wrong{background:rgba(239,68,68,.2);border-color:#ef4444;color:#fca5a5;}
 .q-btn:disabled{cursor:not-allowed;}
-/* result message */
-.q-result{color:rgba(255,255,255,.5);font-size:0.8rem;text-align:center;padding:10px 0 4px;}
-/* combo flash */
+/* result message *//* combo flash */
 @keyframes scoreFlash{0%{transform:scale(1.4);color:#fbbf24}100%{transform:scale(1);}}
-.score-flash{animation:scoreFlash .35s ease-out;}
+.score-flash{animation:scoreFlash .35s ease-out;will-change:transform;}
 /* coming soon */
 .coming-soon{background:linear-gradient(135deg,#1e293b,#334155);border-radius:20px;padding:28px;text-align:center;color:#fff;margin-bottom:10px;}
-/* leaderboard */
-.lb-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-.lb-card{border-radius:16px;overflow:hidden;}
-.lb-head{padding:10px 12px 8px;display:flex;align-items:center;justify-content:space-between;}
-.lb-title{font-size:0.68rem;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:1px;text-transform:uppercase;}
-.lb-row{display:flex;align-items:center;gap:7px;padding:6px 10px;border-top:1px solid rgba(255,255,255,.06);}
+/* leaderboard */.lb-row{display:flex;align-items:center;gap:7px;padding:6px 10px;border-top:1px solid rgba(255,255,255,.06);}
 .lb-rank{font-size:0.7rem;font-weight:800;color:rgba(255,255,255,.35);width:14px;text-align:center;flex-shrink:0;}
 .lb-rank.gold{color:#fbbf24;font-size:0.8rem;}
 .lb-rank.silver{color:#94a3b8;font-size:0.75rem;}
@@ -181,39 +202,40 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .lb-score{font-size:0.72rem;font-weight:800;color:#fbbf24;flex-shrink:0;}
 .lb-me{background:rgba(251,191,36,.1) !important;border-top-color:rgba(251,191,36,.2) !important;}
 
-/* ── SHOP ── */
-.egg-wobble{font-size:3.8rem;animation:wobble 2.5s ease infinite;display:block;}
-@keyframes wobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
-.rates-wrap{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;}
-.rate-chip{padding:4px 10px;border-radius:16px;font-size:0.72rem;font-weight:700;}
-.egg-bag-item{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;background:var(--rb,#f8fafc);border:1.5px solid var(--rc,var(--border));margin-bottom:8px;}
+/* ── SHOP ── */@keyframes wobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}.egg-bag-item{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;background:var(--rb,#f8fafc);border:1.5px solid var(--rc,var(--border));margin-bottom:8px;}
 .hatch-bar{height:5px;background:var(--border);border-radius:8px;overflow:hidden;margin:4px 0 2px;}
 .hatch-fill{height:100%;border-radius:8px;transition:width .3s;}
 
 /* ── MODALS ── */
+
+/* ═══════════════════════════════
+   MODALS
+   ═══════════════════════════════ */
 .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px);}
 .modal-ov.active{display:flex;}
-.modal-box{background:#fff;border-radius:20px;padding:24px 18px;max-width:340px;width:100%;animation:popIn .35s cubic-bezier(.34,1.56,.64,1);position:relative;max-height:88vh;overflow-y:auto;}
+.modal-box{background:#fff;border-radius:20px;padding:24px 18px;max-width:340px;width:100%;animation:popIn .35s cubic-bezier(.34,1.56,.64,1);will-change:transform,opacity;position:relative;max-height:88vh;overflow-y:auto;}
 @keyframes popIn{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
 .mclose{position:absolute;top:10px;right:10px;background:var(--border);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;}
 .pm-img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.12);margin-bottom:9px;}
 .pm-nick{font-size:1.25rem;font-weight:700;} .pm-real{color:var(--muted);font-size:0.88rem;} .pm-id{font-size:0.74rem;color:var(--muted);font-family:'Space Mono',monospace;margin:3px 0;}
 .pm-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:9px;}
 .pm-stat{background:var(--bg);border-radius:9px;padding:7px 3px;text-align:center;display:flex;flex-direction:column;align-items:center;}
-.pm-stat span{font-size:1rem;} .pm-stat b{font-size:0.85rem;font-weight:700;} .pm-stat small{font-size:0.62rem;color:var(--muted);}
-.pm-pet-row{display:flex;align-items:center;gap:9px;background:var(--bg);border-radius:11px;padding:9px;margin-top:4px;}
-.link-irow{display:flex;gap:6px;margin:10px 0 3px;}
+.pm-stat span{font-size:1rem;} .pm-stat b{font-size:0.85rem;font-weight:700;} .pm-stat small{font-size:0.62rem;color:var(--muted);}.link-irow{display:flex;gap:6px;margin:10px 0 3px;}
 .link-inp{flex:1;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.92rem;outline:none;transition:.2s;}
 .link-inp:focus{border-color:var(--sci);}
 .link-prev{background:var(--bg);border-radius:12px;padding:12px;margin:6px 0;display:none;}
 .gacha-inner{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;}
 .gr-badge{padding:3px 12px;border-radius:16px;color:#fff;font-size:0.72rem;font-weight:800;letter-spacing:2px;}
-.gr-emoji{font-size:4.5rem;animation:gbounce .6s ease;filter:drop-shadow(0 0 16px var(--glow,#f59e0b));}
+.gr-emoji{font-size:4.5rem;animation:gbounce .6s ease;filter:drop-shadow(0 0 16px var(--glow,#f59e0b));will-change:transform;}
 @keyframes gbounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
 .gr-name{font-size:1.3rem;font-weight:800;} .gr-desc{font-size:0.82rem;color:var(--muted);}
 .gr-btns{display:flex;gap:8px;margin-top:6px;}
 .slide-panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:18px 14px;box-shadow:0 -5px 24px rgba(0,0,0,.1);z-index:400;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);max-height:65vh;overflow-y:auto;}
 .slide-panel.active{transform:translateY(0);}
+
+/* ═══════════════════════════════
+   TRADE SYSTEM
+   ═══════════════════════════════ */
 .trade-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:9px;border:2px solid var(--border);cursor:pointer;margin-bottom:6px;transition:.15s;}
 .trade-item.sel{border-color:var(--sci);background:#eff6ff;}
 .trade-inp{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.86rem;outline:none;margin:8px 0;}
@@ -246,6 +268,10 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 
 /* ── BATTLE ── */
+
+/* ═══════════════════════════════
+   BATTLE SYSTEM
+   ═══════════════════════════════ */
 .battle-arena{background:linear-gradient(160deg,#0c1445 0%,#1a1a2e 50%,#16213e 100%);border-radius:20px;padding:16px 14px;margin-bottom:10px;position:relative;}
 .battle-arena::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M20 0l20 20-20 20L0 20z'/%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
 .battle-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;}
@@ -253,9 +279,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .battle-field{display:grid;grid-template-columns:1fr 40px 1fr;gap:8px;align-items:start;margin-bottom:12px;position:relative;}
 .battle-side{text-align:center;}
 .battle-pet-em{font-size:3.2rem;display:block;filter:drop-shadow(0 0 12px var(--pet-glow,#ffffff44));transition:transform .15s;}
-.battle-pet-em.shake{animation:bShake .3s ease;}
-.battle-pet-em.dead{filter:grayscale(1) opacity(.35);}
-@keyframes bShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.battle-pet-em.battle-pet-em@keyframes bShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 @keyframes bBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 .battle-pet-name{font-size:0.72rem;font-weight:700;color:rgba(255,255,255,.8);margin:3px 0 6px;}
 .battle-hp-bar{height:8px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px;}
@@ -286,6 +310,10 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 @media(max-width:360px){.mgrid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}}
 
 /* ── Expedition ── */
+
+/* ═══════════════════════════════
+   EXPEDITION SYSTEM
+   ═══════════════════════════════ */
 .arena-expedition{background:linear-gradient(160deg,#1a0533 0%,#2d1057 60%,#1e1b4b 100%);}
 .arena-expedition .game-arena-header{border-bottom:1px solid rgba(255,255,255,.08);}
 .exp-slot{border:2px dashed rgba(168,85,247,.3);border-radius:14px;padding:8px;text-align:center;cursor:pointer;transition:.2s;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;}
@@ -472,6 +500,10 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot,
          collection, getDocs, increment, serverTimestamp, arrayUnion, addDoc, orderBy, query, limit, deleteDoc }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+
+// ════════════════════════════════════════
+// ▶ FIREBASE CONFIG & INIT
+// ════════════════════════════════════════
 const firebaseConfig = {
     apiKey: "AIzaSyAlmHZZ3JixrQlH7PyMa_QqQuDPEN4RJBE",
     authDomain: "rxtu10dashboard.firebaseapp.com",
@@ -488,6 +520,10 @@ const provider = new GoogleAuthProvider();
 
 // ════════════════════════════════════════
 //  CONSTANTS
+// ════════════════════════════════════════
+
+// ════════════════════════════════════════
+// ▶ CONSTANTS — RARITY / GRADES / ELEMENTS
 // ════════════════════════════════════════
 const RARITY = {
     common:    { color:"#64748b", bg:"#f1f5f9", label:"COMMON",    glow:"#94a3b8", dailyBase:5  },
@@ -537,6 +573,10 @@ function petStats(p){
 
 // PETS pool — flexible เพิ่มตัวได้ตลอด
 // eggTypes: ['normal'] | ['gold'] | ['rainbow'] | ['normal','gold'] ฯลฯ
+
+// ════════════════════════════════════════
+// ▶ DATA — PET DEFINITIONS
+// ════════════════════════════════════════
 const PETS = [
     // ── COMMON (8 ตัวเดิม + 7 ใหม่) ──
     { id:"cat",       emoji:"🐱", name:"แมวเหมียว",     rarity:"common",    element:"paper",    flavor:"เพื่อนซี้ประจำห้องยา ชอบนั่งบนตำราและทำตัวเป็นที่ปรึกษา",        rate:{normal:0.148,gold:0.0,rainbow:0.0}, hatchMins:1 },
@@ -642,16 +682,28 @@ function calcTotalDaily(pets){
 // ════════════════════════════════════════
 //  STUDENT DATA
 // ════════════════════════════════════════
+
+// ════════════════════════════════════════
+// ▶ DATA — STUDENT LISTS
+// ════════════════════════════════════════
 const R_SCI=["กิ้ฟท์ 🎁 (6418610082)","โบ 🎀 (6418610140)","อิกคิว 👦 (6418610264)","เหนือ ⛰️ (6418610280)","ขิม 🎼 (6518540015)","มายด์ 💖 (6518610016)","ติน 💎 (6518610024)","อ้น 🐿️ (6518610073)","เอ็มมี่ 🌸 (6518610099)","โฟกัส 🔍 (6518610123)","ลิ้ง 🔗 (6518610164)","ติณณ์ ✨ (6518610172)","เพ่ยเพ่ย 🏮 (6518610180)","ป่าน 🌿 (6518610198)","เอเชีย 🌏 (6518610214)","แพร 👗 (6518610222)","กาฟิว 🐱 (6518610297)","แตงโม 🍉 (6518610347)","ส้มโอ 🍊 (6518610420)","อุ้ม 🤗 (6518610446)","ทิว 🌲 (6518610479)","แพน 🐼 (6518610503)","ปั้น 🏺 (6518610545)","แก๊ป 🧢 (6518610560)","แยม 🍓 (6518610578)","แพรไหม 🧵 (6518610586)","ไอจัง 🍦 (6518610610)","เพ้นท์ 🎨 (6518670010)","สุ่น 🧶 (6518670069)","ทะเล 🌊 (6518670077)","ตั้ว 🎟️ (6518670093)","แพรวา 💎 (6518670101)","ซาเนียร์ 🎐 (6518670119)","เปปเปอร์ 🌶️ (6518670150)","ว่านว่าน 🍃 (6518670176)","ฟ้าใส ☀️ (6518670192)","เขต 🏁 (6518670200)","เบเบ้ 🧸 (6518670226)","เชอร์รี่ 🍒 (6518670267)"];
 const R_CARE=["เมย์ 🌙 (6418610157)","เดียร 🦌 (6418670110)","บัว 🪷 (6518610032)","ปาล์มมี่ 🌴 (6518610040)","อุ๋งอิ๋ง 🦭 (6518610057)","เพียว 🫧 (6518610065)","ใบบัว 🍃 (6518610081)","บลู 💙 (6518610107)","ต้นน้ำ 🌱 (6518610115)","แซนนี่ ☀️ (6518610131)","กัส ⛽ (6518610149)","นินจี้ 🥷 (6518610206)","นนท์ 🕶️ (6518610230)","มินท์ 🌿 (6518610248)","แป้ง 🍞 (6518610255)","ตีตี้ 🎸 (6518610263)","แพม 👒 (6518610271)","อะตอม ⚛️ (6518610305)","นาย 👔 (6518610313)","การ์ตูน 📖 (6518610321)","นัซ 🌠 (6518610354)","แพนด้า 🐼 (6518610362)","ปิ๊ก 🎸 (6518610388)","จอย 😊 (6518610396)","มายด์ ✨ (6518610404)","โดนัท 🍩 (6518610453)","บุ๊ค 📚 (6518610461)","ปอนด์ 💷 (6518610495)","เบค 🥓 (6518610511)","ต้นกล้า 🪴 (6518610537)","มิ้นท์ 🌱 (6518610552)","ต้นน้ำ 💧 (6518610602)","แพรทอง ✨ (6518660011)","แก้ม 😊 (6518660029)","แสนดี 😇 (6518670028)","อุ๊กอิ๊ก 🐣 (6518670044)","ต้้นน้ำ 🌊 (6518670085)","เจ 🃏 (6518670135)","เปมี่ 🍭 (6518670143)","ท้องฟ้า ☁️ (6518670184)","พีช 🍑 (6518670218)","สมายด์ 😁 (6518670242)","แพร 🌸 (6518670259)","ตะวัน 🌻 (6518670283)"];
 const RN="นางสาวชญานิศ ชายเมฆนางสาวณัชชา ศรีทองสุขนางสาวณัฏฐณิชา ตราหยกนายปวริศ ชูชมชื่นนายพศวัต พุทธิชนม์นางสาวณัฎฐริณีย์ เทือกท้าวนางสาวหรรษธร เปลี่ยนภักดีนางสาวกชกร ทรงเตชะเลิศนายกฎปิยราช ชนะสิทธิ์นางสาวกมลพร ว่องไวนางสาวกฤติยาพร คำศรีนางสาวกอแก้ว พัฒนาศูรนางสาวกัญญาณัฏฐ์ ลาภทรงสุขนายเกตุโพธิ์ ใจสงฆ์นางสาวแก้วบุษราภรณ์ เลาหกัยกุลนางสาวงามวรินทร์ กิตติจิตต์นายจิรวัฒน์ รักษ์วิเชียรนางสาวชนัญธิดา วีระวุฒิพงศ์นายชนาธิป บุญมาศิรินางสาวชวัลพัชร วิชัยศิริรัตน์นายชาคริษ บวรกิจนางสาวชาลิสา พรสุขจันทรานายญาณพัฒน์ สุขเกษมนางสาวฐณิชา จรัสวิชากรนางสาวฐิตารีย์ ปานสง่านายณพงศ์ เจริญเนติศาสตร์นางสาวณัฏฐณิชา สุดคงนางสาวณัฐกฤตา ศรีวิเชียรนายณัฐชนนท์ เครือตานางสาวณัฐณิชา ขวาลำธารนางสาวณัฐธิดา อรุณแสงนางสาวต่วนนีซาวาตี อัลอาตัสนางสาวธัญรดา โทธรัตน์นายธิติวุฒิ เพชรเงินทองนายธีรเมธ แสงอรุณนายนพเก้า วิวัฒชยางกูลนางสาวนภัสวรรณ แผลงศรนางสาวนัชชา ลักษณ์เชื้อวงศ์นางสาวนัซรียา บุญชูนางสาวนันตรา อินทร์น้อยนายประวิชญ์ อำนวยพันธ์วิไลนางสาวปรางค์ทิพย์ บุญมีวิเศษนางสาวปราณปริยา จ่าพลนางสาวปาณิสรา ศรีอาจนางสาวพรปวีณ์ บุญนำนายพิธินันท์ สัตติยารักษ์นายพุฒิพงศ์ ผดุงวัฒนะโชคนายภูมิรพี บูรณะสมทบนายภูวเดช นิลคตนางสาวมนณิชชา บุญนำนายรัชชานนท์ ขมิ้นทองนายวชิรวิทย์ ชำนาญวงศ์นายวศิน เอี่ยมต่อมนางสาวศุภิสรา สุวรรณศักดิ์สินนายสุรพงษ์ จันทบูรณ์นางสาวหทัยนันท์ เทพกำปนาทนางสาวอชิรญาณ์ ลำพรหมแก้วนายอัครวิทย์ นิธิบุญญาพันธ์นางสาวไอลดา ทาหะพรหมนางสาวแพรทอง เพอรัตน์นางสาวอภิสรา นุตภูติพงศ์นางสาวกวินธร เมฆะจำรูญนางสาวกานติมา มัทกิจนางสาวจาริญดา อินอัญชัญนายโชคชัย อริยะบุญสกุลนางสาวณภัทร ดำแก้วนายณัฐดนย์ อภิรติชัยศิริกุลนางสาวทัศน์สุดา ประสิทธิ์วิเศษนางสาวธีริศรา อินตรานางสาวนรมล พรหมโชตินายปิติพัตน์ รัตนสัมพันธ์นางสาวเปมิกา บุรณศิรินางสาวพรภรณ์ บุญยู่ฮงนางสาวภานิลนาถ มานะธัญญานายภาสกร นาคานางสาวมศารัศม์ พุทธะไชยทัศน์นายรัฐธีร์ พนิตจินดาศักดิ์นางสาววิรัลพัชร คุณาสถิตย์ชัยนางสาวศศินิภา แก้วสุวรรณ์นางสาวสุชัญญา หนูยิ้มนางสาวสุภัสสรา ฤกษ์รัตนีนางสาวสุมาลี นิมิตรมงคลนางสาวแสงตะวัน บุษปวนิช";
 
+
+// ════════════════════════════════════════
+// ▶ DATA — DRUG QUIZ DATA
+// ════════════════════════════════════════
 const DRUGS=[
     {n:"Paracetamol",a:"Analgesic / Antipyretic"},{n:"Amoxicillin",a:"Antibiotic (Penicillin)"},{n:"Cetirizine",a:"Antihistamine Gen 2"},{n:"Omeprazole",a:"Proton Pump Inhibitor (PPI)"},{n:"Simvastatin",a:"HMG-CoA Reductase Inhibitor (Statin)"},{n:"Metformin",a:"Biguanide (เบาหวาน)"},{n:"Amlodipine",a:"Calcium Channel Blocker (CCB)"},{n:"Ibuprofen",a:"NSAIDs (COX-1/2 inhibitor)"},{n:"Prednisolone",a:"Systemic Corticosteroid"},{n:"Salbutamol",a:"Short-acting β2-agonist (SABA)"},{n:"Losartan",a:"Angiotensin II Receptor Blocker (ARB)"},{n:"Atorvastatin",a:"HMG-CoA Reductase Inhibitor (Statin)"},{n:"Clopidogrel",a:"P2Y12 Antiplatelet"},{n:"Gabapentin",a:"Anticonvulsant / Neuropathic pain"},{n:"Domperidone",a:"Dopamine Antagonist Antiemetic"},{n:"Lorazepam",a:"Benzodiazepine (anxiolytic)"},{n:"Tramadol",a:"Weak Opioid Analgesic"},{n:"Acetylcysteine",a:"Mucolytic / Antidote (paracetamol OD)"},{n:"Mefenamic Acid",a:"NSAIDs (NSAID fenamate)"},{n:"Enalapril",a:"ACE Inhibitor"},{n:"Propranolol",a:"Non-selective Beta-blocker"},{n:"Furosemide",a:"Loop Diuretic"},{n:"Warfarin",a:"Vitamin K Antagonist (Anticoagulant)"},{n:"Digoxin",a:"Cardiac Glycoside (inotrope)"},{n:"Azithromycin",a:"Macrolide Antibiotic"},{n:"Ciprofloxacin",a:"Fluoroquinolone Antibiotic"},{n:"Doxycycline",a:"Tetracycline Antibiotic"},{n:"Ceftriaxone",a:"3rd-gen Cephalosporin"},{n:"Diazepam",a:"Benzodiazepine (anticonvulsant/anxiolytic)"},{n:"Fluoxetine",a:"Selective Serotonin Reuptake Inhibitor (SSRI)"},{n:"Amitriptyline",a:"Tricyclic Antidepressant (TCA)"},{n:"Phenytoin",a:"Hydantoin Anticonvulsant (Na+ channel blocker)"},{n:"Chlorpheniramine (CPM)",a:"1st-gen Antihistamine (sedating)"},{n:"Loratadine",a:"2nd-gen Antihistamine (non-sedating)"},{n:"Fexofenadine",a:"3rd-gen Antihistamine (peripherally selective)"},{n:"Dextromethorphan",a:"NMDA Antagonist Antitussive"},{n:"Bromhexine",a:"Mucolytic (depolymerizes mucopolysaccharides)"},{n:"Famotidine",a:"H2-Receptor Antagonist"},{n:"Hyoscine (Scopolamine)",a:"Anticholinergic / Antispasmodic"},{n:"Loperamide",a:"Peripheral Opioid Receptor Agonist (Antidiarrheal)"},{n:"Glibenclamide",a:"Sulfonylurea (closes K-ATP channel)"},{n:"Allopurinol",a:"Xanthine Oxidase Inhibitor (antigout)"},{n:"Colchicine",a:"Microtubule Inhibitor (acute gout)"},{n:"Diclofenac",a:"NSAIDs (acetic acid derivative)"},{n:"Naproxen",a:"NSAIDs (propionic acid derivative)"},{n:"Celecoxib",a:"Selective COX-2 Inhibitor"},{n:"Aspirin (Low dose)",a:"Irreversible COX-1 Inhibitor / Antiplatelet"},{n:"Ergotamine",a:"Serotonin Agonist Antimigraine"},{n:"Norfloxacin",a:"Fluoroquinolone (urinary/GI tract)"},{n:"ORS",a:"Oral Rehydration Solution (WHO formula)"}
 ];
 
 // ════════════════════════════════════════
 //  STATE
+// ════════════════════════════════════════
+
+// ════════════════════════════════════════
+// ▶ RUNTIME STATE
 // ════════════════════════════════════════
 let currentUser=null, userData=null, unsub=null;
 // UI state
@@ -665,6 +717,10 @@ let __quizTop5Posted=false, __drugTop5Posted=false;
 
 // ════════════════════════════════════════
 //  INIT
+// ════════════════════════════════════════
+
+// ════════════════════════════════════════
+// ▶ AUTH & USER MANAGEMENT
 // ════════════════════════════════════════
 function initStudents() {
     const sci=R_SCI.map(s=>{const[nick,rest]=s.split(' (');return{nickname:nick,id:rest.replace(')',''),track:'sci'};});
@@ -889,6 +945,10 @@ window.closeDailyModal=()=>document.getElementById('daily-modal').classList.remo
 // ════════════════════════════════════════
 //  UPGRADE SELECT MODAL
 // ════════════════════════════════════════
+
+// ════════════════════════════════════════
+// ▶ UPGRADE SYSTEM
+// ════════════════════════════════════════
 window.openUpgradeModal=async(petInstId)=>{
     if(!currentUser||!userData){toast("กรุณา Login","error");return;}
     let owned=userData?.pets||[];
@@ -1008,6 +1068,10 @@ window.confirmUpgrade=async()=>{
 // ════════════════════════════════════════
 //  HELPERS
 // ════════════════════════════════════════
+
+// ════════════════════════════════════════
+// ▶ HELPER UTILITIES
+// ════════════════════════════════════════
 function activePet(){
     if(!userData?.activePet||!userData?.pets)return null;
     // ลอง match instId ก่อน (ใหม่) แล้ว fallback id (legacy)
@@ -1045,6 +1109,10 @@ async function loadTicker() {
     } catch(e){}
 }
 
+
+// ════════════════════════════════════════
+// ▶ NEWS FEED
+// ════════════════════════════════════════
 window.openFeed=async()=>{
     document.getElementById('feed-modal').classList.add('active');
     try {
@@ -1078,6 +1146,10 @@ window.deleteNews=async(newsId)=>{
 };
 
 // Megaphone
+
+// ════════════════════════════════════════
+// ▶ MEGAPHONE
+// ════════════════════════════════════════
 window.openMega=()=>{
     if(!currentUser){toast("Login ก่อน","error");return;}
     document.getElementById('mega-coins').textContent=(userData?.coins||0).toLocaleString();
@@ -1209,7 +1281,6 @@ window.handlePhoto=async(e)=>{
 // ════════════════════════════════════════
 //  GACHA & HATCH
 // ════════════════════════════════════════
-function rollPet(){return rollPetFromEgg('pet');} 
 window.buyEgg=async(eggType='pet')=>{
     if(!currentUser||!userData){toast("กรุณา Login","error");return;}
     const et=EGG_TYPES[eggType];if(!et)return;
@@ -1413,6 +1484,10 @@ window.closePetInfo=()=>document.getElementById('petinfo-modal').classList.remov
 // ════════════════════════════════════════
 //  TRADE
 // ════════════════════════════════════════
+
+// ════════════════════════════════════════
+// ▶ TRADE SYSTEM
+// ════════════════════════════════════════
 window.openTrade=()=>{if(!currentUser){toast("Login ก่อน","error");return;}tradeIdx=null;renderTradeList();document.getElementById('trade-panel').classList.add('active');};
 window.closeTrade=()=>document.getElementById('trade-panel').classList.remove('active');
 function renderTradeList(){
@@ -1435,7 +1510,7 @@ window.sendTrade=async()=>{
         all.forEach(d=>{if(d.data().email===email)targetUid=d.id;});
     }
     if(!targetUid){toast("ไม่พบผู้ใช้","error");return;}
-    const newPets=userData.pets.filter((_,i)=>i!==tradeIdx);
+    const newPets=userData.pets.filter(p=>!pet.instId?p.id!==pet.id:(p.instId||'')!==String(pet.instId));
     await setDoc(doc(db,"users",currentUser.uid),{pets:newPets},{merge:true});
     await updateDoc(doc(db,"users",targetUid),{pets:arrayUnion(pet)});
     toast(`ส่ง ${pet.emoji}${pet.name} ให้ ${email}!`,"success");closeTrade();tradeIdx=null;loadFbUsers();
@@ -1575,6 +1650,10 @@ function renderTab(tab){
 //  TAB: HOME
 // ════════════════════════════════════════
 const GOOGLE_SVG=`<svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>`;
+
+// ════════════════════════════════════════
+// ▶ TAB BUILDERS — HOME
+// ════════════════════════════════════════
 function buildHome(){
     if(!currentUser)return`
         <div style="background:linear-gradient(160deg,#0c1445,#1a237e,#0d47a1);border-radius:24px;padding:40px 20px 36px;text-align:center;color:#fff;box-shadow:0 8px 32px rgba(13,71,161,.4)">
@@ -1593,7 +1672,7 @@ function buildHome(){
             <div class="hero-bg">
                 <div class="hero-top">
                     <div class="pc-img-wrap">
-                        <img src="${myPhoto()}" class="pc-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
+                        <img loading="lazy" src="${myPhoto()}" class="pc-img" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
                         <button class="pc-cam" onclick="triggerPhoto()">📷</button>
                     </div>
                     <div style="flex:1;min-width:0">
@@ -1619,7 +1698,7 @@ function buildHome(){
         <div id="daily-card" style="margin:8px 0 0;border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#0f172a,#1e293b)"><div style="flex:1"><div style="color:rgba(255,255,255,.3);font-size:0.8rem">กำลังโหลด...</div></div></div>`
         :`<div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:20px;padding:0;overflow:hidden;margin-bottom:10px;box-shadow:0 4px 16px rgba(0,0,0,.2)">
             <div style="padding:20px 18px 16px;display:flex;align-items:center;gap:14px">
-                <img src="${myPhoto()}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.15);flex-shrink:0" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
+                <img loading="lazy" src="${myPhoto()}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.15);flex-shrink:0" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?'">
                 <div style="flex:1;min-width:0">
                     <div style="font-weight:800;font-size:1rem;color:#fff">${userData?.name||'ยินดีต้อนรับ!'}</div>
                     <div style="font-size:0.78rem;color:rgba(255,255,255,.45);margin-top:2px">Login แล้ว — ผูกรหัสเพื่อเข้าถึงทุกฟีเจอร์</div>
@@ -1748,6 +1827,10 @@ function buildHome(){
 // ════════════════════════════════════════
 //  TAB: MEMBERS
 // ════════════════════════════════════════
+
+// ════════════════════════════════════════
+// ▶ TAB BUILDERS — MEMBERS
+// ════════════════════════════════════════
 function buildMembers(){
     const all=window.__students||[];const sci=all.filter(s=>s.track==='sci').length;const care=all.filter(s=>s.track==='care').length;const tot=all.length;
     const guestCount=(window.__guestUsers||[]).length;
@@ -1785,7 +1868,7 @@ function memberGrid(){
         const petColor=petData?(RARITY[petData.rarity]?.color||'#64748b'):'';
         return`<div class="mcard" onclick="openProfileModal('${s.id}')">
             <div style="position:relative;width:64px;height:64px;margin-bottom:4px">
-                <img src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:64px;height:64px">
+                <img loading="lazy" src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:64px;height:64px">
                 ${petData?`<div style="position:absolute;bottom:-6px;right:-6px;font-size:1.25rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));line-height:1">${petData.emoji}${petGrade>0?`<span style="position:absolute;bottom:-1px;right:-4px;background:${petColor};color:#fff;font-size:0.38rem;font-weight:800;padding:1px 3px;border-radius:3px;line-height:1.4">${GRADE_LABELS[petGrade]}</span>`:''}${(()=>{const pDef2=PETS.find(x=>x.id===petData.id);const elEm=ELEMENTS[pDef2?.element]?.emoji||'';return elEm?`<span style="position:absolute;top:-5px;left:-5px;font-size:0.6rem;line-height:1">${elEm}</span>`:''})()}
                 </div>`:''}
             </div>
@@ -1852,7 +1935,7 @@ window.openProfileModal=(id)=>{
         </div>`;
     })();
     document.getElementById('pm-content').innerHTML=`
-        <img src="${photo}" onerror="this.onerror=null;this.src='${def}'" class="pm-img">
+        <img loading="lazy" src="${photo}" onerror="this.onerror=null;this.src='${def}'" class="pm-img">
         <div class="pm-nick">${nickHtml}</div>
         <div class="pm-real">${s.realName}</div>
         <div class="pm-id">${s.id}</div>
@@ -1924,7 +2007,7 @@ window.openGuestList=()=>{
         const photo=g.customPhotoFull||g.customPhoto||g.googlePhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(g.nickname||'?')}&background=64748b&color=fff&size=128`;
         const petData=g.activePet?(g.pets||[]).find(p=>p.id===g.activePet):null;
         return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
-            <img src="${photo}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?&background=64748b&color=fff'">
+            <img loading="lazy" src="${photo}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=?&background=64748b&color=fff'">
             <div style="flex:1">
                 <div style="font-weight:700;font-size:0.88rem">${g.nickname||'ไม่ระบุ'} ${petData?petData.emoji:''}</div>
                 <div style="font-size:0.68rem;color:var(--muted)">Quiz ${g.quizHigh||0} • Drug ${g.drugHigh||0}</div>
@@ -1958,7 +2041,7 @@ function _renderLbRows(board,scoreKey,accentColor){
         const rc=i===0?'gold':i===1?'silver':i===2?'bronze':'';
         return`<div class="lb-row${isMe?' lb-me':''}">
             <div class="lb-rank ${rc}">${i<3?icons[i]:i+1}</div>
-            <img src="${ph}" class="lb-photo" onerror="this.onerror=null;this.src='${fb}'">
+            <img loading="lazy" src="${ph}" class="lb-photo" onerror="this.onerror=null;this.src='${fb}'">
             <div class="lb-name">${u.nickname||'?'}${pet?` ${pet.emoji}`:''}</div>
             <div class="lb-score" style="color:${accentColor}">${u[scoreKey]}</div>
         </div>`;
@@ -1975,6 +2058,10 @@ function buildDrugLb(){
 
 // ════════════════════════════════════════
 //  TAB: PLAY
+// ════════════════════════════════════════
+
+// ════════════════════════════════════════
+// ▶ TAB BUILDERS — PLAY
 // ════════════════════════════════════════
 function buildPlay(){
     const tickerText=(document.getElementById('ticker-text')?.textContent||'').trim()||'ยินดีต้อนรับสู่ RxTU10 Dashboard! 🎉';
@@ -2066,6 +2153,10 @@ function buildPlay(){
 
 // ════════════════════════════════════════
 //  EXPEDITION SYSTEM
+// ════════════════════════════════════════
+
+// ════════════════════════════════════════
+// ▶ EXPEDITION SYSTEM
 // ════════════════════════════════════════
 const EXP_DURATIONS = [
     { label:'15 นาที', mins:15,  mult:[0.1,0.75], eggVar:1 },
@@ -2239,7 +2330,7 @@ window.claimExpedition=async(expId)=>{
         newEggs.push({eggId:Date.now()+'_'+Math.random().toString(36).slice(2,6),
             eggType:'pet',petId:pet.id,petEmoji:pet.emoji,petName:pet.name,
             petRarity:pet.rarity,petInstId:pet.instId,hatchMins:pet.hatchMins,startedAt:null});
-        eggMsg=` + 🥚 ได้ไข่ปริศนา (${pet.emoji}${pet.petRarity||''})!`;
+        eggMsg=` + 🥚 ได้ไข่ปริศนา (${pet.emoji} ${pet.rarity||''})!`;
     }
     // clear expedition + unmark pets
     const remainExps=exps.filter(e=>e.id!==expId);
@@ -2254,10 +2345,18 @@ window.claimExpedition=async(expId)=>{
     confetti({particleCount:100,spread:70,origin:{y:0.5}});
 };
 
+
+// ════════════════════════════════════════
+// ▶ LEADERBOARD
+// ════════════════════════════════════════
 window.toggleLb=(id)=>{const el=document.getElementById(id);if(!el)return;const show=el.style.display==='none';el.style.display=show?'block':'none';if(show){el.innerHTML=id==='qlb'?buildQuizLb():buildDrugLb();}}
 
 // ════════════════════════════════════════
 //  TAB: SHOP
+// ════════════════════════════════════════
+
+// ════════════════════════════════════════
+// ▶ TAB BUILDERS — SHOP
 // ════════════════════════════════════════
 function buildShop(){
     const coins=userData?.coins||0;const canMega=!!currentUser&&coins>=MEGA_COST;
@@ -2318,6 +2417,10 @@ function buildShop(){
 }
 
 // คอลเลกชั่นสัตว์เลี้ยง — สร้าง HTML (เรียกจาก Home)
+
+// ════════════════════════════════════════
+// ▶ TAB BUILDERS — COLLECTION
+// ════════════════════════════════════════
 function buildCollection(){
     const owned=new Set((userData?.pets||[]).map(p=>p.id));
     return['common','rare','epic','legendary'].map(r=>{
@@ -2374,6 +2477,10 @@ window.toggleCollection=()=>{
 let __battle  = null; // 2-pet battle state
 let __sandbox = null; // dummy sandbox state
 
+
+// ════════════════════════════════════════
+// ▶ BATTLE SYSTEM
+// ════════════════════════════════════════
 window.openBattle = () => {
     if (!currentUser) { toast('กรุณา Login', 'error'); return; }
     const pets = (userData?.pets||[]).filter(p=>!p.isExpedition);
@@ -2802,11 +2909,12 @@ window.__tab='home';
 loadTicker();
 // Hatch timer refresh — only when eggs actively hatching, never during game
 let __hatchTimer=setInterval(()=>{
+    if(document.hidden) return; // ไม่อัปเดตเมื่อ tab ถูกซ่อน
     const eggs=(userData?.eggs||[]);
     const hasHatching=eggs.some(e=>e.startedAt&&Date.now()<e.startedAt+e.hatchMins*60000);
     if(!hasHatching) return;
     if(window.__tab==='home') renderTab('home'); // เฉพาะ home ที่มี egg UI
-},10000);
+},15000); // 15s — ลด CPU usage, ยังคงแม่นยำในระดับที่ผู้ใช้รับรู้ได้
 
 </script>
 
