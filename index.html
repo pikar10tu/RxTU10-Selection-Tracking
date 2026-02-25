@@ -211,7 +211,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 /* ═══════════════════════════════
    MODALS
    ═══════════════════════════════ */
-.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px);}
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px);}
 .modal-ov.active{display:flex;}
 .modal-box{background:#fff;border-radius:20px;padding:24px 18px;max-width:340px;width:100%;animation:popIn .35s cubic-bezier(.34,1.56,.64,1);will-change:transform,opacity;position:relative;max-height:88vh;overflow-y:auto;}
 @keyframes popIn{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
@@ -584,7 +584,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 </div>
 
 <!-- CONFIRM MODAL -->
-<div class="modal-ov" id="confirm-modal" onclick="if(event.target===this)document.getElementById('confirm-modal').classList.remove('active')">
+<div class="modal-ov" id="confirm-modal" style="z-index:9999">
     <div class="modal-box" style="max-width:300px;text-align:center">
         <div style="font-size:1.3rem;margin-bottom:8px">🤔</div>
         <div style="font-weight:700;font-size:1rem;margin-bottom:18px" id="confirm-msg">ยืนยัน?</div>
@@ -904,19 +904,20 @@ function _confirm(msg){
         const okBtn=document.getElementById('confirm-ok');
         const cancelBtn=document.getElementById('confirm-cancel');
         if(!modal||!okBtn||!cancelBtn){resolve(window.confirm(msg));return;}
-        // แสดงข้อความ (รองรับ \n)
         msgEl.innerHTML=msg.split('\n').map(l=>`<div>${l}</div>`).join('');
         modal.classList.add('active');
+        let resolved=false;
         const cleanup=(result)=>{
+            if(resolved)return; resolved=true;
             modal.classList.remove('active');
             okBtn.onclick=null; cancelBtn.onclick=null;
+            modal.removeEventListener('click',backdropHandler);
             resolve(result);
         };
+        const backdropHandler=(e)=>{if(e.target===modal)cleanup(false);};
         okBtn.onclick=()=>cleanup(true);
         cancelBtn.onclick=()=>cleanup(false);
-        // backdrop click = cancel
-        modal._confirmCleanup=(e)=>{if(e.target===modal)cleanup(false);};
-        modal.addEventListener('click',modal._confirmCleanup,{once:true});
+        modal.addEventListener('click',backdropHandler);
     });
 }
 
@@ -952,6 +953,7 @@ onAuthStateChanged(auth,async u=>{
         await ensureDoc(u);
         if(unsub)unsub();
         unsub=onSnapshot(doc(db,"users",u.uid),snap=>{
+            if(window.__blockSnapshot){return;}  // forge/trade กำลัง write อยู่
             userData=snap.data();qHigh=userData?.quizHigh||0;dqHigh=userData?.drugHigh||0;
             // migrate: ถ้า activePet เป็น id เก่า (ไม่มี _) ให้ clear เพื่อป้องกัน multi-highlight
             if(userData?.activePet&&!String(userData.activePet).includes('_')){
@@ -3187,9 +3189,17 @@ ${petDisplayName(p)} ${p.grade>0?'Grade '+GRADE_LABELS[p.grade]:''}
         toast(`💔 ตีแหก! +${r} → +${r} (เสียแค่ ${rate.cost}🪙)`,'error',3500);
     }
 
-    // Save Firestore in background
-    updateDoc(doc(db,'users',currentUser.uid),{pets:newPets,coins:newCoins})
-        .catch(e=>console.error('forge save',e));
+    // Block onSnapshot ระหว่าง write เพื่อป้องกัน race condition
+    window.__blockSnapshot = true;
+    try {
+        await updateDoc(doc(db,'users',currentUser.uid),{pets:newPets,coins:newCoins});
+    } catch(e) {
+        console.error('forge save',e);
+        toast('เซฟข้อมูลผิดพลาด กรุณาลองใหม่','error');
+    } finally {
+        // คืน flag หลัง Firestore acknowledge — snapshot ถัดไปจะมีค่าใหม่แล้ว
+        setTimeout(()=>{ window.__blockSnapshot=false; }, 1500);
+    }
 };
 
 // ════════════════════════════════════════
