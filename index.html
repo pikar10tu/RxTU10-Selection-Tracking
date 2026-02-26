@@ -115,7 +115,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px;}
 
 /* MEMBERS GRID */
-.mcard{background:#fff;border-radius:13px;padding:11px 6px;cursor:pointer;text-align:center;border:1.5px solid var(--border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.mcard{background:#fff;border-radius:13px;padding:11px 6px 8px;cursor:pointer;text-align:center;border:1.5px solid var(--border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:3px;overflow:hidden;}
 .mcard:hover{transform:translateY(-2px);box-shadow:0 5px 12px rgba(0,0,0,.07);}
 .mc-img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);}
 /* .mc-emoji-fallback removed — not used */
@@ -399,11 +399,13 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
     background:#7c3aed;color:#fff;font-size:0.45rem;font-weight:800;padding:1px 5px;
     border-radius:8px;white-space:nowrap;}
 .tower-slot 
-.btn-tower{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;
-    padding:11px 20px;border-radius:12px;font-family:inherit;font-size:0.9rem;font-weight:800;
+.btn-tower{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;border:none;
+    padding:14px 20px;border-radius:14px;font-family:inherit;font-size:0.95rem;font-weight:900;
     cursor:pointer;transition:.2s;width:100%;letter-spacing:.5px;
-    box-shadow:0 4px 14px rgba(124,58,237,.4);}
-.btn-tower:disabled{opacity:.4;cursor:not-allowed;}
+    box-shadow:0 4px 18px rgba(239,68,68,.45);text-shadow:0 1px 2px rgba(0,0,0,.3);}
+.btn-tower:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 22px rgba(239,68,68,.55);}
+.btn-tower:active:not(:disabled){transform:translateY(0);}
+.btn-tower:disabled{background:rgba(255,255,255,.08);color:rgba(255,255,255,.25);box-shadow:none;cursor:not-allowed;}
 
 /* PVP & PROFILE REDESIGN */
 /* Profile modal — dark card layout */
@@ -755,24 +757,51 @@ const MEGA_COST = 25;
 const ADMIN_EMAIL = 'prawich.aum@dome.tu.ac.th';
 
 
-/** rollPetFromGlowEgg() → pet object, Epic 60% / Legendary 40% */
+/** rollPetFromGlowEgg() → ระดับกลาง Rare 45% / Epic 35% / Legendary 20% */
 function rollPetFromGlowEgg(){
-    const pool=PETS.filter(p=>p.rarity==='epic'||p.rarity==='legendary');
-    const epics=pool.filter(p=>p.rarity==='epic');
-    const legs=pool.filter(p=>p.rarity==='legendary');
-    const isLeg=Math.random()<0.40;
-    const src=isLeg?legs:epics;
-    const p=src[Math.floor(Math.random()*src.length)];
+    const rv=Math.random();
+    const rarity = rv<0.45 ? 'rare' : rv<0.80 ? 'epic' : 'legendary';
+    const pool=PETS.filter(p=>p.rarity===rarity);
+    const p=pool[Math.floor(Math.random()*pool.length)];
     return{...p, instId:`${p.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`};
 }
+
+/** rollPetFromStarEgg() → ระดับสูง Epic 60% / Legendary 40% */
+function rollPetFromStarEgg(){
+    const isLeg=Math.random()<0.40;
+    const pool=PETS.filter(p=>p.rarity===(isLeg?'legendary':'epic'));
+    const p=pool[Math.floor(Math.random()*pool.length)];
+    return{...p, instId:`${p.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`};
+}
+window.buyStarEgg=async()=>{
+    if(!currentUser){toast('กรุณา Login ก่อน','error');return;}
+    const cost=3000;
+    if((userData?.coins||0)<cost){toast(`เหรียญไม่พอ! ต้องการ ${cost}🪙`,'error');return;}
+    if(!await _confirm(`🌠 ไข่ตำนาน\nราคา ${cost}🪙\n\nสุ่ม Epic 60% / Legendary 40%\n\nยืนยันซื้อ?`))return;
+    const pet=rollPetFromStarEgg();
+    const egg={
+        eggId:`star_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        eggType:'star', petId:pet.id, petEmoji:pet.emoji,
+        petName:pet.name, petRarity:pet.rarity,
+        petInstId:pet.instId, hatchMins:2, startedAt:null,
+    };
+    window.__blockSnapshot=true;
+    userData={...userData, coins:(userData.coins||0)-cost, eggs:[...(userData.eggs||[]),egg]};
+    renderAll();
+    try{
+        await updateDoc(doc(db,'users',currentUser.uid),{coins:increment(-cost), eggs:arrayUnion(egg)});
+    }catch(e){toast('ซื้อไม่สำเร็จ','error');}
+    finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
+    toast(`🌠 ได้รับไข่ตำนานแล้ว! ${pet.rarity==='legendary'?'⭐ Legendary!':'🟣 Epic'}...`,'success');
+};
 window.buyGlowEgg=async()=>{
     if(!currentUser){toast('กรุณา Login ก่อน','error');return;}
-    const cost=2000;
+    const cost=1200;
     if((userData?.coins||0)<cost){toast(`เหรียญไม่พอ! ต้องการ ${cost}🪙`,'error');return;}
     if(!await _confirm(`🌐 ไข่เรืองแสง
 ราคา ${cost}🪙
 
-สุ่ม Epic 60% / Legendary 40%
+สุ่ม Rare 45% / Epic 35% / Legendary 20%
 
 ยืนยันซื้อ?`))return;
     const pet=rollPetFromGlowEgg();
@@ -791,7 +820,7 @@ window.buyGlowEgg=async()=>{
         });
     }catch(e){toast('ซื้อไม่สำเร็จ','error');}
     finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
-    toast(`🌐 ได้รับไข่เรืองแสงแล้ว! ${pet.rarity==='legendary'?'⭐ Legendary!':'🟣 Epic'}...`,'success');
+    toast(`🌐 ได้รับไข่เรืองแสงแล้ว! ${pet.rarity==='legendary'?'⭐ Legendary!! ✨':pet.rarity==='epic'?'🟣 Epic!':'💎 Rare'}...`,'success');
 };
 /** rollPetFromEgg(eggType) → pet object with instId
  *  eggType: 'normal' | 'gold' | 'rainbow'
@@ -855,7 +884,7 @@ const DRUGS=[
 // ════════════════════════════════════════
 let currentUser=null, userData=null, unsub=null;
 // UI state
-let mTrack='all', mSearch='', mConnected=false;
+let mTrack='all', mSearch='';
 let tradeIdx=null;
 // Quiz state
 let qScore=0, qAnswer=null, qHigh=0;
@@ -907,7 +936,7 @@ async function loadFbUsers() {
                 towerBest:x.towerBest,
                 activePet:x.activePet,
                 activePets:x.activePets||[null,null,null],
-                pvpVictories:x.pvpVictories||0,
+                pvpVictories:x.pvpVictories||0,contact:x.contact||{phone:'',ig:'',line:''},likes:x.likes||0,likedBy:x.likedBy||{},_uid:x.uid||null,
                 pets:x.pets,
                 email:x.email,
                 googlePhoto:x.googlePhoto,
@@ -989,7 +1018,7 @@ window.logoutUser=()=>{
  */
 async function ensureDoc(u){
     const ref=doc(db,"users",u.uid);const snap=await getDoc(ref);
-    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:2000,pets:[],eggs:[],activePet:null,activePets:[null,null,null],pvpVictories:0,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,ctHigh:0,towerFloor:1,towerBest:0,towerLastReset:null,lastDaily:null,createdAt:serverTimestamp()});
+    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:2000,pets:[],eggs:[],activePet:null,activePets:[null,null,null],pvpVictories:0,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,ctHigh:0,towerFloor:1,towerBest:0,towerLastReset:null,lastDaily:null,contact:{phone:'',ig:'',line:''},likes:0,likedBy:{},createdAt:serverTimestamp()});
 }
 
 onAuthStateChanged(auth,async u=>{
@@ -1913,6 +1942,21 @@ function buildHome(){
                 <div class="hs-cell"><b>${userData.towerBest||0}</b><small>🗼 Tower</small></div>
                 <div class="hs-cell"><b>${userData.pvpVictories||0}</b><small>⚔️ PvP</small></div>
             </div>
+            <div style="background:#060b1f;border-top:1px solid rgba(255,255,255,.07);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+                <div style="display:flex;gap:14px;flex-wrap:wrap;flex:1">
+                    ${(()=>{const c=userData?.contact||{};return[
+                        {icon:'📱',key:'phone',val:c.phone},
+                        {icon:'📸',key:'ig',   val:c.ig},
+                        {icon:'💬',key:'line', val:c.line}
+                    ].map(x=>`<div style="font-size:0.65rem;color:${x.val?'rgba(255,255,255,.7)':'rgba(255,255,255,.2)'}">
+                        ${x.icon} <span style="font-family:'Space Mono',monospace">${x.val||'—'}</span>
+                    </div>`).join('');})()}
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+                    ${(userData?.likes||0)>0?`<div style="font-size:0.68rem;color:#f472b6;font-weight:700">💙 ${userData.likes}</div>`:''}
+                    <button onclick="openContactEdit()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:8px;padding:4px 10px;font-size:0.65rem;cursor:pointer;font-family:inherit">✏️ แก้ไข</button>
+                </div>
+            </div>
         </div>
 `
         :`<div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:20px;padding:0;overflow:hidden;margin-bottom:10px;box-shadow:0 4px 16px rgba(0,0,0,.2)">
@@ -1993,9 +2037,9 @@ function buildHome(){
             let timeLeft='';if(hatching&&!done){const ms=(egg.startedAt+egg.hatchMins*60000)-now;const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);const s=Math.floor((ms%60000)/1000);timeLeft=h>0?`${h}ชม ${m}น`:m>0?`${m}น ${s}ว`:`${s}ว`;}
             const pct=hatching&&!done?Math.min(100,Math.floor((now-egg.startedAt)/(egg.hatchMins*60000)*100)):0;
             return`<div class="egg-bag-item" style="--rc:${cfg.color};--rb:${cfg.bg}">
-                <div style="font-size:2rem;flex-shrink:0">${done?egg.petEmoji:'🥚'}</div>
+                <div style="font-size:2rem;flex-shrink:0">${done?egg.petEmoji:egg.eggType==='star'?'🌠':egg.eggType==='glow'?'🌐':'🥚'}</div>
                 <div style="flex:1;min-width:0">
-                    <div style="font-weight:700;font-size:0.86rem">${done?egg.petName:'ไข่ปริศนา 🔮'}</div>
+                    <div style="font-weight:700;font-size:0.86rem">${done?egg.petName:egg.eggType==='star'?'ไข่ตำนาน 🌠':egg.eggType==='glow'?'ไข่เรืองแสง 🌐':'ไข่ปริศนา 🔮'}</div>
                     <div style="font-size:0.68rem;color:${cfg.color};font-weight:700">${done?cfg.label+' • '+HATCH_LABELS[egg.petRarity]:'กำลังรอฟัก...'}</div>
                     ${hatching&&!done?`<div class="hatch-bar"><div class="hatch-fill" style="width:${pct}%;background:#94a3b8"></div></div><div style="font-size:0.67rem;color:var(--muted)">เหลือ ${timeLeft}</div>`:''}
                     ${done?`<div style="font-size:0.72rem;color:var(--care);font-weight:600">✅ ฟักเสร็จ!</div>`:''}
@@ -2094,7 +2138,6 @@ function buildMembers(){
             <button class="fbtn${mTrack==='all'?' fa':''}" onclick="mFilter('all')">รวม ${tot}</button>
             <button class="fbtn${mTrack==='sci'?' fs':''}" onclick="mFilter('sci')">Sci ${sci}</button>
             <button class="fbtn${mTrack==='care'?' fc':''}" onclick="mFilter('care')">Care ${care}</button>
-            <button class="fbtn${mConnected?' fa':''}" onclick="mToggleConnected()" style="${mConnected?'background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.5);color:#818cf8;':''}flex:1.1">🎮${mConnected?' เล่นอยู่':' เล่นอยู่'}</button>
         </div>
         <div class="search-box"><input class="srch-inp" id="msearch" placeholder="🔍 ชื่อเล่น / รหัส / ชื่อจริง..." value="${mSearch}" oninput="mSearchFn(this.value)"></div>
         <div id="mgrid">${memberGrid()}</div>`;
@@ -2102,7 +2145,6 @@ function buildMembers(){
 function memberGrid(){
     let list=window.__students||[];
     if(mTrack!=='all')list=list.filter(s=>s.track===mTrack);
-    if(mConnected) list=list.filter(s=>!!(window.__fbUsers?.[s.id]));
     if(mSearch){const q=mSearch.toLowerCase();list=list.filter(s=>s.nickname.toLowerCase().includes(q)||s.id.includes(q)||s.realName.toLowerCase().includes(q));}
     if(!list.length)return`<div style="text-align:center;color:var(--muted);padding:24px">ไม่พบ</div>`;
     return`<div class="mgrid">${list.map(s=>{
@@ -2130,18 +2172,26 @@ function memberGrid(){
                 <span class="track-badge" style="background:${tc};font-size:0.5rem;padding:2px 6px;margin-top:4px">${s.track==='sci'?'SCI':'CARE'}</span>
             </div>`;
         }
-        return`<div class="mcard" onclick="openProfileModal('${s.id}')">
+        const c=live?.contact||{};
+        const likeCount=live?.likes||0;
+        return`<div class="mcard" onclick="openProfileModal('${s.id}')" style="position:relative">
             <div style="position:relative;width:64px;height:64px;margin-bottom:4px">
                 <img loading="lazy" src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:64px;height:64px">
                 ${petData?`<div style="position:absolute;bottom:-6px;right:-6px;font-size:1.3rem;filter:drop-shadow(0 1px 4px rgba(0,0,0,.5));line-height:1">${petData.emoji}</div>`:''}
             </div>
             <div class="mc-nick">${s.nickname}</div>
             <span class="track-badge" style="background:${tc};font-size:0.52rem;padding:2px 6px;margin-top:1px">${s.track==='sci'?'SCI':'CARE'}</span>
+            <div style="margin-top:5px;width:100%;display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--border);padding-top:5px">
+                ${[{icon:'📱',val:c.phone},{icon:'📸',val:c.ig},{icon:'💬',val:c.line}].map(x=>`
+                <div style="font-size:0.55rem;color:${x.val?'var(--text)':'#cbd5e1'};display:flex;align-items:center;gap:3px;justify-content:center">
+                    <span>${x.icon}</span><span style="font-family:'Space Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72px">${x.val||'—'}</span>
+                </div>`).join('')}
+            </div>
+            ${likeCount>0?`<div style="position:absolute;top:6px;right:7px;font-size:0.6rem;color:#f472b6;font-weight:800;background:rgba(244,114,182,.1);border-radius:20px;padding:1px 5px">💙${likeCount}</div>`:''}
         </div>`;
     }).join('')}</div>`;
 }
 window.mFilter=t=>{mTrack=t;const g=document.getElementById('mgrid');if(g)g.innerHTML=memberGrid();};
-window.mToggleConnected=()=>{ mConnected=!mConnected; if(window.__tab==='members') renderTab('members'); };
 window.mSearchFn=v=>{mSearch=v;const g=document.getElementById('mgrid');if(g)g.innerHTML=memberGrid();};
 
 window.openProfileModal=(id)=>{
@@ -2192,9 +2242,41 @@ window.openProfileModal=(id)=>{
         <div class="pm-team">${buildTeamSlots(liveData,false)}</div>
     </div>`:'');
 
+    // ── Contact info section ──
+    const contactHtml = liveData ? (()=>{
+        const c = liveData.contact||{};
+        const fields = [
+            {icon:'📱', label:'เบอร์', val:c.phone},
+            {icon:'📸', label:'IG',    val:c.ig},
+            {icon:'💬', label:'LINE',  val:c.line},
+        ];
+        const hasAny = fields.some(f=>f.val);
+        return `<div class="pm-section">
+            <div class="pm-section-label">📋 ช่องทางติดต่อ</div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+            ${fields.map(f=>`
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid rgba(255,255,255,.07)">
+                    <span style="font-size:1rem;width:22px;text-align:center">${f.icon}</span>
+                    <span style="font-size:0.7rem;color:rgba(255,255,255,.35);width:34px;flex-shrink:0">${f.label}</span>
+                    <span style="font-size:0.8rem;color:${f.val?'rgba(255,255,255,.85)':'rgba(255,255,255,.2)'};font-family:'Space Mono',monospace;font-weight:${f.val?700:400}">${f.val||'—'}</span>
+                </div>`).join('')}
+            </div>
+        </div>`;
+    })() : '';
+
     // ── Challenge button ──
     const challengeBtn=(!isMe&&liveData)?`
-    <div class="pm-section" style="padding-bottom:16px">
+    <div class="pm-section" style="padding-bottom:16px;display:flex;flex-direction:column;gap:8px">
+        ${(()=>{
+            const today=new Date().toISOString().slice(0,10);
+            const likedBy=liveData?.likedBy||{};
+            const myUid=currentUser?.uid;
+            const alreadyLiked=myUid&&likedBy[myUid]===today;
+            const likeCount=liveData?.likes||0;
+            return `<button onclick="giveLike('${id}')" ${alreadyLiked?'disabled':''} style="width:100%;background:${alreadyLiked?'rgba(244,114,182,.08)':'linear-gradient(135deg,rgba(244,114,182,.2),rgba(236,72,153,.15))'};border:1.5px solid ${alreadyLiked?'rgba(244,114,182,.2)':'rgba(244,114,182,.4)'};border-radius:12px;padding:11px;color:${alreadyLiked?'rgba(244,114,182,.4)':'#f9a8d4'};font-family:inherit;font-size:0.85rem;font-weight:700;cursor:${alreadyLiked?'not-allowed':'pointer'};transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px">
+                💙 ${alreadyLiked?'กดใจแล้ววันนี้':'กดใจ'}${likeCount>0?` · <span style="color:#f472b6;font-weight:800">${likeCount}</span>`:''}
+            </button>`;
+        })()}
         <button class="btn-pvp" onclick="startPvpChallenge('${id}')">⚔️ ท้าทาย ${s.nickname}</button>
     </div>`:'';
 
@@ -2214,6 +2296,7 @@ window.openProfileModal=(id)=>{
             <button onclick="closePM()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem;flex-shrink:0;align-self:flex-start">✕</button>
         </div>
         ${statsHtml}
+        ${contactHtml}
         ${myTeamEditor}
         ${challengeBtn}
     </div>`;
@@ -2223,6 +2306,83 @@ window.openProfileModal=(id)=>{
     window.__pmPickingSlot = null;
 };
 window.closePM=()=>document.getElementById('profile-modal').classList.remove('active');
+
+// ══════════════════════════════════════════════════
+// ▶ LIKES SYSTEM
+// ══════════════════════════════════════════════════
+window.giveLike = async (targetStudentId) => {
+    if(!currentUser){ toast('กรุณา Login ก่อน','error'); return; }
+    const myUid = currentUser.uid;
+    const today = new Date().toISOString().slice(0,10);
+    // หา targetUid จาก __fbUsers
+    const targetLive = Object.entries(window.__fbUsers||{}).find(([sid,d])=>sid===targetStudentId)?.[1];
+    if(!targetLive?._uid){ toast('ไม่พบข้อมูล','error'); return; }
+    const targetUid = targetLive._uid;
+    if(targetUid===myUid){ toast('ไม่สามารถกดใจตัวเองได้ 😅','info'); return; }
+    // check วันนี้กดไปแล้วไหม
+    const likedBy = targetLive.likedBy||{};
+    if(likedBy[myUid]===today){ toast('กดใจไปแล้ววันนี้ 💙','info'); return; }
+    try{
+        await updateDoc(doc(db,'users',targetUid),{
+            likes: increment(1),
+            [`likedBy.${myUid}`]: today,
+        });
+        // update local cache
+        if(window.__fbUsers[targetStudentId]){
+            window.__fbUsers[targetStudentId].likes=(window.__fbUsers[targetStudentId].likes||0)+1;
+            window.__fbUsers[targetStudentId].likedBy={...likedBy,[myUid]:today};
+        }
+        toast('💙 กดใจแล้ว!','success');
+        // re-render profile modal
+        window.openProfileModal(targetStudentId);
+    }catch(e){ toast('เกิดข้อผิดพลาด','error'); }
+};
+// ══════════════════════════════════════════════════
+// ▶ CONTACT EDIT
+// ══════════════════════════════════════════════════
+window.openContactEdit = () => {
+    const c = userData?.contact || {};
+    let overlay = document.getElementById('contact-edit-overlay');
+    if(!overlay){ overlay=document.createElement('div'); overlay.id='contact-edit-overlay'; document.body.appendChild(overlay); }
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9100;display:flex;align-items:flex-end;justify-content:center;padding:16px;';
+    overlay.innerHTML=`
+    <div onclick="event.stopPropagation()" style="background:linear-gradient(175deg,#0f172a,#1e293b);border-radius:20px 20px 16px 16px;padding:22px 18px 28px;width:100%;max-width:420px;border:1px solid rgba(255,255,255,.1)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+            <div style="font-weight:800;font-size:1rem;color:#fff">📋 ช่องทางติดต่อ</div>
+            <button onclick="document.getElementById('contact-edit-overlay').remove()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem">✕</button>
+        </div>
+        ${[
+            {key:'phone', icon:'📱', label:'เบอร์โทร', placeholder:'0XX-XXX-XXXX'},
+            {key:'ig',    icon:'📸', label:'Instagram ID', placeholder:'@username'},
+            {key:'line',  icon:'💬', label:'LINE ID', placeholder:'line_id'},
+        ].map(f=>`
+        <div style="margin-bottom:14px">
+            <div style="font-size:0.68rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:1px;margin-bottom:5px">${f.icon} ${f.label}</div>
+            <input id="cedit-${f.key}" maxlength="20" value="${(c[f.key]||'').replace(/"/g,'&quot;')}" placeholder="${f.placeholder}"
+                style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 13px;color:#fff;font-family:'Kanit',sans-serif;font-size:0.85rem;outline:none;box-sizing:border-box">
+        </div>`).join('')}
+        <div style="font-size:0.6rem;color:rgba(255,255,255,.25);margin-bottom:14px;text-align:right">จำกัด 20 ตัวอักษรต่อรายการ</div>
+        <button onclick="saveContact()" style="width:100%;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:12px;padding:12px;color:#fff;font-family:inherit;font-size:0.88rem;font-weight:800;cursor:pointer">💾 บันทึก</button>
+    </div>`;
+};
+
+window.saveContact = async () => {
+    if(!currentUser) return;
+    const trim20 = v => (v||'').trim().slice(0,20);
+    const contact = {
+        phone: trim20(document.getElementById('cedit-phone')?.value),
+        ig:    trim20(document.getElementById('cedit-ig')?.value),
+        line:  trim20(document.getElementById('cedit-line')?.value),
+    };
+    try {
+        await updateDoc(doc(db,'users',currentUser.uid),{contact});
+        userData = {...userData, contact};
+        document.getElementById('contact-edit-overlay')?.remove();
+        toast('💾 บันทึกข้อมูลติดต่อแล้ว!','success');
+        renderTab('home');
+    } catch(e){ toast('บันทึกผิดพลาด','error'); }
+};
+
 
 // ── Active Pets Slot Picker ──
 let __pmSlots = [null,null,null]; // working copy
@@ -3462,16 +3622,28 @@ function buildShop(){
                 <button class="btn-gold" onclick="buyEgg('pet')" ${currentUser&&coins>=150?'':'disabled'} style="white-space:nowrap">150🪙</button>
             </div>
             <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:0">
-                    <span style="font-size:3rem;animation:wobble 3s ease infinite 0.5s;display:inline-block;filter:drop-shadow(0 0 12px rgba(99,102,241,.7))">🌐</span>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+                    <span style="font-size:3rem;animation:wobble 3s ease infinite 0.5s;display:inline-block;filter:drop-shadow(0 0 8px rgba(99,102,241,.6))">🌐</span>
                     <div style="flex:1">
-                        <div style="font-weight:800;font-size:1rem;margin-bottom:2px">ไข่เรืองแสง</div>
+                        <div style="font-weight:800;font-size:1rem;margin-bottom:2px">ไข่เรืองแสง <span style="font-size:0.62rem;color:#6366f1;background:#eef2ff;padding:1px 6px;border-radius:8px;font-weight:700">ระดับกลาง</span></div>
+                        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
+                            <span style="background:#eff6ff;color:#3b82f6;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 45%</span>
+                            <span style="background:#faf5ff;color:#a855f7;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 35%</span>
+                            <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Leg 20%</span>
+                        </div>
+                    </div>
+                    <button class="btn-gold" onclick="buyGlowEgg()" \${currentUser&&(userData?.coins||0)>=1200?'':'disabled'} style="white-space:nowrap">1200🪙</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding-top:10px;border-top:1px solid var(--border)">
+                    <span style="font-size:3rem;animation:wobble 3.5s ease infinite 1s;display:inline-block;filter:drop-shadow(0 0 14px rgba(245,158,11,.8))">🌠</span>
+                    <div style="flex:1">
+                        <div style="font-weight:800;font-size:1rem;margin-bottom:2px">ไข่ตำนาน <span style="font-size:0.62rem;color:#d97706;background:#fffbeb;padding:1px 6px;border-radius:8px;font-weight:700">ระดับสูง</span></div>
                         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
                             <span style="background:#faf5ff;color:#a855f7;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 60%</span>
                             <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 40%</span>
                         </div>
                     </div>
-                    <button class="btn-gold" onclick="buyGlowEgg()" ${currentUser&&(userData?.coins||0)>=2000?'':'disabled'} style="white-space:nowrap">2000🪙</button>
+                    <button class="btn-gold" onclick="buyStarEgg()" \${currentUser&&(userData?.coins||0)>=3000?'':'disabled'} style="white-space:nowrap">3000🪙</button>
                 </div>
             </div>
             <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;align-items:center;gap:10px">
@@ -4052,7 +4224,7 @@ function _renderTowerLobby(){
     const today=new Date().toDateString();
     const canReset=userData?.towerLastReset!==today;
     const isFirstClear=floor>(userData?.towerBest||0);
-    const reward=isFirstClear?floor*50:floor*10;
+    const reward=isFirstClear?floor*20:floor*5;
 
     const slotHtml=__twSelTeam.map((id,i)=>{
         const p=(userData?.pets||[]).find(x=>String(x.instId||x.id)===id);
@@ -4118,9 +4290,15 @@ function _renderTowerLobby(){
         <div style="font-size:0.65rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px;margin-bottom:7px">🧩 จัดทีม (1–3 ตัว) — ลำดับ = ลำดับผลัด</div>
         <div class="tower-slot-row">${slotHtml}</div>
 
-        <button class="btn-tower" onclick="startTowerBattle()" ${canFight?'':'disabled'} style="margin-bottom:12px">
-            ⚔️ ${canFight?`เริ่มสู้! ชั้น ${floor} (${__twSelTeam.length} ตัว)`:'เลือกสัตว์ก่อน'}
-        </button>
+        ${(()=>{
+            const bg=canFight?'linear-gradient(135deg,#7c3aed,#6d28d9)':'rgba(255,255,255,.06)';
+            const bd=canFight?'rgba(167,139,250,.5)':'rgba(255,255,255,.1)';
+            const sh=canFight?'box-shadow:0 4px 20px rgba(124,58,237,.4);':'';
+            const inner=canFight
+                ?'<span style="font-size:1.4rem">⚔️</span><div style="text-align:left"><div style="color:#fff;font-size:0.95rem;font-weight:800">เริ่มสู้! ชั้น '+floor+'</div><div style="color:rgba(196,181,253,.7);font-size:0.65rem;font-weight:600">'+__twSelTeam.length+' ตัว พร้อมรบ</div></div>'
+                :'<span style="opacity:.4">🐾</span><span style="color:rgba(255,255,255,.3);font-size:0.82rem;font-weight:600">เลือกสัตว์เลี้ยงด้านล่าง</span>';
+            return '<button onclick="startTowerBattle()" '+(canFight?'':'disabled')+' style="width:100%;margin-bottom:12px;padding:0;border:none;cursor:'+(canFight?'pointer':'not-allowed')+';background:transparent;font-family:inherit"><div style="background:'+bg+';border:2px solid '+bd+';border-radius:16px;padding:14px 18px;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;'+sh+'">'+inner+'</div></button>';
+        })()}
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
             <div style="font-size:0.6rem;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:.5px">เลือกสัตว์</div>
@@ -4193,7 +4371,7 @@ window.startTowerBattle=()=>{
         titleExtra: (c)=>`ชั้น ${floor} · เทิร์น ${c.turn}`,
         onClose: ()=>closeTower(),
         renderResult:(c, weWon)=>{
-            const reward=floor<=towerBestAtStart?floor*10:floor*50;
+            const reward=floor<=towerBestAtStart?floor*5:floor*20;
             return`<div style="text-align:center;padding:6px 0 2px">
                 <div style="font-size:3rem;animation:bBounce .5s ease">${weWon?'🎉':'💀'}</div>
                 <div style="font-size:1.05rem;font-weight:800;color:#fff;margin:6px 0">
@@ -4215,7 +4393,7 @@ window.startTowerBattle=()=>{
 
 async function _towerOnWin(floor, bestAtStart){
     const isFirst=floor>bestAtStart;
-    const reward=isFirst?floor*50:floor*10;
+    const reward=isFirst?floor*20:floor*5;
     const newFloor=floor+1;
     const newBest=Math.max(bestAtStart,floor);
     const newCoins=(userData?.coins||0)+reward;
@@ -4224,8 +4402,8 @@ async function _towerOnWin(floor, bestAtStart){
     renderAll();
     try{
         await updateDoc(doc(db,'users',currentUser.uid),{towerFloor:newFloor,towerBest:newBest,coins:increment(reward)});
-        if(isFirst&&typeof postNews==='function') await postNews('🗼',`${userData.nickname} ผ่านหอคอยชั้น ${floor}! (+${reward}🪙)`).catch(()=>{});
-        if(floor%5===0&&typeof confetti==='function') confetti({particleCount:120,spread:70,origin:{y:0.5}});
+        if(isFirst&&floor%5===0&&typeof postNews==='function') await postNews('🗼',`${userData.nickname} ผ่านหอคอยชั้น ${floor}! (+${reward}🪙)`).catch(()=>{});
+        if(isFirst&&floor%5===0&&typeof confetti==='function') confetti({particleCount:120,spread:70,origin:{y:0.5}});
         loadFbUsers();
     }catch(e){console.error('tower save',e);}
     finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
