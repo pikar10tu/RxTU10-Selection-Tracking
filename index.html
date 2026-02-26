@@ -1416,20 +1416,23 @@ async function postNews(icon, msg) {
 
 async function loadTicker() {
     try {
-        const q=query(collection(db,"news"),orderBy("ts","desc"),limit(5));
+        const q=query(collection(db,"news"),orderBy("ts","desc"),limit(8));
         const snap=await getDocs(q);
         let items=[];
         snap.forEach(d=>{const x=d.data();items.push(`${sanitize(x.icon)} ${sanitize(x.msg)}`);});
         if(!items.length)items=['ยินดีต้อนรับสู่ RxTU10 Dashboard! 🎉'];
+        window.__tickerCache=items.join('  •  ');
+        // อัปเดต ticker ที่กำลังแสดงอยู่ (ถ้า play tab เปิดอยู่)
         const tickerInnerEl=document.querySelector('.ticker-inner');
         if(tickerInnerEl){
-            tickerInnerEl.textContent=items.join('  •  ');
-            // Reflow: รีเซ็ต CSS animation ให้เริ่มใหม่ทันที
+            tickerInnerEl.textContent=window.__tickerCache;
             tickerInnerEl.style.animation='none';
-            void tickerInnerEl.offsetWidth; // force reflow
+            void tickerInnerEl.offsetWidth;
             tickerInnerEl.style.animation='';
         }
-        document.getElementById('ticker-text').textContent=items.join('  •  ');
+        // legacy hidden element
+        const legEl=document.getElementById('ticker-text');
+        if(legEl) legEl.textContent=window.__tickerCache;
     } catch(e){}
 }
 
@@ -2297,13 +2300,11 @@ window.openProfileModal=(id)=>{
     const statsHtml=liveData?`
     <div class="pm-section">
         <div class="pm-section-label">สถิติการเล่น</div>
-        <div class="pm-stats-grid">
-            <div class="pm-stat-cell"><b>🏰${liveData.towerFloor||1}</b><small>หอคอยชั้นนี้</small></div>
-            <div class="pm-stat-cell"><b>🗼${liveData.towerBest||0}</b><small>Tower Best</small></div>
+        <div class="pm-stats-grid" style="grid-template-columns:repeat(2,1fr)">
+            <div class="pm-stat-cell"><b>🗼${liveData.towerBest||0}</b><small>Tower สูงสุด</small></div>
             <div class="pm-stat-cell"><b>🏆${liveData.pvpVictories||0}</b><small>PvP ชนะ</small></div>
             <div class="pm-stat-cell"><b>${liveData.quizHigh||0}</b><small>👥 Quiz</small></div>
             <div class="pm-stat-cell"><b>${liveData.drugHigh||0}</b><small>💊 Drug</small></div>
-            <div class="pm-stat-cell"><b>${liveData.ctHigh||0}</b><small>🟩 Tiles</small></div>
         </div>
     </div>`:'';
 
@@ -2314,11 +2315,11 @@ window.openProfileModal=(id)=>{
         <div id="pm-team-slots" class="pm-team">${buildTeamSlots(userData,true)}</div>
         <div id="pm-pick-grid" style="display:none;margin-top:10px"></div>
         <button id="pm-save-team-btn" onclick="pmSaveTeam()" style="display:none;width:100%;margin-top:8px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:10px;padding:10px;color:#fff;font-family:inherit;font-size:0.82rem;font-weight:800;cursor:pointer">💾 บันทึกทีม</button>
-    </div>`:`
+    </div>`:(liveData?`
     <div class="pm-section">
         <div class="pm-section-label">🧩 ทีมสู้รบ</div>
         <div class="pm-team">${buildTeamSlots(liveData,false)}</div>
-    </div>`;
+    </div>`:'');
 
     // ── Challenge button ──
     const challengeBtn=(!isMe&&liveData)?`
@@ -2542,7 +2543,7 @@ function buildCtLb(){
 // ▶ TAB BUILDERS — PLAY
 // ════════════════════════════════════════
 function buildPlay(){
-    const tickerText=(document.getElementById('ticker-text')?.textContent||'').trim()||'ยินดีต้อนรับสู่ RxTU10 Dashboard! 🎉';
+    const tickerText=window.__tickerCache||(document.getElementById('ticker-text')?.textContent||'').trim()||'ยินดีต้อนรับสู่ RxTU10 Dashboard! 🎉';
     const ctHigh=userData?.ctHigh||0;
 
     // ── นับสถานะ expedition เพื่อแสดง notify dot ──
@@ -4351,12 +4352,24 @@ async function _pvpHandleResult(weWon, myName, enemyName, enemyStudentId){
     const newsMsg=weWon
         ?`${myName} ได้ท้าทาย ${enemyName} และได้รับชัยชนะ! 🏆`
         :`${myName} ได้ท้าทาย ${enemyName} แต่พ่ายแพ้กลับมา... 💀`;
+
+    const today=new Date().toDateString();
+    const pvpLog=userData?.pvpWinsToday||{};
+
     if(weWon){
-        const newVic=(userData?.pvpVictories||0)+1;
-        window.__blockSnapshot=true;
-        userData={...userData,pvpVictories:newVic};
-        try{ await updateDoc(doc(db,'users',currentUser.uid),{pvpVictories:newVic}); }
-        catch(e){} finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
+        // ตรวจว่าวันนี้เคยชนะคนนี้ไปแล้วหรือยัง
+        const alreadyScored = pvpLog[enemyStudentId]===today;
+        if(alreadyScored){
+            toast('⚔️ ชนะ! (ไม่ได้แต้มเพิ่ม — ชนะคนนี้ไปแล้ววันนี้)','info');
+        } else {
+            const newVic=(userData?.pvpVictories||0)+1;
+            const newLog={...pvpLog,[enemyStudentId]:today};
+            window.__blockSnapshot=true;
+            userData={...userData,pvpVictories:newVic,pvpWinsToday:newLog};
+            try{ await updateDoc(doc(db,'users',currentUser.uid),{pvpVictories:newVic,pvpWinsToday:newLog}); }
+            catch(e){} finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
+            toast('+1 ชัยชนะ PvP! 🏆','success');
+        }
     } else {
         const enUid=(window.__fbUsers?.[enemyStudentId])?.uid;
         if(enUid){ try{await updateDoc(doc(db,'users',enUid),{pvpVictories:increment(1)});}catch(e){} }
