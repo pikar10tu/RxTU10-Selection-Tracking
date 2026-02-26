@@ -8,43 +8,30 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 <style>
 
-/* ═══════════════════════════════
-   VARIABLES & RESET
-   ═══════════════════════════════ */
+/* VARIABLES & RESET */
 :root{--sci:#2563eb;--care:#10b981;--gold:#f59e0b;--bg:#f0f4f8;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--ticker:34px;--btm:66px;}
 *{box-sizing:border-box;margin:0;padding:0;}
-/* ═══════════════════════════════
-   BASE LAYOUT
-   ═══════════════════════════════ */
+/* BASE LAYOUT */
 html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(--text);}
 
-/* ── TOP BAR ── */
-/* top-bar removed */
-/* coin-pill และ btn-daily ถูกนิยามใหม่ใน HOME section ด้านล่าง */
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 .btn-out{background:none;border:1.5px solid #fca5a5;color:#ef4444;padding:7px 14px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;width:100%;}
 
-/* ═══════════════════════════════
-   BUTTONS
-   ═══════════════════════════════ */
+/* BUTTONS */
 .btn-google{background:#fff;border:1.5px solid var(--border);padding:6px 11px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--text);font-weight:500;transition:.2s;}
 .btn-google.big{padding:13px 22px;font-size:0.95rem;width:100%;justify-content:center;}
 
 /* ── NEWS TICKER ── */
-/* ticker now inline in Play tab */
+
 .ticker-label{background:#f59e0b;color:#1e293b;padding:3px 9px;font-weight:800;font-size:0.72rem;white-space:nowrap;border-radius:6px 0 0 6px;}
 .ticker-scroll{flex:1;overflow:hidden;position:relative;height:34px;}
 .ticker-inner{position:absolute;white-space:nowrap;animation:tickerMove 22s linear infinite;padding:0 12px;line-height:34px;font-size:0.8rem;will-change:transform;}
 
-/* ═══════════════════════════════
-   KEYFRAME ANIMATIONS
-   ═══════════════════════════════ */
+/* KEYFRAME ANIMATIONS */
 @keyframes tickerMove{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 .ticker-inner:hover{animation-play-state:paused;}
 
-/* ═══════════════════════════════
-   COMPONENTS — CARDS & BANNERS
-   ═══════════════════════════════ */
+/* COMPONENTS — CARDS & BANNERS */
 .news-banner{background:linear-gradient(135deg,#1e293b,#334155);color:#fde68a;font-weight:600;display:flex;align-items:center;border-radius:12px;overflow:hidden;cursor:pointer;margin-bottom:10px;height:36px;}
 
 /* ── MAIN ── */
@@ -66,14 +53,9 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* ── COMMON ── */
 .card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;}
-.sec-head{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin:16px 0 8px;}/* .track-badge นิยามใน HOME section */
+.sec-head{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin:16px 0 8px;}
 
-/* ── HOME ── */
-/* Hero banner */
-
-/* ═══════════════════════════════
-   HOME — HERO PROFILE
-   ═══════════════════════════════ */
+/* HOME — HERO PROFILE */
 .home-hero{border-radius:20px;overflow:hidden;margin-bottom:10px;position:relative;}
 .hero-bg{background:linear-gradient(160deg,#0c1445 0%,#1a237e 40%,#0d47a1 70%,#1565c0 100%);padding:20px 16px 0;position:relative;}
 .hero-bg::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
@@ -84,22 +66,21 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .pc-nick{font-size:1.05rem;font-weight:800;color:#fff;line-height:1.2;}
 .pc-real{font-size:0.76rem;color:rgba(255,255,255,.6);margin-top:1px;}
 .pc-id{font-size:0.64rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace;margin-top:2px;}
-/* action bar */
+
 .hero-actions{display:flex;align-items:center;gap:7px;position:relative;padding-bottom:14px;}
 .coin-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(4px);padding:7px 13px;border-radius:20px;font-size:0.88rem;font-weight:700;color:#fbbf24;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.15s;}
 .coin-pill:hover{background:rgba(255,255,255,.18);}
-.btn-daily{background:rgba(16,185,129,.2);border:1.5px solid rgba(16,185,129,.5);padding:7px 12px;border-radius:20px;font-size:0.84rem;cursor:pointer;color:#6ee7b7;font-family:inherit;font-weight:700;transition:.2s;}
-.btn-daily.ready{background:rgba(16,185,129,.3);border-color:#10b981;animation:pulse 2s ease infinite;color:#a7f3d0;will-change:opacity;}
+
 .btn-out-hero{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);padding:7px 11px;border-radius:20px;font-family:inherit;font-size:0.76rem;cursor:pointer;margin-left:auto;}
-/* hero stats strip */
+
 .hero-stats{display:grid;grid-template-columns:repeat(4,1fr);background:#0a0f2e;border-top:1px solid rgba(255,255,255,.1);}
 .hs-cell{padding:11px 6px;text-align:center;}
 .hs-cell b{display:block;font-size:1.05rem;font-weight:800;color:#fff;}
 .hs-cell small{font-size:0.62rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;}
-/* track pill */
+
 .track-badge{padding:3px 8px;border-radius:5px;color:#fff;font-size:0.58rem;font-weight:700;text-transform:uppercase;}
 .track-badge.sm{font-size:0.54rem;padding:2px 6px;}
-/* .stats-row/.stat-box removed — replaced by hero-stats strip */
+
 /* unlinked *//* collection card upgrade */
 .coll-card{background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:16px;padding:14px;margin-bottom:10px;color:#fff;}
 .coll-bar-bg{height:7px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin:8px 0;}
@@ -113,9 +94,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* Inventory */
 
-/* ═══════════════════════════════
-   HOME — INVENTORY
-   ═══════════════════════════════ */
+/* HOME — INVENTORY */
 .inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;}
 .inv-empty{text-align:center;color:var(--muted);padding:20px;font-size:0.84rem;}
 .inv-item{background:var(--rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
@@ -135,14 +114,12 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .srch-inp:focus{border-color:var(--gold);}
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px;}
 
-/* ═══════════════════════════════
-   MEMBERS GRID
-   ═══════════════════════════════ */
+/* MEMBERS GRID */
 .mcard{background:#fff;border-radius:13px;padding:11px 6px;cursor:pointer;text-align:center;border:1.5px solid var(--border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
 .mcard:hover{transform:translateY(-2px);box-shadow:0 5px 12px rgba(0,0,0,.07);}
 .mc-img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);}
 /* .mc-emoji-fallback removed — not used */
-.mc-nick{font-weight:600;font-size:0.82rem;} .mc-id{font-size:0.62rem;color:var(--muted);}
+.mc-nick{font-weight:600;font-size:0.82rem;} 
 .prog-bar{height:16px;background:var(--border);border-radius:50px;overflow:hidden;display:flex;margin-bottom:4px;}
 .pb-sci{background:var(--sci);height:100%;} .pb-care{background:var(--care);height:100%;}
 .prog-lbls{display:flex;justify-content:space-between;font-size:0.76rem;font-weight:600;}
@@ -150,24 +127,12 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 /* ── PLAY ── */
 /* Game arena cards */
 
-/* ═══════════════════════════════
-   PLAY — GAME ARENA
-   ═══════════════════════════════ */
-.game-arena{border-radius:20px;overflow:hidden;margin-bottom:12px;position:relative;}
-.game-arena-header{padding:16px 18px 14px;display:flex;justify-content:space-between;align-items:center;}
-.game-arena-body{padding:0 14px 16px;}
-/* Quiz: ทายชื่อ — deep navy theme */
-.arena-name{background:linear-gradient(160deg,#0f172a 0%,#1e293b 60%,#1e3a5f 100%);}
-.arena-name .game-arena-header{border-bottom:1px solid rgba(255,255,255,.08);}
-/* Quiz: ทายยา — deep indigo theme */
-.arena-drug{background:linear-gradient(160deg,#1e1b4b 0%,#312e81 60%,#1e3a8a 100%);}
-.arena-drug .game-arena-header{border-bottom:1px solid rgba(255,255,255,.08);}
+/* PLAY — GAME ARENA */
 
-/* score badge */
-.score-badge{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 14px;color:#fff;font-size:0.78rem;font-weight:700;display:flex;align-items:center;gap:5px;}
-.score-badge b{font-size:1rem;color:#fbbf24;}
+/* Quiz: ทายชื่อ — deep navy theme */
+
 /* game title */
-.game-title{font-size:0.82rem;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:1px;text-transform:uppercase;}
+
 /* start screen */
 .game-start{text-align:center;padding:20px 0 8px;}
 .game-start-icon{font-size:3rem;margin-bottom:8px;display:block;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));}
@@ -189,8 +154,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 /* result message *//* combo flash */
 @keyframes scoreFlash{0%{transform:scale(1.4);color:#fbbf24}100%{transform:scale(1);}}
 .score-flash{animation:scoreFlash .35s ease-out;will-change:transform;}
-/* coming soon */
-.coming-soon{background:linear-gradient(135deg,#1e293b,#334155);border-radius:20px;padding:28px;text-align:center;color:#fff;margin-bottom:10px;}
+
 /* leaderboard */.lb-row{display:flex;align-items:center;gap:7px;padding:6px 10px;border-top:1px solid rgba(255,255,255,.06);}
 .lb-rank{font-size:0.7rem;font-weight:800;color:rgba(255,255,255,.35);width:14px;text-align:center;flex-shrink:0;}
 .lb-rank.gold{color:#fbbf24;font-size:0.8rem;}
@@ -207,18 +171,16 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* ── MODALS ── */
 
-/* ═══════════════════════════════
-   MODALS
-   ═══════════════════════════════ */
+/* MODALS */
 .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px);}
 .modal-ov.active{display:flex;}
 .modal-box{background:#fff;border-radius:20px;padding:24px 18px;max-width:340px;width:100%;animation:popIn .35s cubic-bezier(.34,1.56,.64,1);will-change:transform,opacity;position:relative;max-height:88vh;overflow-y:auto;}
 @keyframes popIn{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
 .mclose{position:absolute;top:10px;right:10px;background:var(--border);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;}
-.pm-img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.12);margin-bottom:9px;}
-.pm-nick{font-size:1.25rem;font-weight:700;} .pm-real{color:var(--muted);font-size:0.88rem;} .pm-id{font-size:0.74rem;color:var(--muted);font-family:'Space Mono',monospace;margin:3px 0;}
+
+  
 .pm-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:9px;}
-.pm-stat{background:var(--bg);border-radius:9px;padding:7px 3px;text-align:center;display:flex;flex-direction:column;align-items:center;}
+
 .pm-stat span{font-size:1rem;} .pm-stat b{font-size:0.85rem;font-weight:700;} .pm-stat small{font-size:0.62rem;color:var(--muted);}.link-irow{display:flex;gap:6px;margin:10px 0 3px;}
 .link-inp{flex:1;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.92rem;outline:none;transition:.2s;}
 .link-inp:focus{border-color:var(--sci);}
@@ -232,9 +194,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .slide-panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:18px 14px;box-shadow:0 -5px 24px rgba(0,0,0,.1);z-index:400;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);max-height:65vh;overflow-y:auto;}
 .slide-panel.active{transform:translateY(0);}
 
-/* ═══════════════════════════════
-   TRADE SYSTEM
-   ═══════════════════════════════ */
+/* TRADE SYSTEM */
 .trade-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:9px;border:2px solid var(--border);cursor:pointer;margin-bottom:6px;transition:.15s;}
 .trade-item.sel{border-color:var(--sci);background:#eff6ff;}
 .trade-inp{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.86rem;outline:none;margin:8px 0;}
@@ -265,41 +225,25 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 100%{background-position:300% 50%}}
 @keyframes sh{to{background-position:200% center}}
 
-
 /* ── BATTLE ── */
 
-/* ═══════════════════════════════
-   BATTLE SYSTEM
-   ═══════════════════════════════ */
+/* BATTLE SYSTEM */
 .battle-arena{background:linear-gradient(160deg,#0c1445 0%,#1a1a2e 50%,#16213e 100%);border-radius:20px;padding:16px 14px;margin-bottom:10px;position:relative;}
 .battle-arena::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M20 0l20 20-20 20L0 20z'/%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
 .battle-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;}
 .battle-title{font-size:0.72rem;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:2px;text-transform:uppercase;}
 .battle-field{display:grid;grid-template-columns:1fr 40px 1fr;gap:8px;align-items:start;margin-bottom:12px;position:relative;}
-.battle-side{text-align:center;}
-.battle-pet-em{font-size:3.2rem;display:block;filter:drop-shadow(0 0 12px var(--pet-glow,#ffffff44));transition:transform .15s;}
-.battle-pet-em.battle-pet-em@keyframes bShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+75%{transform:translateX(6px)}}
 @keyframes bBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
-.battle-pet-name{font-size:0.72rem;font-weight:700;color:rgba(255,255,255,.8);margin:3px 0 6px;}
-.battle-hp-bar{height:8px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px;}
-.battle-hp-fill{height:100%;border-radius:50px;transition:width .5s ease;}
-.battle-hp-txt{font-size:0.6rem;color:rgba(255,255,255,.45);text-align:center;}
-.battle-vs{display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:800;color:rgba(255,255,255,.25);padding-top:30px;}
-.battle-log{background:rgba(0,0,0,.25);border-radius:12px;padding:10px 12px;min-height:52px;font-size:0.74rem;color:rgba(255,255,255,.7);line-height:1.6;margin-bottom:12px;border:1px solid rgba(255,255,255,.06);}
-.battle-log-line{animation:fadeSlideIn .3s ease;}
+
 @keyframes fadeSlideIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .battle-select-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:7px;margin-bottom:10px;}
-.battle-pick{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.18s;}
-.battle-pick:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);transform:translateY(-2px);}
-.battle-pick.sel-a{border-color:#10b981;background:rgba(16,185,129,.15);}
-.battle-pick.sel-b{border-color:#f43f5e;background:rgba(244,63,94,.15);}
-.battle-dmg{position:absolute;font-weight:900;font-size:1.1rem;pointer-events:none;animation:dmgFloat .9s ease forwards;}
+
 @keyframes dmgFloat{0%{opacity:1;transform:translateY(0) scale(1.2)}100%{opacity:0;transform:translateY(-36px) scale(.8)}}
 .btn-battle{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;padding:11px 20px;border-radius:12px;font-family:inherit;font-size:0.9rem;font-weight:800;cursor:pointer;transition:.2s;width:100%;letter-spacing:.5px;box-shadow:0 4px 14px rgba(239,68,68,.4);}
 .btn-battle:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 18px rgba(239,68,68,.5);}
 .btn-battle:disabled{opacity:.4;cursor:not-allowed;}
-.battle-result{text-align:center;padding:14px 0 6px;}
-.battle-winner-em{font-size:4rem;animation:bBounce .5s ease;}
 
 /* ── BATTLE ANIMATIONS (core engine) ── */
 @keyframes attackPulse{0%{transform:scale(1)}30%{transform:scale(1.22) translateX(var(--att-dir,30px))}100%{transform:scale(1)}}
@@ -312,12 +256,9 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 @keyframes impactFlash{0%{opacity:.7}100%{opacity:0}}
 .slash-vfx{position:absolute;pointer-events:none;z-index:20;font-size:1.8rem;animation-duration:.35s;animation-timing-function:ease-out;animation-fill-mode:forwards;}
 .cem-attacker{animation:attackGlow .6s ease 2,attackPulse .35s ease forwards;will-change:transform,filter;}
-.cem-dead{animation:deathSpin .55s ease forwards!important;will-change:transform,opacity;}
+
 .cem-enter{animation:enterBounce .5s cubic-bezier(.34,1.56,.64,1) forwards;will-change:transform,opacity;}
 .cem-attacker-indicator{font-size:0.62rem;font-weight:800;color:#fbbf24;letter-spacing:1px;animation:turnArrow .25s ease;margin-top:2px;min-height:14px;}
-.cem-wrapper{position:relative;display:inline-block;}
-.cem-hp-bar-wrap{height:9px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px;}
-.cem-hp-fill{height:100%;border-radius:50px;transition:width .45s ease;}
 
 /* Egg bag extras */
 
@@ -328,28 +269,18 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* ── Expedition ── */
 
-/* ═══════════════════════════════
-   EXPEDITION SYSTEM
-   ═══════════════════════════════ */
-.arena-expedition{background:linear-gradient(160deg,#1a0533 0%,#2d1057 60%,#1e1b4b 100%);}
-.arena-expedition .game-arena-header{border-bottom:1px solid rgba(255,255,255,.08);}
-.exp-slot{border:2px dashed rgba(168,85,247,.3);border-radius:14px;padding:8px;text-align:center;cursor:pointer;transition:.2s;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;}
-.exp-slot.filled{border-color:#a855f7;background:rgba(168,85,247,.1);}
-.exp-slot.filled:hover{background:rgba(168,85,247,.18);}
-.exp-slot.empty{opacity:.6;}
-.exp-slot.empty:hover{border-color:#a855f7;opacity:1;}
+/* EXPEDITION SYSTEM */
+
 .exp-dur-btn{flex:1;padding:8px 4px;border-radius:10px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(255,255,255,.6);font-family:inherit;font-size:0.75rem;font-weight:700;cursor:pointer;transition:.2s;text-align:center;}
 .exp-dur-btn.sel{border-color:#a855f7;background:rgba(168,85,247,.18);color:#c4b5fd;}
 .exp-dur-btn:hover:not(.sel){background:rgba(255,255,255,.08);}
 .exp-active-card{background:rgba(168,85,247,.08);border:1.5px solid rgba(168,85,247,.25);border-radius:14px;padding:10px 12px;margin-bottom:8px;}
 .exp-timer{font-size:1.1rem;font-weight:800;color:#c4b5fd;font-variant-numeric:tabular-nums;}
 .exp-pets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px;margin:6px 0;}
-.inv-item.on-expedition{opacity:.5;cursor:default;}
-.inv-item.on-expedition::after{content:'⏳';position:absolute;bottom:2px;right:2px;font-size:0.65rem;}
+.inv-item
+.inv-item
 
-/* ═══════════════════════════════
-   GAME HUB
-   ═══════════════════════════════ */
+/* GAME HUB */
 .hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;}
 .hub-card{border-radius:18px;padding:18px 14px 16px;cursor:pointer;transition:transform .15s,box-shadow .15s;border:1.5px solid transparent;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;position:relative;overflow:hidden;}
 .hub-card:active{transform:scale(.96);}
@@ -372,9 +303,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .exp-modal-title h2{font-size:1rem;font-weight:800;color:#fff;margin:0;}
 .exp-modal-body{padding:14px 16px 4px;}
 
-/* ═══════════════════════════════
-   COLOR TILES GAME
-   ═══════════════════════════════ */
+/* COLOR TILES GAME */
 
 /* Time bar */
 .ct-time-bar-wrap{height:8px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;margin-bottom:14px;}
@@ -383,19 +312,17 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 /* Play field */
 .ct-field{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;border-radius:14px;overflow:hidden;height:280px;margin-bottom:10px;background:#0a0a0a;}
 .ct-lane{display:flex;flex-direction:column-reverse;gap:4px;padding:4px;background:transparent;position:relative;}
-.ct-lane-0{border-right:1px solid rgba(255,255,255,.05);}
-.ct-lane-1{border-right:1px solid rgba(255,255,255,.05);}
 
 /* Tile blocks */
-.ct-tile{border-radius:8px;flex-shrink:0;height:40px;transition:opacity .1s;}
+
 .ct-tile.empty{background:transparent;}
-.ct-tile.filled-0{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 2px 8px rgba(239,68,68,.5);}
-.ct-tile.filled-1{background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 2px 8px rgba(34,197,94,.5);}
-.ct-tile.filled-2{background:linear-gradient(135deg,#3b82f6,#2563eb);box-shadow:0 2px 8px rgba(59,130,246,.5);}
+.ct-tile
+.ct-tile
+.ct-tile
 /* active bottom row tile pulses */
-.ct-tile.active-0{animation:ctPulse0 .6s ease infinite;}
-.ct-tile.active-1{animation:ctPulse1 .6s ease infinite;}
-.ct-tile.active-2{animation:ctPulse2 .6s ease infinite;}
+.ct-tile
+.ct-tile
+.ct-tile
 @keyframes ctPulse0{0%,100%{box-shadow:0 2px 8px rgba(239,68,68,.5)}50%{box-shadow:0 0 20px rgba(239,68,68,.9),0 0 40px rgba(239,68,68,.3)}}
 @keyframes ctPulse1{0%,100%{box-shadow:0 2px 8px rgba(34,197,94,.5)}50%{box-shadow:0 0 20px rgba(34,197,94,.9),0 0 40px rgba(34,197,94,.3)}}
 @keyframes ctPulse2{0%,100%{box-shadow:0 2px 8px rgba(59,130,246,.5)}50%{box-shadow:0 0 20px rgba(59,130,246,.9),0 0 40px rgba(59,130,246,.3)}}
@@ -422,9 +349,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .ct-overlay{position:absolute;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;border-radius:14px;z-index:10;backdrop-filter:blur(4px);}
 .ct-overlay-box{text-align:center;padding:10px;}
 
-/* ═══════════════════════════════
-   FORGE (ตีบวก) SYSTEM
-   ═══════════════════════════════ */
+/* FORGE SYSTEM */
 .forge-modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:700;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);}
 .forge-modal-ov.active{display:flex;}
 .forge-sheet{width:100%;max-width:420px;background:linear-gradient(175deg,#1a1100 0%,#0d0900 60%,#120d00 100%);border-radius:24px 24px 0 0;max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 0 28px;}
@@ -432,11 +357,6 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .forge-body{padding:16px 16px 4px;}
 
 /* Refine level badge colors */
-.rf-0{color:rgba(255,255,255,.6);}
-.rf-1,.rf-2,.rf-3,.rf-4{color:rgba(255,255,255,.85);}
-.rf-5,.rf-6,.rf-7,.rf-8,.rf-9{color:#10b981;}
-.rf-10,.rf-11,.rf-12,.rf-13,.rf-14{color:#a855f7;}
-.rf-15{color:#eab308;}
 
 /* Pet select grid in forge */
 .forge-pet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:6px;margin-bottom:12px;}
@@ -452,9 +372,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .forge-chance-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin:8px 0;}
 .forge-chance-fill{height:100%;border-radius:99px;transition:width .3s;}
 
-/* ═══════════════════════════════
-   TOWER SYSTEM
-   ═══════════════════════════════ */
+/* TOWER SYSTEM */
 .tower-sheet{width:100%;max-width:480px;margin:0 auto;max-height:92dvh;overflow-y:auto;
     -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
     padding:12px 12px 28px;box-sizing:border-box;border-radius:20px 20px 0 0;background:#0c1445;}
@@ -465,8 +383,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
     pointer-events:none;border-radius:20px;}
 .tower-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;}
 .tower-title{font-size:1rem;font-weight:800;color:#fff;letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
-.floor-badge{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;
-    font-size:0.7rem;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.5px;}
+
 .tower-team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:7px;margin-bottom:10px;}
 .tower-pick{background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);border-radius:12px;
     padding:8px 4px;text-align:center;cursor:pointer;transition:.12s;}
@@ -481,26 +398,14 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .tower-slot .slot-num{position:absolute;top:-7px;left:50%;transform:translateX(-50%);
     background:#7c3aed;color:#fff;font-size:0.45rem;font-weight:800;padding:1px 5px;
     border-radius:8px;white-space:nowrap;}
-.tower-slot .slot-remove{position:absolute;top:-7px;right:-7px;width:16px;height:16px;
-    background:#ef4444;color:#fff;border-radius:50%;font-size:0.6rem;
-    display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:800;}
+.tower-slot 
 .btn-tower{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;
     padding:11px 20px;border-radius:12px;font-family:inherit;font-size:0.9rem;font-weight:800;
     cursor:pointer;transition:.2s;width:100%;letter-spacing:.5px;
     box-shadow:0 4px 14px rgba(124,58,237,.4);}
 .btn-tower:disabled{opacity:.4;cursor:not-allowed;}
-.tower-hp-bar{height:9px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px;}
-.tower-hp-fill{height:100%;border-radius:50px;transition:width .45s ease;}
-.tower-relay-row{display:flex;gap:5px;justify-content:center;margin-bottom:10px;}
-.relay-dot{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.15);
-    display:flex;align-items:center;justify-content:center;font-size:1rem;transition:.3s;}
-.relay-dot.active{border-color:#a78bfa;background:rgba(167,139,250,.2);
-    box-shadow:0 0 8px rgba(167,139,250,.5);}
-.relay-dot.dead{opacity:.2;filter:grayscale(1);}
 
-/* ═══════════════════════════════
-   PVP & PROFILE REDESIGN
-   ═══════════════════════════════ */
+/* PVP & PROFILE REDESIGN */
 /* Profile modal — dark card layout */
 .pm-card{background:linear-gradient(160deg,#0f172a,#1e293b);border-radius:20px;overflow:hidden;text-align:left;}
 .pm-hero{display:flex;align-items:center;gap:12px;padding:16px 16px 12px;}
@@ -529,7 +434,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .btn-pvp:hover{transform:translateY(-1px);}
 
 /* Active Pets selector (own profile) */
-.active-slots-row{display:flex;gap:8px;margin-bottom:10px;}
+
 .active-slot{flex:1;background:rgba(255,255,255,.05);border:2px dashed rgba(255,255,255,.15);
     border-radius:12px;padding:8px 4px;text-align:center;cursor:pointer;transition:.12s;min-height:64px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;}
@@ -542,28 +447,16 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .pvp-sheet{width:100%;max-width:480px;margin:0 auto;max-height:92dvh;overflow-y:auto;
     -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
     padding:12px 12px 28px;box-sizing:border-box;border-radius:20px 20px 0 0;background:#100020;}
-.pvp-arena{background:linear-gradient(160deg,#1a0030 0%,#200040 50%,#160028 100%);
-    border-radius:20px;padding:16px 14px;position:relative;}
-.pvp-arena::before{content:'';position:absolute;inset:0;
-    background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Cpath d='M20 0l20 20-20 20L0 20z'/%3E%3C/g%3E%3C/svg%3E");
-    pointer-events:none;border-radius:20px;}
-.pvp-relay-row{display:flex;gap:5px;}
-.pvp-dot{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.12);
-    font-size:0.95rem;display:flex;align-items:center;justify-content:center;transition:.3s;}
-.pvp-dot.active{border-color:#f43f5e;box-shadow:0 0 8px rgba(244,63,94,.5);}
-.pvp-dot.enemy-active{border-color:#818cf8;box-shadow:0 0 8px rgba(129,140,248,.5);}
-.pvp-dot.dead{opacity:.2;filter:grayscale(1);}
+
 @keyframes fadeSlideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
 @keyframes fadeSlideInLeft{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:translateX(0)}}
 @keyframes fadeOut{from{opacity:1}to{opacity:0}}
-.pvp-fade-in{animation:fadeSlideIn .5s ease forwards;}
-.pvp-fade-in-left{animation:fadeSlideInLeft .5s ease forwards;}
-.pvp-fade-out{animation:fadeOut .4s ease forwards;}
+
 </style>
 </head>
 <body>
 
-<div id="news-ticker" style="display:none"><div id="ticker-text"></div></div>
+<div id="ticker-text" style="display:none"></div>
 
 <div id="main-content">
     <div style="text-align:center;padding:60px 20px;color:var(--muted)">กำลังโหลด...</div>
@@ -750,7 +643,6 @@ const provider = new GoogleAuthProvider();
 // ════════════════════════════════════════
 //  CONSTANTS
 // ════════════════════════════════════════
-
 // ════════════════════════════════════════
 // ▶ CONSTANTS — RARITY / GRADES / ELEMENTS
 // ════════════════════════════════════════
@@ -765,7 +657,6 @@ const RARITY = {
 const GRADE_LABELS = ['','I','II','III','IV','V'];
 const GRADE_COPIES = [0,1,2,4,7,12]; // copies needed for each grade
 const GRADE_MULTI  = [1,2,4,8,16,32]; // ×base daily
-
 
 
 // ── ELEMENT SYSTEM ──
@@ -933,15 +824,6 @@ function calcTotalDaily(pets){
 }
 
 
-// ════════════════════════════════════════
-//  BATTLE SYSTEM (future)
-//  ─────────────────────────────────────
-//  Data layer พร้อมแล้ว:
-//    - ELEMENTS (✊✌️✋) + elementBeats()
-//    - calculatePetStats(p) → {atk, hp} (พร้อม forge bonus)
-//    - STAT_MULTI[grade] (×1.0 – ×3.5)
-//  Battle logic ที่จะเพิ่ม:
-//    - initBattle(myPet, opponentSnapshot)
 //    - calcDamage(attacker, defender) → ATK ×(1.5 ถ้าได้เปรียบ element)
 //    - battleLoop(state) → turn-based rounds
 //    - Battle result → post news + reward coins
@@ -950,7 +832,6 @@ function calcTotalDaily(pets){
 // ════════════════════════════════════════
 //  STUDENT DATA
 // ════════════════════════════════════════
-
 // ════════════════════════════════════════
 // ▶ DATA — STUDENT LISTS
 // ════════════════════════════════════════
@@ -969,7 +850,6 @@ const DRUGS=[
 // ════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════
-
 // ════════════════════════════════════════
 // ▶ RUNTIME STATE
 // ════════════════════════════════════════
@@ -986,7 +866,6 @@ let __quizTop5Posted=false, __drugTop5Posted=false;
 // ════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════
-
 // ════════════════════════════════════════
 // ▶ AUTH & USER MANAGEMENT
 // ════════════════════════════════════════
@@ -1184,59 +1063,11 @@ window.claimDaily=async()=>{
 // ════════════════════════════════════════
 //  DAILY BREAKDOWN MODAL
 // ════════════════════════════════════════
-window.openDailyModal=()=>{
-    if(!currentUser){toast("กรุณา Login","error");return;}
-    const pets=userData?.pets||[];
-    const {base,passive,total}=calcTotalDaily(pets);
-    const isReady=window.__dailyReady||false;
-
-    // rows สัตว์เลี้ยงแต่ละตัว + element + grade
-    const petRows=pets.length?pets.map(p=>{
-        const cfg=RARITY[p.rarity];
-        const daily=petDailyCoins(p);
-        const grade=p.grade||0;
-        const def=PETS.find(x=>x.id===p.id);
-        const elEmoji=ELEMENTS[def?.element]?.emoji||'';
-        return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:1.3rem">${p.emoji}</span>
-            <div style="flex:1;text-align:left">
-                <span style="font-weight:600;font-size:0.84rem">${formatPetName(p)}</span>
-                ${elEmoji?`<span style="margin-left:4px;font-size:0.8rem">${elEmoji}</span>`:''}
-                <div style="color:${cfg.color};font-size:0.65rem;font-weight:700">${cfg.label}${grade>0?' · Grade '+GRADE_LABELS[grade]:''}</div>
-            </div>
-            <span style="color:#10b981;font-weight:800;font-size:0.9rem">+${daily}🪙</span>
-        </div>`;
-    }).join(''):'<div style="color:var(--muted);font-size:0.78rem;padding:12px 0;text-align:center">ยังไม่มีสัตว์เลี้ยง<br><span style="font-size:0.7rem">ฟักไข่ใน Shop เพื่อรับ รายได้สะสม</span></div>';
-
-    document.getElementById('daily-content').innerHTML=`
-        <div style="font-size:1.8rem;margin-bottom:4px">🎁</div>
-        <div style="font-weight:800;font-size:1.1rem;margin-bottom:2px">Daily Reward</div>
-        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">${isReady?'พร้อมรับแล้ว! 🟢':'รับไปแล้ววันนี้ · รีเซ็ตเที่ยงคืน'}</div>
-
-        <div style="background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:10px;text-align:left">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
-                <span style="font-size:0.84rem">🎯 รายได้พื้นฐาน</span>
-                <span style="font-weight:700;color:#10b981">+${base}🪙</span>
-            </div>
-            ${petRows}
-        </div>
-
-        <div style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;padding:11px 14px;margin-bottom:12px">
-            <span style="font-weight:700">รวมทั้งหมด</span>
-            <span style="font-size:1.2rem;font-weight:800;color:#92400e">+${total}🪙</span>
-        </div>
-        <div style="text-align:center;font-size:0.75rem;color:var(--muted);padding:4px 0">
-            ${isReady?'⏳ ยังไม่ได้รับ — ปิดแล้วกดรับที่ card ด้านบน':'✅ รับแล้ววันนี้ · รีเซ็ตเที่ยงคืน'}
-        </div>
-    `;
-    document.getElementById('daily-modal').classList.add('active');
-};
 window.closeDailyModal=()=>document.getElementById('daily-modal').classList.remove('active');
 
 // ════════════════════════════════════════
 //  UPGRADE SELECT MODAL
 // ════════════════════════════════════════
-
 // ════════════════════════════════════════
 // ▶ UPGRADE SYSTEM
 // ════════════════════════════════════════
@@ -1365,8 +1196,6 @@ window.confirmUpgrade=async()=>{
 // ════════════════════════════════════════
 //  HELPERS
 // ════════════════════════════════════════
-
-
 // ════════════════════════════════════════
 // ▶ HELPER UTILITIES
 // ════════════════════════════════════════
@@ -1764,17 +1593,7 @@ window.togglePetSlot=async(slotIdx, instOrId)=>{
 };
 // Legacy shim — gacha "ใช้งานเลย!" button uses setActive
 window.setActive=async(instId)=>togglePetSlot(0, instId);
-window.unsetActive=async()=>{
-    const slots=[null,null,null];
-    window.__blockSnapshot=true;
-    userData={...userData,activePets:slots};
-    renderAll();
-    await updateDoc(doc(db,'users',currentUser.uid),{activePets:slots}).catch(()=>{});
-    setTimeout(()=>{window.__blockSnapshot=false;},1500);
-    toast('เอาสัตว์ออกทั้งหมดแล้ว','info'); loadFbUsers();
-};
 
-window.__claimingEgg=false; // reset after claim
 window.showPetInfo=async(petInstId)=>{
     const owned=userData?.pets||[];
     const p=owned.find(x=>x.instId&&String(x.instId)===String(petInstId))
@@ -1867,7 +1686,6 @@ window.closePetInfo=()=>document.getElementById('petinfo-modal').classList.remov
 // ════════════════════════════════════════
 //  TRADE
 // ════════════════════════════════════════
-
 // ════════════════════════════════════════
 // ▶ TRADE SYSTEM
 // ════════════════════════════════════════
@@ -2011,7 +1829,6 @@ window.renderAll=()=>{
     }
     renderTab(tab);
 };
-
 
 
 window.switchTab=(tab)=>{
@@ -2239,11 +2056,6 @@ function buildHome(){
 
     // Daily income breakdown
     const {base:dBase,passive:dPassive,total:dTotal}=calcTotalDaily(pets);
-    const dailyBreakdown=`<div id="daily-breakdown" style="display:none" class="card">
-        <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px">💰 รายได้/วัน · รวม <span style="color:#10b981">+${dTotal}🪙</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.82rem"><span>🎯 รายได้พื้นฐาน</span><span style="font-weight:700;color:#10b981">+${dBase}🪙</span></div>
-        ${pets.length?pets.map(p=>{const cfg=RARITY[p.rarity];const d=petDailyCoins(p);const gr=p.grade||0;const def=PETS.find(x=>x.id===p.id);const el=ELEMENTS[def?.element]?.emoji||'';return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:1.1rem">${p.emoji}</span><div style="flex:1;font-size:0.8rem"><span style="font-weight:600">${formatPetName(p)}</span>${el?` ${el}`:''}<div style="color:${cfg.color};font-size:0.6rem">${cfg.label}${gr>0?' · Grade '+GRADE_LABELS[gr]:''}</div></div><span style="color:#10b981;font-weight:800">+${d}🪙</span></div>`;}).join(''):'<div style="color:var(--muted);font-size:0.78rem;padding:10px 0;text-align:center">ยังไม่มีสัตว์เลี้ยง</div>'}
-    </div>`;
     const collBtn=`<div style="margin-bottom:8px">
         <button id="coll-toggle-btn" onclick="toggleCollection()" style="width:100%;background:linear-gradient(135deg,#1e293b,#0f172a);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:9px 14px;color:rgba(255,255,255,.75);font-size:0.82rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">🗂️ คอลเลกชั่น <span style="font-size:0.68rem;color:rgba(255,255,255,.35)">${uniqueIds.length}/${PETS.length}</span></button>
     </div><div id="collection-panel" style="display:none" class="card"></div>`;
@@ -2258,7 +2070,6 @@ function buildHome(){
 // ════════════════════════════════════════
 //  TAB: MEMBERS
 // ════════════════════════════════════════
-
 // ════════════════════════════════════════
 // ▶ TAB BUILDERS — MEMBERS
 // ════════════════════════════════════════
@@ -2276,6 +2087,7 @@ function buildMembers(){
             <button class="fbtn${mTrack==='all'?' fa':''}" onclick="mFilter('all')">รวม ${tot}</button>
             <button class="fbtn${mTrack==='sci'?' fs':''}" onclick="mFilter('sci')">Sci ${sci}</button>
             <button class="fbtn${mTrack==='care'?' fc':''}" onclick="mFilter('care')">Care ${care}</button>
+            <button class="fbtn${mConnected?' fa':''}" onclick="mToggleConnected()" style="${mConnected?'background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.5);color:#818cf8;':''}flex:1.1">🎮${mConnected?' เล่นอยู่':' เล่นอยู่'}</button>
         </div>
         <div class="search-box"><input class="srch-inp" id="msearch" placeholder="🔍 ชื่อเล่น / รหัส / ชื่อจริง..." value="${mSearch}" oninput="mSearchFn(this.value)"></div>
         <div id="mgrid">${memberGrid()}</div>`;
@@ -2590,7 +2402,6 @@ function buildCtLb(){
 // ════════════════════════════════════════
 //  TAB: PLAY
 // ════════════════════════════════════════
-
 // ════════════════════════════════════════
 // ▶ TAB BUILDERS — PLAY
 // ════════════════════════════════════════
@@ -2716,7 +2527,6 @@ window.closeDrugModal=()=>{
 // ════════════════════════════════════════
 //  EXPEDITION SYSTEM
 // ════════════════════════════════════════
-
 // ════════════════════════════════════════
 // ▶ EXPEDITION SYSTEM
 // ════════════════════════════════════════
@@ -3610,7 +3420,6 @@ function buildTowerLb(){
 // ════════════════════════════════════════
 //  TAB: SHOP
 // ════════════════════════════════════════
-
 // ════════════════════════════════════════
 // ▶ TAB BUILDERS — SHOP
 // ════════════════════════════════════════
@@ -3669,7 +3478,6 @@ function buildShop(){
         </div>
 
 
-
         <div class="sec-head">📣 ไอเทมพิเศษ</div>
         <div class="card">
             <div style="display:flex;align-items:center;gap:12px;padding:4px 0">
@@ -3714,11 +3522,6 @@ function buildCollection(){
         </div>`;
     }).join('');
 }
-window.toggleDailyBreakdown=()=>{
-    const el=document.getElementById('daily-breakdown');if(!el)return;
-    const show=el.style.display==='none';
-    el.style.display=show?'block':'none';
-};
 window.toggleCollection=()=>{
     const el=document.getElementById('collection-panel');
     if(!el)return;
@@ -3727,8 +3530,6 @@ window.toggleCollection=()=>{
     if(show)el.innerHTML=buildCollection();
     const tb=document.getElementById('coll-toggle-btn');if(tb)tb.innerHTML=show?'▲ ซ่อน':`🗂️ ดูคอลเลกชั่น <span style="font-size:0.68rem;color:rgba(255,255,255,.35)">${(userData?.pets||[]).filter((v,i,a)=>a.findIndex(x=>x.id===v.id)===i).length}/${PETS.length} สายพันธุ์</span>`;
 };
-
-
 
 
 // ════════════════════════════════════════
@@ -3741,8 +3542,6 @@ window.toggleCollection=()=>{
 //  - Critical 20% → ×2 (stack ได้ max ×3.0)
 //  - Max 40 turns → Draw
 // ════════════════════════════════════════
-
-
 
 
 // ════════════════════════════════════════
