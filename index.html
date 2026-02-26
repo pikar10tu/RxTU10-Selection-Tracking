@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -9,15 +10,15 @@
 <style>
 
 /* ═══════════════════════════════
-   VARIABLES & RESET
-   ═══════════════════════════════ */
-:root{--sci:#2563eb;--care:#10b981;--gold:#f59e0b;--bg:#f0f4f8;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--ticker:34px;--btm:66px;}
+VARIABLES & RESET
+═══════════════════════════════ */
+:root{–sci:#2563eb;–care:#10b981;–gold:#f59e0b;–bg:#f0f4f8;–text:#1e293b;–muted:#64748b;–border:#e2e8f0;–ticker:34px;–btm:66px;}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,
 /* ═══════════════════════════════
-   BASE LAYOUT
-   ═══════════════════════════════ */
-body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(--text);}
+BASE LAYOUT
+═══════════════════════════════ */
+body{height:100%;font-family:‘Kanit’,sans-serif;background:var(–bg);color:var(–text);}
 
 /* ── TOP BAR ── */
 /* top-bar removed */
@@ -26,9 +27,9 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .btn-out{background:none;border:1.5px solid #fca5a5;color:#ef4444;padding:7px 14px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;width:100%;}
 
 /* ═══════════════════════════════
-   BUTTONS
-   ═══════════════════════════════ */
-.btn-google{background:#fff;border:1.5px solid var(--border);padding:6px 11px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--text);font-weight:500;transition:.2s;}
+BUTTONS
+═══════════════════════════════ */
+.btn-google{background:#fff;border:1.5px solid var(–border);padding:6px 11px;border-radius:9px;font-family:inherit;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(–text);font-weight:500;transition:.2s;}
 .btn-google.big{padding:13px 22px;font-size:0.95rem;width:100%;justify-content:center;}
 
 /* ── NEWS TICKER ── */
@@ -38,53 +39,53 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .ticker-inner{position:absolute;white-space:nowrap;animation:tickerMove 22s linear infinite;padding:0 12px;line-height:34px;font-size:0.8rem;will-change:transform;}
 
 /* ═══════════════════════════════
-   KEYFRAME ANIMATIONS
-   ═══════════════════════════════ */
+KEYFRAME ANIMATIONS
+═══════════════════════════════ */
 @keyframes tickerMove{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 .ticker-inner:hover{animation-play-state:paused;}
 
 /* ═══════════════════════════════
-   COMPONENTS — CARDS & BANNERS
-   ═══════════════════════════════ */
+COMPONENTS — CARDS & BANNERS
+═══════════════════════════════ */
 .news-banner{background:linear-gradient(135deg,#1e293b,#334155);color:#fde68a;font-weight:600;display:flex;align-items:center;border-radius:12px;overflow:hidden;cursor:pointer;margin-bottom:10px;height:36px;}
 
 /* ── MAIN ── */
 #main-content{
-    position:fixed;
-    top:0;left:0;right:0;
-    bottom:var(--btm);
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    padding:12px 12px 24px;
+position:fixed;
+top:0;left:0;right:0;
+bottom:var(–btm);
+overflow-y:auto;
+-webkit-overflow-scrolling:touch;
+padding:12px 12px 24px;
 }
 
 /* ── BOTTOM NAV ── */
-#bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--btm);background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -3px 12px rgba(0,0,0,.07);padding-bottom:env(safe-area-inset-bottom,0px);}
-.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:none;background:none;font-family:inherit;color:var(--muted);font-size:0.67rem;font-weight:600;transition:.15s;padding:5px 2px;}
+#bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(–btm);background:#fff;border-top:1px solid var(–border);display:flex;z-index:200;box-shadow:0 -3px 12px rgba(0,0,0,.07);padding-bottom:env(safe-area-inset-bottom,0px);}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:none;background:none;font-family:inherit;color:var(–muted);font-size:0.67rem;font-weight:600;transition:.15s;padding:5px 2px;}
 .bn-icon{font-size:1.3rem;transition:.15s;}
-.bn-item.active{color:var(--gold);}
+.bn-item.active{color:var(–gold);}
 .bn-item.active .bn-icon{transform:translateY(-2px);}
 
 /* ── COMMON ── */
 .card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;}
-.sec-head{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin:16px 0 8px;}/* .track-badge นิยามใน HOME section */
+.sec-head{font-size:0.72rem;font-weight:700;color:var(–muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin:16px 0 8px;}/* .track-badge นิยามใน HOME section */
 
 /* ── HOME ── */
 /* Hero banner */
 
 /* ═══════════════════════════════
-   HOME — HERO PROFILE
-   ═══════════════════════════════ */
+HOME — HERO PROFILE
+═══════════════════════════════ */
 .home-hero{border-radius:20px;overflow:hidden;margin-bottom:10px;position:relative;}
 .hero-bg{background:linear-gradient(160deg,#0c1445 0%,#1a237e 40%,#0d47a1 70%,#1565c0 100%);padding:20px 16px 0;position:relative;}
-.hero-bg::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
+.hero-bg::before{content:’’;position:absolute;inset:0;background:url(“data:image/svg+xml,%3Csvg width=‘60’ height=‘60’ viewBox=‘0 0 60 60’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cg fill=‘none’ fill-rule=‘evenodd’%3E%3Cg fill=’%23ffffff’ fill-opacity=‘0.03’%3E%3Cpath d=‘M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z’/%3E%3C/g%3E%3C/g%3E%3C/svg%3E”);pointer-events:none;}
 .hero-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;position:relative;}
 .pc-img-wrap{position:relative;flex-shrink:0;}
 .pc-img{width:68px;height:68px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.3);box-shadow:0 4px 16px rgba(0,0,0,.3);}
 .pc-cam{position:absolute;bottom:-1px;right:-1px;background:rgba(255,255,255,.15);backdrop-filter:blur(4px);border:1.5px solid rgba(255,255,255,.3);border-radius:50%;width:22px;height:22px;font-size:0.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .pc-nick{font-size:1.05rem;font-weight:800;color:#fff;line-height:1.2;}
 .pc-real{font-size:0.76rem;color:rgba(255,255,255,.6);margin-top:1px;}
-.pc-id{font-size:0.64rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace;margin-top:2px;}
+.pc-id{font-size:0.64rem;color:rgba(255,255,255,.4);font-family:‘Space Mono’,monospace;margin-top:2px;}
 /* action bar */
 .hero-actions{display:flex;align-items:center;gap:7px;position:relative;padding-bottom:14px;}
 .coin-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(4px);padding:7px 13px;border-radius:20px;font-size:0.88rem;font-weight:700;color:#fbbf24;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.15s;}
@@ -108,52 +109,52 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .rarity-chip{padding:4px 9px;border-radius:20px;font-size:0.65rem;font-weight:700;border:1px solid;}
 /* egg section */
 .egg-section-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0 7px;}
-.egg-section-head span{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+.egg-section-head span{font-size:0.72rem;font-weight:700;color:var(–muted);letter-spacing:1.5px;text-transform:uppercase;}
 /* inv upgrade — defined below in Inventory section */
 /* pet badge effects */
 
 /* Inventory */
 
 /* ═══════════════════════════════
-   HOME — INVENTORY
-   ═══════════════════════════════ */
+HOME — INVENTORY
+═══════════════════════════════ */
 .inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;}
-.inv-empty{text-align:center;color:var(--muted);padding:20px;font-size:0.84rem;}
-.inv-item{background:var(--rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
-.inv-item:hover{transform:translateY(-2px);border-color:var(--rc);}
-.inv-item.on{border-color:var(--rc);box-shadow:0 0 10px color-mix(in srgb,var(--rc) 20%,transparent);}
+.inv-empty{text-align:center;color:var(–muted);padding:20px;font-size:0.84rem;}
+.inv-item{background:var(–rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
+.inv-item:hover{transform:translateY(-2px);border-color:var(–rc);}
+.inv-item.on{border-color:var(–rc);box-shadow:0 0 10px color-mix(in srgb,var(–rc) 20%,transparent);}
 .inv-em{font-size:1.6rem;} .inv-nm{font-size:0.62rem;font-weight:600;margin-top:2px;}
-.inv-on{position:absolute;top:-5px;right:-5px;background:var(--rc);color:#fff;font-size:0.46rem;font-weight:700;padding:2px 4px;border-radius:4px;}
+.inv-on{position:absolute;top:-5px;right:-5px;background:var(–rc);color:#fff;font-size:0.46rem;font-weight:700;padding:2px 4px;border-radius:4px;}
 
 /* ── MEMBERS ── */
 .filter-row{display:flex;gap:6px;margin-bottom:8px;}
-.fbtn{flex:1;padding:7px 3px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:inherit;font-size:0.76rem;font-weight:600;cursor:pointer;color:var(--muted);transition:.2s;}
-.fbtn.fa{border-color:var(--gold);background:#fffbeb;color:#92400e;}
-.fbtn.fs{border-color:var(--sci);background:#eff6ff;color:var(--sci);}
-.fbtn.fc{border-color:var(--care);background:#ecfdf5;color:var(--care);}
+.fbtn{flex:1;padding:7px 3px;border-radius:10px;border:2px solid var(–border);background:#fff;font-family:inherit;font-size:0.76rem;font-weight:600;cursor:pointer;color:var(–muted);transition:.2s;}
+.fbtn.fa{border-color:var(–gold);background:#fffbeb;color:#92400e;}
+.fbtn.fs{border-color:var(–sci);background:#eff6ff;color:var(–sci);}
+.fbtn.fc{border-color:var(–care);background:#ecfdf5;color:var(–care);}
 .search-box{margin-bottom:8px;}
 .srch-inp{width:100%;padding:10px 13px;border:2px solid #fff;border-radius:12px;font-family:inherit;font-size:0.9rem;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.07);outline:none;transition:.2s;}
-.srch-inp:focus{border-color:var(--gold);}
+.srch-inp:focus{border-color:var(–gold);}
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px;}
 
 /* ═══════════════════════════════
-   MEMBERS GRID
-   ═══════════════════════════════ */
-.mcard{background:#fff;border-radius:13px;padding:11px 6px;cursor:pointer;text-align:center;border:1.5px solid var(--border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
+MEMBERS GRID
+═══════════════════════════════ */
+.mcard{background:#fff;border-radius:13px;padding:11px 6px;cursor:pointer;text-align:center;border:1.5px solid var(–border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
 .mcard:hover{transform:translateY(-2px);box-shadow:0 5px 12px rgba(0,0,0,.07);}
 .mc-img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);}
 /* .mc-emoji-fallback removed — not used */
-.mc-nick{font-weight:600;font-size:0.82rem;} .mc-id{font-size:0.62rem;color:var(--muted);}
-.prog-bar{height:16px;background:var(--border);border-radius:50px;overflow:hidden;display:flex;margin-bottom:4px;}
-.pb-sci{background:var(--sci);height:100%;} .pb-care{background:var(--care);height:100%;}
+.mc-nick{font-weight:600;font-size:0.82rem;} .mc-id{font-size:0.62rem;color:var(–muted);}
+.prog-bar{height:16px;background:var(–border);border-radius:50px;overflow:hidden;display:flex;margin-bottom:4px;}
+.pb-sci{background:var(–sci);height:100%;} .pb-care{background:var(–care);height:100%;}
 .prog-lbls{display:flex;justify-content:space-between;font-size:0.76rem;font-weight:600;}
 
 /* ── PLAY ── */
 /* Game arena cards */
 
 /* ═══════════════════════════════
-   PLAY — GAME ARENA
-   ═══════════════════════════════ */
+PLAY — GAME ARENA
+═══════════════════════════════ */
 .game-arena{border-radius:20px;overflow:hidden;margin-bottom:12px;position:relative;}
 .game-arena-header{padding:16px 18px 14px;display:flex;justify-content:space-between;align-items:center;}
 .game-arena-body{padding:0 14px 16px;}
@@ -202,55 +203,55 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .lb-score{font-size:0.72rem;font-weight:800;color:#fbbf24;flex-shrink:0;}
 .lb-me{background:rgba(251,191,36,.1) !important;border-top-color:rgba(251,191,36,.2) !important;}
 
-/* ── SHOP ── */@keyframes wobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}.egg-bag-item{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;background:var(--rb,#f8fafc);border:1.5px solid var(--rc,var(--border));margin-bottom:8px;}
-.hatch-bar{height:5px;background:var(--border);border-radius:8px;overflow:hidden;margin:4px 0 2px;}
+/* ── SHOP ── */@keyframes wobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}.egg-bag-item{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;background:var(–rb,#f8fafc);border:1.5px solid var(–rc,var(–border));margin-bottom:8px;}
+.hatch-bar{height:5px;background:var(–border);border-radius:8px;overflow:hidden;margin:4px 0 2px;}
 .hatch-fill{height:100%;border-radius:8px;transition:width .3s;}
 
 /* ── MODALS ── */
 
 /* ═══════════════════════════════
-   MODALS
-   ═══════════════════════════════ */
+MODALS
+═══════════════════════════════ */
 .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px);}
 .modal-ov.active{display:flex;}
 .modal-box{background:#fff;border-radius:20px;padding:24px 18px;max-width:340px;width:100%;animation:popIn .35s cubic-bezier(.34,1.56,.64,1);will-change:transform,opacity;position:relative;max-height:88vh;overflow-y:auto;}
 @keyframes popIn{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
-.mclose{position:absolute;top:10px;right:10px;background:var(--border);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;}
+.mclose{position:absolute;top:10px;right:10px;background:var(–border);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;}
 .pm-img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.12);margin-bottom:9px;}
-.pm-nick{font-size:1.25rem;font-weight:700;} .pm-real{color:var(--muted);font-size:0.88rem;} .pm-id{font-size:0.74rem;color:var(--muted);font-family:'Space Mono',monospace;margin:3px 0;}
+.pm-nick{font-size:1.25rem;font-weight:700;} .pm-real{color:var(–muted);font-size:0.88rem;} .pm-id{font-size:0.74rem;color:var(–muted);font-family:‘Space Mono’,monospace;margin:3px 0;}
 .pm-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:9px;}
-.pm-stat{background:var(--bg);border-radius:9px;padding:7px 3px;text-align:center;display:flex;flex-direction:column;align-items:center;}
-.pm-stat span{font-size:1rem;} .pm-stat b{font-size:0.85rem;font-weight:700;} .pm-stat small{font-size:0.62rem;color:var(--muted);}.link-irow{display:flex;gap:6px;margin:10px 0 3px;}
-.link-inp{flex:1;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.92rem;outline:none;transition:.2s;}
-.link-inp:focus{border-color:var(--sci);}
-.link-prev{background:var(--bg);border-radius:12px;padding:12px;margin:6px 0;display:none;}
+.pm-stat{background:var(–bg);border-radius:9px;padding:7px 3px;text-align:center;display:flex;flex-direction:column;align-items:center;}
+.pm-stat span{font-size:1rem;} .pm-stat b{font-size:0.85rem;font-weight:700;} .pm-stat small{font-size:0.62rem;color:var(–muted);}.link-irow{display:flex;gap:6px;margin:10px 0 3px;}
+.link-inp{flex:1;padding:10px 12px;border:2px solid var(–border);border-radius:10px;font-family:inherit;font-size:0.92rem;outline:none;transition:.2s;}
+.link-inp:focus{border-color:var(–sci);}
+.link-prev{background:var(–bg);border-radius:12px;padding:12px;margin:6px 0;display:none;}
 .gacha-inner{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;}
 .gr-badge{padding:3px 12px;border-radius:16px;color:#fff;font-size:0.72rem;font-weight:800;letter-spacing:2px;}
-.gr-emoji{font-size:4.5rem;animation:gbounce .6s ease;filter:drop-shadow(0 0 16px var(--glow,#f59e0b));will-change:transform;}
+.gr-emoji{font-size:4.5rem;animation:gbounce .6s ease;filter:drop-shadow(0 0 16px var(–glow,#f59e0b));will-change:transform;}
 @keyframes gbounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
-.gr-name{font-size:1.3rem;font-weight:800;} .gr-desc{font-size:0.82rem;color:var(--muted);}
+.gr-name{font-size:1.3rem;font-weight:800;} .gr-desc{font-size:0.82rem;color:var(–muted);}
 .gr-btns{display:flex;gap:8px;margin-top:6px;}
 .slide-panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:18px 14px;box-shadow:0 -5px 24px rgba(0,0,0,.1);z-index:400;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);max-height:65vh;overflow-y:auto;}
 .slide-panel.active{transform:translateY(0);}
 
 /* ═══════════════════════════════
-   TRADE SYSTEM
-   ═══════════════════════════════ */
-.trade-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:9px;border:2px solid var(--border);cursor:pointer;margin-bottom:6px;transition:.15s;}
-.trade-item.sel{border-color:var(--sci);background:#eff6ff;}
-.trade-inp{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.86rem;outline:none;margin:8px 0;}
-.trade-inp:focus{border-color:var(--sci);}
+TRADE SYSTEM
+═══════════════════════════════ */
+.trade-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:9px;border:2px solid var(–border);cursor:pointer;margin-bottom:6px;transition:.15s;}
+.trade-item.sel{border-color:var(–sci);background:#eff6ff;}
+.trade-inp{width:100%;padding:9px 12px;border:2px solid var(–border);border-radius:10px;font-family:inherit;font-size:0.86rem;outline:none;margin:8px 0;}
+.trade-inp:focus{border-color:var(–sci);}
 
 /* Feed/News modal */
-.feed-item{padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;}
+.feed-item{padding:10px 0;border-bottom:1px solid var(–border);display:flex;gap:10px;align-items:flex-start;}
 .feed-item:last-child{border-bottom:none;}
 .feed-icon{font-size:1.4rem;flex-shrink:0;}
-.feed-time{font-size:0.66rem;color:var(--muted);margin-top:2px;}
+.feed-time{font-size:0.66rem;color:var(–muted);margin-top:2px;}
 .feed-msg{font-size:0.84rem;}
 
 /* Megaphone modal */
-.mega-inp{width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.9rem;outline:none;margin:10px 0;resize:none;}
-.mega-inp:focus{border-color:var(--gold);}
+.mega-inp{width:100%;padding:10px 12px;border:2px solid var(–border);border-radius:10px;font-family:inherit;font-size:0.9rem;outline:none;margin:10px 0;resize:none;}
+.mega-inp:focus{border-color:var(–gold);}
 
 /* Buttons */
 .btn-gold{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;padding:9px 16px;border-radius:10px;font-family:inherit;font-size:0.9rem;font-weight:700;cursor:pointer;transition:.2s;}
@@ -258,7 +259,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .btn-gold:disabled{opacity:.5;cursor:not-allowed;}
 .btn-gold.full{width:100%;}
 .btn-gold.sm{padding:6px 11px;font-size:0.78rem;}
-.btn-gray{background:var(--border);color:var(--muted);border:none;padding:8px 14px;border-radius:10px;font-family:inherit;font-size:0.86rem;cursor:pointer;}
+.btn-gray{background:var(–border);color:var(–muted);border:none;padding:8px 14px;border-radius:10px;font-family:inherit;font-size:0.86rem;cursor:pointer;}
 .btn-gray.sm{padding:5px 10px;font-size:0.74rem;}
 .btn-gray.full{width:100%;}
 
@@ -266,19 +267,18 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 100%{background-position:300% 50%}}
 @keyframes sh{to{background-position:200% center}}
 
-
 /* ── BATTLE ── */
 
 /* ═══════════════════════════════
-   BATTLE SYSTEM
-   ═══════════════════════════════ */
+BATTLE SYSTEM
+═══════════════════════════════ */
 .battle-arena{background:linear-gradient(160deg,#0c1445 0%,#1a1a2e 50%,#16213e 100%);border-radius:20px;padding:16px 14px;margin-bottom:10px;position:relative;}
-.battle-arena::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M20 0l20 20-20 20L0 20z'/%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
+.battle-arena::before{content:’’;position:absolute;inset:0;background:url(“data:image/svg+xml,%3Csvg width=‘40’ height=‘40’ viewBox=‘0 0 40 40’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cg fill=’%23ffffff’ fill-opacity=‘0.02’%3E%3Cpath d=‘M20 0l20 20-20 20L0 20z’/%3E%3C/g%3E%3C/svg%3E”);pointer-events:none;}
 .battle-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;}
 .battle-title{font-size:0.72rem;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:2px;text-transform:uppercase;}
 .battle-field{display:grid;grid-template-columns:1fr 40px 1fr;gap:8px;align-items:start;margin-bottom:12px;position:relative;}
 .battle-side{text-align:center;}
-.battle-pet-em{font-size:3.2rem;display:block;filter:drop-shadow(0 0 12px var(--pet-glow,#ffffff44));transition:transform .15s;}
+.battle-pet-em{font-size:3.2rem;display:block;filter:drop-shadow(0 0 12px var(–pet-glow,#ffffff44));transition:transform .15s;}
 .battle-pet-em.battle-pet-em@keyframes bShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 @keyframes bBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 .battle-pet-name{font-size:0.72rem;font-weight:700;color:rgba(255,255,255,.8);margin:3px 0 6px;}
@@ -304,7 +304,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 
 /* Egg bag extras */
 
-#toast{position:fixed;bottom:calc(var(--btm)+16px);left:50%;transform:translateX(-50%);color:#fff;font-size:0.84rem;font-weight:500;z-index:1000;transition:opacity .2s;white-space:nowrap;pointer-events:none;opacity:0;}
+#toast{position:fixed;bottom:calc(var(–btm)+16px);left:50%;transform:translateX(-50%);color:#fff;font-size:0.84rem;font-weight:500;z-index:1000;transition:opacity .2s;white-space:nowrap;pointer-events:none;opacity:0;}
 #toast.show{opacity:1;background:#1e293b;padding:9px 15px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.2);}
 #toast.show.success{background:#065f46;} #toast.show.error{background:#7f1d1d;} #toast.show.info{background:#1e40af;}
 @media(max-width:360px){.mgrid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}}
@@ -312,8 +312,8 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 /* ── Expedition ── */
 
 /* ═══════════════════════════════
-   EXPEDITION SYSTEM
-   ═══════════════════════════════ */
+EXPEDITION SYSTEM
+═══════════════════════════════ */
 .arena-expedition{background:linear-gradient(160deg,#1a0533 0%,#2d1057 60%,#1e1b4b 100%);}
 .arena-expedition .game-arena-header{border-bottom:1px solid rgba(255,255,255,.08);}
 .exp-slot{border:2px dashed rgba(168,85,247,.3);border-radius:14px;padding:8px;text-align:center;cursor:pointer;transition:.2s;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;}
@@ -328,18 +328,18 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .exp-timer{font-size:1.1rem;font-weight:800;color:#c4b5fd;font-variant-numeric:tabular-nums;}
 .exp-pets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px;margin:6px 0;}
 .inv-item.on-expedition{opacity:.5;cursor:default;}
-.inv-item.on-expedition::after{content:'⏳';position:absolute;bottom:2px;right:2px;font-size:0.65rem;}
+.inv-item.on-expedition::after{content:‘⏳’;position:absolute;bottom:2px;right:2px;font-size:0.65rem;}
 
 /* ═══════════════════════════════
-   GAME HUB
-   ═══════════════════════════════ */
+GAME HUB
+═══════════════════════════════ */
 .hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;}
 .hub-card{border-radius:18px;padding:18px 14px 16px;cursor:pointer;transition:transform .15s,box-shadow .15s;border:1.5px solid transparent;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;position:relative;overflow:hidden;}
 .hub-card:active{transform:scale(.96);}
-.hub-card.live{box-shadow:0 6px 24px var(--hc-glow,rgba(0,0,0,.3));}
-.hub-card.live:hover{transform:translateY(-2px);box-shadow:0 10px 28px var(--hc-glow,rgba(0,0,0,.35));}
+.hub-card.live{box-shadow:0 6px 24px var(–hc-glow,rgba(0,0,0,.3));}
+.hub-card.live:hover{transform:translateY(-2px);box-shadow:0 10px 28px var(–hc-glow,rgba(0,0,0,.35));}
 .hub-card.soon{opacity:.55;cursor:default;}
-.hub-card-icon{font-size:2.6rem;line-height:1;filter:drop-shadow(0 2px 8px var(--hc-glow,#0005));}
+.hub-card-icon{font-size:2.6rem;line-height:1;filter:drop-shadow(0 2px 8px var(–hc-glow,#0005));}
 .hub-card-title{font-size:0.86rem;font-weight:800;color:#fff;}
 .hub-card-sub{font-size:0.65rem;color:rgba(255,255,255,.5);line-height:1.4;}
 .hub-badge{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.15);border-radius:20px;padding:2px 7px;font-size:0.58rem;font-weight:700;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.12);}
@@ -356,8 +356,8 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .exp-modal-body{padding:14px 16px 4px;}
 
 /* ═══════════════════════════════
-   COLOR TILES GAME
-   ═══════════════════════════════ */
+COLOR TILES GAME
+═══════════════════════════════ */
 
 /* Time bar */
 .ct-time-bar-wrap{height:8px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;margin-bottom:14px;}
@@ -406,8 +406,8 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .ct-overlay-box{text-align:center;padding:10px;}
 
 /* ═══════════════════════════════
-   FORGE (ตีบวก) SYSTEM
-   ═══════════════════════════════ */
+FORGE (ตีบวก) SYSTEM
+═══════════════════════════════ */
 .forge-modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:700;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);}
 .forge-modal-ov.active{display:flex;}
 .forge-sheet{width:100%;max-width:420px;background:linear-gradient(175deg,#1a1100 0%,#0d0900 60%,#120d00 100%);border-radius:24px 24px 0 0;max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 0 28px;}
@@ -436,54 +436,54 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .forge-chance-fill{height:100%;border-radius:99px;transition:width .3s;}
 
 /* ═══════════════════════════════
-   TOWER SYSTEM
-   ═══════════════════════════════ */
+TOWER SYSTEM
+═══════════════════════════════ */
 .tower-sheet{width:100%;max-width:480px;margin:0 auto;max-height:92dvh;overflow-y:auto;
-    -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-    padding:12px 12px 28px;box-sizing:border-box;border-radius:20px 20px 0 0;background:#0c1445;}
+-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+padding:12px 12px 28px;box-sizing:border-box;border-radius:20px 20px 0 0;background:#0c1445;}
 .tower-arena{background:linear-gradient(160deg,#0c1445 0%,#1a1a2e 50%,#16213e 100%);
-    border-radius:20px;padding:16px 14px;margin-bottom:10px;position:relative;}
-.tower-arena::before{content:'';position:absolute;inset:0;
-    background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M20 0l20 20-20 20L0 20z'/%3E%3C/g%3E%3C/svg%3E");
-    pointer-events:none;border-radius:20px;}
+border-radius:20px;padding:16px 14px;margin-bottom:10px;position:relative;}
+.tower-arena::before{content:’’;position:absolute;inset:0;
+background:url(“data:image/svg+xml,%3Csvg width=‘40’ height=‘40’ viewBox=‘0 0 40 40’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cg fill=’%23ffffff’ fill-opacity=‘0.02’%3E%3Cpath d=‘M20 0l20 20-20 20L0 20z’/%3E%3C/g%3E%3C/svg%3E”);
+pointer-events:none;border-radius:20px;}
 .tower-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;}
 .tower-title{font-size:1rem;font-weight:800;color:#fff;letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
 .floor-badge{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;
-    font-size:0.7rem;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.5px;}
+font-size:0.7rem;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.5px;}
 .tower-team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:7px;margin-bottom:10px;}
 .tower-pick{background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);border-radius:12px;
-    padding:8px 4px;text-align:center;cursor:pointer;transition:.12s;}
+padding:8px 4px;text-align:center;cursor:pointer;transition:.12s;}
 .tower-pick:active{transform:scale(.94);}
 .tower-pick.sel{border-color:#a78bfa;background:rgba(167,139,250,.15);}
 .tower-pick.disabled{opacity:.35;pointer-events:none;}
 .tower-slot-row{display:flex;gap:6px;margin-bottom:12px;justify-content:center;}
 .tower-slot{width:56px;height:62px;border-radius:12px;border:2px dashed rgba(255,255,255,.2);
-    display:flex;align-items:center;justify-content:center;font-size:1.6rem;
-    background:rgba(255,255,255,.04);transition:.15s;position:relative;}
+display:flex;align-items:center;justify-content:center;font-size:1.6rem;
+background:rgba(255,255,255,.04);transition:.15s;position:relative;}
 .tower-slot.filled{border-style:solid;border-color:#a78bfa;background:rgba(167,139,250,.12);}
 .tower-slot .slot-num{position:absolute;top:-7px;left:50%;transform:translateX(-50%);
-    background:#7c3aed;color:#fff;font-size:0.45rem;font-weight:800;padding:1px 5px;
-    border-radius:8px;white-space:nowrap;}
+background:#7c3aed;color:#fff;font-size:0.45rem;font-weight:800;padding:1px 5px;
+border-radius:8px;white-space:nowrap;}
 .tower-slot .slot-remove{position:absolute;top:-7px;right:-7px;width:16px;height:16px;
-    background:#ef4444;color:#fff;border-radius:50%;font-size:0.6rem;
-    display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:800;}
+background:#ef4444;color:#fff;border-radius:50%;font-size:0.6rem;
+display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:800;}
 .btn-tower{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;
-    padding:11px 20px;border-radius:12px;font-family:inherit;font-size:0.9rem;font-weight:800;
-    cursor:pointer;transition:.2s;width:100%;letter-spacing:.5px;
-    box-shadow:0 4px 14px rgba(124,58,237,.4);}
+padding:11px 20px;border-radius:12px;font-family:inherit;font-size:0.9rem;font-weight:800;
+cursor:pointer;transition:.2s;width:100%;letter-spacing:.5px;
+box-shadow:0 4px 14px rgba(124,58,237,.4);}
 .btn-tower:disabled{opacity:.4;cursor:not-allowed;}
 .tower-hp-bar{height:9px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px;}
 .tower-hp-fill{height:100%;border-radius:50px;transition:width .45s ease;}
 .tower-relay-row{display:flex;gap:5px;justify-content:center;margin-bottom:10px;}
 .relay-dot{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.15);
-    display:flex;align-items:center;justify-content:center;font-size:1rem;transition:.3s;}
+display:flex;align-items:center;justify-content:center;font-size:1rem;transition:.3s;}
 .relay-dot.active{border-color:#a78bfa;background:rgba(167,139,250,.2);
-    box-shadow:0 0 8px rgba(167,139,250,.5);}
+box-shadow:0 0 8px rgba(167,139,250,.5);}
 .relay-dot.dead{opacity:.2;filter:grayscale(1);}
 
 /* ═══════════════════════════════
-   PVP & PROFILE REDESIGN
-   ═══════════════════════════════ */
+PVP & PROFILE REDESIGN
+═══════════════════════════════ */
 /* Profile modal — dark card layout */
 .pm-card{background:linear-gradient(160deg,#0f172a,#1e293b);border-radius:20px;overflow:hidden;text-align:left;}
 .pm-hero{display:flex;align-items:center;gap:12px;padding:16px 16px 12px;}
@@ -491,7 +491,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .pm-info{flex:1;min-width:0;}
 .pm-info .name{font-size:1.05rem;font-weight:800;color:#fff;line-height:1.2;}
 .pm-info .realname{font-size:0.75rem;color:rgba(255,255,255,.45);margin-top:1px;}
-.pm-info .sid{font-size:0.68rem;color:rgba(255,255,255,.3);font-family:'Space Mono',monospace;}
+.pm-info .sid{font-size:0.68rem;color:rgba(255,255,255,.3);font-family:‘Space Mono’,monospace;}
 .pm-section{padding:10px 16px;border-top:1px solid rgba(255,255,255,.06);}
 .pm-section-label{font-size:0.58rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:8px;}
 .pm-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
@@ -500,22 +500,22 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .pm-stat-cell small{font-size:0.56rem;color:rgba(255,255,255,.4);margin-top:1px;display:block;}
 .pm-team{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:2px;}
 .pm-team-slot{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;
-    padding:8px 4px;text-align:center;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+padding:8px 4px;text-align:center;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .pm-team-slot.filled{border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.06);}
 .pm-team-slot .slot-em{font-size:1.8rem;line-height:1;}
 .pm-team-slot .slot-name{font-size:0.5rem;color:rgba(255,255,255,.6);margin-top:3px;line-height:1.3;font-weight:600;}
 .pm-team-slot .slot-stats{font-size:0.48rem;color:rgba(255,255,255,.35);margin-top:2px;}
 .btn-pvp{width:100%;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border:none;
-    padding:13px;border-radius:14px;font-family:inherit;font-size:0.95rem;font-weight:800;
-    cursor:pointer;letter-spacing:.5px;box-shadow:0 4px 14px rgba(220,38,38,.4);
-    display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;}
+padding:13px;border-radius:14px;font-family:inherit;font-size:0.95rem;font-weight:800;
+cursor:pointer;letter-spacing:.5px;box-shadow:0 4px 14px rgba(220,38,38,.4);
+display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;}
 .btn-pvp:hover{transform:translateY(-1px);}
 
 /* Active Pets selector (own profile) */
 .active-slots-row{display:flex;gap:8px;margin-bottom:10px;}
 .active-slot{flex:1;background:rgba(255,255,255,.05);border:2px dashed rgba(255,255,255,.15);
-    border-radius:12px;padding:8px 4px;text-align:center;cursor:pointer;transition:.12s;min-height:64px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;}
+border-radius:12px;padding:8px 4px;text-align:center;cursor:pointer;transition:.12s;min-height:64px;
+display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .active-slot.filled{border-style:solid;border-color:#a78bfa;background:rgba(167,139,250,.1);}
 .active-slot:active{transform:scale(.96);}
 .active-slot .slot-label{font-size:0.48rem;font-weight:800;color:rgba(255,255,255,.3);margin-bottom:3px;}
@@ -523,16 +523,16 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 
 /* PvP battle modal */
 .pvp-sheet{width:100%;max-width:480px;margin:0 auto;max-height:92dvh;overflow-y:auto;
-    -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-    padding:12px 12px 28px;box-sizing:border-box;border-radius:20px 20px 0 0;background:#100020;}
+-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+padding:12px 12px 28px;box-sizing:border-box;border-radius:20px 20px 0 0;background:#100020;}
 .pvp-arena{background:linear-gradient(160deg,#1a0030 0%,#200040 50%,#160028 100%);
-    border-radius:20px;padding:16px 14px;position:relative;}
-.pvp-arena::before{content:'';position:absolute;inset:0;
-    background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Cpath d='M20 0l20 20-20 20L0 20z'/%3E%3C/g%3E%3C/svg%3E");
-    pointer-events:none;border-radius:20px;}
+border-radius:20px;padding:16px 14px;position:relative;}
+.pvp-arena::before{content:’’;position:absolute;inset:0;
+background:url(“data:image/svg+xml,%3Csvg width=‘40’ height=‘40’ viewBox=‘0 0 40 40’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cg fill=’%23ffffff’ fill-opacity=‘0.015’%3E%3Cpath d=‘M20 0l20 20-20 20L0 20z’/%3E%3C/g%3E%3C/svg%3E”);
+pointer-events:none;border-radius:20px;}
 .pvp-relay-row{display:flex;gap:5px;}
 .pvp-dot{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.12);
-    font-size:0.95rem;display:flex;align-items:center;justify-content:center;transition:.3s;}
+font-size:0.95rem;display:flex;align-items:center;justify-content:center;transition:.3s;}
 .pvp-dot.active{border-color:#f43f5e;box-shadow:0 0 8px rgba(244,63,94,.5);}
 .pvp-dot.enemy-active{border-color:#818cf8;box-shadow:0 0 8px rgba(129,140,248,.5);}
 .pvp-dot.dead{opacity:.2;filter:grayscale(1);}
@@ -543,6 +543,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 .pvp-fade-in-left{animation:fadeSlideInLeft .5s ease forwards;}
 .pvp-fade-out{animation:fadeOut .4s ease forwards;}
 </style>
+
 </head>
 <body>
 
@@ -560,6 +561,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 </nav>
 
 <!-- PROFILE MODAL -->
+
 <div class="modal-ov" id="profile-modal" onclick="if(event.target===this)closePM()">
     <div class="modal-box" style="text-align:center;max-width:400px;padding:0;overflow:hidden;background:transparent;border-radius:20px;box-shadow:none;">
         <div id="pm-content"></div>
@@ -567,6 +569,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 </div>
 
 <!-- LINK MODAL -->
+
 <div class="modal-ov" id="link-modal" onclick="if(event.target===this)closeLinkModal()">
     <div class="modal-box">
         <button class="mclose" onclick="closeLinkModal()">✕</button>
@@ -615,11 +618,13 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 </div>
 
 <!-- GACHA MODAL -->
+
 <div class="modal-ov" id="gacha-modal" onclick="if(event.target===this)closeGacha()">
     <div class="modal-box"><div id="gacha-result"></div></div>
 </div>
 
 <!-- PET INFO MODAL -->
+
 <div class="modal-ov" id="petinfo-modal" onclick="if(event.target===this)closePetInfo()">
     <div class="modal-box">
         <button class="mclose" onclick="closePetInfo()">✕</button>
@@ -629,6 +634,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 </div>
 
 <!-- FEED MODAL -->
+
 <div class="modal-ov" id="feed-modal" onclick="if(event.target===this)closeFeed()">
     <div class="modal-box">
         <button class="mclose" onclick="closeFeed()">✕</button>
@@ -638,6 +644,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 </div>
 
 <!-- MEGAPHONE MODAL -->
+
 <div class="modal-ov" id="mega-modal" onclick="if(event.target===this)closeMega()">
     <div class="modal-box">
         <button class="mclose" onclick="closeMega()">✕</button>
@@ -653,6 +660,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 </div>
 
 <!-- TRADE PANEL -->
+
 <div class="slide-panel" id="trade-panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-weight:700">🔄 Trade สัตว์เลี้ยง</span>
@@ -665,6 +673,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 </div>
 
 <!-- DAILY BREAKDOWN MODAL -->
+
 <div class="modal-ov" id="daily-modal" onclick="if(event.target===this)closeDailyModal()">
     <div class="modal-box" style="text-align:center">
         <button class="mclose" onclick="closeDailyModal()">✕</button>
@@ -673,6 +682,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 </div>
 
 <!-- UPGRADE SELECT MODAL -->
+
 <div class="modal-ov" id="upgrade-modal" onclick="if(event.target===this)closeUpgradeModal()">
     <div class="modal-box">
         <button class="mclose" onclick="closeUpgradeModal()">✕</button>
@@ -680,10 +690,8 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
     </div>
 </div>
 
-
-
-
 <!-- BATTLE MODAL -->
+
 <div class="modal-ov" id="battle-modal" style="align-items:flex-end;padding:0" onclick="if(event.target===this)closeBattle()">
     <div style="width:100%;max-width:480px;margin:0 auto;max-height:92dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 12px 28px;box-sizing:border-box;border-radius:20px 20px 0 0;background:#0c1445;" onclick="event.stopPropagation()">
         <div id="battle-content"></div>
@@ -691,6 +699,7 @@ body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:var(-
 </div>
 
 <!-- CONFIRM MODAL -->
+
 <div class="modal-ov" id="confirm-modal" style="z-index:9999">
     <div class="modal-box" style="max-width:300px;text-align:center">
         <div style="font-size:1.3rem;margin-bottom:8px">🤔</div>
@@ -808,28 +817,28 @@ const PETS = [
     { id:"koala",     emoji:"🐨", name:"โคอาล่า",     rarity:"common",    element:"fist",     flavor:"กลิ่นยูคาลิปตัสหอมชื่นใจจนหลับปุ๋ย นอนได้ตลอด 24 ชม.",     rate:{normal:0.012,gold:0.0,rainbow:0.0}, hatchMins:1 },
     { id:"capybara",  emoji:"🦫", name:"คาปิบาร่า",   rarity:"common",    element:"paper",    flavor:"สงบเย็นที่สุดในห้องยา แม้ตอน on-call กลางดึกก็ไม่ตื่นตระหนก",  rate:{normal:0.01,gold:0.0,rainbow:0.0}, hatchMins:1 },
     // ── RARE (6 ตัวเดิม + 6 ใหม่) ──
-    { id:"fox",       emoji:"🦊", name:"จิ้งจอก",    rarity:"rare",      element:"scissors", flavor:"จมูกไว ได้กลิ่น drug interaction ก่อนใคร",                      rate:{normal:0.059,gold:0.0746,rainbow:0.0}, hatchMins:5 },
-    { id:"owl",       emoji:"🦉", name:"นกฮูก",      rarity:"rare",      element:"paper",    flavor:"ตื่นทั้งคืนอ่านตำราเหมือนนักศึกษาก่อน final",                    rate:{normal:0.044,gold:0.0689,rainbow:0.0}, hatchMins:5 },
-    { id:"panda",     emoji:"🐼", name:"แพนด้า",     rarity:"rare",      element:"paper",    flavor:"ช่วงสอบก็จะมีคน cover เป็นน้องบ่อยหน่อย",                              rate:{normal:0.037,gold:0.0631,rainbow:0.0}, hatchMins:5 },
-    { id:"butterfly", emoji:"🦋", name:"ผีเสื้อ",    rarity:"rare",      element:"scissors", flavor:"โบยบินเก็บละอองเกสรสมุนไพร เป็นกูรูด้าน Pharmacognosy ตัวจริง",                     rate:{normal:0.03,gold:0.056,rainbow:0.0}, hatchMins:5 },
-    { id:"wolf",      emoji:"🐺", name:"หมาป่า",     rarity:"rare",      element:"fist",     flavor:"เป็นผู้นำ pack หอนเรียกเพื่อนมาช่วยกันติวสอบ",               rate:{normal:0.022,gold:0.0502,rainbow:0.0}, hatchMins:5 },
-    { id:"peacock",   emoji:"🦚", name:"นกยูง",      rarity:"rare",      element:"fist",     flavor:"รำแพนหางโชว์ความรู้ Counselling คนไข้ ปึ้ง ปึ้ง ปึ้ง!",                 rate:{normal:0.015,gold:0.0316,rainbow:0.0}, hatchMins:5 },
-    { id:"octopus",   emoji:"🐙", name:"ปลาหมึก",    rarity:"rare",      element:"paper",    flavor:"ใช้ 8 หนวดหยิบยา จัดยา พิมพ์ฉลาก และรับโทรศัพท์ห้องยาได้พร้อมกัน",   rate:{normal:0.035,gold:0.043,rainbow:0.0}, hatchMins:5 },
-    { id:"flamingo",  emoji:"🦩", name:"ฟลามิงโก้",  rarity:"rare",      element:"scissors", flavor:"ยืนขาเดียวได้นานสุดๆ มิงโก้ มิงโก้",              rate:{normal:0.028,gold:0.0373,rainbow:0.0}, hatchMins:5 },
-    { id:"deer",      emoji:"🦌", name:"กวาง",        rarity:"rare",      element:"scissors", flavor:"เขาสวยงามเหมือนโครงสร้างทางเคมีของยาอะไรซักอย่าง",   rate:{normal:0.022,gold:0.0344,rainbow:0.0}, hatchMins:5 },
-    { id:"shark",     emoji:"🦈", name:"ฉลาม",        rarity:"rare",      element:"fist",     flavor:"ดุดัน ไม่เกรงใจใคร",    rate:{normal:0.018,gold:0.0316,rainbow:0.0}, hatchMins:5 },
-    { id:"parrot",    emoji:"🦜", name:"นกแก้ว",      rarity:"rare",      element:"paper",    flavor:"เจ้าของแบรนด์สบู่สุดดัง", rate:{normal:0.015,gold:0.0258,rainbow:0.0}, hatchMins:5 },
-    { id:"turtle",    emoji:"🐢", name:"เต่าทะเล",   rarity:"rare",      element:"fist",     flavor:"อายุยืนเพราะ compliance ดี กินยาครบทุกวันไม่เคยขาด",             rate:{normal:0.012,gold:0.0215,rainbow:0.0}, hatchMins:5 },
+    { id:"fox",       emoji:"🦊", name:"จิ้งจอก",    rarity:"rare",      element:"scissors", flavor:"จมูกไว ได้กลิ่น drug interaction ก่อนใคร",                      rate:{normal:0.059,gold:0.0746,rainbow:0.0}, hatchMins:1 },
+    { id:"owl",       emoji:"🦉", name:"นกฮูก",      rarity:"rare",      element:"paper",    flavor:"ตื่นทั้งคืนอ่านตำราเหมือนนักศึกษาก่อน final",                    rate:{normal:0.044,gold:0.0689,rainbow:0.0}, hatchMins:1 },
+    { id:"panda",     emoji:"🐼", name:"แพนด้า",     rarity:"rare",      element:"paper",    flavor:"ช่วงสอบก็จะมีคน cover เป็นน้องบ่อยหน่อย",                              rate:{normal:0.037,gold:0.0631,rainbow:0.0}, hatchMins:1 },
+    { id:"butterfly", emoji:"🦋", name:"ผีเสื้อ",    rarity:"rare",      element:"scissors", flavor:"โบยบินเก็บละอองเกสรสมุนไพร เป็นกูรูด้าน Pharmacognosy ตัวจริง",                     rate:{normal:0.03,gold:0.056,rainbow:0.0}, hatchMins:1 },
+    { id:"wolf",      emoji:"🐺", name:"หมาป่า",     rarity:"rare",      element:"fist",     flavor:"เป็นผู้นำ pack หอนเรียกเพื่อนมาช่วยกันติวสอบ",               rate:{normal:0.022,gold:0.0502,rainbow:0.0}, hatchMins:1 },
+    { id:"peacock",   emoji:"🦚", name:"นกยูง",      rarity:"rare",      element:"fist",     flavor:"รำแพนหางโชว์ความรู้ Counselling คนไข้ ปึ้ง ปึ้ง ปึ้ง!",                 rate:{normal:0.015,gold:0.0316,rainbow:0.0}, hatchMins:1 },
+    { id:"octopus",   emoji:"🐙", name:"ปลาหมึก",    rarity:"rare",      element:"paper",    flavor:"ใช้ 8 หนวดหยิบยา จัดยา พิมพ์ฉลาก และรับโทรศัพท์ห้องยาได้พร้อมกัน",   rate:{normal:0.035,gold:0.043,rainbow:0.0}, hatchMins:1 },
+    { id:"flamingo",  emoji:"🦩", name:"ฟลามิงโก้",  rarity:"rare",      element:"scissors", flavor:"ยืนขาเดียวได้นานสุดๆ มิงโก้ มิงโก้",              rate:{normal:0.028,gold:0.0373,rainbow:0.0}, hatchMins:1 },
+    { id:"deer",      emoji:"🦌", name:"กวาง",        rarity:"rare",      element:"scissors", flavor:"เขาสวยงามเหมือนโครงสร้างทางเคมีของยาอะไรซักอย่าง",   rate:{normal:0.022,gold:0.0344,rainbow:0.0}, hatchMins:1 },
+    { id:"shark",     emoji:"🦈", name:"ฉลาม",        rarity:"rare",      element:"fist",     flavor:"ดุดัน ไม่เกรงใจใคร",    rate:{normal:0.018,gold:0.0316,rainbow:0.0}, hatchMins:1 },
+    { id:"parrot",    emoji:"🦜", name:"นกแก้ว",      rarity:"rare",      element:"paper",    flavor:"เจ้าของแบรนด์สบู่สุดดัง", rate:{normal:0.015,gold:0.0258,rainbow:0.0}, hatchMins:1 },
+    { id:"turtle",    emoji:"🐢", name:"เต่าทะเล",   rarity:"rare",      element:"fist",     flavor:"อายุยืนเพราะ compliance ดี กินยาครบทุกวันไม่เคยขาด",             rate:{normal:0.012,gold:0.0215,rainbow:0.0}, hatchMins:1 },
     // ── EPIC (4 ตัวเดิม + 5 ใหม่) ──
-    { id:"dragon",    emoji:"🐲", name:"มังกรน้อย",  rarity:"epic",      element:"fist",     flavor:"หายใจพ่นไฟกำจัดimpurityในAPIได้ทันที สะดวกเกิ้น !",                    rate:{normal:0.0,gold:0.0861,rainbow:0.1091}, hatchMins:15 },
-    { id:"unicorn",   emoji:"🦄", name:"ยูนิคอร์น",  rarity:"epic",      element:"paper",    flavor:"เขาเป็น magic wand บดยาในลูกโกร่งได้เนียนกริ๊บ",                 rate:{normal:0.0,gold:0.0732,rainbow:0.0955}, hatchMins:15 },
-    { id:"phoenix",   emoji:"🦅", name:"ฟีนิกซ์",   rarity:"epic",      element:"scissors", flavor:"ว่ากันว่าน้ำตาของฟีนิกซ์สามารถรักษาได้ทุกอย่างบนโลก",              rate:{normal:0.0,gold:0.0603,rainbow:0.0894}, hatchMins:15 },
-    { id:"spirit",    emoji:"🧿", name:"สปิริต",     rarity:"epic",      element:"paper",    flavor:"เหมือนความรัก มองไม่เห็น แต่มีอยู่จริง",   rate:{normal:0.0,gold:0.0473,rainbow:0.0818}, hatchMins:15 },
-    { id:"kitsune",   emoji:"🦊", name:"คิทสึเนะ",   rarity:"epic",      element:"scissors", flavor:"จิ้งจอก 9 หางที่ซ่อนความรู้ทางเภสัชวิทยาไว้หางละหมวด",       rate:{normal:0.0,gold:0.043,rainbow:0.0682}, hatchMins:15 },
-    { id:"thunderbird",emoji:"🌩️",name:"ธันเดอร์เบิร์ด",rarity:"epic",  element:"fist",     flavor:"นกจากแดนอีสาน เพราะธัน เด้อ เบิร์ด อะไร๊",   rate:{normal:0.0,gold:0.0359,rainbow:0.0621}, hatchMins:15 },
-    { id:"leviathan", emoji:"🌊", name:"เลวีอาธาน",  rarity:"epic",      element:"paper",    flavor:"แข็งแกร่งพอที่จะต้านทานพายุ แต่ก็อ่อนโยนพอที่จะโอบล้อมชายฝั่ง",     rate:{normal:0.0,gold:0.0301,rainbow:0.0545}, hatchMins:15 },
-    { id:"cerberus",  emoji:"🐕", name:"เซอร์เบอรัส", rarity:"epic",     element:"fist",     flavor:"น้องหมา 3 หัว เฝ้าระวัง Drug Interaction ครบทั้งยา อาหาร และสารเคมี",    rate:{normal:0.0,gold:0.023,rainbow:0.0485}, hatchMins:15 },
-    { id:"tanuki",    emoji:"🦝", name:"ทานูกิ",      rarity:"epic",      element:"paper",    flavor:"พกโกร่งบดยาใบจิ๋วติดตัว ชอบแอบผสมยาสูตรลับในใบไม้",       rate:{normal:0.0,gold:0.0172,rainbow:0.0424}, hatchMins:15 },
+    { id:"dragon",    emoji:"🐲", name:"มังกรน้อย",  rarity:"epic",      element:"fist",     flavor:"หายใจพ่นไฟกำจัดimpurityในAPIได้ทันที สะดวกเกิ้น !",                    rate:{normal:0.0,gold:0.0861,rainbow:0.1091}, hatchMins:1 },
+    { id:"unicorn",   emoji:"🦄", name:"ยูนิคอร์น",  rarity:"epic",      element:"paper",    flavor:"เขาเป็น magic wand บดยาในลูกโกร่งได้เนียนกริ๊บ",                 rate:{normal:0.0,gold:0.0732,rainbow:0.0955}, hatchMins:1 },
+    { id:"phoenix",   emoji:"🦅", name:"ฟีนิกซ์",   rarity:"epic",      element:"scissors", flavor:"ว่ากันว่าน้ำตาของฟีนิกซ์สามารถรักษาได้ทุกอย่างบนโลก",              rate:{normal:0.0,gold:0.0603,rainbow:0.0894}, hatchMins:1 },
+    { id:"spirit",    emoji:"🧿", name:"สปิริต",     rarity:"epic",      element:"paper",    flavor:"เหมือนความรัก มองไม่เห็น แต่มีอยู่จริง",   rate:{normal:0.0,gold:0.0473,rainbow:0.0818}, hatchMins:1 },
+    { id:"kitsune",   emoji:"🦊", name:"คิทสึเนะ",   rarity:"epic",      element:"scissors", flavor:"จิ้งจอก 9 หางที่ซ่อนความรู้ทางเภสัชวิทยาไว้หางละหมวด",       rate:{normal:0.0,gold:0.043,rainbow:0.0682}, hatchMins:1 },
+    { id:"thunderbird",emoji:"🌩️",name:"ธันเดอร์เบิร์ด",rarity:"epic",  element:"fist",     flavor:"นกจากแดนอีสาน เพราะธัน เด้อ เบิร์ด อะไร๊",   rate:{normal:0.0,gold:0.0359,rainbow:0.0621}, hatchMins:1 },
+    { id:"leviathan", emoji:"🌊", name:"เลวีอาธาน",  rarity:"epic",      element:"paper",    flavor:"แข็งแกร่งพอที่จะต้านทานพายุ แต่ก็อ่อนโยนพอที่จะโอบล้อมชายฝั่ง",     rate:{normal:0.0,gold:0.0301,rainbow:0.0545}, hatchMins:1 },
+    { id:"cerberus",  emoji:"🐕", name:"เซอร์เบอรัส", rarity:"epic",     element:"fist",     flavor:"น้องหมา 3 หัว เฝ้าระวัง Drug Interaction ครบทั้งยา อาหาร และสารเคมี",    rate:{normal:0.0,gold:0.023,rainbow:0.0485}, hatchMins:1 },
+    { id:"tanuki",    emoji:"🦝", name:"ทานูกิ",      rarity:"epic",      element:"paper",    flavor:"พกโกร่งบดยาใบจิ๋วติดตัว ชอบแอบผสมยาสูตรลับในใบไม้",       rate:{normal:0.0,gold:0.0172,rainbow:0.0424}, hatchMins:1 },
     // ── LEGENDARY (3 ตัวเดิม + 3 ใหม่) ──
     { id:"celestial", emoji:"🌟", name:"ดาวเหนือ", rarity:"legendary", element:"paper",    flavor:"ท่ามกลางความมืดมิด จะเป็นแสงสว่างที่คอยนำทางให้คุณเอง",   rate:{normal:0.0,gold:0.0129,rainbow:0.0894}, hatchMins:60 },
     { id:"bahamut",   emoji:"🐉", name:"พาฮามุท",    rarity:"legendary", element:"scissors", flavor:"ราชันย์มังกรบรรพกาล ผู้กางปีกปกป้องสรรพชีวิตและปัดเป่าภัยพิบัติจากเงามืดแห่งโรคร้าย",    rate:{normal:0.0,gold:0.0129,rainbow:0.0758}, hatchMins:60 },
@@ -838,15 +847,53 @@ const PETS = [
     { id:"simurgh",   emoji:"🦅", name:"ซีมูร์ก",    rarity:"legendary", element:"paper",    flavor:"ภูมิปัญญาแห่งอดีตกาล คือรากฐานของปาฏิหาริย์แห่งการรักษาในยุคปัจจุบัน", rate:{normal:0.0,gold:0.0043,rainbow:0.0409}, hatchMins:60 },
     { id:"qilin",     emoji:"🐘", name:"บากุ",     rarity:"legendary", element:"fist",     flavor:"โอสถที่ประเสริฐที่สุด หาใช่ยารสขมใด หากแต่เป็นความเมตตาจากหัวใจ",  rate:{normal:0.0,gold:0.0029,rainbow:0.0318}, hatchMins:60 },
 ];
-const HATCH_LABELS = { common:"1 นาที", rare:"5 นาที", epic:"15 นาที", legendary:"1 ชั่วโมง" };
+const HATCH_LABELS = { common:"1 นาที", rare:"1 นาที", epic:"1 นาที", legendary:"1 นาที", glow:"1 นาที" };
 const EGG_TYPES = {
     pet: { label:"🥚 ไข่สัตว์เลี้ยง", cost:150, desc:"Common 40% · Rare 30% · Epic 20% · Legendary 10%", color:"#10b981" },
 };
-const INSTANT_COST = 100; // ราคาซื้อ Instant Hatch Ticket
+const INSTANT_COST = 25; // ราคาซื้อ Instant Hatch Ticket
 const MEGA_COST = 25;
 const ADMIN_EMAIL = 'prawich.aum@dome.tu.ac.th';
 
 
+/** rollPetFromGlowEgg() → pet object, Epic 60% / Legendary 40% */
+function rollPetFromGlowEgg(){
+    const pool=PETS.filter(p=>p.rarity==='epic'||p.rarity==='legendary');
+    const epics=pool.filter(p=>p.rarity==='epic');
+    const legs=pool.filter(p=>p.rarity==='legendary');
+    const isLeg=Math.random()<0.40;
+    const src=isLeg?legs:epics;
+    const p=src[Math.floor(Math.random()*src.length)];
+    return{...p, instId:`${p.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`};
+}
+window.buyGlowEgg=async()=>{
+    if(!currentUser){toast('กรุณา Login ก่อน','error');return;}
+    const cost=1200;
+    if((userData?.coins||0)<cost){toast(`เหรียญไม่พอ! ต้องการ ${cost}🪙`,'error');return;}
+    if(!await _confirm(`🌐 ไข่เรืองแสง
+ราคา ${cost}🪙
+
+สุ่ม Epic 60% / Legendary 40%
+
+ยืนยันซื้อ?`))return;
+    const pet=rollPetFromGlowEgg();
+    const egg={
+        eggId:`glow_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        eggType:'glow', petId:pet.id, petEmoji:pet.emoji,
+        petName:pet.name, petRarity:pet.rarity,
+        petInstId:pet.instId, hatchMins:1, startedAt:null,
+    };
+    window.__blockSnapshot=true;
+    userData={...userData, coins:(userData.coins||0)-cost, eggs:[...(userData.eggs||[]),egg]};
+    renderAll();
+    try{
+        await updateDoc(doc(db,'users',currentUser.uid),{
+            coins:increment(-cost), eggs:arrayUnion(egg),
+        });
+    }catch(e){toast('ซื้อไม่สำเร็จ','error');}
+    finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
+    toast(`🌐 ได้รับไข่เรืองแสงแล้ว! ${pet.rarity==='legendary'?'⭐ Legendary!':'🟣 Epic'}...`,'success');
+};
 /** rollPetFromEgg(eggType) → pet object with instId
  *  eggType: 'normal' | 'gold' | 'rainbow'
  *  Returns a pet def merged with fresh instId */
@@ -1055,7 +1102,7 @@ window.logoutUser=()=>{
  */
 async function ensureDoc(u){
     const ref=doc(db,"users",u.uid);const snap=await getDoc(ref);
-    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:200,pets:[],eggs:[],activePet:null,activePets:[null,null,null],pvpVictories:0,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,ctHigh:0,towerFloor:1,towerBest:0,towerLastReset:null,lastDaily:null,createdAt:serverTimestamp()});
+    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:2000,pets:[],eggs:[],activePet:null,activePets:[null,null,null],pvpVictories:0,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,ctHigh:0,towerFloor:1,towerBest:0,towerLastReset:null,lastDaily:null,createdAt:serverTimestamp()});
 }
 
 onAuthStateChanged(auth,async u=>{
@@ -1501,12 +1548,14 @@ window.confirmLink=async()=>{
         all.forEach(d=>{if(d.data().studentId===sid&&d.id!==currentUser.uid)claimed=true;});
     }
     if(claimed){toast("รหัสนี้ถูกใช้แล้ว","error");if(confirmBtn)confirmBtn.disabled=false;return;}
-    // มอบไข่ 2 ฟองต้อนรับ
-    const welcomeEggs=[1,2].map(()=>{const p=rollPetFromEgg('pet');return{eggId:`welcome_${Date.now()}_${Math.random().toString(36).slice(2)}`,eggType:'normal',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:p.hatchMins,startedAt:null};});
-    await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track,eggs:arrayUnion(welcomeEggs[0],welcomeEggs[1])});
-    closeLinkModal();toast(`ยินดีต้อนรับ ${found.nickname}! 🎁 ได้รับไข่ 2 ฟอง!`,"success");
+    // Welcome package: ไข่เรืองแสง 1 + ไข่ธรรมดา 3 + เงิน 2000
+    const _mkNormalEgg=()=>{const p=rollPetFromEgg('normal');return{eggId:`welcome_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,eggType:'normal',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:1,startedAt:null};};
+    const _mkGlowEgg=()=>{const p=rollPetFromGlowEgg();return{eggId:`glow_welcome_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,eggType:'glow',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:1,startedAt:null};};
+    const welcomeEggs=[_mkGlowEgg(),_mkNormalEgg(),_mkNormalEgg(),_mkNormalEgg()];
+    await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track,coins:increment(2000),eggs:arrayUnion(...welcomeEggs)});
+    closeLinkModal();toast(`ยินดีต้อนรับ ${found.nickname}! 🎁 ไข่เรืองแสง×1 ไข่ธรรมดา×3 เหรียญ 2000🪙!`,"success");
     confetti({particleCount:150,spread:80,origin:{y:0.5}});
-    await postNews("🔗",`${found.nickname} เพิ่งเข้าร่วม RxTU10 Dashboard!`);
+    await postNews("🔗",`ยินดีต้อนรับ ${found.nickname} เข้าสู่ RxTU10 Dashboard! 🎉`);
 };
 
 // ════════════════════════════════════════
@@ -1682,12 +1731,12 @@ window.togglePetSlot=async(slotIdx, instOrId)=>{
     const p=(userData?.pets||[]).find(x=>String(x.instId||x.id)===id);
     if(curSlot===slotIdx){
         slots[slotIdx]=null;
-        toast(`ถอด ${p?.emoji||''} ออกจาก ไม้${slotIdx+1}`,'info');
+        toast(`ถอด ${p?.emoji||''} ออกจาก ${slotIdx+1}`,'info');
     } else {
         if(curSlot>=0) slots[curSlot]=null;
         const oldId=slots[slotIdx];
         slots[slotIdx]=id;
-        toast(`${p?.emoji||''} ${p?formatPetName(p):''} → ไม้${slotIdx+1}${oldId?' (แทนที่)':''}!`,'success');
+        toast(`${p?.emoji||''} ${p?formatPetName(p):''} → ${slotIdx+1}${oldId?' (แทนที่)':''}!`,'success');
     }
     window.__blockSnapshot=true;
     userData={...userData, activePets:slots};
@@ -1788,7 +1837,7 @@ window.showPetInfo=async(petInstId)=>{
         return [0,1,2].map(i=>{
             const isMine=slots[i]&&String(slots[i])===String(p.instId||p.id);
             const hasOther=slots[i]&&!isMine;
-            const label=isMine?`✅ ไม้${i+1} (ถอด)`:hasOther?`🔄 ไม้${i+1}`:`➕ ไม้${i+1}`;
+            const label=isMine?`✅ ${i+1} (ถอด)`:hasOther?`🔄 ${i+1}`:`➕ ${i+1}`;
             const bg=isMine?'#dc2626':hasOther?'#7c3aed':'#059669';
             return `<button onclick="togglePetSlot(${i},'${String(p.instId||p.id)}');closePetInfo()" style="flex:1;background:${bg};color:#fff;border:none;border-radius:9px;padding:7px 4px;font-family:inherit;font-size:0.68rem;font-weight:700;cursor:pointer">${label}</button>`;
         }).join('');
@@ -1996,7 +2045,7 @@ function buildHome(){
                     </div>
                     <div style="flex:1;min-width:0">
                         <div class="pc-nick">${userData.nickname}</div>
-                        <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap">${getActivePetsArray().map((p,i)=>`<span style="font-size:1.15rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))" title="ไม้${i+1}">${p.emoji}</span>`).join('')}</div>
+                        <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap">${getActivePetsArray().map((p,i)=>`<span style="font-size:1.15rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))" title="${i+1}">${p.emoji}</span>`).join('')}</div>
                         <div class="pc-real">${userData.realName}</div>
                         <div class="pc-id">${userData.studentId}</div>
                         <div style="display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap">
@@ -2120,7 +2169,7 @@ function buildHome(){
         }).join('')}</div>`:''
 
     const invBlock=pets.length===0?`<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ฟักไข่ใน 🛒 Shop ก่อน!</div>`
-        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const _activePetSlots=(userData?.activePets||[]);const _slotIdx=_activePetSlots.findIndex(id=>id&&String(id)===String(p.instId||p.id));const on=_slotIdx>=0;const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${formatPetName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${(p.refine||0)>0?` +${p.refine}`:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?`<div class="inv-on" style="font-size:0.5rem">ไม้${_slotIdx+1}</div>`:''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
+        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const _activePetSlots=(userData?.activePets||[]);const _slotIdx=_activePetSlots.findIndex(id=>id&&String(id)===String(p.instId||p.id));const on=_slotIdx>=0;const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${formatPetName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${(p.refine||0)>0?` +${p.refine}`:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?`<div class="inv-on" style="font-size:0.5rem">${_slotIdx+1}</div>`:''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
         <div style="display:flex;gap:7px;justify-content:center;margin-top:8px;flex-wrap:wrap">
             
             ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
@@ -2184,7 +2233,8 @@ function memberGrid(){
         const photoSrc=live?.customPhoto||live?.googlePhoto||`img/${s.id}.jpg`;
         const def=`https://ui-avatars.com/api/?name=${encodeURIComponent(s.nickname.split(' ')[0])}&background=${s.track==='sci'?'2563eb':'10b981'}&color=fff&size=128`;
         // activePet: match instId ก่อน (ใหม่) fallback id (legacy)
-        const _apSlot0=(live?.activePets||[])[0]||live?.activePet||null;
+        const _isLinked=s.id&&!String(s.id).startsWith('guest_');
+        const _apSlot0=_isLinked?((live?.activePets||[])[0]||live?.activePet||null):null;
         const petData=_apSlot0
             ?(live.pets||[]).find(p=>p.instId&&String(p.instId)===String(_apSlot0))
               ||(live.pets||[]).find(p=>p.id===_apSlot0)
@@ -3502,6 +3552,19 @@ function buildShop(){
                 </div>
                 <button class="btn-gold" onclick="buyEgg('pet')" ${currentUser&&coins>=150?'':'disabled'} style="white-space:nowrap">150🪙</button>
             </div>
+            <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:0">
+                    <span style="font-size:3rem;animation:wobble 3s ease infinite 0.5s;display:inline-block;filter:drop-shadow(0 0 12px rgba(99,102,241,.7))">🌐</span>
+                    <div style="flex:1">
+                        <div style="font-weight:800;font-size:1rem;margin-bottom:2px">ไข่เรืองแสง</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
+                            <span style="background:#faf5ff;color:#a855f7;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 60%</span>
+                            <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 40%</span>
+                        </div>
+                    </div>
+                    <button class="btn-gold" onclick="buyGlowEgg()" ${currentUser&&(userData?.coins||0)>=1200?'':'disabled'} style="white-space:nowrap">1200🪙</button>
+                </div>
+            </div>
             <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;align-items:center;gap:10px">
                 <div style="font-size:1.5rem;flex-shrink:0">⚡</div>
                 <div style="flex:1">
@@ -3586,113 +3649,63 @@ window.toggleCollection=()=>{
 //  - Max 40 turns → Draw
 // ════════════════════════════════════════
 
-// ── Battle / Sandbox state ──
-let __battle  = null; // 2-pet battle state
-let __sandbox = null; // dummy sandbox state
+
 
 
 // ════════════════════════════════════════
-// ▶ BATTLE SYSTEM
+// ▶ BATTLE SYSTEM  (sandbox + pve)
 // ════════════════════════════════════════
 window.openBattle = () => {
-    if (!currentUser) { toast('กรุณา Login', 'error'); return; }
-    const pets = (userData?.pets||[]).filter(p=>!p.isExpedition);
-    if (!pets.length) { toast('ยังไม่มีสัตว์เลี้ยง', 'info'); return; }
-    if (__battle?.timer) clearTimeout(__battle.timer);
-    __battle = null; __sandbox = null;
-    window.__bSelA = null; window.__bSelB = null; window.__bRandom = false;
-    window.__bMode = 'sandbox'; // 'sandbox' | 'battle'
-    _renderBattleSetup();
+    if(!currentUser){ toast('กรุณา Login ก่อน','error'); return; }
+    window.__bSelA = null; window.__bSelB = null;
+    window.__bMode = 'sandbox'; window.__bRandom = false;
     document.getElementById('battle-modal').classList.add('active');
+    _renderBattleSetup();
 };
-
 window.closeBattle = () => {
-    if (__battle?.timer) clearTimeout(__battle.timer);
-    __battle = null; __sandbox = null;
+    if(__core?.cfg?.mode==='sandbox'||__core?.cfg?.mode==='pve'){
+        clearInterval(__core.timer); clearTimeout(__core.timer); __core=null;
+    }
     document.getElementById('battle-modal').classList.remove('active');
 };
 
-// ── หน้าเลือก mode ──
+// ── SETUP SCREENS ──
 function _renderBattleSetup() {
-    const pets  = userData?.pets || [];
     const mode  = window.__bMode || 'sandbox';
-    const selA  = window.__bSelA;
-    const selB  = window.__bSelB;
-    const rnd   = window.__bRandom;
-
+    const pets  = (userData?.pets||[]).filter(p=>!p.isExpedition);
     const petCard = (p, slot) => {
+        const sel = slot==='A' ? window.__bSelA===p.instId : window.__bSelB===p.instId;
         const cfg = RARITY[p.rarity];
-        const def = PETS.find(x => x.id === p.id);
-        const el  = ELEMENTS[def?.element];
-        const gr  = p.grade || 0;
-        const s   = calculatePetStats(p);
-        const isA = p.instId === selA, isB = p.instId === selB;
-        const cls = isA ? 'battle-pick sel-a' : isB ? 'battle-pick sel-b' : 'battle-pick';
-        const dim = mode === 'battle' && ((slot==='A' && isB) || (slot==='B' && isA));
-        return `<div class="${cls}" onclick="bPick('${p.instId}','${slot}')" style="${dim?'opacity:.3;':''}">
-            <div style="font-size:1.55rem">${p.emoji}</div>
-            <div style="font-size:0.57rem;font-weight:700;color:rgba(255,255,255,.85);margin-top:2px;line-height:1.3">
-                ${formatPetName(p)}
-            </div>
-            <div style="font-size:0.55rem;color:${cfg.color}">${cfg.label}</div>
-            <div style="font-size:0.57rem;margin-top:2px">${el ? el.emoji : ''} <span style="color:rgba(255,255,255,.4)">ATK ${s.atk}</span></div>
+        return `<div onclick="bPick('${p.instId}','${slot}')" style="background:${sel?'rgba(167,139,250,.25)':'rgba(255,255,255,.05)'};
+            border:2px solid ${sel?'#a78bfa':'rgba(255,255,255,.1)'};border-radius:10px;padding:7px 5px;text-align:center;cursor:pointer">
+            <div style="font-size:1.6rem">${p.emoji}</div>
+            <div style="font-size:0.56rem;font-weight:700;color:rgba(255,255,255,.8);margin-top:2px">${formatPetName(p)}</div>
+            <div style="font-size:0.48rem;color:${cfg.color}">${cfg.label}</div>
         </div>`;
     };
-
-    // ── Sandbox mode UI ──
     const sandboxBody = () => {
-        const canStart = !!selA;
-        return `
-        <div style="font-size:0.66rem;color:#10b981;font-weight:700;letter-spacing:.5px;margin-bottom:6px">เลือกสัตว์ที่จะตีหุ่น</div>
-        <div class="battle-select-grid" style="margin-bottom:12px">${pets.map(p => petCard(p, 'A')).join('')}</div>
-        <button class="btn-battle" onclick="startSandbox()" ${canStart ? '' : 'disabled'}>
-            🪨 ${canStart ? 'เริ่มตีหุ่น!' : 'เลือกสัตว์ก่อน'}
+        const selA = window.__bSelA;
+        return `<div style="font-size:0.66rem;color:rgba(255,255,255,.4);margin-bottom:8px">เลือกสัตว์เลี้ยงที่จะลองวัดพลัง</div>
+        <div class="battle-select-grid">${pets.map(p=>petCard(p,'A')).join('')}</div>
+        <button class="btn-battle" onclick="startSandbox()" ${selA?'':'disabled'}>
+            🪨 ${selA?'ตีหุ่น!':'เลือกสัตว์ก่อน'}
         </button>`;
     };
-
-    // ── Battle mode UI ──
+    const rnd = window.__bRandom;
     const battleBody = () => {
-        const single = pets.length === 1;
-        const canStart = selA && (selB || rnd || single);
-        const petA = selA ? pets.find(p => p.instId === selA) : null;
-        const petB = selB ? pets.find(p => p.instId === selB) : null;
-        const vsBar = petA ? `
-            <div style="display:flex;align-items:center;justify-content:center;gap:16px;
-                        background:rgba(0,0,0,.2);border-radius:11px;padding:8px 10px;margin:6px 0">
-                <div style="text-align:center;min-width:40px">
-                    <div style="font-size:1.8rem">${petA.emoji}</div>
-                    <div style="font-size:0.58rem;color:rgba(255,255,255,.5)">${petA.name}</div>
-                </div>
-                <div style="color:rgba(255,255,255,.2);font-weight:800;font-size:0.85rem">VS</div>
-                <div style="text-align:center;min-width:40px">
-                    ${rnd || single
-                        ? `<div style="font-size:1.8rem">🎲</div><div style="font-size:0.58rem;color:rgba(255,255,255,.4)">สุ่ม AI</div>`
-                        : petB
-                            ? `<div style="font-size:1.8rem">${petB.emoji}</div><div style="font-size:0.58rem;color:rgba(255,255,255,.5)">${petB.name}</div>`
-                            : `<div style="font-size:1.5rem;opacity:.3">❓</div>`}
-                </div>
-            </div>` : '';
-        return `
-        <div style="font-size:0.66rem;color:#10b981;font-weight:700;letter-spacing:.5px;margin-bottom:6px">🟢 ฝั่ง A</div>
-        <div class="battle-select-grid" style="margin-bottom:4px">${pets.map(p => petCard(p, 'A')).join('')}</div>
-        ${vsBar}
-        <div style="font-size:0.66rem;color:#f43f5e;font-weight:700;letter-spacing:.5px;margin:8px 0 6px">🔴 ฝั่ง B</div>
-        ${single
-            ? `<div style="background:rgba(244,63,94,.08);border:1px dashed rgba(244,63,94,.3);border-radius:10px;
-                           padding:10px;text-align:center;font-size:0.72rem;color:rgba(255,255,255,.4);margin-bottom:8px">
-               มีแค่ 1 ตัว — ฝั่ง B สุ่ม AI</div>`
-            : `<div style="display:flex;gap:6px;margin-bottom:7px">
-                <button onclick="bSetRandom(false)" style="flex:1;padding:5px;border-radius:9px;border:1.5px solid ${!rnd?'#f43f5e':'rgba(255,255,255,.1)'};
-                    background:${!rnd?'rgba(244,63,94,.15)':'rgba(255,255,255,.04)'};color:rgba(255,255,255,.7);font-family:inherit;font-size:0.7rem;cursor:pointer">🎯 เลือกเอง</button>
-                <button onclick="bSetRandom(true)"  style="flex:1;padding:5px;border-radius:9px;border:1.5px solid ${rnd?'#f43f5e':'rgba(255,255,255,.1)'};
-                    background:${rnd?'rgba(244,63,94,.15)':'rgba(255,255,255,.04)'};color:rgba(255,255,255,.7);font-family:inherit;font-size:0.7rem;cursor:pointer">🎲 สุ่ม AI</button>
-               </div>
-               ${!rnd ? `<div class="battle-select-grid" style="margin-bottom:8px">${pets.map(p => petCard(p, 'B')).join('')}</div>` : ''}`}
-        <button class="btn-battle" onclick="startBattle()" ${canStart ? '' : 'disabled'}>
-            ⚔️ ${canStart ? 'เริ่มสู้!' : 'เลือกฝั่ง A ก่อน'}
+        const canStart = !!window.__bSelA && (rnd || !!window.__bSelB);
+        return `<div style="font-size:0.66rem;color:rgba(255,255,255,.4);margin-bottom:8px">ฝั่ง A (เรา)</div>
+        <div class="battle-select-grid" style="margin-bottom:8px">${pets.map(p=>petCard(p,'A')).join('')}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="font-size:0.66rem;color:rgba(255,255,255,.4)">ฝั่ง B</div>
+            <button onclick="bSetRandom(!window.__bRandom)" style="padding:4px 10px;border-radius:8px;border:1.5px solid ${rnd?'#f43f5e':'rgba(255,255,255,.1)'};
+                background:${rnd?'rgba(244,63,94,.15)':'rgba(255,255,255,.04)'};color:rgba(255,255,255,.7);font-family:inherit;font-size:0.7rem;cursor:pointer">🎲 สุ่ม AI</button>
+        </div>
+        ${!rnd ? `<div class="battle-select-grid" style="margin-bottom:8px">${pets.map(p=>petCard(p,'B')).join('')}</div>` : ''}
+        <button class="btn-battle" onclick="startBattle()" ${canStart?'':'disabled'}>
+            ⚔️ ${canStart?'เริ่มสู้!':'เลือกฝั่ง A ก่อน'}
         </button>`;
     };
-
     document.getElementById('battle-content').innerHTML = `
     <div class="battle-arena" style="border-radius:20px">
         <div class="battle-header">
@@ -3700,7 +3713,6 @@ function _renderBattleSetup() {
             <button onclick="closeBattle()" style="background:rgba(255,255,255,.1);border:none;
                 color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem;flex-shrink:0">✕</button>
         </div>
-        <!-- Mode tabs -->
         <div style="display:flex;gap:6px;margin-bottom:12px">
             <button onclick="bSetMode('sandbox')" style="flex:1;padding:7px;border-radius:10px;border:1.5px solid ${mode==='sandbox'?'#10b981':'rgba(255,255,255,.1)'};
                 background:${mode==='sandbox'?'rgba(16,185,129,.15)':'rgba(255,255,255,.04)'};color:rgba(255,255,255,.75);font-family:inherit;font-size:0.75rem;font-weight:700;cursor:pointer">
@@ -3709,446 +3721,424 @@ function _renderBattleSetup() {
                 background:${mode==='battle'?'rgba(244,63,94,.15)':'rgba(255,255,255,.04)'};color:rgba(255,255,255,.75);font-family:inherit;font-size:0.75rem;font-weight:700;cursor:pointer">
                 ⚔️ ต่อสู้ (2 ตัว)</button>
         </div>
-        ${mode === 'sandbox' ? sandboxBody() : battleBody()}
+        ${mode==='sandbox' ? sandboxBody() : battleBody()}
     </div>`;
 }
-
-window.bPick = (instId, slot) => {
-    if (slot === 'A') {
-        window.__bSelA = window.__bSelA === instId ? null : instId;
-        if (window.__bSelA === window.__bSelB) window.__bSelB = null;
-    } else {
-        window.__bSelB = window.__bSelB === instId ? null : instId;
-        if (window.__bSelA === window.__bSelB) window.__bSelA = null;
-    }
+window.bPick=(instId,slot)=>{
+    if(slot==='A'){ window.__bSelA=window.__bSelA===instId?null:instId; if(window.__bSelA===window.__bSelB)window.__bSelB=null; }
+    else          { window.__bSelB=window.__bSelB===instId?null:instId; if(window.__bSelA===window.__bSelB)window.__bSelA=null; }
     _renderBattleSetup();
 };
+window.bSetRandom=(val)=>{ window.__bRandom=val; if(val)window.__bSelB=null; _renderBattleSetup(); };
+window.bSetMode=(mode)=>{ window.__bMode=mode; window.__bSelA=null; window.__bSelB=null; window.__bRandom=false; _renderBattleSetup(); };
 
-window.bSetRandom = (val) => {
-    window.__bRandom = val;
-    if (val) window.__bSelB = null;
-    _renderBattleSetup();
+// ── Sandbox ──
+window.startSandbox=()=>{
+    const pets=userData?.pets||[];
+    const petA=pets.find(p=>p.instId===window.__bSelA);
+    if(!petA){toast('เลือกสัตว์ก่อน','error');return;}
+    const DUMMY_HP=1000;
+    const dummyEl=['fist','scissors','paper'][Math.floor(Math.random()*3)];
+    const petB={id:'dummy',emoji:'🪆',name:'หุ่นทดสอบ',rarity:'common',grade:0,instId:'dummy_target'};
+    const defA=PETS.find(x=>x.id===petA.id); const defB={id:'dummy',element:dummyEl};
+    const sA=calculatePetStats(petA); const sB={atk:0,hp:DUMMY_HP};
+    _startCoreBattle({
+        mode:'sandbox',
+        sides:[
+            {pet:petA, def:defA, stats:sA, hp:sA.hp, maxHp:sA.hp},
+            {pet:petB, def:defB, stats:sB, hp:DUMMY_HP, maxHp:DUMMY_HP},
+        ],
+        firstIdx:0, maxTurns:100, tickMs:650,
+        container:'battle-content', arenaId:'battle-wrap', fieldId:'battle-field',
+        titleHtml:'🪨 ตีหุ่น',
+        onClose:()=>closeBattle(),
+        onWin:null, onLose:null,
+    });
 };
-
-window.bSetMode = (mode) => {
-    window.__bMode = mode;
-    window.__bSelA = null;
-    window.__bSelB = null;
-    window.__bRandom = false;
-    _renderBattleSetup();
-};
-
-// ── Sandbox (ตีหุ่น) ── HP หุ่น = 1000 คงที่, ATK=0 ไม่โต้กลับ
-window.startSandbox = () => {
-    const pets = userData?.pets || [];
-    const petA = pets.find(p => p.instId === window.__bSelA);
-    if (!petA) { toast('เลือกสัตว์ก่อน', 'error'); return; }
-    const DUMMY_HP = 1000;
-    const dummyEl  = ['fist','scissors','paper'][Math.floor(Math.random()*3)];
-    const petB     = { id:'dummy', emoji:'🪆', name:'หุ่นทดสอบ',
-                       rarity:'common', grade:0, instId:'dummy_target' };
-    const defA = PETS.find(x => x.id === petA.id);
-    const defB = { id:'dummy', element: dummyEl };
-    const sA   = calculatePetStats(petA);
-    const sB   = { atk: 0, hp: DUMMY_HP };
-    if (__battle?.timer) clearTimeout(__battle.timer);
-    __battle = {
-        pA: petA, pB: petB, defA, defB, sA, sB,
-        hpA: sA.hp, hpB: DUMMY_HP, maxA: sA.hp, maxB: DUMMY_HP,
-        whoseTurn: 'A',
-        turn: 0, log: [], running: true, timer: null,
-        isSandbox: true, maxTurns: 100,
-    };
-    _renderBattleArena();
-    __battle.timer = setTimeout(_battleTick, 600);
-};
-
-// ── Init Battle ──
-window.startBattle = () => {
-    const pets = userData?.pets || [];
-    const petA = pets.find(p => p.instId === window.__bSelA);
-    if (!petA) { toast('เลือกฝั่ง A ก่อน', 'error'); return; }
-
+// ── PvE (2 ตัว) ──
+window.startBattle=()=>{
+    const pets=userData?.pets||[];
+    const petA=pets.find(p=>p.instId===window.__bSelA);
+    if(!petA){toast('เลือกฝั่ง A ก่อน','error');return;}
     let petB;
-    const useRandom = window.__bRandom || pets.length === 1;
-    if (useRandom) {
-        const pool = PETS.filter(x => x.id !== petA.id);
-        const rnd  = pool[Math.floor(Math.random() * pool.length)];
-        petB = { id: rnd.id, emoji: rnd.emoji, name: rnd.name,
-                 rarity: rnd.rarity, grade: 0, instId: 'ai_' + rnd.id };
+    if(window.__bRandom||pets.length===1){
+        const pool=PETS.filter(x=>x.id!==petA.id);
+        const rnd=pool[Math.floor(Math.random()*pool.length)];
+        petB={id:rnd.id,emoji:rnd.emoji,name:rnd.name,rarity:rnd.rarity,grade:0,instId:'ai_'+rnd.id};
     } else {
-        petB = pets.find(p => p.instId === window.__bSelB);
-        if (!petB) { toast('เลือกฝั่ง B ก่อน', 'error'); return; }
+        petB=pets.find(p=>p.instId===window.__bSelB);
+        if(!petB){toast('เลือกฝั่ง B ก่อน','error');return;}
     }
-
-    const defA = PETS.find(x => x.id === petA.id);
-    const defB = PETS.find(x => x.id === petB.id);
-    const sA   = calculatePetStats(petA);
-    const sB   = calculatePetStats(petB);
-
-    // สุ่ม 50/50 ว่าใครเริ่มก่อน (ไม่เกี่ยวกับ ATK)
-    const firstIsA = Math.random() < 0.5;
-
-    __battle = {
-        pA: petA, pB: petB, defA, defB, sA, sB,
-        hpA: sA.hp, hpB: sB.hp, maxA: sA.hp, maxB: sB.hp,
-        whoseTurn: firstIsA ? 'A' : 'B', // ใครตีตอนนี้
-        turn: 0, log: [], running: true, timer: null,
-    };
-
-    _renderBattleArena();
-    __battle.timer = setTimeout(_battleTick, 900);
+    const defA=PETS.find(x=>x.id===petA.id); const defB=PETS.find(x=>x.id===petB.id);
+    const sA=calculatePetStats(petA); const sB=calculatePetStats(petB);
+    _startCoreBattle({
+        mode:'pve',
+        sides:[
+            {pet:petA, def:defA, stats:sA, hp:sA.hp, maxHp:sA.hp},
+            {pet:petB, def:defB, stats:sB, hp:sB.hp, maxHp:sB.hp},
+        ],
+        firstIdx:Math.random()<0.5?0:1, maxTurns:40, tickMs:780,
+        container:'battle-content', arenaId:'battle-wrap', fieldId:'battle-field',
+        titleHtml:'⚔️ Battle',
+        onClose:()=>closeBattle(),
+        onWin:null, onLose:null,
+    });
 };
 
-// ── Render Arena ──
-function _renderBattleArena() {
-    const b = __battle;
-    if (!b) return;
-    const cfgA = RARITY[b.pA.rarity], cfgB = RARITY[b.pB.rarity];
-    const elA  = ELEMENTS[b.defA?.element],  elB  = ELEMENTS[b.defB?.element];
-    const pctA = Math.max(0, b.hpA / b.maxA * 100);
-    const pctB = Math.max(0, b.hpB / b.maxB * 100);
-    const hpCol = p => p > 50 ? '#10b981' : p > 20 ? '#f59e0b' : '#ef4444';
-    const isOver = b.hpA <= 0 || b.hpB <= 0 || !b.running;
 
-    const sideCard = (pet, def, el, cfg, hp, max, pct, sid) => `
-        <div style="text-align:center">
-            <div style="font-size:3rem;filter:drop-shadow(0 0 10px ${hp<=0?'#ffffff11':cfg.glow});
-                        transition:transform .15s;${hp<=0?'opacity:.3':''}"
-                 id="bem-${sid}">${pet.emoji}</div>
-            <div style="font-size:0.7rem;font-weight:700;color:${hp<=0?'rgba(255,255,255,.35)':'rgba(255,255,255,.85)'};margin:4px 0 2px">
-                ${pet.name}${pet.grade>0?' '+GRADE_LABELS[pet.grade]:''}
-                ${el?`<span style="font-size:.85rem"> ${el.emoji}</span>`:''}
-            </div>
-            <div style="font-size:0.56rem;color:${cfg.color};margin-bottom:5px">${cfg.label} · ATK ${(sid==='a'?b.sA:b.sB).atk}</div>
-            <div style="height:9px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px">
-                <div id="bhp-${sid}" style="width:${pct}%;height:100%;background:${hpCol(pct)};
-                     border-radius:50px;transition:width .45s ease"></div>
-            </div>
-            <div style="font-size:0.6rem;color:rgba(255,255,255,.4)">${Math.max(0,hp)} / ${max}</div>
-        </div>`;
+// ════════════════════════════════════════
+// ▶ CORE BATTLE ENGINE  (shared by sandbox / pve / tower / pvp)
+// ════════════════════════════════════════
+/*
+ * _startCoreBattle(cfg) — universal battle launcher
+ *
+ * cfg.mode:       'sandbox' | 'pve' | 'tower' | 'pvp'
+ * cfg.sides:      [{pet, def, stats, hp, maxHp}, ...]  (2 sides, each can be relay array)
+ *                 For relay modes: sides[0] / sides[1] are ARRAYS of combatants
+ *                 For single modes: sides[0] / sides[1] are single objects
+ * cfg.firstIdx:   0 = side[0] goes first, 1 = side[1] goes first
+ * cfg.maxTurns:   draw cutoff (40 pve, 999 tower/pvp)
+ * cfg.tickMs:     interval between ticks
+ * cfg.container:  element id for innerHTML writes
+ * cfg.fieldId:    element id for damage float anchoring
+ * cfg.titleHtml:  string shown in header
+ * cfg.onClose():  called when ✕ pressed
+ * cfg.onWin():    async, called when side[0] wins  (null = no-op)
+ * cfg.onLose():   async, called when side[0] loses (null = no-op)
+ * cfg.renderExtra(state): optional fn → HTML appended below log
+ */
 
-    const logHtml = b.log.length
-        ? b.log.slice(-5).map((l, i) =>
-            `<div style="opacity:${0.4 + i * 0.3}">${l}</div>`).join('')
-        : `<span style="opacity:.3">เริ่มการสู้...</span>`;
+let __core = null; // single global core state
 
-    document.getElementById('battle-content').innerHTML = `
-    <div class="battle-arena" style="border-radius:20px" id="battle-wrap">
-        <div class="battle-header">
-            <span class="battle-title">⚔️ Turn ${b.turn}</span>
-            <button onclick="closeBattle()" style="background:rgba(255,255,255,.1);border:none;
-                color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem">✕</button>
-        </div>
+window.__coreClose = () => { if(__core?.cfg?.onClose) __core.cfg.onClose(); };
+function _startCoreBattle(cfg) {
+    if(__core?.timer){ clearInterval(__core.timer); clearTimeout(__core.timer); }
 
-        <div style="display:grid;grid-template-columns:1fr 28px 1fr;gap:6px;align-items:start;
-                    margin-bottom:12px;position:relative" id="battle-field">
-            ${sideCard(b.pA, b.defA, elA, cfgA, b.hpA, b.maxA, pctA, 'a')}
-            <div style="display:flex;align-items:center;justify-content:center;
-                        padding-top:20px;font-size:0.8rem;color:rgba(255,255,255,.2);font-weight:800">⚔️</div>
-            ${sideCard(b.pB, b.defB, elB, cfgB, b.hpB, b.maxB, pctB, 'b')}
-        </div>
+    // Normalise sides to arrays
+    const normSide = (raw) => Array.isArray(raw) ? raw.map(s=>({...s})) : [{...raw}];
+    const sA = normSide(cfg.sides[0]);
+    const sB = normSide(cfg.sides[1]);
 
-        <div style="background:rgba(0,0,0,.25);border-radius:11px;padding:9px 12px;
-                    min-height:50px;font-size:0.74rem;color:rgba(255,255,255,.7);
-                    line-height:1.7;margin-bottom:10px;border:1px solid rgba(255,255,255,.06)">
-            ${logHtml}
-        </div>
+    __core = {
+        cfg,
+        sA, sB,        // arrays of {pet,def,stats,hp,maxHp}
+        iA: 0, iB: 0,  // current combatant index
+        turn: 0,
+        whoseTurn: cfg.firstIdx===1 ? 1 : 0,  // 0=sideA, 1=sideB
+        log: [],
+        running: true,
+        timer: null,
+        mode: cfg.mode,
+    };
 
-        ${isOver
-            ? _battleResultHtml()
-            : `<div style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,.35)">
-                ⚡ ${b.whoseTurn==='A'?b.pA.emoji:b.pB.emoji} กำลังโจมตี...
-               </div>`}
-    </div>`;
-}
-
-// ── Result screen ──
-function _battleResultHtml() {
-    const b  = __battle;
-    const draw = b.hpA <= 0 && b.hpB <= 0;
-    const winA = !draw && b.hpA > 0;
-    const win  = draw ? null : (winA ? b.pA : b.pB);
-    const lose = draw ? null : (winA ? b.pB : b.pA);
-
-    // Sandbox result — แสดง DPS summary
-    if (b.isSandbox) {
-        const hpLeft = b.hpB;
-        const beaten = b.hpB <= 0;
-        return `
-        <div style="text-align:center;padding:6px 0 2px">
-            <div style="font-size:3rem;animation:bBounce .5s ease">${beaten ? '💥' : '🪆'}</div>
-            <div style="font-size:1.05rem;font-weight:800;color:#fff;margin:6px 0">
-                ${beaten ? '🎉 ทำลายหุ่นสำเร็จ!' : `หุ่นเหลือ HP ${hpLeft}/1000`}
-            </div>
-            <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:10px;margin-bottom:12px;font-size:0.78rem;color:rgba(255,255,255,.7)">
-                ⚔️ ${b.turn} เทิร์น &nbsp;|&nbsp; 💥 ดาเมจรวม <b style="color:#fbbf24">${b.totalDmg||0}</b> &nbsp;|&nbsp;
-                📊 DPS เฉลี่ย <b style="color:#6ee7b7">${b.turn > 0 ? Math.round((b.totalDmg||0)/b.turn) : 0}</b>/เทิร์น
-            </div>
-            <div style="display:flex;gap:8px;justify-content:center">
-                <button class="btn-battle" style="width:auto;padding:10px 20px" onclick="openBattle()">🔄 ตีอีก</button>
-                <button style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
-                               color:rgba(255,255,255,.65);padding:10px 16px;border-radius:12px;
-                               font-family:inherit;cursor:pointer;font-size:0.84rem"
-                        onclick="closeBattle()">ปิด</button>
-            </div>
-        </div>`;
+    _coreRender();
+    const tickFn = cfg.mode==='sandbox' ? _coreSandboxTick : _coreTick;
+    if(cfg.mode==='sandbox'){
+        __core.timer = setTimeout(function loop(){ if(!__core||!__core.running)return; tickFn(); if(__core?.running) __core.timer=setTimeout(loop,cfg.tickMs); }, cfg.tickMs);
+    } else {
+        __core.timer = setInterval(_coreTick, cfg.tickMs);
     }
-
-    return `
-    <div style="text-align:center;padding:6px 0 2px">
-        <div style="font-size:3rem;animation:bBounce .5s ease">${draw ? '🤝' : win.emoji}</div>
-        <div style="font-size:1.05rem;font-weight:800;color:#fff;margin:6px 0">
-            ${draw ? '⚖️ เสมอกัน!' : win.name + ' ชนะ! 🎉'}
-        </div>
-        <div style="font-size:0.74rem;color:rgba(255,255,255,.4);margin-bottom:14px">
-            ${draw ? 'ทั้งคู่ล้มพร้อมกัน' : lose.name + ' แพ้ใน ' + b.turn + ' เทิร์น'}
-        </div>
-        <div style="display:flex;gap:8px;justify-content:center">
-            <button class="btn-battle" style="width:auto;padding:10px 20px" onclick="openBattle()">🔄 สู้อีก</button>
-            <button style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
-                           color:rgba(255,255,255,.65);padding:10px 16px;border-radius:12px;
-                           font-family:inherit;cursor:pointer;font-size:0.84rem"
-                    onclick="closeBattle()">ปิด</button>
-        </div>
-    </div>`;
 }
 
-// ── Turn Engine ──
-function _battleTick() {
-    const b = __battle;
-    if (!b || !b.running) return;
+// ── Main tick ──
+function _coreTick() {
+    const c = __core; if(!c||!c.running) return;
+    const maxT = c.cfg.maxTurns || 40;
 
-    const maxT = b.maxTurns || 40;
+    // get current combatants
+    const attSide = c.whoseTurn===0 ? c.sA[c.iA] : c.sB[c.iB];
+    const defSide = c.whoseTurn===0 ? c.sB[c.iB] : c.sA[c.iA];
+    if(!attSide||!defSide){ c.running=false; _coreRender(); return; }
 
-    // ตรวจจบ
-    if (b.hpA <= 0 || b.hpB <= 0 || b.turn >= maxT) {
-        b.running = false;
-        if (b.turn >= maxT && b.hpA > 0 && b.hpB > 0) {
-            if (!b.isSandbox) { b.hpA = 0; b.hpB = 0; }
-            b.log.push(b.isSandbox ? `🏁 จบ ${maxT} เทิร์น! ทำดาเมจรวม ${b.totalDmg||0}` : '🏳️ 40 เทิร์น — เสมอ!');
-        }
-        _renderBattleArena();
+    c.turn++;
+
+    const adv  = elementBeats(attSide.def?.element, defSide.def?.element);
+    const crit = Math.random()<0.20;
+    const dmg  = Math.max(1, Math.round(attSide.stats.atk * (adv?1.5:1.0) * (crit?2.0:1.0)));
+    defSide.hp = Math.max(0, defSide.hp - dmg);
+
+    const tag = crit ? ` <b style="color:#fbbf24">💥CRIT!</b>` : adv ? ` <span style="color:#6ee7b7">🔥×1.5</span>` : '';
+    c.log.push(`${attSide.pet.emoji}→${defSide.pet.emoji} <b style="color:#fca5a5">-${dmg}</b>${tag}`);
+
+    // ── Tackle + Shake + Damage float animation ──
+    _coreAnimate(c.whoseTurn, dmg, adv, crit);
+
+    // ── Death check ──
+    if(defSide.hp <= 0) {
+        clearInterval(c.timer); c.timer=null;
+
+        const defIsA = c.whoseTurn===1; // attacker is B → defender is A
+        const defArr = defIsA ? c.sA : c.sB;
+        const defKey = defIsA ? 'iA' : 'iB';
+        const nextIdx = c[defKey]+1;
+        const hasNext = nextIdx < defArr.length;
+
+        _coreRender();
+
+        // Fade out dead combatant
+        const deadSid = defIsA ? 'a' : 'b';
+        const deadEl = document.getElementById('cem-'+deadSid);
+        if(deadEl) { deadEl.style.transition='opacity .4s'; deadEl.style.opacity='0'; }
+
+        setTimeout(()=>{
+            if(!__core) return;
+            if(!hasNext) {
+                // side exhausted → game over
+                c.running = false;
+                _coreRender();
+                const weWon = defIsA; // sideA exhausted = we lost; sideB exhausted = we won
+                const onEnd = weWon ? c.cfg.onWin : c.cfg.onLose;
+                if(typeof onEnd==='function') onEnd();
+                return;
+            }
+            // Relay: bring in next combatant
+            c[defKey] = nextIdx;
+            const newcomer = defIsA ? c.sA[c.iA] : c.sB[c.iB];
+            c.log.push(`🔄 ${newcomer.pet.emoji} ${formatPetName(newcomer.pet)} ออกสนาม!`);
+            // Newcomer attacks first
+            c.whoseTurn = defIsA ? 0 : 1;
+            _coreRender();
+            // Fade in new combatant
+            const newEl = document.getElementById('cem-'+deadSid);
+            if(newEl) { newEl.style.opacity='0'; newEl.style.transition='opacity .5s'; requestAnimationFrame(()=>{ newEl.style.opacity='1'; }); }
+            setTimeout(()=>{ if(__core) __core.timer=setInterval(_coreTick, c.cfg.tickMs); }, 300);
+        }, 1600);
         return;
     }
 
-    b.turn++;
-    // sandbox: A ตีฝ่ายเดียว, battle: สลับ turn
-    const aAtk = b.isSandbox ? true : b.whoseTurn === 'A';
-    const attPet  = aAtk ? b.pA : b.pB;
-    const defPet  = aAtk ? b.pB : b.pA;
-    const attDef  = aAtk ? b.defA : b.defB;
-    const defDef  = aAtk ? b.defB : b.defA;
-    const attStat = aAtk ? b.sA : b.sB;
-
-    // damage (sandbox: ข้าม turn ของหุ่น)
-    let dmg = 0;
-    let adv = false, isCrit = false;
-    if (!b.isSandbox || aAtk) {
-        adv     = elementBeats(attDef?.element, defDef?.element);
-        const elemMul = adv ? 1.5 : 1.0;
-        isCrit  = Math.random() < 0.20;
-        const critMul = isCrit ? 2.0 : 1.0;
-        dmg = Math.max(1, Math.round(attStat.atk * elemMul * critMul));
+    // Draw check
+    if(c.turn >= maxT) {
+        clearInterval(c.timer); c.timer=null;
+        c.running=false;
+        c.log.push(`🏳️ ${maxT} เทิร์น — หมดเวลา!`);
+        _coreRender();
+        return;
     }
 
-    if (aAtk) b.hpB = Math.max(0, b.hpB - dmg);
-    else      b.hpA = Math.max(0, b.hpA - dmg);
-    if (b.isSandbox) b.totalDmg = (b.totalDmg || 0) + dmg;
+    c.whoseTurn = c.whoseTurn===0 ? 1 : 0;
+    _coreRender();
+}
 
-    // log (sandbox: แสดงทุก turn, battle: เหมือนเดิม)
-    const elEmoji = ELEMENTS[attDef?.element]?.emoji || '';
-    const tag = isCrit ? ` <b style="color:#fbbf24">💥CRIT!</b>` : adv ? ` <span style="color:#6ee7b7">🔥×1.5</span>` : '';
-    if (!b.isSandbox || dmg > 0) {
-        b.log.push(`${attPet.emoji}${elEmoji}→${defPet.emoji} <b style="color:#fca5a5">-${dmg}</b>${tag}`);
-    }
-
-    // สลับ turn (battle only)
-    if (!b.isSandbox) b.whoseTurn = aAtk ? 'B' : 'A';
-
-    _renderBattleArena();
-
-    // animations
-    if (dmg > 0) {
-        const attId = aAtk ? 'a' : 'b';
-        const defId = aAtk ? 'b' : 'a';
-        const attEl = document.getElementById('bem-' + attId);
-        const defEl = document.getElementById('bem-' + defId);
-        if (attEl) {
-            const dir = aAtk ? 36 : -36;
-            attEl.style.transition = 'transform .15s';
-            attEl.style.transform  = `translateX(${dir}px) scale(1.12)`;
-            setTimeout(() => { if (attEl) attEl.style.transform = ''; }, 180);
-        }
-        if (defEl) {
-            setTimeout(() => {
-                if (!defEl) return;
-                defEl.style.animation = 'none';
-                void defEl.offsetWidth;
-                defEl.style.animation = 'bShake .25s ease';
-                setTimeout(() => { if (defEl) defEl.style.animation = ''; }, 280);
-            }, 180);
-        }
-
-        // damage float
-        const field = document.getElementById('battle-field');
-        if (field) {
-            const dmgEl = document.createElement('div');
-            dmgEl.innerHTML = isCrit ? `💥${dmg}!` : `-${dmg}`;
-            dmgEl.style.cssText = `position:absolute;${aAtk?'right:6%':'left:6%'};
-                top:${8+Math.random()*28}%;font-size:${isCrit?'1.3rem':'1rem'};font-weight:900;
-                color:${isCrit?'#fbbf24':adv?'#6ee7b7':'#f87171'};pointer-events:none;z-index:10;
-                text-shadow:0 2px 8px rgba(0,0,0,.5);animation:dmgFloat .85s ease forwards;`;
-            field.style.position = 'relative';
-            field.appendChild(dmgEl);
-            setTimeout(() => dmgEl.remove(), 870);
-        }
-    }
-
-    const over = b.hpA <= 0 || b.hpB <= 0 || b.turn >= maxT;
-    const tickSpeed = b.isSandbox ? 650 : 780;
-    if (!over) {
-        b.timer = setTimeout(_battleTick, tickSpeed);
+// ── Sandbox tick (one-sided, no relay) ──
+function _coreSandboxTick() {
+    const c = __core; if(!c||!c.running) return;
+    const attSide = c.sA[0]; const defSide = c.sB[0];
+    c.turn++;
+    const adv  = elementBeats(attSide.def?.element, defSide.def?.element);
+    const crit = Math.random()<0.20;
+    const dmg  = Math.max(1, Math.round(attSide.stats.atk * (adv?1.5:1.0) * (crit?2.0:1.0)));
+    defSide.hp = Math.max(0, defSide.hp - dmg);
+    c.log.push(`${attSide.pet.emoji}→${defSide.pet.emoji} <b style="color:#fca5a5">-${dmg}</b>${crit?` <b style="color:#fbbf24">💥CRIT!</b>`:''}${adv?` <span style="color:#6ee7b7">🔥×1.5</span>`:''}`);
+    c.totalDmg = (c.totalDmg||0)+dmg;
+    _coreAnimate(0, dmg, adv, crit);
+    if(defSide.hp<=0 || c.turn>=c.cfg.maxTurns) {
+        c.running=false;
+        c.log.push(`🏁 จบ ${c.turn} เทิร์น! ทำดาเมจรวม ${c.totalDmg||0}`);
+        _coreRender();
     } else {
-        b.running = false;
-        setTimeout(() => { if (__battle) _renderBattleArena(); }, 500);
+        _coreRender();
     }
+}
+
+// ── Animations ──
+function _coreAnimate(attSideIdx, dmg, adv, crit) {
+    if(!dmg) return;
+    const attId = attSideIdx===0 ? 'a' : 'b';
+    const defId = attSideIdx===0 ? 'b' : 'a';
+    const dir   = attSideIdx===0 ? 36 : -36;
+    const attEl = document.getElementById('cem-'+attId);
+    const defEl = document.getElementById('cem-'+defId);
+    if(attEl){
+        attEl.style.transition='transform .15s';
+        attEl.style.transform=`translateX(${dir}px) scale(1.12)`;
+        setTimeout(()=>{ if(attEl) attEl.style.transform=''; }, 180);
+    }
+    if(defEl){
+        setTimeout(()=>{
+            if(!defEl) return;
+            defEl.style.animation='none'; void defEl.offsetWidth;
+            defEl.style.animation='bShake .25s ease';
+            setTimeout(()=>{ if(defEl) defEl.style.animation=''; }, 280);
+        }, 180);
+    }
+    const field = document.getElementById(__core?.cfg?.fieldId || 'core-field');
+    if(field){
+        const fl = document.createElement('div');
+        fl.innerHTML = crit ? `💥${dmg}!` : `-${dmg}`;
+        fl.style.cssText = `position:absolute;${attSideIdx===0?'right:6%':'left:6%'};
+            top:${8+Math.random()*28}%;font-size:${crit?'1.3rem':'1rem'};font-weight:900;
+            color:${crit?'#fbbf24':adv?'#6ee7b7':'#f87171'};pointer-events:none;z-index:10;
+            text-shadow:0 2px 8px rgba(0,0,0,.5);animation:dmgFloat .85s ease forwards;`;
+        field.style.position='relative'; field.appendChild(fl);
+        setTimeout(()=>fl.remove(), 870);
+    }
+}
+
+// ── Render ──
+function _coreRender() {
+    const c = __core; if(!c) return;
+    const curA = c.sA[c.iA]; const curB = c.sB[c.iB];
+    if(!curA||!curB) return;
+
+    const cfgA=RARITY[curA.pet.rarity]; const cfgB=RARITY[curB.pet.rarity];
+    const elA=ELEMENTS[curA.def?.element]; const elB=ELEMENTS[curB.def?.element];
+    const pctA=Math.max(0,curA.hp/curA.maxHp*100);
+    const pctB=Math.max(0,curB.hp/curB.maxHp*100);
+    const hpCol=p=>p>50?'#10b981':p>20?'#f59e0b':'#ef4444';
+    const isOver=!c.running;
+
+    const sideCard = (combatant, cfg, el, pct, sid) => `
+        <div style="text-align:center" id="cslot-${sid}">
+            <div style="font-size:3rem;filter:drop-shadow(0 0 10px ${combatant.hp<=0?'#ffffff11':cfg.glow});
+                        transition:transform .15s;${combatant.hp<=0?'opacity:.25':''}"
+                 id="cem-${sid}">${combatant.pet.emoji}</div>
+            <div style="font-size:0.7rem;font-weight:700;color:${combatant.hp<=0?'rgba(255,255,255,.35)':'rgba(255,255,255,.85)'};margin:4px 0 2px">
+                ${formatPetName(combatant.pet)}${el?` <span style="font-size:.85rem">${el.emoji}</span>`:''}
+            </div>
+            <div style="font-size:0.56rem;color:${cfg.color};margin-bottom:5px">${cfg.label} · ATK ${combatant.stats.atk}</div>
+            <div style="height:9px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px">
+                <div style="width:${pct}%;height:100%;background:${hpCol(pct)};border-radius:50px;transition:width .45s ease"></div>
+            </div>
+            <div style="font-size:0.6rem;color:rgba(255,255,255,.4)">${Math.max(0,combatant.hp)} / ${combatant.maxHp}</div>
+        </div>`;
+
+    // relay dots if relay mode
+    const mkDots = (arr, cur) => arr.length>1 ? `<div style="display:flex;gap:4px;justify-content:center;margin-bottom:6px">`+
+        arr.map((s,i)=>`<div style="width:22px;height:22px;border-radius:50%;border:2px solid ${i===cur?'#a78bfa':'rgba(255,255,255,.15)'};
+            font-size:0.8rem;display:flex;align-items:center;justify-content:center;opacity:${i<cur?0.2:1};">${s.pet.emoji}</div>`).join('')+`</div>` : '';
+
+    const logHtml = c.log.length
+        ? c.log.slice(-5).map((l,i)=>`<div style="opacity:${0.4+i*0.3}">${l}</div>`).join('')
+        : `<span style="opacity:.3">เริ่มการสู้...</span>`;
+
+    // result
+    let resultHtml = '';
+    if(isOver) {
+        const sideAWon = c.sB.every(s=>s.hp<=0) || (c.iB>=c.sB.length);
+        if(c.cfg.renderResult) {
+            resultHtml = c.cfg.renderResult(c, sideAWon);
+        } else {
+            resultHtml = `<div style="text-align:center;padding:4px 0">
+                <div style="font-size:2.5rem">${sideAWon?'🎉':'💀'}</div>
+                <div style="font-size:0.9rem;font-weight:800;color:#fff;margin:6px 0">${sideAWon?'ชนะแล้ว!':'แพ้แล้ว...'}</div>
+                <button onclick="__coreClose()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+                    color:rgba(255,255,255,.6);padding:9px 22px;border-radius:12px;font-family:inherit;cursor:pointer">ปิด</button>
+            </div>`;
+        }
+    }
+
+    const titleExtra = c.cfg.titleExtra ? c.cfg.titleExtra(c) : `Turn ${c.turn}`;
+
+    const el = document.getElementById(c.cfg.container);
+    if(!el) return;
+    el.innerHTML = `
+    <div class="battle-arena" style="border-radius:20px" id="${c.cfg.arenaId||'core-wrap'}">
+        <div class="battle-header">
+            <span class="battle-title">${c.cfg.titleHtml} <span style="font-size:0.7rem;opacity:.5">${titleExtra}</span></span>
+            <button onclick="__coreClose()" style="background:rgba(255,255,255,.1);border:none;
+                color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem">✕</button>
+        </div>
+        ${mkDots(c.sA,c.iA)}
+        <div style="display:grid;grid-template-columns:1fr 28px 1fr;gap:6px;align-items:start;
+                    margin-bottom:12px;position:relative" id="${c.cfg.fieldId||'core-field'}">
+            ${sideCard(curA,cfgA,elA,pctA,'a')}
+            <div style="display:flex;align-items:center;justify-content:center;padding-top:20px;
+                        font-size:0.8rem;color:rgba(255,255,255,.2);font-weight:800">⚔️</div>
+            ${sideCard(curB,cfgB,elB,pctB,'b')}
+        </div>
+        ${mkDots(c.sB,c.iB)}
+        <div style="background:rgba(0,0,0,.25);border-radius:11px;padding:9px 12px;min-height:50px;
+                    font-size:0.74rem;color:rgba(255,255,255,.7);line-height:1.7;margin-bottom:10px;
+                    border:1px solid rgba(255,255,255,.06)">${logHtml}</div>
+        ${isOver ? resultHtml : `<div style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,.35)">
+            ⚡ ${c.whoseTurn===0?curA.pet.emoji:curB.pet.emoji} กำลังโจมตี...</div>`}
+    </div>`;
 }
 
 // ════════════════════════════════════════
 // ▶ TOWER SYSTEM
 // ════════════════════════════════════════
+function _towerBossEl(floor){ const r=floor%3; return r===1?'fist':r===2?'scissors':'paper'; }
+function _towerBossStats(floor){ return{hp:40+((floor-1)*5),atk:8+((floor-1)*1)}; }
 
-// ── Boss element cycle: floor%3 → 1=fist, 2=scissors, 0=paper
-function _towerBossEl(floor){
-    const r=floor%3;
-    return r===1?'fist':r===2?'scissors':'paper';
-}
-function _towerBossStats(floor){
-    return { hp:40+((floor-1)*5), atk:8+((floor-1)*1) };
-}
+let __tower=null;
+let __twSelTeam=[];
 
-// ── Tower state ──
-let __tower = null; // active fight state
-let __twSelTeam = []; // instIds ที่เลือกแล้ว (order matters)
-
-window.openTower = ()=>{
-    if(!currentUser){ toast('กรุณา Login ก่อน','error'); return; }
-    const pets=(userData?.pets||[]).filter(p=>!p.isExpedition);
-    if(!pets.length){ toast('ต้องมีสัตว์เลี้ยงก่อน','error'); return; }
-    if(__tower?.timer) clearInterval(__tower.timer);
-    __tower=null; __twSelTeam=[];
+window.openTower=()=>{
+    if(!currentUser){toast('กรุณา Login ก่อน','error');return;}
+    if(document.getElementById('tower-modal')) document.getElementById('tower-modal').classList.add('active');
+    __twSelTeam=[];
     _renderTowerLobby();
-    document.getElementById('tower-modal').classList.add('active');
 };
-
-window.closeTower = ()=>{
-    if(__tower?.timer) clearInterval(__tower.timer);
+window.closeTower=()=>{
+    if(__tower?.timer){clearInterval(__tower.timer);clearTimeout(__tower.timer);}
+    if(__core?.cfg?.mode==='tower'){clearInterval(__core.timer);clearTimeout(__core.timer);__core=null;}
     __tower=null;
     document.getElementById('tower-modal').classList.remove('active');
 };
 
-// ── Lobby (team select + floor info) ──
 function _renderTowerLobby(){
-    const floor = userData?.towerFloor||1;
-    const best  = userData?.towerBest||0;
-    const pets  = (userData?.pets||[]).filter(p=>!p.isExpedition);
-    const bStats= _towerBossStats(floor);
-    const bEl   = _towerBossEl(floor);
-    const bElInfo= ELEMENTS[bEl];
+    const floor=userData?.towerFloor||1;
+    const bStats=_towerBossStats(floor);
+    const bEl=_towerBossEl(floor);
+    const pets=(userData?.pets||[]).filter(p=>!p.isExpedition);
+    const today=new Date().toDateString();
+    const canReset=userData?.towerLastReset!==today;
+    const isFirstClear=floor>(userData?.towerBest||0);
+    const reward=isFirstClear?floor*100:floor*10;
 
-    // check daily reset eligibility
-    const lastReset = userData?.towerLastReset||null;
-    const today = new Date().toDateString();
-    const canReset = floor>1 && (lastReset!==today);
-
-    // slots display
-    const slotHtml = [0,1,2].map(i=>{
-        const instId = __twSelTeam[i];
-        const p = instId ? pets.find(x=>String(x.instId||x.id)===instId) : null;
-        return `<div class="tower-slot${p?' filled':''}" onclick="${p?`twRemoveSlot(${i})`:'void 0'}">
-            <span class="slot-num">ไม้${i+1}</span>
-            ${p ? `<span>${p.emoji}</span><span class="slot-remove">✕</span>` : `<span style="opacity:.3;font-size:1rem">＋</span>`}
+    const slotHtml=__twSelTeam.map((id,i)=>{
+        const p=(userData?.pets||[]).find(x=>String(x.instId||x.id)===id);
+        return`<div class="tower-slot filled"><span class="slot-num">${i+1}</span>${p?p.emoji:'?'}
+            <button onclick="twRemoveSlot(${i})" style="position:absolute;top:-5px;right:-5px;background:#ef4444;border:none;color:#fff;width:16px;height:16px;border-radius:50%;font-size:0.55rem;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
         </div>`;
-    }).join('');
+    }).join('')+(__twSelTeam.length<3?`<div class="tower-slot empty" style="opacity:.4">+</div>`:'');
 
-    // pet cards
-    const petCards = pets.map(p=>{
+    const petCards=pets.map(id_p=>{
+        const p=id_p; const sel=__twSelTeam.includes(String(p.instId||p.id));
         const cfg=RARITY[p.rarity];
-        const sel=__twSelTeam.includes(String(p.instId||p.id));
-        const pos=__twSelTeam.indexOf(String(p.instId||p.id));
-        const s=calculatePetStats(p);
-        const def=PETS.find(x=>x.id===p.id);
-        const el=ELEMENTS[def?.element];
-        return `<div class="tower-pick${sel?' sel':''}" onclick="twPickPet('${String(p.instId||p.id)}')">
-            ${sel?`<div style="font-size:0.45rem;font-weight:800;color:#a78bfa;margin-bottom:1px">ไม้${pos+1}</div>`:''}
+        return`<div class="tower-pick${sel?' sel':''}" onclick="twPickPet('${String(p.instId||p.id)}')">
             <div style="font-size:1.5rem">${p.emoji}</div>
-            <div style="font-size:0.52rem;font-weight:700;color:rgba(255,255,255,.8);margin-top:1px;line-height:1.2">${formatPetName(p)}</div>
-            <div style="font-size:0.5rem;color:${cfg.color}">${cfg.label}</div>
-            <div style="font-size:0.5rem;color:rgba(255,255,255,.4)">${el?el.emoji:''} ATK ${s.atk}</div>
+            <div style="font-size:0.5rem;color:rgba(255,255,255,.75);font-weight:700">${formatPetName(p)}</div>
+            <div style="font-size:0.44rem;color:${cfg.color}">${cfg.label}</div>
         </div>`;
     }).join('');
 
-    const canFight = __twSelTeam.length>=1;
-
+    const canFight=__twSelTeam.length>0;
     document.getElementById('tower-content').innerHTML=`
-    <div class="tower-arena">
+    <div class="tower-arena" id="tower-wrap">
         <div class="tower-header">
-            <div class="tower-title">
-                🗼 หอคอยไร้สิ้นสุด
-                <span class="floor-badge">ชั้น ${floor}</span>
-            </div>
-            <button onclick="closeTower()" style="background:rgba(255,255,255,.1);border:none;
-                color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem;flex-shrink:0">✕</button>
+            <div class="tower-title">🗼 หอคอย ชั้น ${floor}</div>
+            <button onclick="closeTower()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem">✕</button>
         </div>
-
-        <!-- Floor info -->
-        <div style="background:rgba(0,0,0,.3);border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-            <div>
-                <div style="font-size:0.7rem;color:rgba(255,255,255,.4);margin-bottom:2px">ศัตรูชั้นนี้</div>
-                <div style="font-size:1.1rem;font-weight:800;color:#fff">👾 ไวรัส ชั้นที่ ${floor}</div>
-                <div style="font-size:0.65rem;color:rgba(255,255,255,.5);margin-top:2px">
-                    ${bElInfo?bElInfo.emoji:''} ${_EL_NAME[bEl]||''} · HP ${bStats.hp} · ATK ${bStats.atk}
-                </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+            <div style="flex:1;background:rgba(239,68,68,.12);border-radius:10px;padding:8px;text-align:center">
+                <div style="font-size:0.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">Boss HP</div>
+                <div style="font-size:1rem;font-weight:800;color:#f87171">❤️ ${bStats.hp}</div>
             </div>
-            <div style="text-align:right">
-                <div style="font-size:0.6rem;color:rgba(255,255,255,.35)">สถิติสูงสุด</div>
-                <div style="font-size:1.3rem;font-weight:800;color:#a78bfa">🏆 ${best}</div>
+            <div style="flex:1;background:rgba(239,68,68,.12);border-radius:10px;padding:8px;text-align:center">
+                <div style="font-size:0.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">Boss ATK</div>
+                <div style="font-size:1rem;font-weight:800;color:#f87171">⚔️ ${bStats.atk}</div>
+            </div>
+            <div style="flex:1;background:rgba(251,191,36,.08);border-radius:10px;padding:8px;text-align:center">
+                <div style="font-size:0.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">รางวัล</div>
+                <div style="font-size:1rem;font-weight:800;color:#fbbf24">🪙 ${reward}</div>
             </div>
         </div>
-
-        <!-- Reward preview -->
-        <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;
-                    padding:8px 12px;margin-bottom:12px;font-size:0.72rem;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:8px">
-            <span style="font-size:1.1rem">🪙</span>
-            <span>ผ่านชั้นได้ <b style="color:#fbbf24">${floor<=best ? floor*10 : floor*100}🪙</b>
-            ${floor<=best?'<span style="color:rgba(255,255,255,.4);font-size:0.65rem"> (ชั้นที่ผ่านแล้ว ×10)</span>':
-                          '<span style="color:#6ee7b7;font-size:0.65rem"> (ครั้งแรก! ×100)</span>'}</span>
-        </div>
-
-        <!-- Team slots -->
-        <div style="font-size:0.65rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px;margin-bottom:7px">
-            🧩 จัดทีม (1–3 ตัว) — ลำดับ = ลำดับไม้ผลัด
-        </div>
+        <div style="font-size:0.6rem;color:rgba(255,255,255,.35);margin-bottom:6px;font-weight:700">ธาตุบอส: ${_EL_NAME[bEl]}</div>
+        <div style="font-size:0.65rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px;margin-bottom:7px">🧩 จัดทีม (1–3 ตัว) — ลำดับ = ลำดับผลัด</div>
         <div class="tower-slot-row">${slotHtml}</div>
-
-        <!-- Pet picker -->
         <div class="tower-team-grid">${petCards}</div>
-
-        <!-- Actions -->
         <button class="btn-tower" onclick="startTowerBattle()" ${canFight?'':'disabled'}>
             ⚔️ ${canFight?`เริ่มสู้! ชั้น ${floor} (${__twSelTeam.length} ตัว)`:'เลือกสัตว์ก่อน'}
         </button>
-        ${floor>1?`
-        <button onclick="${canReset?'resetTower()':'void 0'}"
+        ${floor>1?`<button onclick="${canReset?'resetTower()':'void 0'}"
             style="width:100%;margin-top:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
             color:${canReset?'rgba(255,255,255,.5)':'rgba(255,255,255,.2)'};padding:9px;border-radius:10px;
             font-family:inherit;font-size:0.76rem;cursor:${canReset?'pointer':'not-allowed'}">
-            🔄 เริ่มชั้น 1 ใหม่ (วันละครั้ง)${!canReset?' — ใช้ไปแล้ววันนี้':''}
-        </button>`:''}
+            🔄 เริ่มชั้น 1 ใหม่ (วันละครั้ง)${!canReset?' — ใช้ไปแล้ววันนี้':''}</button>`:''}
     </div>`;
 }
-
 window.twPickPet=(instId)=>{
     const id=String(instId);
     const idx=__twSelTeam.indexOf(id);
@@ -4157,11 +4147,7 @@ window.twPickPet=(instId)=>{
     else{ toast('เลือกได้สูงสุด 3 ตัว','info'); return; }
     _renderTowerLobby();
 };
-window.twRemoveSlot=(i)=>{
-    if(i>=0&&i<__twSelTeam.length) __twSelTeam.splice(i,1);
-    _renderTowerLobby();
-};
-
+window.twRemoveSlot=(i)=>{ if(i>=0&&i<__twSelTeam.length) __twSelTeam.splice(i,1); _renderTowerLobby(); };
 window.resetTower=async()=>{
     const today=new Date().toDateString();
     if(!await _confirm('🔄 เริ่มต้นใหม่จากชั้น 1\nรางวัลชั้นที่เคยผ่านแล้วจะเป็น ×10\n(ใช้ได้วันละ 1 ครั้ง)\n\nยืนยัน?')) return;
@@ -4169,537 +4155,161 @@ window.resetTower=async()=>{
     userData={...userData,towerFloor:1,towerLastReset:today};
     await updateDoc(doc(db,'users',currentUser.uid),{towerFloor:1,towerLastReset:today});
     setTimeout(()=>{window.__blockSnapshot=false;},1500);
-    __twSelTeam=[];
-    _renderTowerLobby();
-    toast('รีเซ็ตชั้น 1 แล้ว!','success');
+    __twSelTeam=[]; _renderTowerLobby(); toast('รีเซ็ตชั้น 1 แล้ว!','success');
 };
 
-// ══════════════════════════════════════════════════════
-// Tower Battle Engine
-// ══════════════════════════════════════════════════════
 window.startTowerBattle=()=>{
-    if(!__twSelTeam.length){ toast('เลือกสัตว์ก่อน','error'); return; }
+    if(!__twSelTeam.length){toast('เลือกสัตว์ก่อน','error');return;}
     const pets=userData?.pets||[];
     const floor=userData?.towerFloor||1;
-
-    // Build selectedTeam array (ordered)
     const selectedTeam=__twSelTeam.map(id=>pets.find(p=>String(p.instId||p.id)===id)).filter(Boolean);
-    if(!selectedTeam.length){ toast('ไม่พบข้อมูลสัตว์','error'); return; }
-
+    if(!selectedTeam.length){toast('ไม่พบข้อมูลสัตว์','error');return;}
     const bStats=_towerBossStats(floor);
     const bEl=_towerBossEl(floor);
-    const bElDef={id:'boss',element:bEl};
-    const firstPet=selectedTeam[0];
-    const firstStats=calculatePetStats(firstPet);
-    const firstDef=PETS.find(x=>x.id===firstPet.id)||{element:'fist'};
 
-    if(__tower?.timer) clearInterval(__tower.timer);
-    __tower={
-        floor,
-        selectedTeam,
-        currentPetIndex:0,
-        // player side
-        pA:firstPet, defA:firstDef, sA:firstStats,
-        hpA:firstStats.hp, maxA:firstStats.hp,
-        // boss side (set ONCE — never reset between relays)
-        bossHP:bStats.hp, bossMaxHP:bStats.hp, bossATK:bStats.atk,
-        defB:bElDef,
-        // meta
-        turn:0, log:[], running:true, timer:null,
-        totalDmgDealt:0,
-    };
+    // Build sides: sideA = player relay array, sideB = boss (single)
+    const sideA = selectedTeam.map(p=>({
+        pet:p, def:PETS.find(x=>x.id===p.id)||{element:'fist'},
+        stats:calculatePetStats(p), hp:calculatePetStats(p).hp, maxHp:calculatePetStats(p).hp,
+    }));
+    const bossPet={id:'boss',emoji:'👾',name:`ไวรัส ชั้น ${floor}`,rarity:'rare',grade:0,instId:'boss'};
+    const sideB=[{pet:bossPet,def:{id:'boss',element:bEl},stats:{atk:bStats.atk,hp:bStats.hp},hp:bStats.hp,maxHp:bStats.hp}];
 
-    _renderTowerArena();
-    __tower.timer=setInterval(_towerTick, 900);
+    if(__core?.timer){clearInterval(__core.timer);clearTimeout(__core.timer);}
+
+    const towerBestAtStart=userData?.towerBest||0;
+
+    _startCoreBattle({
+        mode:'tower',
+        sides:[sideA, sideB],
+        firstIdx:0,       // player always goes first in tower
+        maxTurns:999,
+        tickMs:900,
+        container:'tower-content',
+        arenaId:'tower-wrap',
+        fieldId:'tower-field',
+        titleHtml:`👾 หอคอย`,
+        titleExtra: (c)=>`ชั้น ${floor} · เทิร์น ${c.turn}`,
+        onClose: ()=>closeTower(),
+        renderResult:(c, weWon)=>{
+            const reward=floor<=towerBestAtStart?floor*10:floor*100;
+            return`<div style="text-align:center;padding:6px 0 2px">
+                <div style="font-size:3rem;animation:bBounce .5s ease">${weWon?'🎉':'💀'}</div>
+                <div style="font-size:1.05rem;font-weight:800;color:#fff;margin:6px 0">
+                    ${weWon?`✅ ผ่านชั้น ${floor} สำเร็จ!`:`❌ พ่ายแพ้ที่ชั้น ${floor}`}</div>
+                ${weWon?`<div style="font-size:0.82rem;color:#fbbf24;margin-bottom:12px">+${reward}🪙</div>`
+                        :`<div style="font-size:0.76rem;color:rgba(255,255,255,.4);margin-bottom:12px">อยู่ชั้น ${floor} ต่อ</div>`}
+                <div style="display:flex;gap:8px;justify-content:center">
+                    <button class="btn-tower" style="width:auto;padding:10px 20px"
+                        onclick="${weWon?'openTower()':'startTowerBattle()'}">
+                        ${weWon?'⬆ ชั้นต่อไป':'🔄 ลองใหม่'}</button>
+                    <button style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+                        color:rgba(255,255,255,.65);padding:10px 16px;border-radius:12px;font-family:inherit;cursor:pointer" onclick="closeTower()">ปิด</button>
+                </div></div>`;
+        },
+        onWin: ()=>_towerOnWin(floor, towerBestAtStart),
+        onLose: null,
+    });
 };
 
-function _towerBossEl2(b){ return b.defB.element; } // helper
-
-function _renderTowerArena(){
-    const t=__tower; if(!t) return;
-    const floor=t.floor;
-    const cfgA=RARITY[t.pA.rarity];
-    const elA=ELEMENTS[t.defA?.element];
-    const elB=ELEMENTS[t.defB?.element];
-    const pctA=Math.max(0,t.hpA/t.maxA*100);
-    const pctB=Math.max(0,t.bossHP/t.bossMaxHP*100);
-    const hpCol=p=>p>50?'#10b981':p>20?'#f59e0b':'#ef4444';
-    const isOver=!t.running;
-
-    // relay dots
-    const relayDots=t.selectedTeam.map((p,i)=>{
-        const dead=i<t.currentPetIndex;
-        const active=i===t.currentPetIndex;
-        return `<div class="relay-dot${active?' active':dead?' dead':''}">${p.emoji}</div>`;
-    }).join('');
-
-    const logHtml=t.log.length
-        ?t.log.slice(-5).map((l,i)=>`<div style="opacity:${0.4+i*0.3}">${l}</div>`).join('')
-        :`<span style="opacity:.3">เริ่มการสู้...</span>`;
-
-    // result section
-    let resultHtml='';
-    if(isOver){
-        const won=t.bossHP<=0;
-        const reward=floor<=(t.towerBestAtStart||0)?floor*10:floor*100;
-        resultHtml=`
-        <div style="text-align:center;padding:6px 0 2px">
-            <div style="font-size:3rem;animation:bBounce .5s ease">${won?'🎉':'💀'}</div>
-            <div style="font-size:1.05rem;font-weight:800;color:#fff;margin:6px 0">
-                ${won?`✅ ผ่านชั้น ${floor} สำเร็จ!`:`❌ พ่ายแพ้ที่ชั้น ${floor}`}
-            </div>
-            ${won?`<div style="font-size:0.82rem;color:#fbbf24;margin-bottom:12px">+${reward}🪙</div>`
-                 :`<div style="font-size:0.76rem;color:rgba(255,255,255,.4);margin-bottom:12px">อยู่ชั้น ${floor} ต่อ</div>`}
-            <div style="display:flex;gap:8px;justify-content:center">
-                <button class="btn-tower" style="width:auto;padding:10px 20px"
-                    onclick="${won?'openTower()':'startTowerBattle()'}">${won?'⬆ ชั้นต่อไป':'🔄 ลองใหม่'}</button>
-                <button style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
-                    color:rgba(255,255,255,.65);padding:10px 16px;border-radius:12px;
-                    font-family:inherit;cursor:pointer;font-size:0.84rem" onclick="closeTower()">ปิด</button>
-            </div>
-        </div>`;
-    }
-
-    document.getElementById('tower-content').innerHTML=`
-    <div class="tower-arena" id="tower-wrap">
-        <div class="tower-header">
-            <div class="tower-title">
-                👾 ไวรัส ชั้นที่ ${floor}
-                <span class="floor-badge">${_EL_NAME[t.defB.element]||''}</span>
-            </div>
-            <button onclick="closeTower()" style="background:rgba(255,255,255,.1);border:none;
-                color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem">✕</button>
-        </div>
-
-        <!-- Relay indicator -->
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-            <div style="font-size:0.6rem;color:rgba(255,255,255,.35);font-weight:700">ทีม:</div>
-            <div class="tower-relay-row" style="margin-bottom:0">${relayDots}</div>
-            <div style="font-size:0.6rem;color:rgba(255,255,255,.35);margin-left:auto">เทิร์น ${t.turn}</div>
-        </div>
-
-        <!-- Battle field -->
-        <div style="display:grid;grid-template-columns:1fr 28px 1fr;gap:6px;align-items:start;
-                    margin-bottom:12px;position:relative" id="tower-field">
-            <!-- Player side -->
-            <div style="text-align:center">
-                <div style="font-size:3rem;filter:drop-shadow(0 0 10px ${t.hpA<=0?'#ffffff11':cfgA.glow});
-                            transition:transform .15s;${t.hpA<=0?'opacity:.3':''}"
-                     id="twem-a">${t.pA.emoji}</div>
-                <div style="font-size:0.7rem;font-weight:700;color:${t.hpA<=0?'rgba(255,255,255,.35)':'rgba(255,255,255,.85)'};margin:4px 0 2px">
-                    ${formatPetName(t.pA)}${elA?` <span style="font-size:.85rem">${elA.emoji}</span>`:''}
-                </div>
-                <div style="font-size:0.56rem;color:${cfgA.color};margin-bottom:5px">${cfgA.label} · ATK ${t.sA.atk}</div>
-                <div class="tower-hp-bar">
-                    <div id="twhp-a" class="tower-hp-fill" style="width:${pctA}%;background:${hpCol(pctA)}"></div>
-                </div>
-                <div style="font-size:0.6rem;color:rgba(255,255,255,.4)">${Math.max(0,t.hpA)} / ${t.maxA}</div>
-            </div>
-
-            <div style="display:flex;align-items:center;justify-content:center;
-                        padding-top:20px;font-size:0.8rem;color:rgba(255,255,255,.2);font-weight:800">⚔️</div>
-
-            <!-- Boss side -->
-            <div style="text-align:center">
-                <div style="font-size:3rem;filter:drop-shadow(0 0 10px ${t.bossHP<=0?'#ffffff11':'rgba(239,68,68,.6)'});
-                            transition:transform .15s;${t.bossHP<=0?'opacity:.3':''}"
-                     id="twem-b">👾</div>
-                <div style="font-size:0.7rem;font-weight:700;color:${t.bossHP<=0?'rgba(255,255,255,.35)':'rgba(255,255,255,.85)'};margin:4px 0 2px">
-                    ไวรัส ชั้นที่ ${floor}${elB?` <span style="font-size:.85rem">${elB.emoji}</span>`:''}
-                </div>
-                <div style="font-size:0.56rem;color:#f87171;margin-bottom:5px">Boss · ATK ${t.bossATK}</div>
-                <div class="tower-hp-bar">
-                    <div id="twhp-b" class="tower-hp-fill" style="width:${pctB}%;background:${hpCol(pctB)}"></div>
-                </div>
-                <div style="font-size:0.6rem;color:rgba(255,255,255,.4)">${Math.max(0,t.bossHP)} / ${t.bossMaxHP}</div>
-            </div>
-        </div>
-
-        <!-- Battle log -->
-        <div style="background:rgba(0,0,0,.25);border-radius:11px;padding:9px 12px;min-height:50px;
-                    font-size:0.74rem;color:rgba(255,255,255,.7);line-height:1.7;margin-bottom:10px;
-                    border:1px solid rgba(255,255,255,.06)">
-            ${logHtml}
-        </div>
-        ${isOver ? resultHtml : `
-        <div style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,.35)">
-            ⚡ กำลังสู้...
-        </div>`}
-    </div>`;
-}
-
-// ── Tower tick (player always goes first each round, boss counters) ──
-function _towerTick(){
-    const t=__tower; if(!t||!t.running) return;
-    t.turn++;
-
-    const petDef=PETS.find(x=>x.id===t.pA.id)||{element:'fist'};
-
-    // Player → Boss
-    const advPlayer=elementBeats(petDef.element, t.defB.element);
-    const critPlayer=Math.random()<0.20;
-    const playerDmg=Math.max(1,Math.round(t.sA.atk*(advPlayer?1.5:1.0)*(critPlayer?2.0:1.0)));
-    t.bossHP=Math.max(0,t.bossHP-playerDmg);
-    t.totalDmgDealt=(t.totalDmgDealt||0)+playerDmg;
-
-    const tagP=critPlayer?` <b style="color:#fbbf24">💥CRIT!</b>`:advPlayer?` <span style="color:#6ee7b7">🔥×1.5</span>`:'';
-    t.log.push(`${t.pA.emoji}→👾 <b style="color:#fca5a5">-${playerDmg}</b>${tagP}`);
-
-    // ── Check boss death FIRST ──
-    if(t.bossHP<=0){
-        t.running=false;
-        clearInterval(t.timer);
-        // Set towerBestAtStart SYNC before render so result screen shows correct reward
-        t.towerBestAtStart = userData?.towerBest||0;
-        _renderTowerArena();   // render immediately with correct reward display
-        _towerTick_onWin(t);   // save to Firestore async in background
-        return;
-    }
-
-    // Boss → Player
-    const advBoss=elementBeats(t.defB.element, petDef.element);
-    const critBoss=Math.random()<0.15;
-    const bossDmg=Math.max(1,Math.round(t.bossATK*(advBoss?1.5:1.0)*(critBoss?2.0:1.0)));
-    t.hpA=Math.max(0,t.hpA-bossDmg);
-
-    const tagB=critBoss?` <b style="color:#fbbf24">💥CRIT!</b>`:advBoss?` <span style="color:#f87171">🔥×1.5</span>`:'';
-    t.log.push(`👾→${t.pA.emoji} <b style="color:#fca5a5">-${bossDmg}</b>${tagB}`);
-
-    // ── Check player death → relay ──
-    if(t.hpA<=0){
-        clearInterval(t.timer);
-        t.currentPetIndex++;
-        if(t.currentPetIndex<t.selectedTeam.length){
-            // สลับตัว — ห้ามแตะ bossHP
-            const nextPet=t.selectedTeam[t.currentPetIndex];
-            const nextStats=calculatePetStats(nextPet);
-            const nextDef=PETS.find(x=>x.id===nextPet.id)||{element:'fist'};
-            t.pA=nextPet; t.defA=nextDef; t.sA=nextStats;
-            t.hpA=nextStats.hp; t.maxA=nextStats.hp;
-            t.log.push(`🔄 ${nextPet.emoji} ${formatPetName(nextPet)} ออกสนาม!`);
-            _renderTowerArena();
-            t.timer=setInterval(_towerTick,900);
-        } else {
-            // ทีมหมด — แพ้
-            t.running=false;
-            t.log.push(`💀 ทีมทั้งหมดล้มแล้ว...`);
-            _renderTowerArena();
-        }
-        return;
-    }
-
-    _renderTowerArena();
-
-    // Animations
-    const attEl=document.getElementById('twem-a');
-    const defEl=document.getElementById('twem-b');
-    if(attEl){ attEl.style.transition='transform .15s'; attEl.style.transform='translateX(36px) scale(1.12)';
-        setTimeout(()=>{ if(attEl) attEl.style.transform=''; },180); }
-    if(defEl){ setTimeout(()=>{
-        if(!defEl) return;
-        defEl.style.animation='none'; void defEl.offsetWidth;
-        defEl.style.animation='bShake .25s ease';
-        setTimeout(()=>{ if(defEl) defEl.style.animation=''; },280);
-    },180); }
-    // damage float
-    const field=document.getElementById('tower-field');
-    if(field){
-        const dmgEl=document.createElement('div');
-        dmgEl.innerHTML=critPlayer?`💥${playerDmg}!`:`-${playerDmg}`;
-        dmgEl.style.cssText=`position:absolute;right:6%;top:${8+Math.random()*28}%;
-            font-size:${critPlayer?'1.3rem':'1rem'};font-weight:900;
-            color:${critPlayer?'#fbbf24':advPlayer?'#6ee7b7':'#f87171'};
-            pointer-events:none;z-index:10;text-shadow:0 2px 8px rgba(0,0,0,.5);
-            animation:dmgFloat .85s ease forwards;`;
-        field.style.position='relative'; field.appendChild(dmgEl);
-        setTimeout(()=>dmgEl.remove(),870);
-    }
-}
-
-async function _towerTick_onWin(t){
-    const floor=t.floor;
-    const best=userData?.towerBest||0;
-    const isFirstClear=floor>best;
-    const reward=isFirstClear?floor*100:floor*10;
+async function _towerOnWin(floor, bestAtStart){
+    const isFirst=floor>bestAtStart;
+    const reward=isFirst?floor*100:floor*10;
     const newFloor=floor+1;
-    const newBest=Math.max(best,floor);
+    const newBest=Math.max(bestAtStart,floor);
     const newCoins=(userData?.coins||0)+reward;
-
     window.__blockSnapshot=true;
     userData={...userData,towerFloor:newFloor,towerBest:newBest,coins:newCoins};
+    renderAll();
     try{
-        await updateDoc(doc(db,'users',currentUser.uid),{
-            towerFloor:newFloor, towerBest:newBest, coins:increment(reward),
-        });
-        // Update cache for member grid
-        if(userData?.studentId&&window.__fbUsers?.[userData.studentId]){
-            window.__fbUsers[userData.studentId].towerBest=newBest;
-        }
-        if(isFirstClear && typeof postNews==='function') await postNews('🗼',`${userData?.nickname||userData?.name||'ผู้เล่น'} ผ่านหอคอยชั้น ${floor} ได้แล้ว!`).catch(()=>{});
-    }catch(e){ console.error('tower save',e); }
-    finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
-
-    if(isFirstClear&&floor%5===0){
-        confetti({particleCount:120,spread:70,origin:{y:0.5},colors:['#a78bfa','#fbbf24','#fff']});
-    }
+        await updateDoc(doc(db,'users',currentUser.uid),{towerFloor:newFloor,towerBest:newBest,coins:increment(reward)});
+        if(isFirst&&typeof postNews==='function') await postNews('🗼',`${userData.nickname} ผ่านหอคอยชั้น ${floor}! (+${reward}🪙)`).catch(()=>{});
+        if(floor%5===0&&typeof confetti==='function') confetti({particleCount:120,spread:70,origin:{y:0.5}});
+        loadFbUsers();
+    }catch(e){console.error('tower save',e);}
+    finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
 }
 
 // ════════════════════════════════════════
 // ▶ PVP SYSTEM
 // ════════════════════════════════════════
-let __pvp = null;
-
-window.closePvp = ()=>{
-    if(__pvp?.timer) clearInterval(__pvp.timer);
-    __pvp = null;
+let __pvp=null;
+window.closePvp=()=>{
+    if(__pvp?.timer){clearInterval(__pvp.timer);clearTimeout(__pvp.timer);}
+    if(__core?.cfg?.mode==='pvp'){clearInterval(__core.timer);clearTimeout(__core.timer);__core=null;}
+    __pvp=null;
     document.getElementById('pvp-modal').classList.remove('active');
 };
 
-window.startPvpChallenge = async (targetStudentId)=>{
-    if(!currentUser){ toast('กรุณา Login','error'); return; }
-    const myTeam = getActivePetsArray(userData);
-    if(!myTeam.length){ toast('ตั้งทีมสัตว์เลี้ยงก่อน! (กดแก้ไขโปรไฟล์ตัวเอง)','error'); return; }
-
-    const ts = window.__students?.find(x=>x.id===targetStudentId);
-    const tLive = window.__fbUsers?.[targetStudentId];
-    if(!tLive){ toast('ยังโหลดข้อมูลไม่ครบ','error'); return; }
-    const enemyTeam = getActivePetsArray(tLive);
-    if(!enemyTeam.length){ toast(`${ts?.nickname||targetStudentId} ยังไม่มีทีมสัตว์เลี้ยง`,'info'); return; }
-
+window.startPvpChallenge=async(targetStudentId)=>{
+    if(!currentUser){toast('กรุณา Login','error');return;}
+    const myTeam=getActivePetsArray(userData);
+    if(!myTeam.length){toast('ตั้งทีมสัตว์เลี้ยงก่อน!','error');return;}
+    const ts=window.__students?.find(x=>x.id===targetStudentId);
+    const tLive=window.__fbUsers?.[targetStudentId];
+    if(!tLive){toast('ยังโหลดข้อมูลไม่ครบ','error');return;}
+    const enemyTeam=getActivePetsArray(tLive);
+    if(!enemyTeam.length){toast(`${ts?.nickname||targetStudentId} ยังไม่มีทีมสัตว์เลี้ยง`,'info');return;}
     if(!await _confirm(`⚔️ ท้าทาย ${ts?.nickname||targetStudentId}\n\nทีมเรา: ${myTeam.map(p=>p.emoji).join(' ')}\nทีมเขา: ${enemyTeam.map(p=>p.emoji).join(' ')}\n\nยืนยันเริ่มต่อสู้?`)) return;
-
     closePM();
     _initPvpBattle(myTeam, enemyTeam, ts?.nickname||targetStudentId, targetStudentId);
     document.getElementById('pvp-modal').classList.add('active');
 };
 
 function _initPvpBattle(myTeam, enemyTeam, enemyName, enemyStudentId){
-    if(__pvp?.timer) clearInterval(__pvp.timer);
-
-    const buildSide = (team)=> team.map((p,i)=>({
-        pet:p,
-        def: PETS.find(x=>x.id===p.id)||{element:'fist'},
-        stats: calculatePetStats(p),
-        hp: calculatePetStats(p).hp,
-        maxHp: calculatePetStats(p).hp,
-        alive: true,
+    const buildSide=(team)=>team.map(p=>({
+        pet:p, def:PETS.find(x=>x.id===p.id)||{element:'fist'},
+        stats:calculatePetStats(p), hp:calculatePetStats(p).hp, maxHp:calculatePetStats(p).hp,
     }));
+    const myName=userData?.nickname||'เรา';
+    const firstIsMe=Math.random()<0.5;
 
-    const mySide   = buildSide(myTeam);
-    const enemySide= buildSide(enemyTeam);
-    const firstIsMe= Math.random()<0.5;
+    if(__core?.timer){clearInterval(__core.timer);clearTimeout(__core.timer);}
 
-    __pvp = {
-        my: mySide,    myIdx:0,
-        en: enemySide, enIdx:0,
-        myName: userData?.nickname||'เรา',
-        enName: enemyName,
-        enStudentId: enemyStudentId,
-        whoseTurn: firstIsMe?'my':'en',
-        turn:0, log:[], running:true, timer:null,
-    };
-
-    _renderPvpArena();
-    __pvp.timer = setInterval(_pvpTick, 900);
+    _startCoreBattle({
+        mode:'pvp',
+        sides:[buildSide(myTeam), buildSide(enemyTeam)],
+        firstIdx:firstIsMe?0:1,
+        maxTurns:999,
+        tickMs:900,
+        container:'pvp-content',
+        arenaId:'pvp-wrap',
+        fieldId:'pvp-field',
+        titleHtml:`⚔️ ${myName} vs ${enemyName}`,
+        titleExtra:(c)=>`เทิร์น ${c.turn}`,
+        onClose:()=>closePvp(),
+        renderResult:(c, weWon)=>`
+            <div style="text-align:center;padding:6px 0 4px">
+                <div style="font-size:3rem">${weWon?'🎉':'💀'}</div>
+                <div style="font-size:1.05rem;font-weight:800;color:#fff;margin:8px 0 4px">
+                    ${weWon?'🏆 ชนะ!':'💔 แพ้...'}</div>
+                <div style="font-size:0.78rem;color:rgba(255,255,255,.45);margin-bottom:14px">
+                    ${weWon?'+1 ชัยชนะ PvP':`${enemyName} ได้ +1 ชัยชนะ`}</div>
+                <button onclick="closePvp()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);
+                    color:rgba(255,255,255,.7);padding:10px 24px;border-radius:12px;font-family:inherit;cursor:pointer">ปิด</button>
+            </div>`,
+        onWin:  ()=>_pvpHandleResult(true,  myName, enemyName, enemyStudentId),
+        onLose: ()=>_pvpHandleResult(false, myName, enemyName, enemyStudentId),
+    });
 }
 
-function _renderPvpArena(){
-    const v=__pvp; if(!v) return;
-    const my = v.my[v.myIdx];
-    const en = v.en[v.enIdx];
-    const cfgA=RARITY[my.pet.rarity], cfgB=RARITY[en.pet.rarity];
-    const elA=ELEMENTS[my.def?.element], elB=ELEMENTS[en.def?.element];
-    const pctA=Math.max(0,my.hp/my.maxHp*100);
-    const pctB=Math.max(0,en.hp/en.maxHp*100);
-    const hpCol=p=>p>50?'#10b981':p>20?'#f59e0b':'#ef4444';
-    const isOver=!v.running;
-
-    // relay dots
-    const myDots = v.my.map((s,i)=>`<div class="pvp-dot${i===v.myIdx?' active':!s.alive?' dead':''}">${s.pet.emoji}</div>`).join('');
-    const enDots = v.en.map((s,i)=>`<div class="pvp-dot${i===v.enIdx?' enemy-active':!s.alive?' dead':''}">${s.pet.emoji}</div>`).join('');
-
-    const logHtml = v.log.length
-        ? v.log.slice(-5).map((l,i)=>`<div style="opacity:${0.4+i*0.3}">${l}</div>`).join('')
-        : `<span style="opacity:.3">เริ่มการต่อสู้...</span>`;
-
-    let resultHtml='';
-    if(isOver){
-        const won = v.en.every(s=>!s.alive);
-        resultHtml=`
-        <div style="text-align:center;padding:6px 0 4px">
-            <div style="font-size:3rem;animation:bBounce .5s ease">${won?'🎉':'💀'}</div>
-            <div style="font-size:1.05rem;font-weight:800;color:#fff;margin:8px 0 4px">
-                ${won?`🏆 ชนะ! บันทึกสถิติแล้ว`:`💔 พ่ายแพ้...`}
-            </div>
-            <div style="font-size:0.78rem;color:rgba(255,255,255,.45);margin-bottom:14px">
-                ${won?`+1 ชัยชนะ PvP`:`${v.enName} ได้ +1 ชัยชนะ`}
-            </div>
-            <button onclick="closePvp()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);
-                color:rgba(255,255,255,.7);padding:10px 24px;border-radius:12px;font-family:inherit;cursor:pointer;font-size:0.9rem">ปิด</button>
-        </div>`;
-    }
-
-    document.getElementById('pvp-content').innerHTML=`
-    <div class="pvp-arena">
-        <div class="battle-header">
-            <span class="battle-title">⚔️ PvP: ${v.myName} vs ${v.enName}</span>
-            <button onclick="closePvp()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.5);
-                width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem">✕</button>
-        </div>
-
-        <div style="display:flex;justify-content:space-between;margin-bottom:12px">
-            <div style="display:flex;flex-direction:column;gap:3px">
-                <div style="font-size:0.56rem;color:rgba(255,255,255,.35);font-weight:700">ทีมเรา</div>
-                <div class="pvp-relay-row">${myDots}</div>
-            </div>
-            <div style="font-size:0.62rem;color:rgba(255,255,255,.2);font-weight:800;align-self:center">เทิร์น ${v.turn}</div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
-                <div style="font-size:0.56rem;color:rgba(255,255,255,.35);font-weight:700">ทีมเขา</div>
-                <div class="pvp-relay-row">${enDots}</div>
-            </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 28px 1fr;gap:6px;align-items:start;
-                    margin-bottom:12px;position:relative" id="pvp-field">
-            <div style="text-align:center" id="pvp-slot-my">
-                <div style="font-size:3rem;filter:drop-shadow(0 0 10px ${cfgA.glow});transition:transform .15s" id="pvpem-a">${my.pet.emoji}</div>
-                <div style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,.85);margin:4px 0 2px">
-                    ${formatPetName(my.pet)}${elA?` <span style="font-size:.85rem">${elA.emoji}</span>`:''}
-                </div>
-                <div style="font-size:0.54rem;color:${cfgA.color};margin-bottom:5px">${cfgA.label} · ATK ${my.stats.atk}</div>
-                <div style="height:8px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px">
-                    <div style="width:${pctA}%;height:100%;background:${hpCol(pctA)};border-radius:50px;transition:width .45s ease"></div>
-                </div>
-                <div style="font-size:0.58rem;color:rgba(255,255,255,.4)">${Math.max(0,my.hp)} / ${my.maxHp}</div>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:center;padding-top:18px;
-                        font-size:0.8rem;color:rgba(255,255,255,.2);font-weight:800">⚔️</div>
-            <div style="text-align:center" id="pvp-slot-en">
-                <div style="font-size:3rem;filter:drop-shadow(0 0 10px ${cfgB.glow});transition:transform .15s" id="pvpem-b">${en.pet.emoji}</div>
-                <div style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,.85);margin:4px 0 2px">
-                    ${formatPetName(en.pet)}${elB?` <span style="font-size:.85rem">${elB.emoji}</span>`:''}
-                </div>
-                <div style="font-size:0.54rem;color:${cfgB.color};margin-bottom:5px">${cfgB.label} · ATK ${en.stats.atk}</div>
-                <div style="height:8px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px">
-                    <div style="width:${pctB}%;height:100%;background:${hpCol(pctB)};border-radius:50px;transition:width .45s ease"></div>
-                </div>
-                <div style="font-size:0.58rem;color:rgba(255,255,255,.4)">${Math.max(0,en.hp)} / ${en.maxHp}</div>
-            </div>
-        </div>
-
-        <div style="background:rgba(0,0,0,.25);border-radius:11px;padding:9px 12px;min-height:50px;
-                    font-size:0.74rem;color:rgba(255,255,255,.7);line-height:1.7;margin-bottom:10px;
-                    border:1px solid rgba(255,255,255,.06)">${logHtml}</div>
-        ${isOver ? resultHtml : `<div style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,.35)">⚡ ${v.whoseTurn==='my'?v.myName:v.enName} กำลังโจมตี...</div>`}
-    </div>`;
-}
-
-function _pvpTick(){
-    const v=__pvp; if(!v||!v.running) return;
-    v.turn++;
-
-    const isMyTurn = v.whoseTurn==='my';
-    const attSide  = isMyTurn ? v.my[v.myIdx] : v.en[v.enIdx];
-    const defSide  = isMyTurn ? v.en[v.enIdx] : v.my[v.myIdx];
-
-    const adv  = elementBeats(attSide.def?.element, defSide.def?.element);
-    const crit = Math.random()<0.20;
-    const dmg  = Math.max(1,Math.round(attSide.stats.atk*(adv?1.5:1.0)*(crit?2.0:1.0)));
-    defSide.hp = Math.max(0, defSide.hp - dmg);
-
-    const tag  = crit?` <b style="color:#fbbf24">💥CRIT!</b>`:adv?` <span style="color:#6ee7b7">🔥×1.5</span>`:'';
-    v.log.push(`${attSide.pet.emoji}→${defSide.pet.emoji} <b style="color:#fca5a5">-${dmg}</b>${tag}`);
-
-    // animations
-    const attId=isMyTurn?'a':'b', defId=isMyTurn?'b':'a';
-    const dir  =isMyTurn?36:-36;
-    const attEl=document.getElementById('pvpem-'+attId);
-    const defEl=document.getElementById('pvpem-'+defId);
-    if(attEl){ attEl.style.transition='transform .15s'; attEl.style.transform=`translateX(${dir}px) scale(1.12)`;
-        setTimeout(()=>{ if(attEl) attEl.style.transform=''; },180); }
-    if(defEl){ setTimeout(()=>{ if(!defEl)return; defEl.style.animation='none'; void defEl.offsetWidth;
-        defEl.style.animation='bShake .25s ease'; setTimeout(()=>{ if(defEl) defEl.style.animation=''; },280); },180); }
-    const field=document.getElementById('pvp-field');
-    if(field&&dmg>0){
-        const fl=document.createElement('div');
-        fl.innerHTML=crit?`💥${dmg}!`:`-${dmg}`;
-        fl.style.cssText=`position:absolute;${isMyTurn?'right:6%':'left:6%'};top:${8+Math.random()*28}%;
-            font-size:${crit?'1.3rem':'1rem'};font-weight:900;color:${crit?'#fbbf24':adv?'#6ee7b7':'#f87171'};
-            pointer-events:none;z-index:10;text-shadow:0 2px 8px rgba(0,0,0,.5);animation:dmgFloat .85s ease forwards;`;
-        field.style.position='relative'; field.appendChild(fl); setTimeout(()=>fl.remove(),870);
-    }
-
-    // check death
-    if(defSide.hp<=0){
-        defSide.alive=false;
-        clearInterval(v.timer);
-        v.timer=null;
-
-        // find next alive on def side
-        const defTeam   = isMyTurn?v.en:v.my;
-        const defIdxKey = isMyTurn?'enIdx':'myIdx';
-        let nextIdx = (isMyTurn?v.enIdx:v.myIdx)+1;
-        while(nextIdx<defTeam.length && !defTeam[nextIdx]) nextIdx++;
-        const hasNext = nextIdx<defTeam.length;
-
-        _renderPvpArena();
-
-        // fade out dead pet
-        const deadSlot=document.getElementById('pvp-slot-'+(isMyTurn?'en':'my'));
-        if(deadSlot){ deadSlot.querySelector('div[id^="pvpem"]')?.classList.add('pvp-fade-out'); }
-
-        setTimeout(()=>{
-            if(!__pvp) return;
-            if(!hasNext){
-                // losing side exhausted
-                v.running=false;
-                _renderPvpArena();
-                _pvpHandleResult(isMyTurn); // isMyTurn=true → enemy lost → we won
-                return;
-            }
-            // relay next
-            if(isMyTurn){ v.enIdx=nextIdx; }
-            else        { v.myIdx=nextIdx; }
-            const next=isMyTurn?v.en[v.enIdx]:v.my[v.myIdx];
-            v.log.push(`🔄 ${next.pet.emoji} ${formatPetName(next.pet)} ออกมาแล้ว!`);
-            v.whoseTurn = isMyTurn?'en':'my'; // swap so newcomer goes first
-            _renderPvpArena();
-            // fade in new pet
-            const newSlot=document.getElementById('pvp-slot-'+(isMyTurn?'en':'my'));
-            if(newSlot){ newSlot.classList.add(isMyTurn?'pvp-fade-in':'pvp-fade-in-left'); }
-            setTimeout(()=>{ if(__pvp){ v.timer=setInterval(_pvpTick,900); } },300);
-        }, 1600);
-        return;
-    }
-
-    // swap turn
-    v.whoseTurn = isMyTurn?'en':'my';
-    _renderPvpArena();
-}
-
-async function _pvpHandleResult(weWon){
-    const v=__pvp; if(!v) return;
-    const newsMsg = weWon
-        ? `${v.myName} ได้ท้าทาย ${v.enName} และได้รับชัยชนะ! 🏆`
-        : `${v.myName} ได้ท้าทาย ${v.enName} แต่พ่ายแพ้กลับมา... 💀`;
-
+async function _pvpHandleResult(weWon, myName, enemyName, enemyStudentId){
+    const newsMsg=weWon
+        ?`${myName} ได้ท้าทาย ${enemyName} และได้รับชัยชนะ! 🏆`
+        :`${myName} ได้ท้าทาย ${enemyName} แต่พ่ายแพ้กลับมา... 💀`;
     if(weWon){
         const newVic=(userData?.pvpVictories||0)+1;
         window.__blockSnapshot=true;
         userData={...userData,pvpVictories:newVic};
-        try{
-            await updateDoc(doc(db,'users',currentUser.uid),{pvpVictories:newVic});
-        }catch(e){ console.error('pvp save',e); }
-        finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
+        try{ await updateDoc(doc(db,'users',currentUser.uid),{pvpVictories:newVic}); }
+        catch(e){} finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
     } else {
-        // bump enemy victories (best-effort, may fail if they're offline)
-        const enUid=(window.__fbUsers?.[v.enStudentId])?.uid;
-        if(enUid){
-            try{ await updateDoc(doc(db,'users',enUid),{pvpVictories:increment(1)}); }catch(e){}
-        }
+        const enUid=(window.__fbUsers?.[enemyStudentId])?.uid;
+        if(enUid){ try{await updateDoc(doc(db,'users',enUid),{pvpVictories:increment(1)});}catch(e){} }
     }
-    if(typeof postNews==='function') await postNews(weWon?'🏆':'💀', newsMsg).catch(()=>{});
+    if(typeof postNews==='function') await postNews(weWon?'🏆':'💀',newsMsg).catch(()=>{});
 }
+
 
 // ════════════════════════════════════════
 //  BOOT
@@ -4722,6 +4332,7 @@ window.toast=(msg,type='info',duration=2800)=>{const t=document.getElementById('
 </script>
 
 <!-- GAME HUB: EXPEDITION MODAL -->
+
 <div class="exp-modal-ov" id="exp-modal" onclick="if(event.target===this)closeExpModal()">
     <div class="exp-modal-sheet" onclick="event.stopPropagation()">
         <div class="exp-modal-header">
@@ -4737,6 +4348,7 @@ window.toast=(msg,type='info',duration=2800)=>{const t=document.getElementById('
 </div>
 
 <!-- GAME HUB: QUIZ MODAL (ทายชื่อเพื่อน) -->
+
 <div class="exp-modal-ov" id="quiz-modal" onclick="if(event.target===this)closeQuizModal()">
     <div class="exp-modal-sheet" style="background:linear-gradient(175deg,#0f172a 0%,#1e293b 40%,#1e3a5f 100%)" onclick="event.stopPropagation()">
         <div class="exp-modal-header" style="background:linear-gradient(175deg,#0f172a,#1e293b)">
@@ -4751,6 +4363,7 @@ window.toast=(msg,type='info',duration=2800)=>{const t=document.getElementById('
 </div>
 
 <!-- GAME HUB: DRUG QUIZ MODAL (ทายยา) -->
+
 <div class="exp-modal-ov" id="drug-modal" onclick="if(event.target===this)closeDrugModal()">
     <div class="exp-modal-sheet" style="background:linear-gradient(175deg,#1e1b4b 0%,#312e81 40%,#1e3a8a 100%)" onclick="event.stopPropagation()">
         <div class="exp-modal-header" style="background:linear-gradient(175deg,#1e1b4b,#312e81)">
@@ -4765,6 +4378,7 @@ window.toast=(msg,type='info',duration=2800)=>{const t=document.getElementById('
 </div>
 
 <!-- GAME HUB: COLOR TILES MODAL -->
+
 <div class="exp-modal-ov" id="ct-modal" onclick="if(event.target===this)closeColorTilesModal()">
     <div class="exp-modal-sheet" style="background:linear-gradient(175deg,#030d03 0%,#051205 50%,#020a02 100%)" onclick="event.stopPropagation()">
         <div class="exp-modal-header" style="background:rgba(0,0,0,.6)">
@@ -4783,6 +4397,7 @@ window.toast=(msg,type='info',duration=2800)=>{const t=document.getElementById('
 </div>
 
 <!-- FORGE MODAL (ตีบวก) -->
+
 <div class="forge-modal-ov" id="forge-modal" onclick="if(event.target===this)closeForgeModal()">
     <div class="forge-sheet" onclick="event.stopPropagation()">
         <div class="forge-header">
@@ -4797,6 +4412,7 @@ window.toast=(msg,type='info',duration=2800)=>{const t=document.getElementById('
 </div>
 
 <!-- TOWER MODAL -->
+
 <div class="modal-ov" id="tower-modal" style="align-items:flex-end;padding:0" onclick="if(event.target===this)closeTower()">
     <div class="tower-sheet" onclick="event.stopPropagation()">
         <div id="tower-content"></div>
@@ -4804,6 +4420,7 @@ window.toast=(msg,type='info',duration=2800)=>{const t=document.getElementById('
 </div>
 
 <!-- PVP MODAL -->
+
 <div class="modal-ov" id="pvp-modal" style="align-items:flex-end;padding:0;z-index:800" onclick="if(event.target===this)closePvp()">
     <div class="pvp-sheet" onclick="event.stopPropagation()">
         <div id="pvp-content"></div>
