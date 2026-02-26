@@ -92,7 +92,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .btn-daily.ready{background:rgba(16,185,129,.3);border-color:#10b981;animation:pulse 2s ease infinite;color:#a7f3d0;will-change:opacity;}
 .btn-out-hero{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);padding:7px 11px;border-radius:20px;font-family:inherit;font-size:0.76rem;cursor:pointer;margin-left:auto;}
 /* hero stats strip */
-.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);background:#0a0f2e;border-top:1px solid rgba(255,255,255,.1);}
+.hero-stats{display:grid;grid-template-columns:repeat(4,1fr);background:#0a0f2e;border-top:1px solid rgba(255,255,255,.1);}
 .hs-cell{padding:11px 6px;text-align:center;}
 .hs-cell b{display:block;font-size:1.05rem;font-weight:800;color:#fff;}
 .hs-cell small{font-size:0.62rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;}
@@ -300,6 +300,20 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .btn-battle:disabled{opacity:.4;cursor:not-allowed;}
 .battle-result{text-align:center;padding:14px 0 6px;}
 .battle-winner-em{font-size:4rem;animation:bBounce .5s ease;}
+
+/* ── BATTLE ANIMATIONS (core engine) ── */
+@keyframes attackPulse{0%{transform:scale(1)}30%{transform:scale(1.22) translateX(var(--att-dir,30px))}100%{transform:scale(1)}}
+@keyframes deathSpin{0%{transform:scale(1) rotate(0deg);opacity:1}50%{transform:scale(1.3) rotate(20deg);opacity:.6}100%{transform:scale(0) rotate(-30deg);opacity:0}}
+@keyframes enterBounce{0%{transform:scale(0) translateY(20px);opacity:0}60%{transform:scale(1.15) translateY(-4px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
+@keyframes attackGlow{0%,100%{filter:drop-shadow(0 0 6px var(--att-glow,#ffffff88))}50%{filter:drop-shadow(0 0 22px var(--att-glow,#ffffffcc)) drop-shadow(0 0 40px var(--att-glow,#ffffff44))}}
+@keyframes turnArrow{0%{opacity:0;transform:translateX(-6px)}100%{opacity:1;transform:translateX(0)}}
+.cem-attacker{animation:attackGlow .6s ease infinite,attackPulse .35s ease forwards;}
+.cem-dead{animation:deathSpin .55s ease forwards!important;}
+.cem-enter{animation:enterBounce .5s cubic-bezier(.34,1.56,.64,1) forwards;}
+.cem-attacker-indicator{font-size:0.62rem;font-weight:800;color:#fbbf24;letter-spacing:1px;animation:turnArrow .25s ease;margin-top:2px;min-height:14px;}
+.cem-wrapper{position:relative;display:inline-block;}
+.cem-hp-bar-wrap{height:9px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px;}
+.cem-hp-fill{height:100%;border-radius:50px;transition:width .45s ease;}
 
 /* Egg bag extras */
 
@@ -2048,11 +2062,11 @@ function buildHome(){
                     <button class="btn-out-hero" onclick="logoutUser()">ออก</button>
                 </div>
             </div>
-            <div class="hero-stats">
-                <div class="hs-cell"><b>${(userData.coins||0).toLocaleString()}</b><small>🪙 เหรียญ</small></div>
-                <div class="hs-cell"><b>${userData.quizHigh||0}</b><small>👥 Quiz Hi</small></div>
-                <div class="hs-cell"><b>${userData.drugHigh||0}</b><small>💊 Drug Hi</small></div>
+            <div class="hero-stats" style="grid-template-columns:repeat(4,1fr)">
+                <div class="hs-cell"><b>${userData.quizHigh||0}</b><small>👥 Quiz</small></div>
+                <div class="hs-cell"><b>${userData.drugHigh||0}</b><small>💊 Drug</small></div>
                 <div class="hs-cell"><b>${userData.towerBest||0}</b><small>🗼 Tower</small></div>
+                <div class="hs-cell"><b>${userData.pvpVictories||0}</b><small>⚔️ PvP</small></div>
             </div>
         </div>
 `
@@ -2231,6 +2245,17 @@ function memberGrid(){
             :null;
         const petGrade=petData?(petData.grade||0):0;
         const petColor=petData?(RARITY[petData.rarity]?.color||'#64748b'):'';
+        const hasLive = !!live;
+        if(!hasLive){
+            return`<div class="mcard" onclick="openProfileModal('${s.id}')" style="background:linear-gradient(135deg,${tc}15,${tc}06);border:1.5px solid ${tc}30">
+                <div style="width:52px;height:52px;border-radius:50%;background:${tc}20;border:2px solid ${tc}40;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:6px">
+                    ${s.track==='sci'?'🔬':'💊'}
+                </div>
+                <div class="mc-nick" style="font-size:0.77rem">${s.nickname}</div>
+                <div style="font-size:0.58rem;color:var(--muted);margin-top:1px;line-height:1.3;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.realName}</div>
+                <span class="track-badge" style="background:${tc};font-size:0.5rem;padding:2px 6px;margin-top:4px">${s.track==='sci'?'SCI':'CARE'}</span>
+            </div>`;
+        }
         return`<div class="mcard" onclick="openProfileModal('${s.id}')">
             <div style="position:relative;width:64px;height:64px;margin-bottom:4px">
                 <img loading="lazy" src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:64px;height:64px">
@@ -2239,7 +2264,6 @@ function memberGrid(){
             </div>
             <div class="mc-nick">${s.nickname}</div>
             <span class="track-badge" style="background:${tc};font-size:0.52rem;padding:2px 6px;margin-top:1px">${s.track==='sci'?'SCI':'CARE'}</span>
-            
         </div>`;
     }).join('')}</div>`;
 }
@@ -3865,34 +3889,28 @@ function _coreTick() {
 
         _coreRender();
 
-        // Fade out dead combatant
+        // Death animation → relay
         const deadSid = defIsA ? 'a' : 'b';
-        const deadEl = document.getElementById('cem-'+deadSid);
-        if(deadEl) { deadEl.style.transition='opacity .4s'; deadEl.style.opacity='0'; }
-
-        setTimeout(()=>{
+        _corePlayDeath(deadSid, ()=>{
             if(!__core) return;
             if(!hasNext) {
-                // side exhausted → game over
                 c.running = false;
                 _coreRender();
-                const weWon = defIsA; // sideA exhausted = we lost; sideB exhausted = we won
+                const weWon = defIsA;
                 const onEnd = weWon ? c.cfg.onWin : c.cfg.onLose;
                 if(typeof onEnd==='function') onEnd();
                 return;
             }
-            // Relay: bring in next combatant
+            // Relay: next combatant enters
             c[defKey] = nextIdx;
             const newcomer = defIsA ? c.sA[c.iA] : c.sB[c.iB];
-            c.log.push(`🔄 ${newcomer.pet.emoji} ${formatPetName(newcomer.pet)} ออกสนาม!`);
-            // Newcomer attacks first
+            c.log.push(`⬆️ ${newcomer.pet.emoji} ${formatPetName(newcomer.pet)} ลงสนาม!`);
             c.whoseTurn = defIsA ? 0 : 1;
             _coreRender();
-            // Fade in new combatant
-            const newEl = document.getElementById('cem-'+deadSid);
-            if(newEl) { newEl.style.opacity='0'; newEl.style.transition='opacity .5s'; requestAnimationFrame(()=>{ newEl.style.opacity='1'; }); }
-            setTimeout(()=>{ if(__core) __core.timer=setInterval(_coreTick, c.cfg.tickMs); }, 300);
-        }, 1600);
+            // Enter bounce animation on new combatant
+            setTimeout(()=>{ _corePlayEnter(deadSid); }, 80);
+            setTimeout(()=>{ if(__core) __core.timer=setInterval(_coreTick, c.cfg.tickMs); }, 520);
+        });
         return;
     }
 
@@ -3935,32 +3953,68 @@ function _coreAnimate(attSideIdx, dmg, adv, crit) {
     if(!dmg) return;
     const attId = attSideIdx===0 ? 'a' : 'b';
     const defId = attSideIdx===0 ? 'b' : 'a';
-    const dir   = attSideIdx===0 ? 36 : -36;
+    const dir   = attSideIdx===0 ? 40 : -40;
+
+    // Attacker: tackle surge forward
     const attEl = document.getElementById('cem-'+attId);
-    const defEl = document.getElementById('cem-'+defId);
     if(attEl){
-        attEl.style.transition='transform .15s';
-        attEl.style.transform=`translateX(${dir}px) scale(1.12)`;
-        setTimeout(()=>{ if(attEl) attEl.style.transform=''; }, 180);
+        attEl.style.transition = 'transform .15s ease-out';
+        attEl.style.transform  = `translateX(${dir}px) scale(1.18)`;
+        setTimeout(()=>{ if(attEl){ attEl.style.transition='transform .2s ease'; attEl.style.transform=''; } }, 200);
     }
+
+    // Defender: shake
+    const defEl = document.getElementById('cem-'+defId);
     if(defEl){
         setTimeout(()=>{
             if(!defEl) return;
             defEl.style.animation='none'; void defEl.offsetWidth;
-            defEl.style.animation='bShake .25s ease';
-            setTimeout(()=>{ if(defEl) defEl.style.animation=''; }, 280);
-        }, 180);
+            defEl.style.animation='bShake .28s ease';
+            setTimeout(()=>{ if(defEl) defEl.style.animation=''; }, 300);
+        }, 190);
     }
+
+    // Damage float
     const field = document.getElementById(__core?.cfg?.fieldId || 'core-field');
     if(field){
         const fl = document.createElement('div');
-        fl.innerHTML = crit ? `💥${dmg}!` : `-${dmg}`;
-        fl.style.cssText = `position:absolute;${attSideIdx===0?'right:6%':'left:6%'};
-            top:${8+Math.random()*28}%;font-size:${crit?'1.3rem':'1rem'};font-weight:900;
+        fl.innerHTML = crit ? `💥${dmg}!` : adv ? `🔥${dmg}` : `-${dmg}`;
+        fl.style.cssText = `position:absolute;${attSideIdx===0?'right:8%':'left:8%'};
+            top:${6+Math.random()*26}%;font-size:${crit?'1.4rem':'1.05rem'};font-weight:900;
             color:${crit?'#fbbf24':adv?'#6ee7b7':'#f87171'};pointer-events:none;z-index:10;
-            text-shadow:0 2px 8px rgba(0,0,0,.5);animation:dmgFloat .85s ease forwards;`;
+            text-shadow:0 2px 10px rgba(0,0,0,.6);animation:dmgFloat .9s ease forwards;`;
         field.style.position='relative'; field.appendChild(fl);
-        setTimeout(()=>fl.remove(), 870);
+        setTimeout(()=>fl.remove(), 900);
+    }
+}
+
+/** เรียกเมื่อ combatant ตาย — ใส่ death animation แล้ว callback */
+function _corePlayDeath(sid, onDone) {
+    const el = document.getElementById('cem-'+sid);
+    if(el){
+        el.classList.remove('cem-attacker');
+        el.style.animation='none'; void el.offsetWidth;
+        el.style.animation='deathSpin .55s ease forwards';
+        // skull overlay
+        const wrap=el.parentElement;
+        if(wrap){
+            const skull=document.createElement('div');
+            skull.textContent='💀';
+            skull.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:2rem;pointer-events:none;z-index:5;animation:popIn .35s ease 0.1s both;';
+            wrap.style.position='relative'; wrap.appendChild(skull);
+            setTimeout(()=>skull.remove(), 1500);
+        }
+    }
+    setTimeout(onDone, 620);
+}
+
+/** เรียกเมื่อ combatant ใหม่เข้าสนาม */
+function _corePlayEnter(sid) {
+    const el = document.getElementById('cem-'+sid);
+    if(el){
+        el.style.animation='none'; void el.offsetWidth;
+        el.classList.add('cem-enter');
+        setTimeout(()=>el.classList.remove('cem-enter'), 520);
     }
 }
 
@@ -3977,20 +4031,30 @@ function _coreRender() {
     const hpCol=p=>p>50?'#10b981':p>20?'#f59e0b':'#ef4444';
     const isOver=!c.running;
 
-    const sideCard = (combatant, cfg, el, pct, sid) => `
-        <div style="text-align:center" id="cslot-${sid}">
-            <div style="font-size:3rem;filter:drop-shadow(0 0 10px ${combatant.hp<=0?'#ffffff11':cfg.glow});
-                        transition:transform .15s;${combatant.hp<=0?'opacity:.25':''}"
-                 id="cem-${sid}">${combatant.pet.emoji}</div>
-            <div style="font-size:0.7rem;font-weight:700;color:${combatant.hp<=0?'rgba(255,255,255,.35)':'rgba(255,255,255,.85)'};margin:4px 0 2px">
+    const isAttA = !isOver && c.whoseTurn===0;
+    const sideCard = (combatant, cfg, el, pct, sid) => {
+        const isAtt = !isOver && ((sid==='a' && isAttA)||(sid==='b' && !isAttA));
+        const isDead = combatant.hp<=0;
+        const hpBarColor = hpCol(pct);
+        return `<div style="text-align:center;position:relative" id="cslot-${sid}">
+            <div class="cem-attacker-indicator">${isAtt&&!isDead?'⚔️ โจมตี!':''}</div>
+            <div style="position:relative;display:inline-block">
+                <div style="font-size:3.2rem;
+                            filter:drop-shadow(0 0 ${isDead?'0px #0000':isAtt?'16px '+cfg.glow:'8px '+cfg.glow+'88'});
+                            transition:filter .3s;${isDead?'opacity:.15':''}
+                            ${isAtt&&!isDead?'animation:attackGlow .7s ease infinite;':''}"
+                     id="cem-${sid}">${combatant.pet.emoji}</div>
+            </div>
+            <div style="font-size:0.68rem;font-weight:700;color:${isDead?'rgba(255,255,255,.3)':isAtt?'#fbbf24':'rgba(255,255,255,.85)'};margin:4px 0 2px;transition:color .3s">
                 ${formatPetName(combatant.pet)}${el?` <span style="font-size:.85rem">${el.emoji}</span>`:''}
             </div>
-            <div style="font-size:0.56rem;color:${cfg.color};margin-bottom:5px">${cfg.label} · ATK ${combatant.stats.atk}</div>
-            <div style="height:9px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px">
-                <div style="width:${pct}%;height:100%;background:${hpCol(pct)};border-radius:50px;transition:width .45s ease"></div>
+            <div style="font-size:0.54rem;color:${cfg.color};margin-bottom:6px">${cfg.label} · ATK ${combatant.stats.atk}</div>
+            <div style="height:8px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px">
+                <div style="width:${pct}%;height:100%;background:${hpBarColor};border-radius:50px;transition:width .5s ease,background .3s"></div>
             </div>
-            <div style="font-size:0.6rem;color:rgba(255,255,255,.4)">${Math.max(0,combatant.hp)} / ${combatant.maxHp}</div>
+            <div style="font-size:0.58rem;color:rgba(255,255,255,.4)">${Math.max(0,combatant.hp)} / ${combatant.maxHp}</div>
         </div>`;
+    };
 
     // relay dots if relay mode
     const mkDots = (arr, cur) => arr.length>1 ? `<div style="display:flex;gap:4px;justify-content:center;margin-bottom:6px">`+
@@ -4032,8 +4096,8 @@ function _coreRender() {
         <div style="display:grid;grid-template-columns:1fr 28px 1fr;gap:6px;align-items:start;
                     margin-bottom:12px;position:relative" id="${c.cfg.fieldId||'core-field'}">
             ${sideCard(curA,cfgA,elA,pctA,'a')}
-            <div style="display:flex;align-items:center;justify-content:center;padding-top:20px;
-                        font-size:0.8rem;color:rgba(255,255,255,.2);font-weight:800">⚔️</div>
+            <div style="display:flex;align-items:center;justify-content:center;padding-top:30px;
+                        font-size:0.85rem;color:rgba(255,255,255,.15);font-weight:800">VS</div>
             ${sideCard(curB,cfgB,elB,pctB,'b')}
         </div>
         ${mkDots(c.sB,c.iB)}
