@@ -307,9 +307,13 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 @keyframes enterBounce{0%{transform:scale(0) translateY(20px);opacity:0}60%{transform:scale(1.15) translateY(-4px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
 @keyframes attackGlow{0%,100%{filter:drop-shadow(0 0 6px var(--att-glow,#ffffff88))}50%{filter:drop-shadow(0 0 22px var(--att-glow,#ffffffcc)) drop-shadow(0 0 40px var(--att-glow,#ffffff44))}}
 @keyframes turnArrow{0%{opacity:0;transform:translateX(-6px)}100%{opacity:1;transform:translateX(0)}}
-.cem-attacker{animation:attackGlow .6s ease infinite,attackPulse .35s ease forwards;}
-.cem-dead{animation:deathSpin .55s ease forwards!important;}
-.cem-enter{animation:enterBounce .5s cubic-bezier(.34,1.56,.64,1) forwards;}
+@keyframes slashL{0%{opacity:0;transform:translate(-20px,-10px) rotate(-30deg) scaleX(0)}40%{opacity:1;transform:translate(0,0) rotate(-30deg) scaleX(1)}100%{opacity:0;transform:translate(10px,10px) rotate(-30deg) scaleX(1.2)}}
+@keyframes slashR{0%{opacity:0;transform:translate(20px,-10px) rotate(30deg) scaleX(0)}40%{opacity:1;transform:translate(0,0) rotate(30deg) scaleX(1)}100%{opacity:0;transform:translate(-10px,10px) rotate(30deg) scaleX(1.2)}}
+@keyframes impactFlash{0%{opacity:.7}100%{opacity:0}}
+.slash-vfx{position:absolute;pointer-events:none;z-index:20;font-size:1.8rem;animation-duration:.35s;animation-timing-function:ease-out;animation-fill-mode:forwards;}
+.cem-attacker{animation:attackGlow .6s ease 2,attackPulse .35s ease forwards;will-change:transform,filter;}
+.cem-dead{animation:deathSpin .55s ease forwards!important;will-change:transform,opacity;}
+.cem-enter{animation:enterBounce .5s cubic-bezier(.34,1.56,.64,1) forwards;will-change:transform,opacity;}
 .cem-attacker-indicator{font-size:0.62rem;font-weight:800;color:#fbbf24;letter-spacing:1px;animation:turnArrow .25s ease;margin-top:2px;min-height:14px;}
 .cem-wrapper{position:relative;display:inline-block;}
 .cem-hp-bar-wrap{height:9px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px;}
@@ -971,7 +975,7 @@ const DRUGS=[
 // ════════════════════════════════════════
 let currentUser=null, userData=null, unsub=null;
 // UI state
-let mTrack='all', mSearch='';
+let mTrack='all', mSearch='', mConnected=false;
 let tradeIdx=null;
 // Quiz state
 let qScore=0, qAnswer=null, qHigh=0;
@@ -2279,6 +2283,7 @@ function buildMembers(){
 function memberGrid(){
     let list=window.__students||[];
     if(mTrack!=='all')list=list.filter(s=>s.track===mTrack);
+    if(mConnected) list=list.filter(s=>!!(window.__fbUsers?.[s.id]));
     if(mSearch){const q=mSearch.toLowerCase();list=list.filter(s=>s.nickname.toLowerCase().includes(q)||s.id.includes(q)||s.realName.toLowerCase().includes(q));}
     if(!list.length)return`<div style="text-align:center;color:var(--muted);padding:24px">ไม่พบ</div>`;
     return`<div class="mgrid">${list.map(s=>{
@@ -2317,6 +2322,7 @@ function memberGrid(){
     }).join('')}</div>`;
 }
 window.mFilter=t=>{mTrack=t;const g=document.getElementById('mgrid');if(g)g.innerHTML=memberGrid();};
+window.mToggleConnected=()=>{ mConnected=!mConnected; if(window.__tab==='members') renderTab('members'); };
 window.mSearchFn=v=>{mSearch=v;const g=document.getElementById('mgrid');if(g)g.innerHTML=memberGrid();};
 
 window.openProfileModal=(id)=>{
@@ -3574,7 +3580,32 @@ ${formatPetName(p)}
 // ════════════════════════════════════════
 // ▶ LEADERBOARD
 // ════════════════════════════════════════
-window.toggleLb=(id)=>{const el=document.getElementById(id);if(!el)return;const show=el.style.display==='none';el.style.display=show?'block':'none';if(show){el.innerHTML=id==='qlb'?buildQuizLb():id==='dqlb'?buildDrugLb():buildCtLb();}}
+window.toggleLb=(id)=>{const el=document.getElementById(id);if(!el)return;const show=el.style.display==='none';el.style.display=show?'block':'none';if(show){el.innerHTML=id==='qlb'?buildQuizLb():id==='dqlb'?buildDrugLb():id==='twlb'?buildTowerLb():buildCtLb();}}
+
+function buildTowerLb(){
+    const all=window.__students||[];
+    const rows=all.map(s=>{
+        const live=window.__fbUsers?.[s.id];
+        const best=live?.towerBest||0;
+        return {nick:s.nickname,best,track:s.track,emoji:(()=>{const slot0=(live?.activePets||[])[0]||live?.activePet||null;if(!slot0)return '';const ep=(live?.pets||[]).find(p=>p.instId&&String(p.instId)===String(slot0)||(p.id===slot0));return ep?ep.emoji:'';})()};
+    }).filter(r=>r.best>0).sort((a,b)=>b.best-a.best).slice(0,10);
+    if(!rows.length) return `<div style="text-align:center;padding:16px;color:rgba(255,255,255,.3);font-size:0.8rem">ยังไม่มีข้อมูลชั้นสูงสุด</div>`;
+    const medals=['🥇','🥈','🥉'];
+    return `<div style="background:rgba(0,0,0,.2);border-radius:12px;overflow:hidden">
+        ${rows.map((r,i)=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;${i<rows.length-1?'border-bottom:1px solid rgba(255,255,255,.06)':''}${i===0?';background:rgba(251,191,36,.08)':''}">
+            <div style="width:22px;text-align:center;font-size:${i<3?'1rem':'0.76rem'};font-weight:800;color:${i===0?'#fbbf24':i===1?'#e2e8f0':i===2?'#f87171':'rgba(255,255,255,.3)'}">${i<3?medals[i]:i+1}</div>
+            <div style="font-size:1rem">${r.emoji||'🐾'}</div>
+            <div style="flex:1;min-width:0">
+                <div style="font-size:0.78rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sanitize(r.nick)}</div>
+                <div style="font-size:0.58rem;color:${r.track==='sci'?'var(--sci)':'var(--care)'}">${r.track.toUpperCase()}</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:0.9rem;font-weight:800;color:#a78bfa">ชั้น ${r.best}</div>
+            </div>
+        </div>`).join('')}
+    </div>`;
+}
 
 // ════════════════════════════════════════
 //  TAB: SHOP
@@ -3895,11 +3926,13 @@ function _startCoreBattle(cfg) {
 
     _coreRender();
     const tickFn = cfg.mode==='sandbox' ? _coreSandboxTick : _coreTick;
-    if(cfg.mode==='sandbox'){
-        __core.timer = setTimeout(function loop(){ if(!__core||!__core.running)return; tickFn(); if(__core?.running) __core.timer=setTimeout(loop,cfg.tickMs); }, cfg.tickMs);
-    } else {
-        __core.timer = setInterval(_coreTick, cfg.tickMs);
-    }
+    // setTimeout loop แทน setInterval — ป้องกัน tick stacking
+    const _loopTick = ()=>{
+        if(!__core||!__core.running) return;
+        tickFn();
+        if(__core?.running) __core.timer = setTimeout(_loopTick, cfg.tickMs);
+    };
+    __core.timer = setTimeout(_loopTick, cfg.tickMs);
 }
 
 // ── Main tick ──
@@ -3961,7 +3994,7 @@ function _coreTick() {
             _coreRender();
             // Enter bounce animation on new combatant
             setTimeout(()=>{ _corePlayEnter(deadSid); }, 80);
-            setTimeout(()=>{ if(__core) __core.timer=setInterval(_coreTick, c.cfg.tickMs); }, 520);
+            setTimeout(()=>{ if(__core){ const _rLoop=()=>{ if(!__core||!__core.running)return; _coreTick(); if(__core?.running)__core.timer=setTimeout(_rLoop,c.cfg.tickMs); }; __core.timer=setTimeout(_rLoop,c.cfg.tickMs); } }, 520);
         });
         return;
     }
@@ -4020,12 +4053,22 @@ function _coreAnimate(attSideIdx, dmg, adv, crit, miss) {
     }
     if(!dmg) return;
 
-    // Attacker: tackle surge forward
+    // Attacker: tackle surge + slash VFX
     const attEl = document.getElementById('cem-'+attId);
     if(attEl){
-        attEl.style.transition = 'transform .15s ease-out';
-        attEl.style.transform  = `translateX(${dir}px) scale(1.18)`;
-        setTimeout(()=>{ if(attEl){ attEl.style.transition='transform .2s ease'; attEl.style.transform=''; } }, 200);
+        attEl.style.transition = 'transform .14s ease-out';
+        attEl.style.transform  = `translateX(${dir}px) scale(1.2)`;
+        setTimeout(()=>{ if(attEl){ attEl.style.transition='transform .18s ease'; attEl.style.transform=''; } }, 180);
+    }
+    // slash overlay on defender side
+    if(field){
+        const sl=document.createElement('div');
+        sl.className='slash-vfx';
+        sl.textContent = crit ? '⚡' : adv ? '🔥' : '💢';
+        sl.style.cssText += `top:${20+Math.random()*30}%;${attSideIdx===0?'right:5%':'left:5%'};animation-name:${attSideIdx===0?'slashR':'slashL'};`;
+        field.style.position='relative';
+        field.appendChild(sl);
+        setTimeout(()=>sl.remove(), 380);
     }
 
     // Defender: shake
@@ -4034,9 +4077,9 @@ function _coreAnimate(attSideIdx, dmg, adv, crit, miss) {
         setTimeout(()=>{
             if(!defEl) return;
             defEl.style.animation='none'; void defEl.offsetWidth;
-            defEl.style.animation='bShake .28s ease';
-            setTimeout(()=>{ if(defEl) defEl.style.animation=''; }, 300);
-        }, 190);
+            defEl.style.animation='bShake .26s ease';
+            setTimeout(()=>{ if(defEl) defEl.style.animation=''; }, 280);
+        }, 160);
     }
 
     // Damage float
@@ -4212,13 +4255,25 @@ function _renderTowerLobby(){
         </div>`;
     }).join('')+(__twSelTeam.length<3?`<div class="tower-slot empty" style="opacity:.4">+</div>`:'');
 
-    const petCards=pets.map(id_p=>{
-        const p=id_p; const sel=__twSelTeam.includes(String(p.instId||p.id));
+        // Sort pets — same logic as home
+    const __twSort = window.__twSort||'rarity';
+    const sortedTwPets = [...pets].sort((a,b)=>{
+        if(__twSort==='rarity'){const ro={legendary:0,epic:1,rare:2,common:3};const rd=(ro[a.rarity]||3)-(ro[b.rarity]||3);if(rd!==0)return rd;return(b.grade||0)-(a.grade||0);}
+        if(__twSort==='grade') return((b.grade||0)*16+(b.refine||0))-((a.grade||0)*16+(a.refine||0));
+        if(__twSort==='daily') return petDailyCoins(b)-petDailyCoins(a);
+        return 0;
+    });
+    const twSortBtns=['rarity','grade','daily'].map(m=>`<button onpointerdown="window.__twSort='${m}';_renderTowerLobby()" style="background:${__twSort===m?'rgba(168,85,247,.35)':'rgba(255,255,255,.05)'};border:1px solid ${__twSort===m?'rgba(168,85,247,.6)':'rgba(255,255,255,.1)'};color:${__twSort===m?'#d8b4fe':'rgba(255,255,255,.45)'};border-radius:6px;padding:2px 8px;font-size:0.6rem;font-weight:700;cursor:pointer;font-family:inherit">${{rarity:'⭐',grade:'🧬',daily:'🪙'}[m]}</button>`).join('');
+
+    const petCards=sortedTwPets.map(p=>{
+        const sel=__twSelTeam.includes(String(p.instId||p.id));
         const cfg=RARITY[p.rarity];
+        const stats=calculatePetStats(p);
         return`<div class="tower-pick${sel?' sel':''}" onclick="twPickPet('${String(p.instId||p.id)}')">
             <div style="font-size:1.5rem">${p.emoji}</div>
-            <div style="font-size:0.5rem;color:rgba(255,255,255,.75);font-weight:700">${formatPetName(p)}</div>
-            <div style="font-size:0.44rem;color:${cfg.color}">${cfg.label}</div>
+            <div style="font-size:0.5rem;color:rgba(255,255,255,.75);font-weight:700;line-height:1.3">${formatPetName(p)}</div>
+            <div style="font-size:0.44rem;color:${cfg.color};margin-top:1px">${cfg.label}</div>
+            <div style="font-size:0.42rem;color:rgba(255,255,255,.35);margin-top:1px">⚔️${stats.atk} ❤️${stats.hp}</div>
         </div>`;
     }).join('');
 
@@ -4246,15 +4301,27 @@ function _renderTowerLobby(){
         <div style="font-size:0.6rem;color:rgba(255,255,255,.35);margin-bottom:6px;font-weight:700">ธาตุบอส: ${_EL_NAME[bEl]}</div>
         <div style="font-size:0.65rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px;margin-bottom:7px">🧩 จัดทีม (1–3 ตัว) — ลำดับ = ลำดับผลัด</div>
         <div class="tower-slot-row">${slotHtml}</div>
-        <div class="tower-team-grid">${petCards}</div>
-        <button class="btn-tower" onclick="startTowerBattle()" ${canFight?'':'disabled'}>
+
+        <button class="btn-tower" onclick="startTowerBattle()" ${canFight?'':'disabled'} style="margin-bottom:12px">
             ⚔️ ${canFight?`เริ่มสู้! ชั้น ${floor} (${__twSelTeam.length} ตัว)`:'เลือกสัตว์ก่อน'}
         </button>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-size:0.6rem;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:.5px">เลือกสัตว์</div>
+            <div style="display:flex;gap:4px">${twSortBtns}</div>
+        </div>
+        <div class="tower-team-grid">${petCards}</div>
+
         ${floor>1?`<button onclick="${canReset?'resetTower()':'void 0'}"
             style="width:100%;margin-top:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
             color:${canReset?'rgba(255,255,255,.5)':'rgba(255,255,255,.2)'};padding:9px;border-radius:10px;
             font-family:inherit;font-size:0.76rem;cursor:${canReset?'pointer':'not-allowed'}">
             🔄 เริ่มชั้น 1 ใหม่ (วันละครั้ง)${!canReset?' — ใช้ไปแล้ววันนี้':''}</button>`:''}
+
+        <button onclick="toggleLb('twlb')" style="width:100%;margin-top:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:7px;color:rgba(255,255,255,.45);font-family:inherit;font-size:0.72rem;cursor:pointer">
+            🏆 กระดานหอคอย
+        </button>
+        <div id="twlb" style="display:none;margin-top:6px"></div>
     </div>`;
 }
 window.twPickPet=(instId)=>{
