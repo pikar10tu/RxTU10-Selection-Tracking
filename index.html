@@ -1410,7 +1410,7 @@ function sanitize(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
 async function postNews(icon, msg) {
     try {
         await addDoc(collection(db,"news"), {icon, msg, ts: serverTimestamp()});
-        loadTicker();
+        await loadTicker(); // await so ticker updates after write
     } catch(e){}
 }
 
@@ -2017,7 +2017,7 @@ function renderTab(tab){
     const main=document.getElementById('main-content');
     if(tab==='home')    main.innerHTML=buildHome();
     if(tab==='members') main.innerHTML=buildMembers();
-    if(tab==='play')    main.innerHTML=buildPlay();
+    if(tab==='play'){ main.innerHTML=buildPlay(); loadTicker(); }
     if(tab==='shop')    main.innerHTML=buildShop();
 }
 
@@ -2565,9 +2565,9 @@ function buildPlay(){
         <div style="font-size:0.82rem;color:var(--muted)">เลือกโหมดเกมที่ต้องการเล่น</div>
     </div>
 
-    <!-- MAIN GAME CARDS -->
-    <div class="hub-grid">
-
+    <!-- 🐾 Pet Games group -->
+    <div style="font-size:0.6rem;color:rgba(255,255,255,.3);font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">🐾 สัตว์เลี้ยง</div>
+    <div class="hub-grid" style="margin-bottom:14px">
         <!-- Expedition -->
         <div class="hub-card live" style="--hc-glow:rgba(124,58,237,.4);background:linear-gradient(145deg,#2d1057,#1a0533);border-color:rgba(168,85,247,.25);" onclick="openExpModal()">
             ${expNotify?'<div class="hub-notify"></div>':''}
@@ -2576,44 +2576,42 @@ function buildPlay(){
             <div class="hub-card-title">ส่งสัตว์ผจญภัย</div>
             <div class="hub-card-sub">${expNotify?'🎁 มีรางวัลรอรับ!':expActive?'กำลังออกเดินทาง...':'ส่งสัตว์หาของรางวัล'}</div>
         </div>
+        <!-- Tower -->
+        <div class="hub-card live" style="--hc-glow:rgba(124,58,237,.4);background:linear-gradient(145deg,#2d1057,#1a0533);border-color:rgba(168,85,247,.25);" onclick="openTower()">
+            <div class="hub-card-icon">🗼</div>
+            <div class="hub-card-title">หอคอยไร้สิ้นสุด</div>
+            <div class="hub-card-sub">ชั้นสูงสุด: ${userData?.towerBest||0} ชั้น</div>
+        </div>
+    </div>
 
+    <!-- 🎮 Mini Games group -->
+    <div style="font-size:0.6rem;color:rgba(255,255,255,.3);font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">🎮 มินิเกม</div>
+    <div class="hub-grid">
         <!-- Quiz: ชื่อเพื่อน -->
         <div class="hub-card live" style="--hc-glow:rgba(37,99,235,.4);background:linear-gradient(145deg,#1e3a5f,#0f172a);border-color:rgba(96,165,250,.25);" onclick="openQuizModal()">
             <div class="hub-card-icon">🕵️</div>
             <div class="hub-card-title">ทายชื่อเพื่อน</div>
             <div class="hub-card-sub">เห็นชื่อเล่น → ทายชื่อจริง<br>High Score: ${qHigh} คะแนน</div>
         </div>
-
         <!-- Quiz: ยา -->
         <div class="hub-card live" style="--hc-glow:rgba(99,102,241,.4);background:linear-gradient(145deg,#312e81,#1e1b4b);border-color:rgba(165,180,252,.2);" onclick="openDrugModal()">
             <div class="hub-card-icon">💊</div>
             <div class="hub-card-title">ทายยา</div>
             <div class="hub-card-sub">Drug Class Quiz<br>High Score: ${dqHigh} คะแนน</div>
         </div>
-
         <!-- Color Tiles -->
         <div class="hub-card live" style="--hc-glow:rgba(16,185,129,.4);background:linear-gradient(145deg,#052e16,#0a1a0a);border-color:rgba(34,197,94,.25);" onclick="openColorTilesModal()">
             <div class="hub-card-icon">🟩</div>
             <div class="hub-card-title">Color Tiles</div>
             <div class="hub-card-sub">Piano Tiles สไตล์<br>High Score: ${ctHigh} คะแนน</div>
         </div>
-
-        <!-- Tower -->
-        <div class="hub-card live" style="--hc-glow:rgba(124,58,237,.4);background:linear-gradient(145deg,#2d1057,#1a0533);border-color:rgba(168,85,247,.25);" onclick="openTower()">
-            <div class="hub-badge" style="background:rgba(124,58,237,.35)">🗼 Tower</div>
-            <div class="hub-card-icon">🗼</div>
-            <div class="hub-card-title">หอคอยไร้สิ้นสุด</div>
-            <div class="hub-card-sub">ชั้นปัจจุบัน: ${userData?.towerFloor||1}<br>สูงสุด: ${userData?.towerBest||0} ชั้น</div>
+        <!-- CC Exam (Easter Egg) -->
+        <div class="hub-card live" style="--hc-glow:rgba(245,158,11,.3);background:linear-gradient(145deg,#1a1000,#120d00);border-color:rgba(245,158,11,.2);" onclick="openCCExam()">
+            <div class="hub-badge" style="background:rgba(245,158,11,.25);color:#fbbf24">ใหม่!</div>
+            <div class="hub-card-icon">📝</div>
+            <div class="hub-card-title">ข้อสอบ CC ย้อนหลัง</div>
+            <div class="hub-card-sub">Pharm Board Exam<br>ดาวน์โหลดได้แล้ว!</div>
         </div>
-
-        <!-- Coming Soon: ข้อสอบ CC ย้อนหลัง -->
-        <div class="hub-card soon" style="background:linear-gradient(145deg,#1a1000,#120d00);border-color:rgba(255,255,255,.06);">
-            <div class="hub-badge">เร็วๆ นี้</div>
-            <div class="hub-card-icon" style="filter:grayscale(.4)">📝</div>
-            <div class="hub-card-title" style="color:rgba(255,255,255,.5)">ข้อสอบ CC ย้อนหลัง</div>
-            <div class="hub-card-sub">Pharm Board Exam<br>Coming Soon</div>
-        </div>
-
     </div>`;
 }
 
@@ -3190,15 +3188,15 @@ function _ctGameHTML(){
 
         <!-- Controls -->
         <div class="ct-controls">
-            <button class="ct-btn ct-btn-0" id="ct-btn-0" ontouchstart="ctPress(0)" onclick="ctPress(0)">
+            <button class="ct-btn ct-btn-0" id="ct-btn-0" onpointerdown="ctPress(0)">
                 <span style="font-size:1.2rem">🔴</span>
                 <span>ซ้าย</span>
             </button>
-            <button class="ct-btn ct-btn-1" id="ct-btn-1" ontouchstart="ctPress(1)" onclick="ctPress(1)">
+            <button class="ct-btn ct-btn-1" id="ct-btn-1" onpointerdown="ctPress(1)">
                 <span style="font-size:1.2rem">🟢</span>
                 <span>กลาง</span>
             </button>
-            <button class="ct-btn ct-btn-2" id="ct-btn-2" ontouchstart="ctPress(2)" onclick="ctPress(2)">
+            <button class="ct-btn ct-btn-2" id="ct-btn-2" onpointerdown="ctPress(2)">
                 <span style="font-size:1.2rem">🔵</span>
                 <span>ขวา</span>
             </button>
@@ -3897,7 +3895,8 @@ function _coreTick() {
             if(!hasNext) {
                 c.running = false;
                 _coreRender();
-                const weWon = defIsA;
+                // defIsA=true means sideA was the one who died → sideB wins → player (sideA) LOST
+                const weWon = !defIsA;
                 const onEnd = weWon ? c.cfg.onWin : c.cfg.onLose;
                 if(typeof onEnd==='function') onEnd();
                 return;
@@ -4069,7 +4068,7 @@ function _coreRender() {
     // result
     let resultHtml = '';
     if(isOver) {
-        const sideAWon = c.sB.every(s=>s.hp<=0) || (c.iB>=c.sB.length);
+        const sideAWon = c.sB.every(s=>s.hp<=0) || (c.iB>=c.sB.length); // sideB exhausted = sideA wins
         if(c.cfg.renderResult) {
             resultHtml = c.cfg.renderResult(c, sideAWon);
         } else {
@@ -4377,6 +4376,104 @@ async function _pvpHandleResult(weWon, myName, enemyName, enemyStudentId){
     if(typeof postNews==='function') await postNews(weWon?'🏆':'💀',newsMsg).catch(()=>{});
 }
 
+
+// ════════════════════════════════════════
+// ▶ CC EXAM EASTER EGG (Step-by-step popup)
+// ════════════════════════════════════════
+window.openCCExam = () => {
+    const steps = [
+        {
+            q: "กรุณาเลือกปี พ.ศ. ของข้อสอบ CC ย้อนหลังที่ต้องการครับ",
+            choices: ["2568 (ปีล่าสุด)", "2567", "2566", "2565"]
+        },
+        {
+            q: "ต้องการคัดกรองเฉพาะข้อสอบในหมวดวิชาใดครับ?",
+            choices: [
+                "เภสัชบำบัด (Pharmacotherapy)",
+                "เทคโนโลยีเภสัชกรรม (Pharmaceutics)",
+                "กฎหมายและจรรยาบรรณวิชาชีพ",
+                "เภสัชเวทและสมุนไพร (Pharmacognosy)"
+            ]
+        },
+        {
+            q: "ระบบกำลังดึงข้อมูล... ต้องการให้แสดงผลข้อสอบในรูปแบบใด?",
+            choices: [
+                "แนวตั้ง (สำหรับปรินต์ A4)",
+                "แนวนอน (สำหรับอ่านบน iPad)",
+                "แนวทแยง (สำหรับคนชอบความท้าทายในการเอียงคออ่าน)",
+                "ฟอนต์ Angsana New ขนาด 12 (ทดสอบสายตาสั้นก่อนสอบจริง)"
+            ]
+        },
+        {
+            q: "กรุณาระบุรายละเอียดของชุดข้อสอบที่ต้องการดาวน์โหลด",
+            choices: [
+                "เฉพาะโจทย์ข้อสอบเพียวๆ (วัดใจหน้าห้องสอบ)",
+                "โจทย์ข้อสอบ + เฉลย ก. ข. ค. ง.",
+                "โจทย์ข้อสอบ + เฉลย + คำอธิบายที่อ่านแล้วก็ยังงงเหมือนเดิม",
+                "เอาแต่เฉลย ไม่เอาโจทย์ (เน้นท่องจำแบบนกแก้วนกขุนทอง)"
+            ]
+        },
+        {
+            q: "ขั้นตอนสุดท้าย! เพื่อประสบการณ์การอ่านที่ดีที่สุด ต้องการให้ไฟล์ข้อสอบเป็นโทนสีแบบไหนครับ?",
+            choices: [
+                "พื้นขาว ตัวอักษรดำ (คลาสสิก สไตล์กระดาษ A4)",
+                "พื้นดำ ตัวอักษรขาว (Dark Mode สำหรับคนชอบอ่านโต้รุ่ง)",
+                "พื้นสีเหลืองอ่อน ถนอมสายตา (สไตล์แอป GoodNotes)",
+                "พื้นสีเขียวเหนี่ยวทรัพย์ (สายมูเตลู เน้นพลังจิตในการเดาชอยส์)"
+            ]
+        }
+    ];
+
+    let step = 0;
+
+    function showStep(i) {
+        if(i >= steps.length) {
+            // Step 6 — final reveal
+            const modal = document.getElementById('cc-modal');
+            if(modal) modal.remove();
+            _showCCFinal();
+            return;
+        }
+        const s = steps[i];
+        let modal = document.getElementById('cc-modal');
+        if(!modal){
+            modal = document.createElement('div');
+            modal.id = 'cc-modal';
+            modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;`;
+            document.body.appendChild(modal);
+        }
+        modal.innerHTML = `
+        <div style="background:linear-gradient(160deg,#0f172a,#1e293b);border-radius:20px;padding:22px 18px 18px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.1)">
+            <div style="font-size:0.58rem;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">ขั้นตอนที่ ${i+1} / ${steps.length}</div>
+            <div style="width:100%;height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-bottom:14px">
+                <div style="height:100%;width:${((i+1)/steps.length)*100}%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:2px;transition:width .3s"></div>
+            </div>
+            <div style="font-size:0.9rem;font-weight:700;color:#fff;margin-bottom:16px;line-height:1.5">${s.q}</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+                ${s.choices.map((c,ci)=>`
+                <button onpointerdown="document.getElementById('cc-modal').__nextStep()" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:11px 14px;text-align:left;color:rgba(255,255,255,.85);font-family:inherit;font-size:0.8rem;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:10px">
+                    <span style="background:rgba(255,255,255,.1);border-radius:6px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:800;flex-shrink:0">${ci+1}</span>
+                    ${c}
+                </button>`).join('')}
+            </div>
+        </div>`;
+        document.getElementById('cc-modal').__nextStep = () => showStep(i + 1);
+    }
+
+    showStep(0);
+};
+
+function _showCCFinal() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9001;display:flex;align-items:center;justify-content:center;padding:24px;`;
+    overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:360px;width:100%;text-align:center">
+        <div style="font-size:1.1rem;font-weight:800;color:#1e293b;margin-bottom:12px">หมดครับ...</div>
+        <div style="font-size:0.88rem;color:#475569;line-height:1.7;margin-bottom:22px">จริงๆ คือยังไม่ได้ทำครับ<br>แยกย้ายกันไปฝึกงานก่อนนะ</div>
+        <button onpointerdown="this.closest('div[style*=\"position:fixed\"]').remove()" style="background:#1e293b;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-family:inherit;font-size:0.88rem;font-weight:700;cursor:pointer">โอเค...</button>
+    </div>`;
+    document.body.appendChild(overlay);
+}
 
 // ════════════════════════════════════════
 //  BOOT
