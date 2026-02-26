@@ -2262,8 +2262,7 @@ function memberGrid(){
         return`<div class="mcard" onclick="openProfileModal('${s.id}')">
             <div style="position:relative;width:64px;height:64px;margin-bottom:4px">
                 <img loading="lazy" src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:64px;height:64px">
-                ${petData?`<div style="position:absolute;bottom:-6px;right:-6px;font-size:1.25rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));line-height:1">${petData.emoji}${petGrade>0?`<span style="position:absolute;bottom:-1px;right:-4px;background:${petColor};color:#fff;font-size:0.38rem;font-weight:800;padding:1px 3px;border-radius:3px;line-height:1.4">${GRADE_LABELS[petGrade]}</span>`:''}${(()=>{const petR=petData.refine||0;if(!petR)return '';const rc=refineColor(petR);return `<span style="position:absolute;top:-5px;left:-5px;background:rgba(0,0,0,.75);color:${rc};font-size:0.42rem;font-weight:900;padding:1px 3px;border-radius:3px;line-height:1.4;border:1px solid ${rc}55">+${petR}</span>`;})()}
-                </div>`:''}
+                ${petData?`<div style="position:absolute;bottom:-6px;right:-6px;font-size:1.3rem;filter:drop-shadow(0 1px 4px rgba(0,0,0,.5));line-height:1">${petData.emoji}</div>`:''}
             </div>
             <div class="mc-nick">${s.nickname}</div>
             <span class="track-badge" style="background:${tc};font-size:0.52rem;padding:2px 6px;margin-top:1px">${s.track==='sci'?'SCI':'CARE'}</span>
@@ -2288,11 +2287,11 @@ window.openProfileModal=(id)=>{
         while(slots.length<3) slots.push(null);
         return slots.map((instId,i)=>{
             const p=instId?(ud.pets||[]).find(x=>String(x.instId||x.id)===String(instId)):null;
-            if(!p) return `<div class="pm-team-slot${clickable?' active-slot':''}" ${clickable?`onclick="pmPickSlot(${i})"`:''}><span class="slot-label${clickable?' filled':''}">ไม้ ${i+1}</span><span style="opacity:.3;font-size:1.1rem">＋</span></div>`;
+            if(!p) return `<div class="pm-team-slot${clickable?' active-slot':''}" ${clickable?`onclick="pmPickSlot(${i})"`:''}><span class="slot-label${clickable?' filled':''}">Slot ${i+1}</span><span style="opacity:.3;font-size:1.1rem">＋</span></div>`;
             const cfg=RARITY[p.rarity];
             const s2=calculatePetStats(p);
             const r=p.refine||0;
-            return `<div class="pm-team-slot filled${clickable?' active-slot':''}" ${clickable?`onclick="pmPickSlot(${i})"`:''}><span class="slot-label filled">ไม้ ${i+1}</span><div class="slot-em">${p.emoji}</div><div class="slot-name">${formatPetName(p)}</div><div class="slot-stats">⚔️${s2.atk} ❤️${s2.hp}</div></div>`;
+            return `<div class="pm-team-slot filled${clickable?' active-slot':''}" ${clickable?`onclick="pmPickSlot(${i})"`:''}><span class="slot-label filled">Slot ${i+1}</span><div class="slot-em">${p.emoji}</div><div class="slot-name">${formatPetName(p)}</div><div class="slot-stats">⚔️${s2.atk} ❤️${s2.hp}</div></div>`;
         }).join('');
     };
 
@@ -2311,13 +2310,13 @@ window.openProfileModal=(id)=>{
     // ── My profile: slot editor ──
     const myTeamEditor=isMe?`
     <div class="pm-section">
-        <div class="pm-section-label">🧩 ทีมสู้รบ (กดไม้เพื่อเปลี่ยน)</div>
+        <div class="pm-section-label">🐾 ทีมสัตว์เลี้ยง (กด Slot เพื่อเปลี่ยน)</div>
         <div id="pm-team-slots" class="pm-team">${buildTeamSlots(userData,true)}</div>
         <div id="pm-pick-grid" style="display:none;margin-top:10px"></div>
         <button id="pm-save-team-btn" onclick="pmSaveTeam()" style="display:none;width:100%;margin-top:8px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:10px;padding:10px;color:#fff;font-family:inherit;font-size:0.82rem;font-weight:800;cursor:pointer">💾 บันทึกทีม</button>
     </div>`:(liveData?`
     <div class="pm-section">
-        <div class="pm-section-label">🧩 ทีมสู้รบ</div>
+        <div class="pm-section-label">🐾 ทีมสัตว์เลี้ยง</div>
         <div class="pm-team">${buildTeamSlots(liveData,false)}</div>
     </div>`:'');
 
@@ -2365,7 +2364,7 @@ window.pmPickSlot=(slotIdx)=>{
     grid.style.display='grid';
     grid.style.gridTemplateColumns='repeat(auto-fill,minmax(64px,1fr))';
     grid.style.gap='6px';
-    grid.innerHTML=`<div style="grid-column:1/-1;font-size:0.62rem;color:rgba(255,255,255,.4);margin-bottom:4px">เลือกสัตว์สำหรับไม้ ${slotIdx+1} (กดอีกครั้งเพื่อเอาออก)</div>`
+    grid.innerHTML=`<div style="grid-column:1/-1;font-size:0.62rem;color:rgba(255,255,255,.4);margin-bottom:4px">เลือกสัตว์สำหรับ Slot ${slotIdx+1} (กดอีกครั้งเพื่อเอาออก)</div>`
     +pets.map(p=>{
         const cfg=RARITY[p.rarity];
         const isSel=__pmSlots[slotIdx]===String(p.instId||p.id);
@@ -2394,9 +2393,9 @@ window.pmSelectPet=(instOrId)=>{
         return [0,1,2].map(i=>{
             const iid=__pmSlots[i];
             const p=iid?(userData?.pets||[]).find(x=>String(x.instId||x.id)===iid):null;
-            if(!p) return `<div class="pm-team-slot active-slot" onclick="pmPickSlot(${i})"><span class="slot-label">ไม้ ${i+1}</span><span style="opacity:.3;font-size:1.1rem">＋</span></div>`;
+            if(!p) return `<div class="pm-team-slot active-slot" onclick="pmPickSlot(${i})"><span class="slot-label">Slot ${i+1}</span><span style="opacity:.3;font-size:1.1rem">＋</span></div>`;
             const s2=calculatePetStats(p);
-            return `<div class="pm-team-slot filled active-slot" onclick="pmPickSlot(${i})"><span class="slot-label filled">ไม้ ${i+1}</span><div class="slot-em">${p.emoji}</div><div class="slot-name">${formatPetName(p)}</div><div class="slot-stats">⚔️${s2.atk} ❤️${s2.hp}</div></div>`;
+            return `<div class="pm-team-slot filled active-slot" onclick="pmPickSlot(${i})"><span class="slot-label filled">Slot ${i+1}</span><div class="slot-em">${p.emoji}</div><div class="slot-name">${formatPetName(p)}</div><div class="slot-stats">⚔️${s2.atk} ❤️${s2.hp}</div></div>`;
         }).join('');
     };
     const slotsEl=document.getElementById('pm-team-slots');
@@ -2605,12 +2604,12 @@ function buildPlay(){
             <div class="hub-card-title">Color Tiles</div>
             <div class="hub-card-sub">Piano Tiles สไตล์<br>High Score: ${ctHigh} คะแนน</div>
         </div>
-        <!-- CC Exam (Easter Egg) -->
-        <div class="hub-card live" style="--hc-glow:rgba(245,158,11,.3);background:linear-gradient(145deg,#1a1000,#120d00);border-color:rgba(245,158,11,.2);" onclick="openCCExam()">
-            <div class="hub-badge" style="background:rgba(245,158,11,.25);color:#fbbf24">ใหม่!</div>
-            <div class="hub-card-icon">📝</div>
-            <div class="hub-card-title">ข้อสอบ CC ย้อนหลัง</div>
-            <div class="hub-card-sub">Pharm Board Exam<br>ดาวน์โหลดได้แล้ว!</div>
+        <!-- CC Exam (Easter Egg — Coming Soon facade) -->
+        <div class="hub-card soon" style="background:linear-gradient(145deg,#1a1000,#120d00);border-color:rgba(255,255,255,.06);" onclick="openCCExam()">
+            <div class="hub-badge">เร็วๆ นี้</div>
+            <div class="hub-card-icon" style="filter:grayscale(.4)">📝</div>
+            <div class="hub-card-title" style="color:rgba(255,255,255,.5)">ข้อสอบ CC ย้อนหลัง</div>
+            <div class="hub-card-sub">Pharm Board Exam<br>Coming Soon</div>
         </div>
     </div>`;
 }
@@ -3338,7 +3337,7 @@ function formatPetName(p){
     const grade = p.grade||0;
     const refine = p.refine||0;
     const gradePart  = grade>=1 ? ' '+GRADE_LABELS[grade] : '';
-    const refinePart = refine>=1 ? ` <span style="color:${refineColor(refine)};font-weight:800">+${refine}${refine>=15?' 👑':''}</span>` : '';
+    const refinePart = refine>=1 ? ` +${refine}${refine>=15?' 👑':''}` : '';
     return base + gradePart + refinePart;
 }
 
@@ -4464,13 +4463,16 @@ window.openCCExam = () => {
 };
 
 function _showCCFinal() {
+    // ลบ overlay เก่าก่อน (ถ้ามี)
+    document.getElementById('cc-final-overlay')?.remove();
     const overlay = document.createElement('div');
-    overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9001;display:flex;align-items:center;justify-content:center;padding:24px;`;
+    overlay.id = 'cc-final-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9001;display:flex;align-items:center;justify-content:center;padding:24px;';
     overlay.innerHTML = `
     <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:360px;width:100%;text-align:center">
         <div style="font-size:1.1rem;font-weight:800;color:#1e293b;margin-bottom:12px">หมดครับ...</div>
         <div style="font-size:0.88rem;color:#475569;line-height:1.7;margin-bottom:22px">จริงๆ คือยังไม่ได้ทำครับ<br>แยกย้ายกันไปฝึกงานก่อนนะ</div>
-        <button onpointerdown="this.closest('div[style*=\"position:fixed\"]').remove()" style="background:#1e293b;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-family:inherit;font-size:0.88rem;font-weight:700;cursor:pointer">โอเค...</button>
+        <button onpointerdown="document.getElementById('cc-final-overlay')?.remove()" style="background:#1e293b;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-family:inherit;font-size:0.88rem;font-weight:700;cursor:pointer">โอเค...</button>
     </div>`;
     document.body.appendChild(overlay);
 }
