@@ -872,7 +872,7 @@ function rollPetFromGlowEgg(){
 }
 window.buyGlowEgg=async()=>{
     if(!currentUser){toast('กรุณา Login ก่อน','error');return;}
-    const cost=1200;
+    const cost=2000;
     if((userData?.coins||0)<cost){toast(`เหรียญไม่พอ! ต้องการ ${cost}🪙`,'error');return;}
     if(!await _confirm(`🌐 ไข่เรืองแสง
 ราคา ${cost}🪙
@@ -1840,7 +1840,7 @@ window.showPetInfo=async(petInstId)=>{
             +`<div style="color:${cfg.color};font-weight:600">ATK ${stats.atk} → ${Math.round(BASE_STATS[p.rarity].atk*STAT_MULTI[nextGrade])} · HP ${stats.hp} → ${Math.round(BASE_STATS[p.rarity].hp*STAT_MULTI[nextGrade])} · Daily +${RARITY[p.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙</div>`
             +(!canUpgrade?`<div style="color:#94a3b8;font-size:0.73rem;margin-top:3px">ต้องการอีก ${totalNeeded-copiesOwned} ตัวเพื่ออัพ</div>`:''))
         +`<button class="btn-gold full" style="margin-top:8px" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${(isMax||isOnExp)?'disabled':''}>🧬 ${isOnExp?'⏳ กำลังผจญภัย':'วิวัฒนาการยีน '+(isMax?'(Max)':GRADE_LABELS[nextGrade])}</button>`
-        +`<button style="width:100%;margin-top:6px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:10px;padding:10px;color:#fff;font-family:inherit;font-size:0.85rem;font-weight:800;cursor:pointer" onclick="closePetInfo();openForgeModal()">🔨 ตีบวก</button>`
+        +`<button style="width:100%;margin-top:6px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:10px;padding:10px;color:#fff;font-family:inherit;font-size:0.85rem;font-weight:800;cursor:pointer" onclick="closePetInfo();openForgeModal('${p.instId||p.id}')">🔨 ตีบวก</button>`
         +'</div></div>';
     // Build slot buttons — 3 slots
     const _buildSlotButtons=()=>{
@@ -2069,6 +2069,23 @@ function buildHome(){
                     <button class="btn-out-hero" onclick="logoutUser()">ออก</button>
                 </div>
             </div>
+            <!-- Pet Team Slots -->
+            <div style="background:rgba(0,0,0,.25);border-top:1px solid rgba(255,255,255,.06);padding:10px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">                ${[0,1,2].map(i=>{
+                    const slotId=(userData?.activePets||[])[i]||null;
+                    const p=slotId?(userData?.pets||[]).find(x=>x.instId&&String(x.instId)===String(slotId)||(x.id===slotId)):null;
+                    const cfg=p?RARITY[p.rarity]:null;
+                    return p
+                        ?`<div onclick="showPetInfo('${String(p.instId||p.id)}')" style="background:${cfg.bg};border:1.5px solid ${cfg.color}44;border-radius:12px;padding:8px 4px;text-align:center;cursor:pointer;transition:.15s;">
+                            <div style="font-size:1.8rem;filter:drop-shadow(0 0 6px ${cfg.glow})">${p.emoji}</div>
+                            <div style="font-size:0.58rem;font-weight:700;color:${cfg.color};margin-top:2px;line-height:1.2">${formatPetName(p)}</div>
+                            <div style="font-size:0.5rem;color:rgba(255,255,255,.3)">Slot ${i+1}</div>
+                          </div>`
+                        :`<div onclick="switchTab('home')" style="background:rgba(255,255,255,.04);border:1.5px dashed rgba(255,255,255,.12);border-radius:12px;padding:8px 4px;text-align:center;cursor:pointer;">
+                            <div style="font-size:1.4rem;opacity:.3">➕</div>
+                            <div style="font-size:0.55rem;color:rgba(255,255,255,.25);margin-top:2px">Slot ${i+1}</div>
+                          </div>`;
+                }).join('')}
+            </div>
             <div class="hero-stats" style="grid-template-columns:repeat(4,1fr)">
                 <div class="hs-cell"><b>${userData.quizHigh||0}</b><small>👥 Quiz</small></div>
                 <div class="hs-cell"><b>${userData.drugHigh||0}</b><small>💊 Drug</small></div>
@@ -2113,8 +2130,7 @@ function buildHome(){
     const achieved=tiers.filter(t=>uniqueIds.length>=t.need);
     const nextTier=tiers.find(t=>uniqueIds.length<t.need);
     const achTitle=achieved.length?achieved[achieved.length-1].label:'';
-    const {base,passive}=calcTotalDaily(pets);
-    const todayTotal=base+passive;
+    const {base,passive,total:todayTotal}=calcTotalDaily(pets);
 
     const achieveBlock=`
     <div class="coll-card">
@@ -2179,8 +2195,35 @@ function buildHome(){
             </div>`;
         }).join('')}</div>`:''
 
+    // Sort logic
+    const __sortMode = window.__invSort||'rarity';
+    const sortedPets = [...pets].sort((a,b)=>{
+        if(__sortMode==='rarity'){
+            const ro={'legendary':0,'epic':1,'rare':2,'common':3};
+            const rd=(ro[a.rarity]||3)-(ro[b.rarity]||3);
+            if(rd!==0)return rd;
+            return (b.grade||0)-(a.grade||0);
+        }
+        if(__sortMode==='grade') return ((b.grade||0)*16+(b.refine||0))-((a.grade||0)*16+(a.refine||0));
+        if(__sortMode==='daily') return petDailyCoins(b)-petDailyCoins(a);
+        if(__sortMode==='slot'){
+            const slots=userData?.activePets||[];
+            const ai=slots.findIndex(id=>id&&String(id)===String(a.instId||a.id));
+            const bi=slots.findIndex(id=>id&&String(id)===String(b.instId||b.id));
+            const as=ai>=0?ai:99; const bs=bi>=0?bi:99;
+            return as-bs||petDailyCoins(b)-petDailyCoins(a);
+        }
+        return 0;
+    });
+    const sortBtns = ['rarity','grade','daily','slot'].map(m=>`
+        <button onpointerdown="window.__invSort='${m}';renderTab('home')" style="background:${__sortMode===m?'rgba(99,102,241,.35)':'rgba(255,255,255,.05)'};border:1px solid ${__sortMode===m?'rgba(99,102,241,.6)':'rgba(255,255,255,.12)'};color:${__sortMode===m?'#a5b4fc':'rgba(255,255,255,.5)'};border-radius:7px;padding:3px 9px;font-size:0.62rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">${{rarity:'⭐ Rarity',grade:'🧬 Grade',daily:'🪙 Daily',slot:'🎯 Team'}[m]}</button>`).join('');
+
     const invBlock=pets.length===0?`<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ฟักไข่ใน 🛒 Shop ก่อน!</div>`
-        :`<div class="inv-grid">${pets.map(p=>{const cfg=RARITY[p.rarity];const _activePetSlots=(userData?.activePets||[]);const _slotIdx=_activePetSlots.findIndex(id=>id&&String(id)===String(p.instId||p.id));const on=_slotIdx>=0;const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${formatPetName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${(p.refine||0)>0?` +${p.refine}`:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?`<div class="inv-on" style="font-size:0.5rem">${_slotIdx+1}</div>`:''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
+        :`<div style="display:flex;align-items:center;gap:5px;margin-bottom:8px;flex-wrap:wrap">
+            <span style="font-size:0.6rem;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:1px">เรียงโดย</span>
+            ${sortBtns}
+          </div>
+          <div class="inv-grid">${sortedPets.map(p=>{const cfg=RARITY[p.rarity];const _activePetSlots=(userData?.activePets||[]);const _slotIdx=_activePetSlots.findIndex(id=>id&&String(id)===String(p.instId||p.id));const on=_slotIdx>=0;const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${formatPetName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${(p.refine||0)>0?` +${p.refine}`:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?`<div class="inv-on" style="font-size:0.5rem">${_slotIdx+1}</div>`:''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
         <div style="display:flex;gap:7px;justify-content:center;margin-top:8px;flex-wrap:wrap">
             
             ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
@@ -3348,9 +3391,9 @@ function formatPetName(p){
 // ── Forge Modal state ──
 let __forgeSelPet = null; // instId ที่เลือก
 
-window.openForgeModal = ()=>{
+window.openForgeModal = (preselect)=>{
     if(!currentUser){ toast('กรุณา Login ก่อน','error'); return; }
-    __forgeSelPet = null;
+    __forgeSelPet = preselect ? String(preselect) : null;
     _renderForgeBody();
     document.getElementById('forge-modal').classList.add('active');
 };
@@ -3375,9 +3418,12 @@ function _renderForgeBody(){
         return;
     }
 
-    // Pet select
+    // ── Selected pet hero (shown at top when selected) ──
+    const selPet = __forgeSelPet ? pets.find(x=>String(x.instId||x.id)===String(__forgeSelPet)) : null;
+
+    // Pet select — ย้ายลงล่าง
     const petListHTML = `
-    <div style="font-size:0.7rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px;margin-bottom:8px">เลือกสัตว์ที่ต้องการตีบวก</div>
+    <div style="font-size:0.7rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px;margin-bottom:8px;margin-top:${selPet?'12px':'0'}">เลือกสัตว์ที่ต้องการตีบวก</div>
     <div class="forge-pet-grid">
         ${pets.map(p=>{
             const cfg = RARITY[p.rarity];
@@ -3471,7 +3517,7 @@ function _renderForgeBody(){
         }
     }
 
-    body.innerHTML = petListHTML + detailHTML;
+    body.innerHTML = detailHTML + petListHTML;
 }
 
 window.confirmForge = async ()=>{
@@ -3578,7 +3624,7 @@ function buildShop(){
                             <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 40%</span>
                         </div>
                     </div>
-                    <button class="btn-gold" onclick="buyGlowEgg()" ${currentUser&&(userData?.coins||0)>=1200?'':'disabled'} style="white-space:nowrap">1200🪙</button>
+                    <button class="btn-gold" onclick="buyGlowEgg()" ${currentUser&&(userData?.coins||0)>=2000?'':'disabled'} style="white-space:nowrap">2000🪙</button>
                 </div>
             </div>
             <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;align-items:center;gap:10px">
@@ -3764,7 +3810,7 @@ window.startSandbox=()=>{
             {pet:petA, def:defA, stats:sA, hp:sA.hp, maxHp:sA.hp},
             {pet:petB, def:defB, stats:sB, hp:DUMMY_HP, maxHp:DUMMY_HP},
         ],
-        firstIdx:0, maxTurns:100, tickMs:650,
+        firstIdx:0, maxTurns:100, tickMs:600,
         container:'battle-content', arenaId:'battle-wrap', fieldId:'battle-field',
         titleHtml:'🪨 ตีหุ่น',
         onClose:()=>closeBattle(),
@@ -3869,15 +3915,18 @@ function _coreTick() {
     c.turn++;
 
     const adv  = elementBeats(attSide.def?.element, defSide.def?.element);
-    const crit = Math.random()<0.20;
-    const dmg  = Math.max(1, Math.round(attSide.stats.atk * (adv?1.5:1.0) * (crit?2.0:1.0)));
+    const miss = Math.random()<0.10;  // 10% miss chance
+    const crit = !miss && Math.random()<0.15;  // 15% crit (no crit on miss)
+    const dmg  = miss ? 0 : Math.max(1, Math.round(attSide.stats.atk * (adv?1.4:1.0) * (crit?1.8:1.0)));
     defSide.hp = Math.max(0, defSide.hp - dmg);
 
     const tag = crit ? ` <b style="color:#fbbf24">💥CRIT!</b>` : adv ? ` <span style="color:#6ee7b7">🔥×1.5</span>` : '';
-    c.log.push(`${attSide.pet.emoji}→${defSide.pet.emoji} <b style="color:#fca5a5">-${dmg}</b>${tag}`);
+    c.log.push(miss
+        ? `🌀 ${attSide.pet.emoji} พลาด!`
+        : `${attSide.pet.emoji}→${defSide.pet.emoji} ${crit?'<b style="color:#fbbf24">💥CRIT</b> ':adv?'<b style="color:#6ee7b7">🔥Adv</b> ':''}<b style="color:#fca5a5">-${dmg}</b>`);
 
     // ── Tackle + Shake + Damage float animation ──
-    _coreAnimate(c.whoseTurn, dmg, adv, crit);
+    _coreAnimate(c.whoseTurn, dmg, adv, crit, miss);
 
     // ── Death check ──
     if(defSide.hp <= 0) {
@@ -3952,11 +4001,24 @@ function _coreSandboxTick() {
 }
 
 // ── Animations ──
-function _coreAnimate(attSideIdx, dmg, adv, crit) {
-    if(!dmg) return;
+function _coreAnimate(attSideIdx, dmg, adv, crit, miss) {
+    const field = document.getElementById(__core?.cfg?.fieldId || 'core-field');
     const attId = attSideIdx===0 ? 'a' : 'b';
     const defId = attSideIdx===0 ? 'b' : 'a';
     const dir   = attSideIdx===0 ? 40 : -40;
+
+    if(miss){
+        // Miss: short lurch only, no damage
+        const attElM = document.getElementById('cem-'+attId);
+        if(attElM){ attElM.style.transition='transform .12s'; attElM.style.transform=`translateX(${dir*0.5}px) scale(1.05)`; setTimeout(()=>{if(attElM)attElM.style.transform='';},150); }
+        if(field){
+            const fl=document.createElement('div'); fl.textContent='Miss!';
+            fl.style.cssText=`position:absolute;${attSideIdx===0?'right:8%':'left:8%'};top:${10+Math.random()*20}%;font-size:0.9rem;font-weight:900;color:rgba(255,255,255,.35);pointer-events:none;z-index:10;font-style:italic;animation:dmgFloat .8s ease forwards;`;
+            field.style.position='relative'; field.appendChild(fl); setTimeout(()=>fl.remove(),820);
+        }
+        return;
+    }
+    if(!dmg) return;
 
     // Attacker: tackle surge forward
     const attEl = document.getElementById('cem-'+attId);
@@ -3978,7 +4040,6 @@ function _coreAnimate(attSideIdx, dmg, adv, crit) {
     }
 
     // Damage float
-    const field = document.getElementById(__core?.cfg?.fieldId || 'core-field');
     if(field){
         const fl = document.createElement('div');
         fl.innerHTML = crit ? `💥${dmg}!` : adv ? `🔥${dmg}` : `-${dmg}`;
