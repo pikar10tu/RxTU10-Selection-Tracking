@@ -2016,13 +2016,17 @@ function buildHome(){
             </div>`;
         }).join('')}</div>`:''
 
-    // Sort logic
+    // Sort logic — global fn เพื่อให้ onclick ทำงานได้เสมอ
+    if(!window.setInvSort){
+        window.setInvSort = (mode) => { window.__invSort=mode; renderTab('home'); };
+    }
+    const RARITY_ORDER = {legendary:0,epic:1,rare:2,common:3};
     const __sortMode = window.__invSort||'rarity';
     const sortedPets = [...pets].sort((a,b)=>{
         if(__sortMode==='rarity'){
-            const ro={'legendary':0,'epic':1,'rare':2,'common':3};
-            const rd=(ro[a.rarity]||3)-(ro[b.rarity]||3);
-            if(rd!==0)return rd;
+            const ra = RARITY_ORDER[a.rarity] ?? 9;
+            const rb = RARITY_ORDER[b.rarity] ?? 9;
+            if(ra!==rb) return ra-rb;
             return (b.grade||0)-(a.grade||0);
         }
         if(__sortMode==='grade') return ((b.grade||0)*16+(b.refine||0))-((a.grade||0)*16+(a.refine||0));
@@ -2036,8 +2040,11 @@ function buildHome(){
         }
         return 0;
     });
-    const sortBtns = ['rarity','grade','daily','slot'].map(m=>`
-        <button onpointerdown="window.__invSort='${m}';renderTab('home')" style="background:${__sortMode===m?'rgba(99,102,241,.35)':'rgba(255,255,255,.05)'};border:1px solid ${__sortMode===m?'rgba(99,102,241,.6)':'rgba(255,255,255,.12)'};color:${__sortMode===m?'#a5b4fc':'rgba(255,255,255,.5)'};border-radius:7px;padding:3px 9px;font-size:0.62rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">${{rarity:'⭐ Rarity',grade:'🧬 Grade',daily:'🪙 Daily',slot:'🎯 Team'}[m]}</button>`).join('');
+    const SORT_LABELS = {rarity:'⭐ Rarity',grade:'🧬 Grade',daily:'🪙 Daily',slot:'🎯 Team'};
+    const sortBtns = ['rarity','grade','daily','slot'].map(m=>{
+        const active = __sortMode===m;
+        return `<button onclick="setInvSort('${m}')" style="background:${active?'rgba(99,102,241,.35)':'rgba(255,255,255,.05)'};border:1px solid ${active?'rgba(99,102,241,.6)':'rgba(255,255,255,.12)'};color:${active?'#a5b4fc':'rgba(255,255,255,.5)'};border-radius:7px;padding:3px 9px;font-size:0.62rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s">${SORT_LABELS[m]}</button>`;
+    }).join('');
 
     const invBlock=pets.length===0?`<div class="inv-empty">ยังไม่มีสัตว์เลี้ยง — ฟักไข่ใน 🛒 Shop ก่อน!</div>`
         :`<div style="display:flex;align-items:center;gap:5px;margin-bottom:8px;flex-wrap:wrap">
@@ -4055,14 +4062,24 @@ function _renderTowerLobby(){
     }).join('')+(__twSelTeam.length<3?`<div class="tower-slot empty" style="opacity:.4">+</div>`:'');
 
         // Sort pets — same logic as home
+    if(!window.setTwSort) window.setTwSort=(m)=>{window.__twSort=m;_renderTowerLobby();};
     const __twSort = window.__twSort||'rarity';
+    const TW_RARITY_ORDER = {legendary:0,epic:1,rare:2,common:3};
     const sortedTwPets = [...pets].sort((a,b)=>{
-        if(__twSort==='rarity'){const ro={legendary:0,epic:1,rare:2,common:3};const rd=(ro[a.rarity]||3)-(ro[b.rarity]||3);if(rd!==0)return rd;return(b.grade||0)-(a.grade||0);}
+        if(__twSort==='rarity'){
+            const ra=TW_RARITY_ORDER[a.rarity]??9, rb=TW_RARITY_ORDER[b.rarity]??9;
+            if(ra!==rb) return ra-rb;
+            return (b.grade||0)-(a.grade||0);
+        }
         if(__twSort==='grade') return((b.grade||0)*16+(b.refine||0))-((a.grade||0)*16+(a.refine||0));
         if(__twSort==='daily') return petDailyCoins(b)-petDailyCoins(a);
         return 0;
     });
-    const twSortBtns=['rarity','grade','daily'].map(m=>`<button onpointerdown="window.__twSort='${m}';_renderTowerLobby()" style="background:${__twSort===m?'rgba(168,85,247,.35)':'rgba(255,255,255,.05)'};border:1px solid ${__twSort===m?'rgba(168,85,247,.6)':'rgba(255,255,255,.1)'};color:${__twSort===m?'#d8b4fe':'rgba(255,255,255,.45)'};border-radius:6px;padding:2px 8px;font-size:0.6rem;font-weight:700;cursor:pointer;font-family:inherit">${{rarity:'⭐',grade:'🧬',daily:'🪙'}[m]}</button>`).join('');
+    const TW_SORT_LABELS={rarity:'⭐',grade:'🧬',daily:'🪙'};
+    const twSortBtns=['rarity','grade','daily'].map(m=>{
+        const active=__twSort===m;
+        return `<button onclick="setTwSort('${m}')" style="background:${active?'rgba(168,85,247,.35)':'rgba(255,255,255,.05)'};border:1px solid ${active?'rgba(168,85,247,.6)':'rgba(255,255,255,.1)'};color:${active?'#d8b4fe':'rgba(255,255,255,.45)'};border-radius:6px;padding:2px 8px;font-size:0.6rem;font-weight:700;cursor:pointer;font-family:inherit">${TW_SORT_LABELS[m]}</button>`;
+    }).join('');
 
     const petCards=sortedTwPets.map(p=>{
         const sel=__twSelTeam.includes(String(p.instId||p.id));
@@ -4311,101 +4328,87 @@ async function _pvpHandleResult(weWon, myName, enemyName, enemyStudentId){
 // ▶ CC EXAM EASTER EGG (Step-by-step popup)
 // ════════════════════════════════════════
 window.openCCExam = () => {
+    // ── Easter Egg: CC ย้อนหลัง (5-step joke wizard) ──
     const steps = [
-        {
-            q: "กรุณาเลือกปี พ.ศ. ของข้อสอบ CC ย้อนหลังที่ต้องการครับ",
-            choices: ["2568 (ปีล่าสุด)", "2567", "2566", "2565"]
-        },
-        {
-            q: "ต้องการคัดกรองเฉพาะข้อสอบในหมวดวิชาใดครับ?",
-            choices: [
-                "เภสัชบำบัด (Pharmacotherapy)",
-                "เทคโนโลยีเภสัชกรรม (Pharmaceutics)",
-                "กฎหมายและจรรยาบรรณวิชาชีพ",
-                "เภสัชเวทและสมุนไพร (Pharmacognosy)"
-            ]
-        },
-        {
-            q: "ระบบกำลังดึงข้อมูล... ต้องการให้แสดงผลข้อสอบในรูปแบบใด?",
-            choices: [
-                "แนวตั้ง (สำหรับปรินต์ A4)",
-                "แนวนอน (สำหรับอ่านบน iPad)",
-                "แนวทแยง (สำหรับคนชอบความท้าทายในการเอียงคออ่าน)",
-                "ฟอนต์ Angsana New ขนาด 12 (ทดสอบสายตาสั้นก่อนสอบจริง)"
-            ]
-        },
-        {
-            q: "กรุณาระบุรายละเอียดของชุดข้อสอบที่ต้องการดาวน์โหลด",
-            choices: [
-                "เฉพาะโจทย์ข้อสอบเพียวๆ (วัดใจหน้าห้องสอบ)",
-                "โจทย์ข้อสอบ + เฉลย ก. ข. ค. ง.",
-                "โจทย์ข้อสอบ + เฉลย + คำอธิบายที่อ่านแล้วก็ยังงงเหมือนเดิม",
-                "เอาแต่เฉลย ไม่เอาโจทย์ (เน้นท่องจำแบบนกแก้วนกขุนทอง)"
-            ]
-        },
-        {
-            q: "ขั้นตอนสุดท้าย! เพื่อประสบการณ์การอ่านที่ดีที่สุด ต้องการให้ไฟล์ข้อสอบเป็นโทนสีแบบไหนครับ?",
-            choices: [
-                "พื้นขาว ตัวอักษรดำ (คลาสสิก สไตล์กระดาษ A4)",
-                "พื้นดำ ตัวอักษรขาว (Dark Mode สำหรับคนชอบอ่านโต้รุ่ง)",
-                "พื้นสีเหลืองอ่อน ถนอมสายตา (สไตล์แอป GoodNotes)",
-                "พื้นสีเขียวเหนี่ยวทรัพย์ (สายมูเตลู เน้นพลังจิตในการเดาชอยส์)"
-            ]
-        }
+        { q: "กรุณาเลือกปี พ.ศ. ของข้อสอบ CC ย้อนหลังที่ต้องการครับ",
+          choices: ["2568 (ปีล่าสุด)", "2567", "2566", "2565"] },
+        { q: "ต้องการคัดกรองเฉพาะข้อสอบในหมวดวิชาใดครับ?",
+          choices: ["เภสัชบำบัด (Pharmacotherapy)","เทคโนโลยีเภสัชกรรม (Pharmaceutics)","กฎหมายและจรรยาบรรณวิชาชีพ","เภสัชเวทและสมุนไพร (Pharmacognosy)"] },
+        { q: "ระบบกำลังดึงข้อมูล... ต้องการให้แสดงผลข้อสอบในรูปแบบใด?",
+          choices: ["แนวตั้ง (สำหรับปรินต์ A4)","แนวนอน (สำหรับอ่านบน iPad)","แนวทแยง (สำหรับคนชอบความท้าทายในการเอียงคออ่าน)","ฟอนต์ Angsana New ขนาด 12 (ทดสอบสายตาสั้นก่อนสอบจริง)"] },
+        { q: "กรุณาระบุรายละเอียดของชุดข้อสอบที่ต้องการดาวน์โหลด",
+          choices: ["เฉพาะโจทย์ข้อสอบเพียวๆ (วัดใจหน้าห้องสอบ)","โจทย์ข้อสอบ + เฉลย ก. ข. ค. ง.","โจทย์ข้อสอบ + เฉลย + คำอธิบายที่อ่านแล้วก็ยังงงเหมือนเดิม","เอาแต่เฉลย ไม่เอาโจทย์ (เน้นท่องจำแบบนกแก้วนกขุนทอง)"] },
+        { q: "ขั้นตอนสุดท้าย! เพื่อประสบการณ์การอ่านที่ดีที่สุด ต้องการให้ไฟล์ข้อสอบเป็นโทนสีแบบไหนครับ?",
+          choices: ["พื้นขาว ตัวอักษรดำ (คลาสสิก สไตล์กระดาษ A4)","พื้นดำ ตัวอักษรขาว (Dark Mode สำหรับคนชอบอ่านโต้รุ่ง)","พื้นสีเหลืองอ่อน ถนอมสายตา (สไตล์แอป GoodNotes)","พื้นสีเขียวเหนี่ยวทรัพย์ (สายมูเตลู เน้นพลังจิตในการเดาชอยส์)"] }
     ];
 
-    let step = 0;
-
-    function showStep(i) {
-        if(i >= steps.length) {
-            // Step 6 — final reveal
-            const modal = document.getElementById('cc-modal');
-            if(modal) modal.remove();
+    // ใช้ window global แทน element property — ทำงานได้เสมอใน onclick innerHTML
+    window.__ccStep = 0;
+    window.__ccSteps = steps;
+    window.__ccNext = () => {
+        window.__ccStep++;
+        if(window.__ccStep >= window.__ccSteps.length){
+            const m = document.getElementById('cc-modal');
+            if(m) m.remove();
             _showCCFinal();
-            return;
+        } else {
+            _renderCCStep(window.__ccStep);
         }
-        const s = steps[i];
-        let modal = document.getElementById('cc-modal');
-        if(!modal){
-            modal = document.createElement('div');
-            modal.id = 'cc-modal';
-            modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;touch-action:none;`;
-            modal.addEventListener('pointerdown', e=>e.stopPropagation(), {capture:true});
-            document.body.appendChild(modal);
-        }
-        modal.innerHTML = `
-        <div style="background:linear-gradient(160deg,#0f172a,#1e293b);border-radius:20px;padding:22px 18px 18px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.1)">
-            <div style="font-size:0.58rem;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">ขั้นตอนที่ ${i+1} / ${steps.length}</div>
-            <div style="width:100%;height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-bottom:14px">
-                <div style="height:100%;width:${((i+1)/steps.length)*100}%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:2px;transition:width .3s"></div>
-            </div>
-            <div style="font-size:0.9rem;font-weight:700;color:#fff;margin-bottom:16px;line-height:1.5">${s.q}</div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-                ${s.choices.map((c,ci)=>`
-                <button onpointerdown="event.stopPropagation();document.getElementById('cc-modal').__nextStep()" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:11px 14px;text-align:left;color:rgba(255,255,255,.85);font-family:inherit;font-size:0.8rem;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:10px">
-                    <span style="background:rgba(255,255,255,.1);border-radius:6px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:800;flex-shrink:0">${ci+1}</span>
-                    ${c}
-                </button>`).join('')}
-            </div>
-        </div>`;
-        document.getElementById('cc-modal').__nextStep = () => showStep(i + 1);
-    }
+    };
+    window.__ccClose = () => {
+        const m = document.getElementById('cc-modal');
+        if(m) m.remove();
+        window.__ccStep = null;
+    };
 
-    showStep(0);
+    _renderCCStep(0);
 };
+
+function _renderCCStep(i) {
+    const steps = window.__ccSteps || [];
+    const s = steps[i];
+    if(!s) return;
+
+    let modal = document.getElementById('cc-modal');
+    if(!modal) {
+        modal = document.createElement('div');
+        modal.id = 'cc-modal';
+        document.body.appendChild(modal);
+    }
+    // สำคัญ: pointer-events บน overlay = none เพื่อให้คลิกผ่านไม่ได้
+    // แต่ inner card = auto
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;pointer-events:all;';
+
+    const pct = Math.round(((i+1)/steps.length)*100);
+    const choiceHTML = s.choices.map((c,ci) => `
+        <button onclick="window.__ccNext()" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:11px 14px;text-align:left;color:rgba(255,255,255,.85);font-family:inherit;font-size:0.8rem;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:10px;width:100%">
+            <span style="background:rgba(255,255,255,.1);border-radius:6px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:800;flex-shrink:0">${ci+1}</span>
+            ${c}
+        </button>`).join('');
+
+    modal.innerHTML = `
+    <div onclick="event.stopPropagation()" style="background:linear-gradient(160deg,#0f172a,#1e293b);border-radius:20px;padding:22px 18px 18px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.1);position:relative">
+        <button onclick="window.__ccClose()" style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center">✕</button>
+        <div style="font-size:0.58rem;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">ขั้นตอนที่ ${i+1} / ${steps.length}</div>
+        <div style="width:100%;height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-bottom:14px">
+            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:2px;transition:width .3s"></div>
+        </div>
+        <div style="font-size:0.9rem;font-weight:700;color:#fff;margin-bottom:16px;line-height:1.5">${s.q}</div>
+        <div style="display:flex;flex-direction:column;gap:8px">${choiceHTML}</div>
+    </div>`;
+}
 
 function _showCCFinal() {
     // ลบ overlay เก่าก่อน (ถ้ามี)
     document.getElementById('cc-final-overlay')?.remove();
     const overlay = document.createElement('div');
     overlay.id = 'cc-final-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9001;display:flex;align-items:center;justify-content:center;padding:24px;touch-action:none;';
-    overlay.addEventListener('pointerdown', e=>e.stopPropagation(), {capture:true});
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9001;display:flex;align-items:center;justify-content:center;padding:24px;';
     overlay.innerHTML = `
     <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:360px;width:100%;text-align:center">
         <div style="font-size:1.1rem;font-weight:800;color:#1e293b;margin-bottom:12px">หมดครับ...</div>
         <div style="font-size:0.88rem;color:#475569;line-height:1.7;margin-bottom:22px">จริงๆ คือยังไม่ได้ทำครับ<br>แยกย้ายกันไปฝึกงานก่อนนะ</div>
-        <button onpointerdown="event.stopPropagation();document.getElementById('cc-final-overlay')?.remove()" style="background:#1e293b;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-family:inherit;font-size:0.88rem;font-weight:700;cursor:pointer">โอเค...</button>
+        <button onclick="document.getElementById('cc-final-overlay')?.remove()" style="background:#1e293b;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-family:inherit;font-size:0.88rem;font-weight:700;cursor:pointer">โอเค...</button>
     </div>`;
     document.body.appendChild(overlay);
 }
