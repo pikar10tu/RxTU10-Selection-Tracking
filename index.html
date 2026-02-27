@@ -533,7 +533,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 </div>
 
 <!-- GACHA MODAL -->
-<div class="modal-ov" id="gacha-modal" onclick="if(event.target===this)closeGacha()">
+<div class="modal-ov" id="gacha-modal" onclick="if(event.target===this&&!window.__rouletteRunning)closeGacha()">
     <div class="modal-box"><div id="gacha-result"></div></div>
 </div>
 
@@ -1621,11 +1621,13 @@ function _playRoulette(winnerPet, onDone){
                 </div>
             </div>
         </div>`;
+    window.__rouletteRunning = true;
     document.getElementById('gacha-modal').classList.add('active');
 
     // คำนวณ offset ให้ winner อยู่กลาง
     const wrapW = document.getElementById('rl-wrap')?.offsetWidth || 320;
-    const targetOffset = -(CENTER_IDX * ITEM_W) + (wrapW/2) - (ITEM_W/2);
+    const TRACK_PAD = 8; // padding-left ของ .roulette-track
+    const targetOffset = -(CENTER_IDX * ITEM_W) + (wrapW/2) - (ITEM_W/2) - TRACK_PAD;
 
     const track = document.getElementById('rl-track');
     if(!track) return;
@@ -1647,7 +1649,7 @@ function _playRoulette(winnerPet, onDone){
                 setTimeout(()=>{
                     const winEl = track.children[CENTER_IDX];
                     if(winEl) winEl.classList.add('winner');
-                    setTimeout(()=>onDone(), 600);
+                    setTimeout(()=>{ window.__rouletteRunning=false; onDone(); }, 600);
                 }, 1200);
             }, 1700);
         });
@@ -2465,7 +2467,9 @@ window.openFriendPetInfo=(studentId,instOrId)=>{
     const def=PETS.find(x=>x.id===p.id);
     // สร้าง overlay บน pm-content
     const overlay=document.createElement('div');
-    overlay.style.cssText='position:absolute;inset:0;background:#fff;border-radius:20px;padding:20px 16px;overflow-y:auto;z-index:10;animation:popIn .25s ease';
+    // ใช้ fixed เพื่อครอบทับ modal เสมอแม้จะ scroll
+    const modalRect = document.querySelector('#profile-modal .modal-box')?.getBoundingClientRect()||{top:0,left:0,width:400,height:window.innerHeight*0.88};
+    overlay.style.cssText=`position:fixed;top:${modalRect.top}px;left:${modalRect.left}px;width:${modalRect.width}px;height:${modalRect.height}px;background:#0f172a;border-radius:20px;padding:20px 16px;overflow-y:auto;z-index:9200;animation:popIn .25s ease`;
     const stats=calculatePetStats(p);
     const el=def?.element;const elInfo=ELEMENTS[el]||null;
     overlay.innerHTML=`
@@ -2498,8 +2502,7 @@ window.openFriendPetInfo=(studentId,instOrId)=>{
                 <span>ชนะ <b style="color:#fbbf24">${ELEMENTS[elInfo.beats]?.emoji||''}</b> · แพ้ <b style="color:#f87171">${Object.values(ELEMENTS).find(e=>e.beats===el)?.emoji||''}</b></span>
             </div>`:''}
         </div>`;
-    const modalBox=document.querySelector('#profile-modal .modal-box');
-    if(modalBox){modalBox.style.position='relative';modalBox.appendChild(overlay);}
+    document.body.appendChild(overlay);
 };
 
 window.openGuestList=()=>{
