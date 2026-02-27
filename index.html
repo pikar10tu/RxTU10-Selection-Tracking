@@ -315,14 +315,14 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* Tile blocks */
 
-.ct-tile.empty{background:transparent;}
-.ct-tile
-.ct-tile
-.ct-tile
+.ct-tile.empty{background:rgba(255,255,255,.04);border-radius:8px;}
+.ct-tile.filled-0{background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:8px;box-shadow:0 2px 8px rgba(239,68,68,.4);}
+.ct-tile.filled-1{background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:8px;box-shadow:0 2px 8px rgba(34,197,94,.4);}
+.ct-tile.filled-2{background:linear-gradient(135deg,#3b82f6,#2563eb);border-radius:8px;box-shadow:0 2px 8px rgba(59,130,246,.4);}
 /* active bottom row tile pulses */
-.ct-tile
-.ct-tile
-.ct-tile
+.ct-tile.active-0{animation:ctPulse0 1s ease infinite;}
+.ct-tile.active-1{animation:ctPulse1 1s ease infinite;}
+.ct-tile.active-2{animation:ctPulse2 1s ease infinite;}
 @keyframes ctPulse0{0%,100%{box-shadow:0 2px 8px rgba(239,68,68,.5)}50%{box-shadow:0 0 20px rgba(239,68,68,.9),0 0 40px rgba(239,68,68,.3)}}
 @keyframes ctPulse1{0%,100%{box-shadow:0 2px 8px rgba(34,197,94,.5)}50%{box-shadow:0 0 20px rgba(34,197,94,.9),0 0 40px rgba(34,197,94,.3)}}
 @keyframes ctPulse2{0%,100%{box-shadow:0 2px 8px rgba(59,130,246,.5)}50%{box-shadow:0 0 20px rgba(59,130,246,.9),0 0 40px rgba(59,130,246,.3)}}
@@ -398,7 +398,6 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .tower-slot .slot-num{position:absolute;top:-7px;left:50%;transform:translateX(-50%);
     background:#7c3aed;color:#fff;font-size:0.45rem;font-weight:800;padding:1px 5px;
     border-radius:8px;white-space:nowrap;}
-.tower-slot 
 .btn-tower{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;border:none;
     padding:14px 20px;border-radius:14px;font-family:inherit;font-size:0.95rem;font-weight:900;
     cursor:pointer;transition:.2s;width:100%;letter-spacing:.5px;
@@ -409,7 +408,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* PVP & PROFILE REDESIGN */
 /* Profile modal — dark card layout */
-.pm-card{background:linear-gradient(160deg,#0f172a,#1e293b);border-radius:20px;overflow:hidden;text-align:left;}
+.pm-card{background:linear-gradient(160deg,#0f172a,#1e293b);border-radius:20px;overflow:hidden;text-align:left;word-break:break-word;}
 .pm-hero{display:flex;align-items:center;gap:12px;padding:16px 16px 12px;}
 .pm-avatar{width:68px;height:68px;border-radius:50%;object-fit:cover;border:2.5px solid rgba(255,255,255,.18);flex-shrink:0;}
 .pm-info{flex:1;min-width:0;}
@@ -936,7 +935,7 @@ async function loadFbUsers() {
                 towerBest:x.towerBest,
                 activePet:x.activePet,
                 activePets:x.activePets||[null,null,null],
-                pvpVictories:x.pvpVictories||0,contact:x.contact||{phone:'',ig:'',line:''},likes:x.likes||0,likedBy:x.likedBy||{},_uid:x.uid||null,
+                pvpVictories:x.pvpVictories||0,contact:x.contact||{phone:'',ig:'',line:''},likes:x.likes||0,likedBy:x.likedBy||{},_uid:d.id,
                 pets:x.pets,
                 email:x.email,
                 googlePhoto:x.googlePhoto,
@@ -1906,7 +1905,6 @@ function buildHome(){
                     </div>
                     <div style="flex:1;min-width:0">
                         <div class="pc-nick">${userData.nickname}</div>
-                        <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap">${getActivePetsArray().map((p,i)=>`<span style="font-size:1.15rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))" title="${i+1}">${p.emoji}</span>`).join('')}</div>
                         <div class="pc-real">${userData.realName}</div>
                         <div class="pc-id">${userData.studentId}</div>
                         <div style="display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap">
@@ -2304,7 +2302,7 @@ window.openProfileModal=(id)=>{
                 <div class="sid">${s.id}</div>
                 <div style="margin-top:5px;display:flex;gap:5px;align-items:center">
                     <span class="track-badge" style="background:${tc};display:inline-block">${s.track.toUpperCase()}</span>
-                    ${(liveData?.pvpVictories||0)>0?`<span style="font-size:0.68rem;color:#fbbf24;font-weight:700">🏆 ${liveData.pvpVictories} ชัยชนะ</span>`:''}
+                    ${(liveData?.likes||0)>0?`<span style="font-size:0.68rem;color:#f472b6;font-weight:700">💙 ${liveData.likes} ใจ</span>`:''}
                 </div>
             </div>
             <button onclick="closePM()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem;flex-shrink:0;align-self:flex-start">✕</button>
