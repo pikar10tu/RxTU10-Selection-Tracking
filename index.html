@@ -314,8 +314,8 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .ct-lane{display:flex;flex-direction:column-reverse;gap:4px;padding:4px;background:transparent;position:relative;}
 
 /* Tile blocks */
-
-.ct-tile.empty{background:rgba(255,255,255,.04);border-radius:8px;}
+.ct-tile{flex:1;min-height:36px;border-radius:8px;transition:background .1s;}
+.ct-tile.empty{background:rgba(255,255,255,.04);}
 .ct-tile.filled-0{background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:8px;box-shadow:0 2px 8px rgba(239,68,68,.4);}
 .ct-tile.filled-1{background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:8px;box-shadow:0 2px 8px rgba(34,197,94,.4);}
 .ct-tile.filled-2{background:linear-gradient(135deg,#3b82f6,#2563eb);border-radius:8px;box-shadow:0 2px 8px rgba(59,130,246,.4);}
@@ -408,7 +408,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* PVP & PROFILE REDESIGN */
 /* Profile modal — dark card layout */
-.pm-card{background:linear-gradient(160deg,#0f172a,#1e293b);border-radius:20px;overflow:hidden;text-align:left;word-break:break-word;}
+.pm-card{background:linear-gradient(160deg,#0f172a,#1e293b);border-radius:20px;overflow:visible;text-align:left;word-break:break-word;}
 .pm-hero{display:flex;align-items:center;gap:12px;padding:16px 16px 12px;}
 .pm-avatar{width:68px;height:68px;border-radius:50%;object-fit:cover;border:2.5px solid rgba(255,255,255,.18);flex-shrink:0;}
 .pm-info{flex:1;min-width:0;}
@@ -472,7 +472,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 <!-- PROFILE MODAL -->
 <div class="modal-ov" id="profile-modal" onclick="if(event.target===this)closePM()">
-    <div class="modal-box" style="text-align:center;max-width:400px;padding:0;overflow:hidden;background:transparent;border-radius:20px;box-shadow:none;">
+    <div class="modal-box" style="text-align:center;max-width:400px;width:100%;padding:0;overflow-y:auto;max-height:88dvh;background:transparent;border-radius:20px;box-shadow:none;-webkit-overflow-scrolling:touch;">
         <div id="pm-content"></div>
     </div>
 </div>
@@ -2326,28 +2326,26 @@ window.giveLike = async (targetStudentId) => {
     if(!currentUser){ toast('กรุณา Login ก่อน','error'); return; }
     const myUid = currentUser.uid;
     const today = new Date().toISOString().slice(0,10);
-    // หา targetUid จาก __fbUsers
-    const targetLive = Object.entries(window.__fbUsers||{}).find(([sid,d])=>sid===targetStudentId)?.[1];
-    if(!targetLive?._uid){ toast('ไม่พบข้อมูล','error'); return; }
-    const targetUid = targetLive._uid;
+    // หา targetUid จาก __fbUsers (d.id = Firestore doc ID = Auth UID)
+    const targetLive = window.__fbUsers?.[targetStudentId]
+        || Object.values(window.__fbUsers||{}).find(d=>d.studentId===targetStudentId);
+    const targetUid = targetLive?._uid || targetLive?.uid || null;
+    if(!targetUid){ toast('ไม่พบข้อมูลผู้ใช้','error'); console.warn('giveLike: no uid for',targetStudentId,targetLive); return; }
     if(targetUid===myUid){ toast('ไม่สามารถกดใจตัวเองได้ 😅','info'); return; }
-    // check วันนี้กดไปแล้วไหม
-    const likedBy = targetLive.likedBy||{};
+    const likedBy = targetLive?.likedBy||{};
     if(likedBy[myUid]===today){ toast('กดใจไปแล้ววันนี้ 💙','info'); return; }
     try{
         await updateDoc(doc(db,'users',targetUid),{
             likes: increment(1),
             [`likedBy.${myUid}`]: today,
         });
-        // update local cache
         if(window.__fbUsers[targetStudentId]){
             window.__fbUsers[targetStudentId].likes=(window.__fbUsers[targetStudentId].likes||0)+1;
             window.__fbUsers[targetStudentId].likedBy={...likedBy,[myUid]:today};
         }
         toast('💙 กดใจแล้ว!','success');
-        // re-render profile modal
         window.openProfileModal(targetStudentId);
-    }catch(e){ toast('เกิดข้อผิดพลาด','error'); }
+    }catch(e){ console.error('giveLike error:',e); toast('เกิดข้อผิดพลาด: '+e.message,'error'); }
 };
 // ══════════════════════════════════════════════════
 // ▶ CONTACT EDIT
