@@ -1942,20 +1942,23 @@ function buildHome(){
                 <div class="hs-cell"><b>${userData.towerBest||0}</b><small>🗼 Tower</small></div>
                 <div class="hs-cell"><b>${userData.pvpVictories||0}</b><small>⚔️ PvP</small></div>
             </div>
-            <div style="background:#060b1f;border-top:1px solid rgba(255,255,255,.07);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-                <div style="display:flex;gap:14px;flex-wrap:wrap;flex:1">
-                    ${(()=>{const c=userData?.contact||{};return[
-                        {icon:'📱',key:'phone',val:c.phone},
-                        {icon:'📸',key:'ig',   val:c.ig},
-                        {icon:'💬',key:'line', val:c.line}
-                    ].map(x=>`<div style="font-size:0.65rem;color:${x.val?'rgba(255,255,255,.7)':'rgba(255,255,255,.2)'}">
-                        ${x.icon} <span style="font-family:'Space Mono',monospace">${x.val||'—'}</span>
-                    </div>`).join('');})()}
+            <div style="background:#060b1f;border-top:1px solid rgba(255,255,255,.07);padding:12px 14px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                    <span style="font-size:0.62rem;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:1px;text-transform:uppercase">ช่องทางติดต่อ</span>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        ${(userData?.likes||0)>0?`<span style="font-size:0.7rem;color:#f472b6;font-weight:700">💙 ${userData.likes}</span>`:''}
+                        <button onclick="openContactEdit()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#a5b4fc;border-radius:8px;padding:5px 11px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:inherit">✏️ แก้ไขข้อมูลติดต่อ</button>
+                    </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-                    ${(userData?.likes||0)>0?`<div style="font-size:0.68rem;color:#f472b6;font-weight:700">💙 ${userData.likes}</div>`:''}
-                    <button onclick="openContactEdit()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:8px;padding:4px 10px;font-size:0.65rem;cursor:pointer;font-family:inherit">✏️ แก้ไข</button>
-                </div>
+                ${(()=>{const c=userData?.contact||{};return[
+                    {icon:'📱',label:'เบอร์',val:c.phone},
+                    {icon:'📸',label:'IG',   val:c.ig},
+                    {icon:'💬',label:'LINE', val:c.line}
+                ].map(x=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(255,255,255,.03);border-radius:9px;border:1px solid rgba(255,255,255,.06);margin-bottom:6px">
+                    <span style="font-size:1rem;width:20px;text-align:center">${x.icon}</span>
+                    <span style="font-size:0.68rem;color:rgba(255,255,255,.3);width:32px;flex-shrink:0">${x.label}</span>
+                    <span style="font-size:0.82rem;color:${x.val?'rgba(255,255,255,.85)':'rgba(255,255,255,.18)'};font-family:'Space Mono',monospace;font-weight:${x.val?700:400}">${x.val||'—'}</span>
+                </div>`).join('');})()}
             </div>
         </div>
 `
@@ -2146,7 +2149,22 @@ function memberGrid(){
     let list=window.__students||[];
     if(mTrack!=='all')list=list.filter(s=>s.track===mTrack);
     if(mSearch){const q=mSearch.toLowerCase();list=list.filter(s=>s.nickname.toLowerCase().includes(q)||s.id.includes(q)||s.realName.toLowerCase().includes(q));}
-    if(!list.length)return`<div style="text-align:center;color:var(--muted);padding:24px">ไม่พบ</div>`;
+    if(!list.length)return (()=>{
+                const resultTitle = weWon ? '✅ ผ่านชั้น '+floor+' สำเร็จ!' : '❌ พ่ายแพ้ที่ชั้น '+floor;
+                const subLine = weWon
+                    ? '<div style="font-size:0.82rem;color:#fbbf24;margin-bottom:12px">+'+reward+'🪙</div>'
+                    : '<div style="font-size:0.76rem;color:rgba(255,255,255,.4);margin-bottom:12px">อยู่ชั้น '+floor+' ต่อ</div>';
+                const nextOnclick = weWon ? 'openTower()' : 'startTowerBattle()';
+                const nextLabel   = weWon ? '⬆ ชั้นต่อไป' : '🔄 ลองใหม่';
+                return '<div style="text-align:center;padding:6px 0 2px">'
+                    + '<div style="font-size:3rem;animation:bBounce .5s ease">'+(weWon?'🎉':'💀')+'</div>'
+                    + '<div style="font-size:1.05rem;font-weight:800;color:#fff;margin:6px 0">'+resultTitle+'</div>'
+                    + subLine
+                    + '<div style="display:flex;gap:8px;justify-content:center">'
+                    + '<button class="btn-tower" style="width:auto;padding:10px 20px" onclick="'+nextOnclick+'">'+nextLabel+'</button>'
+                    + '<button style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.65);padding:10px 16px;border-radius:12px;font-family:inherit;cursor:pointer" onclick="closeTower()">ปิด</button>'
+                    + '</div></div>';
+            })();
     return`<div class="mgrid">${list.map(s=>{
         const tc=s.track==='sci'?'var(--sci)':'var(--care)';
         const live=window.__fbUsers?.[s.id];
@@ -2172,7 +2190,6 @@ function memberGrid(){
                 <span class="track-badge" style="background:${tc};font-size:0.5rem;padding:2px 6px;margin-top:4px">${s.track==='sci'?'SCI':'CARE'}</span>
             </div>`;
         }
-        const c=live?.contact||{};
         const likeCount=live?.likes||0;
         return`<div class="mcard" onclick="openProfileModal('${s.id}')" style="position:relative">
             <div style="position:relative;width:64px;height:64px;margin-bottom:4px">
@@ -2181,12 +2198,6 @@ function memberGrid(){
             </div>
             <div class="mc-nick">${s.nickname}</div>
             <span class="track-badge" style="background:${tc};font-size:0.52rem;padding:2px 6px;margin-top:1px">${s.track==='sci'?'SCI':'CARE'}</span>
-            <div style="margin-top:5px;width:100%;display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--border);padding-top:5px">
-                ${[{icon:'📱',val:c.phone},{icon:'📸',val:c.ig},{icon:'💬',val:c.line}].map(x=>`
-                <div style="font-size:0.55rem;color:${x.val?'var(--text)':'#cbd5e1'};display:flex;align-items:center;gap:3px;justify-content:center">
-                    <span>${x.icon}</span><span style="font-family:'Space Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72px">${x.val||'—'}</span>
-                </div>`).join('')}
-            </div>
             ${likeCount>0?`<div style="position:absolute;top:6px;right:7px;font-size:0.6rem;color:#f472b6;font-weight:800;background:rgba(244,114,182,.1);border-radius:20px;padding:1px 5px">💙${likeCount}</div>`:''}
         </div>`;
     }).join('')}</div>`;
@@ -2264,19 +2275,19 @@ window.openProfileModal=(id)=>{
         </div>`;
     })() : '';
 
-    // ── Challenge button ──
+    // ── Like pill (top of hero) + Challenge button (bottom of team section) ──
+    const today_=new Date().toISOString().slice(0,10);
+    const likedBy_=liveData?.likedBy||{};
+    const myUid_=currentUser?.uid;
+    const alreadyLiked_=!isMe&&myUid_&&likedBy_[myUid_]===today_;
+    const likeCount_=liveData?.likes||0;
+
+    // pill ปุ่มกดใจ — แสดงที่ hero ด้านบนขวา
+    const likePill = (!isMe&&liveData) ? `<button onclick="giveLike('${id}')" ${alreadyLiked_?'disabled':''} style="background:${alreadyLiked_?'rgba(244,114,182,.12)':'rgba(244,114,182,.18)'};border:1px solid ${alreadyLiked_?'rgba(244,114,182,.25)':'rgba(244,114,182,.5)'};border-radius:20px;padding:4px 10px;color:${alreadyLiked_?'rgba(244,114,182,.45)':'#f9a8d4'};font-size:0.72rem;font-weight:700;cursor:${alreadyLiked_?'not-allowed':'pointer'};display:inline-flex;align-items:center;gap:4px;transition:.2s;font-family:inherit">💙${likeCount_>0?' '+likeCount_:''}</button>` : (likeCount_>0?`<span style="background:rgba(244,114,182,.12);border:1px solid rgba(244,114,182,.2);border-radius:20px;padding:3px 9px;color:#f472b6;font-size:0.7rem;font-weight:700">💙 ${likeCount_}</span>`:'');
+
+    // ปุ่ม PvP ท้าทาย
     const challengeBtn=(!isMe&&liveData)?`
-    <div class="pm-section" style="padding-bottom:16px;display:flex;flex-direction:column;gap:8px">
-        ${(()=>{
-            const today=new Date().toISOString().slice(0,10);
-            const likedBy=liveData?.likedBy||{};
-            const myUid=currentUser?.uid;
-            const alreadyLiked=myUid&&likedBy[myUid]===today;
-            const likeCount=liveData?.likes||0;
-            return `<button onclick="giveLike('${id}')" ${alreadyLiked?'disabled':''} style="width:100%;background:${alreadyLiked?'rgba(244,114,182,.08)':'linear-gradient(135deg,rgba(244,114,182,.2),rgba(236,72,153,.15))'};border:1.5px solid ${alreadyLiked?'rgba(244,114,182,.2)':'rgba(244,114,182,.4)'};border-radius:12px;padding:11px;color:${alreadyLiked?'rgba(244,114,182,.4)':'#f9a8d4'};font-family:inherit;font-size:0.85rem;font-weight:700;cursor:${alreadyLiked?'not-allowed':'pointer'};transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px">
-                💙 ${alreadyLiked?'กดใจแล้ววันนี้':'กดใจ'}${likeCount>0?` · <span style="color:#f472b6;font-weight:800">${likeCount}</span>`:''}
-            </button>`;
-        })()}
+    <div class="pm-section" style="padding-bottom:8px">
         <button class="btn-pvp" onclick="startPvpChallenge('${id}')">⚔️ ท้าทาย ${s.nickname}</button>
     </div>`:'';
 
@@ -2285,7 +2296,10 @@ window.openProfileModal=(id)=>{
         <div class="pm-hero">
             <img loading="lazy" src="${photo}" onerror="this.onerror=null;this.src='${def}'" class="pm-avatar">
             <div class="pm-info">
-                <div class="name">${s.nickname}${(()=>{ const slot0=(liveData?.activePets||[])[0]||liveData?.activePet||null; if(!slot0)return ''; const ep=(liveData?.pets||[]).find(p=>p.instId&&String(p.instId)===String(slot0)||(p.id===slot0)); return ep?' '+ep.emoji:''; })()}</div>
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
+                    <div class="name">${s.nickname}${(()=>{ const slot0=(liveData?.activePets||[])[0]||liveData?.activePet||null; if(!slot0)return ''; const ep=(liveData?.pets||[]).find(p=>p.instId&&String(p.instId)===String(slot0)||(p.id===slot0)); return ep?' '+ep.emoji:''; })()}</div>
+                    ${likePill}
+                </div>
                 <div class="realname">${s.realName}</div>
                 <div class="sid">${s.id}</div>
                 <div style="margin-top:5px;display:flex;gap:5px;align-items:center">
@@ -2295,10 +2309,10 @@ window.openProfileModal=(id)=>{
             </div>
             <button onclick="closePM()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem;flex-shrink:0;align-self:flex-start">✕</button>
         </div>
-        ${statsHtml}
         ${contactHtml}
         ${myTeamEditor}
         ${challengeBtn}
+        ${statsHtml}
     </div>`;
     document.getElementById('profile-modal').classList.add('active');
     // Store for slot picker
@@ -3632,7 +3646,7 @@ function buildShop(){
                             <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Leg 20%</span>
                         </div>
                     </div>
-                    <button class="btn-gold" onclick="buyGlowEgg()" \${currentUser&&(userData?.coins||0)>=1200?'':'disabled'} style="white-space:nowrap">1200🪙</button>
+                    <button class="btn-gold" onclick="buyGlowEgg()" ${currentUser&&(userData?.coins||0)>=1200?'':'disabled'} style="white-space:nowrap">1200🪙</button>
                 </div>
                 <div style="display:flex;align-items:center;gap:12px;padding-top:10px;border-top:1px solid var(--border)">
                     <span style="font-size:3rem;animation:wobble 3.5s ease infinite 1s;display:inline-block;filter:drop-shadow(0 0 14px rgba(245,158,11,.8))">🌠</span>
@@ -3643,7 +3657,7 @@ function buildShop(){
                             <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 40%</span>
                         </div>
                     </div>
-                    <button class="btn-gold" onclick="buyStarEgg()" \${currentUser&&(userData?.coins||0)>=3000?'':'disabled'} style="white-space:nowrap">3000🪙</button>
+                    <button class="btn-gold" onclick="buyStarEgg()" ${currentUser&&(userData?.coins||0)>=3000?'':'disabled'} style="white-space:nowrap">3000🪙</button>
                 </div>
             </div>
             <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;align-items:center;gap:10px">
@@ -4372,19 +4386,20 @@ window.startTowerBattle=()=>{
         onClose: ()=>closeTower(),
         renderResult:(c, weWon)=>{
             const reward=floor<=towerBestAtStart?floor*5:floor*20;
-            return`<div style="text-align:center;padding:6px 0 2px">
-                <div style="font-size:3rem;animation:bBounce .5s ease">${weWon?'🎉':'💀'}</div>
-                <div style="font-size:1.05rem;font-weight:800;color:#fff;margin:6px 0">
-                    ${weWon?`✅ ผ่านชั้น ${floor} สำเร็จ!`:`❌ พ่ายแพ้ที่ชั้น ${floor}`}</div>
-                ${weWon?`<div style="font-size:0.82rem;color:#fbbf24;margin-bottom:12px">+${reward}🪙</div>`
-                        :`<div style="font-size:0.76rem;color:rgba(255,255,255,.4);margin-bottom:12px">อยู่ชั้น ${floor} ต่อ</div>`}
-                <div style="display:flex;gap:8px;justify-content:center">
-                    <button class="btn-tower" style="width:auto;padding:10px 20px"
-                        onclick="${weWon?'openTower()':'startTowerBattle()'}">
-                        ${weWon?'⬆ ชั้นต่อไป':'🔄 ลองใหม่'}</button>
-                    <button style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
-                        color:rgba(255,255,255,.65);padding:10px 16px;border-radius:12px;font-family:inherit;cursor:pointer" onclick="closeTower()">ปิด</button>
-                </div></div>`;
+            const _title = weWon?'✅ ผ่านชั้น '+floor+' สำเร็จ!':'❌ พ่ายแพ้ที่ชั้น '+floor;
+            const _sub   = weWon
+                ?'<div style="font-size:0.82rem;color:#fbbf24;margin-bottom:12px">+'+reward+'🪙</div>'
+                :'<div style="font-size:0.76rem;color:rgba(255,255,255,.4);margin-bottom:12px">อยู่ชั้น '+floor+' ต่อ</div>';
+            const _nxt   = weWon?'openTower()':'startTowerBattle()';
+            const _lbl   = weWon?'⬆ ชั้นต่อไป':'🔄 ลองใหม่';
+            return '<div style="text-align:center;padding:6px 0 2px">'
+                +'<div style="font-size:3rem;animation:bBounce .5s ease">'+(weWon?'🎉':'💀')+'</div>'
+                +'<div style="font-size:1.05rem;font-weight:800;color:#fff;margin:6px 0">'+_title+'</div>'
+                +_sub
+                +'<div style="display:flex;gap:8px;justify-content:center">'
+                +'<button class="btn-tower" style="width:auto;padding:10px 20px" onclick="'+_nxt+'">'+_lbl+'</button>'
+                +'<button style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.65);padding:10px 16px;border-radius:12px;font-family:inherit;cursor:pointer" onclick="closeTower()">ปิด</button>'
+                +'</div></div>';
         },
         onWin: ()=>_towerOnWin(floor, towerBestAtStart),
         onLose: null,
