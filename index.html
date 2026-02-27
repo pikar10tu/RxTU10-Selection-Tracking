@@ -1588,9 +1588,15 @@ function _playRoulette(winnerPet, onDone){
                 <div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.2)"></div>
                 <div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.2)"></div>
             </div>
+            <div style="font-size:0.58rem;color:rgba(255,255,255,.2);margin-top:10px;letter-spacing:.5px">แตะเพื่อข้าม</div>
         </div>`;
     window.__rouletteRunning = true;
+    window.__rouletteSkip = false;
     document.getElementById('gacha-modal').classList.add('active');
+
+    // กดตรงไหนก็ได้ขณะหมุน → skip ไปผลทันที
+    const _skipHandler = () => { window.__rouletteSkip = true; };
+    document.getElementById('gacha-modal').addEventListener('click', _skipHandler, {once:true});
 
     const el = document.getElementById('rl-emoji');
     if(!el) return;
@@ -1607,7 +1613,7 @@ function _playRoulette(winnerPet, onDone){
 
     let phase=0, tick=0;
     const doTick = () => {
-        if(phase >= schedule.length){ 
+        if(phase >= schedule.length || window.__rouletteSkip){ 
             // หยุดที่ winner
             el.style.transition='none';
             el.textContent = winnerPet.emoji;
@@ -1617,7 +1623,12 @@ function _playRoulette(winnerPet, onDone){
                 el.style.animation='shufflePop .4s ease';
                 const dots = document.getElementById('rl-dots');
                 if(dots) dots.innerHTML = `<div style="font-size:0.72rem;color:${cfg_w.color};font-weight:800;letter-spacing:1px">${cfg_w.label}</div>`;
-                setTimeout(()=>{ window.__rouletteRunning=false; onDone(); }, 500);
+                setTimeout(()=>{ 
+                    window.__rouletteRunning=false; 
+                    window.__rouletteSkip=false;
+                    document.getElementById('gacha-modal')?.removeEventListener('click', _skipHandler);
+                    onDone(); 
+                }, 500);
             }, 80);
             return;
         }
