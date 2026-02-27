@@ -4102,94 +4102,127 @@ function _corePlayEnter(sid) {
 }
 
 // ── Render ──
-function _coreRender() {
-    const c = __core; if(!c) return;
-    const curA = c.sA[c.iA]; const curB = c.sB[c.iB];
-    if(!curA||!curB) return;
-
+// แยก first-render (build shell ครั้งเดียว) กับ patch (update DOM ตรงๆ ทุก tick)
+function _coreBuildShell(c) {
+    const curA=c.sA[c.iA]; const curB=c.sB[c.iB];
     const cfgA=RARITY[curA.pet.rarity]; const cfgB=RARITY[curB.pet.rarity];
     const elA=ELEMENTS[curA.def?.element]; const elB=ELEMENTS[curB.def?.element];
-    const pctA=Math.max(0,curA.hp/curA.maxHp*100);
-    const pctB=Math.max(0,curB.hp/curB.maxHp*100);
-    const hpCol=p=>p>50?'#10b981':p>20?'#f59e0b':'#ef4444';
-    const isOver=!c.running;
-
-    const isAttA = !isOver && c.whoseTurn===0;
-    const sideCard = (combatant, cfg, el, pct, sid) => {
-        const isAtt = !isOver && ((sid==='a' && isAttA)||(sid==='b' && !isAttA));
-        const isDead = combatant.hp<=0;
-        const hpBarColor = hpCol(pct);
-        return `<div style="text-align:center;position:relative" id="cslot-${sid}">
-            <div class="cem-attacker-indicator">${isAtt&&!isDead?'⚔️ โจมตี!':''}</div>
+    const mkDots=(arr,did)=>arr.length>1
+        ?`<div id="${did}" style="display:flex;gap:4px;justify-content:center;margin-bottom:6px"></div>`
+        :`<div id="${did}"></div>`;
+    const sideShell=(combatant,cfg,elInfo,sid)=>`
+        <div style="text-align:center;position:relative" id="cslot-${sid}">
+            <div class="cem-attacker-indicator" id="cind-${sid}"></div>
             <div style="position:relative;display:inline-block">
-                <div style="font-size:3.2rem;
-                            filter:drop-shadow(0 0 ${isDead?'0px #0000':isAtt?'16px '+cfg.glow:'8px '+cfg.glow+'88'});
-                            transition:filter .3s;${isDead?'opacity:.15':''}
-                            ${isAtt&&!isDead?'animation:attackGlow .7s ease infinite;':''}"
-                     id="cem-${sid}">${combatant.pet.emoji}</div>
+                <div style="font-size:3.2rem;transition:filter .3s,opacity .3s" id="cem-${sid}">${combatant.pet.emoji}</div>
             </div>
-            <div style="font-size:0.68rem;font-weight:700;color:${isDead?'rgba(255,255,255,.3)':isAtt?'#fbbf24':'rgba(255,255,255,.85)'};margin:4px 0 2px;transition:color .3s">
-                ${formatPetName(combatant.pet)}${el?` <span style="font-size:.85rem">${el.emoji}</span>`:''}
+            <div style="font-size:0.68rem;font-weight:700;margin:4px 0 2px;transition:color .3s" id="cname-${sid}">
+                ${formatPetName(combatant.pet)}${elInfo?` <span style="font-size:.85rem">${elInfo.emoji}</span>`:''}
             </div>
             <div style="font-size:0.54rem;color:${cfg.color};margin-bottom:6px">${cfg.label} · ATK ${combatant.stats.atk}</div>
             <div style="height:8px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;margin-bottom:3px">
-                <div style="width:${pct}%;height:100%;background:${hpBarColor};border-radius:50px;transition:width .5s ease,background .3s"></div>
+                <div style="height:100%;border-radius:50px;transition:width .5s ease,background .3s" id="chp-bar-${sid}"></div>
             </div>
-            <div style="font-size:0.58rem;color:rgba(255,255,255,.4)">${Math.max(0,combatant.hp)} / ${combatant.maxHp}</div>
+            <div style="font-size:0.58rem;color:rgba(255,255,255,.4)" id="chp-txt-${sid}"></div>
         </div>`;
-    };
-
-    // relay dots if relay mode
-    const mkDots = (arr, cur) => arr.length>1 ? `<div style="display:flex;gap:4px;justify-content:center;margin-bottom:6px">`+
-        arr.map((s,i)=>`<div style="width:22px;height:22px;border-radius:50%;border:2px solid ${i===cur?'#a78bfa':'rgba(255,255,255,.15)'};
-            font-size:0.8rem;display:flex;align-items:center;justify-content:center;opacity:${i<cur?0.2:1};">${s.pet.emoji}</div>`).join('')+`</div>` : '';
-
-    const logHtml = c.log.length
-        ? c.log.slice(-5).map((l,i)=>`<div style="opacity:${0.4+i*0.3}">${l}</div>`).join('')
-        : `<span style="opacity:.3">เริ่มการสู้...</span>`;
-
-    // result
-    let resultHtml = '';
-    if(isOver) {
-        const sideAWon = c.sB.every(s=>s.hp<=0) || (c.iB>=c.sB.length); // sideB exhausted = sideA wins
-        if(c.cfg.renderResult) {
-            resultHtml = c.cfg.renderResult(c, sideAWon);
-        } else {
-            resultHtml = `<div style="text-align:center;padding:4px 0">
-                <div style="font-size:2.5rem">${sideAWon?'🎉':'💀'}</div>
-                <div style="font-size:0.9rem;font-weight:800;color:#fff;margin:6px 0">${sideAWon?'ชนะแล้ว!':'แพ้แล้ว...'}</div>
-                <button onclick="__coreClose()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
-                    color:rgba(255,255,255,.6);padding:9px 22px;border-radius:12px;font-family:inherit;cursor:pointer">ปิด</button>
-            </div>`;
-        }
-    }
-
-    const titleExtra = c.cfg.titleExtra ? c.cfg.titleExtra(c) : `Turn ${c.turn}`;
-
-    const el = document.getElementById(c.cfg.container);
-    if(!el) return;
-    el.innerHTML = `
+    const titleExtra=c.cfg.titleExtra?c.cfg.titleExtra(c):`Turn ${c.turn}`;
+    const el=document.getElementById(c.cfg.container); if(!el) return;
+    el.innerHTML=`
     <div class="battle-arena" style="border-radius:20px" id="${c.cfg.arenaId||'core-wrap'}">
         <div class="battle-header">
-            <span class="battle-title">${c.cfg.titleHtml} <span style="font-size:0.7rem;opacity:.5">${titleExtra}</span></span>
-            <button onclick="__coreClose()" style="background:rgba(255,255,255,.1);border:none;
-                color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem">✕</button>
+            <span class="battle-title">${c.cfg.titleHtml} <span style="font-size:0.7rem;opacity:.5" id="cturn-lbl">${titleExtra}</span></span>
+            <button onclick="__coreClose()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem">✕</button>
         </div>
-        ${mkDots(c.sA,c.iA)}
-        <div style="display:grid;grid-template-columns:1fr 28px 1fr;gap:6px;align-items:start;
-                    margin-bottom:12px;position:relative" id="${c.cfg.fieldId||'core-field'}">
-            ${sideCard(curA,cfgA,elA,pctA,'a')}
-            <div style="display:flex;align-items:center;justify-content:center;padding-top:30px;
-                        font-size:0.85rem;color:rgba(255,255,255,.15);font-weight:800">VS</div>
-            ${sideCard(curB,cfgB,elB,pctB,'b')}
+        ${mkDots(c.sA,'cdots-a')}
+        <div style="display:grid;grid-template-columns:1fr 28px 1fr;gap:6px;align-items:start;margin-bottom:10px;position:relative" id="${c.cfg.fieldId||'core-field'}">
+            ${sideShell(curA,cfgA,elA,'a')}
+            <div style="display:flex;align-items:center;justify-content:center;padding-top:30px;font-size:0.85rem;color:rgba(255,255,255,.15);font-weight:800">VS</div>
+            ${sideShell(curB,cfgB,elB,'b')}
         </div>
-        ${mkDots(c.sB,c.iB)}
-        <div style="background:rgba(0,0,0,.25);border-radius:11px;padding:9px 12px;min-height:50px;
-                    font-size:0.74rem;color:rgba(255,255,255,.7);line-height:1.7;margin-bottom:10px;
-                    border:1px solid rgba(255,255,255,.06)">${logHtml}</div>
-        ${isOver ? resultHtml : `<div style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,.35)">
-            ⚡ ${c.whoseTurn===0?curA.pet.emoji:curB.pet.emoji} กำลังโจมตี...</div>`}
+        ${mkDots(c.sB,'cdots-b')}
+        <div style="background:rgba(0,0,0,.25);border-radius:11px;padding:9px 12px;
+                    font-size:0.74rem;color:rgba(255,255,255,.7);line-height:1.8;
+                    border:1px solid rgba(255,255,255,.06);
+                    height:108px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end"
+             id="clog-box"></div>
+        <div style="min-height:56px;margin-top:8px" id="cstatus-box"></div>
     </div>`;
+    _corePatch(c);
+}
+
+function _corePatch(c) {
+    const curA=c.sA[c.iA]; const curB=c.sB[c.iB]; if(!curA||!curB) return;
+    const isOver=!c.running;
+    const isAttA=!isOver&&c.whoseTurn===0;
+    const hpCol=p=>p>50?'#10b981':p>20?'#f59e0b':'#ef4444';
+
+    // ── side patches ──
+    ['a','b'].forEach(sid=>{
+        const com=sid==='a'?curA:curB;
+        const cfg=RARITY[com.pet.rarity];
+        const pct=Math.max(0,com.hp/com.maxHp*100);
+        const isDead=com.hp<=0;
+        const isAtt=!isOver&&((sid==='a'&&isAttA)||(sid==='b'&&!isAttA));
+        const ind=document.getElementById('cind-'+sid);
+        if(ind) ind.textContent=isAtt&&!isDead?'⚔️ โจมตี!':'';
+        const em=document.getElementById('cem-'+sid);
+        if(em){
+            em.style.filter=`drop-shadow(0 0 ${isDead?'0px #0000':isAtt?'16px '+cfg.glow:'8px '+cfg.glow+'88'})`;
+            em.style.opacity=isDead?'0.15':'1';
+            em.style.animation=isAtt&&!isDead?'attackGlow .7s ease infinite':'';
+        }
+        const nm=document.getElementById('cname-'+sid);
+        if(nm) nm.style.color=isDead?'rgba(255,255,255,.3)':isAtt?'#fbbf24':'rgba(255,255,255,.85)';
+        const bar=document.getElementById('chp-bar-'+sid);
+        if(bar){bar.style.width=pct+'%';bar.style.background=hpCol(pct);}
+        const txt=document.getElementById('chp-txt-'+sid);
+        if(txt) txt.textContent=Math.max(0,com.hp)+' / '+com.maxHp;
+    });
+
+    // ── relay dots ──
+    const mkDotsInner=(arr,cur)=>arr.length>1
+        ?arr.map((s,i)=>`<div style="width:22px;height:22px;border-radius:50%;border:2px solid ${i===cur?'#a78bfa':'rgba(255,255,255,.15)'};font-size:0.8rem;display:flex;align-items:center;justify-content:center;opacity:${i<cur?0.2:1}">${s.pet.emoji}</div>`).join('')
+        :'';
+    const da=document.getElementById('cdots-a'); if(da) da.innerHTML=mkDotsInner(c.sA,c.iA);
+    const db=document.getElementById('cdots-b'); if(db) db.innerHTML=mkDotsInner(c.sB,c.iB);
+
+    // ── turn label ──
+    const tl=document.getElementById('cturn-lbl');
+    if(tl) tl.textContent=c.cfg.titleExtra?c.cfg.titleExtra(c):`Turn ${c.turn}`;
+
+    // ── log — fixed height 5 lines, ล่าสุดอยู่ล่าง ──
+    const logBox=document.getElementById('clog-box');
+    if(logBox){
+        const lines=c.log.slice(-5);
+        while(lines.length<5) lines.unshift('');
+        logBox.innerHTML=lines.map((l,i)=>`<div style="opacity:${l?Math.min(1,0.25+i*0.19):0};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.4em">${l||' '}</div>`).join('');
+    }
+
+    // ── status / result ──
+    const sb=document.getElementById('cstatus-box');
+    if(!sb) return;
+    if(isOver){
+        const sideAWon=c.sB.every(s=>s.hp<=0)||(c.iB>=c.sB.length);
+        if(c.cfg.renderResult){ sb.innerHTML=c.cfg.renderResult(c,sideAWon); }
+        else { sb.innerHTML=`<div style="text-align:center;padding:4px 0">
+            <div style="font-size:2.5rem">${sideAWon?'🎉':'💀'}</div>
+            <div style="font-size:0.9rem;font-weight:800;color:#fff;margin:6px 0">${sideAWon?'ชนะแล้ว!':'แพ้แล้ว...'}</div>
+            <button onclick="__coreClose()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);padding:9px 22px;border-radius:12px;font-family:inherit;cursor:pointer">ปิด</button>
+        </div>`; }
+    } else {
+        sb.innerHTML=`<div style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,.35);padding:6px 0">⚡ ${c.whoseTurn===0?curA.pet.emoji:curB.pet.emoji} กำลังโจมตี...</div>`;
+    }
+}
+
+function _coreRender() {
+    const c=__core; if(!c) return;
+    const el=document.getElementById(c.cfg.container); if(!el) return;
+    // build shell ครั้งเดียวตอนเริ่ม จากนั้น patch เท่านั้น
+    if(!el.querySelector('#clog-box')){
+        _coreBuildShell(c);
+    } else {
+        _corePatch(c);
+    }
 }
 
 // ════════════════════════════════════════
