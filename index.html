@@ -1712,8 +1712,7 @@ window.showPetInfo=async(petInstId)=>{
         document.getElementById('petinfo-content').innerHTML=
         '<div style="text-align:center">'
         +'<div style="display:flex;justify-content:center;gap:6px;margin-bottom:6px">'
-        +`<div class="gr-badge" style="background:${cfg.color}">${cfg.label}</div>${gradeHtml}`
-        +refineHtml
+        +`<div class="gr-badge" style="background:${cfg.color}">${cfg.label}</div>`
         +(elInfo?`<div class="gr-badge" style="background:#334155;font-size:1rem">${elInfo.emoji}</div>`:'')
         +'</div>'
         +`<div style="font-size:3rem;margin:4px 0;filter:drop-shadow(0 0 10px ${cfg.glow})">${p.emoji}</div>`
