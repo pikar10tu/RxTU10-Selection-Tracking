@@ -1589,7 +1589,7 @@ function showGachaResult(pet){
         </div>`;
     document.getElementById('gacha-modal').classList.add('active');
     const colors=pet.rarity==='legendary'?['#f59e0b','#fbbf24','#fff']:pet.rarity==='epic'?['#a855f7','#c084fc','#fff']:pet.rarity==='rare'?['#3b82f6','#60a5fa','#fff']:['#94a3b8'];
-    confetti({particleCount:pet.rarity==='legendary'?200:pet.rarity==='epic'?120:60,spread:80,origin:{y:0.5},colors});
+    confetti({particleCount:pet.rarity==='legendary'?120:pet.rarity==='epic'?70:40,spread:75,origin:{y:0.5},colors,scalar:0.9});
 }
 window.closeGacha=()=>document.getElementById('gacha-modal').classList.remove('active');
 
@@ -2139,22 +2139,7 @@ function memberGrid(){
     let list=window.__students||[];
     if(mTrack!=='all')list=list.filter(s=>s.track===mTrack);
     if(mSearch){const q=mSearch.toLowerCase();list=list.filter(s=>s.nickname.toLowerCase().includes(q)||s.id.includes(q)||s.realName.toLowerCase().includes(q));}
-    if(!list.length)return (()=>{
-                const resultTitle = weWon ? '✅ ผ่านชั้น '+floor+' สำเร็จ!' : '❌ พ่ายแพ้ที่ชั้น '+floor;
-                const subLine = weWon
-                    ? '<div style="font-size:0.82rem;color:#fbbf24;margin-bottom:12px">+'+reward+'🪙</div>'
-                    : '<div style="font-size:0.76rem;color:rgba(255,255,255,.4);margin-bottom:12px">อยู่ชั้น '+floor+' ต่อ</div>';
-                const nextOnclick = weWon ? 'openTower()' : 'startTowerBattle()';
-                const nextLabel   = weWon ? '⬆ ชั้นต่อไป' : '🔄 ลองใหม่';
-                return '<div style="text-align:center;padding:6px 0 2px">'
-                    + '<div style="font-size:3rem;animation:bBounce .5s ease">'+(weWon?'🎉':'💀')+'</div>'
-                    + '<div style="font-size:1.05rem;font-weight:800;color:#fff;margin:6px 0">'+resultTitle+'</div>'
-                    + subLine
-                    + '<div style="display:flex;gap:8px;justify-content:center">'
-                    + '<button class="btn-tower" style="width:auto;padding:10px 20px" onclick="'+nextOnclick+'">'+nextLabel+'</button>'
-                    + '<button style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.65);padding:10px 16px;border-radius:12px;font-family:inherit;cursor:pointer" onclick="closeTower()">ปิด</button>'
-                    + '</div></div>';
-            })();
+    if(!list.length)return `<div style="text-align:center;padding:32px 16px;color:rgba(255,255,255,.3);font-size:0.85rem">ไม่พบสมาชิก</div>`;
     return`<div class="mgrid">${list.map(s=>{
         const tc=s.track==='sci'?'var(--sci)':'var(--care)';
         const live=window.__fbUsers?.[s.id];
@@ -2187,7 +2172,6 @@ function memberGrid(){
             </div>
             <div class="mc-nick">${s.nickname}</div>
             <span class="track-badge" style="background:${tc};font-size:0.52rem;padding:2px 6px;margin-top:1px">${s.track==='sci'?'SCI':'CARE'}</span>
-            ${likeCount>0?`<div style="position:absolute;top:6px;right:7px;font-size:0.6rem;color:#f472b6;font-weight:800;background:rgba(244,114,182,.1);border-radius:20px;padding:1px 5px">💙${likeCount}</div>`:''}
         </div>`;
     }).join('')}</div>`;
 }
@@ -3086,9 +3070,9 @@ window.ctPress = (lane)=>{
         _ctRender();
         _ctUpdateBar();
 
-        // Combo confetti every 10
-        if(__ct.score % 10 === 0){
-            confetti({particleCount:35,spread:55,origin:{y:0.7},
+        // Combo confetti every 20
+        if(__ct.score % 20 === 0){
+            confetti({particleCount:20,spread:45,origin:{y:0.7},scalar:0.8,
                 colors:['#22c55e','#ef4444','#3b82f6']});
         }
     } else {
@@ -4376,7 +4360,7 @@ async function _towerOnWin(floor, bestAtStart){
     try{
         await updateDoc(doc(db,'users',currentUser.uid),{towerFloor:newFloor,towerBest:newBest,coins:increment(reward)});
         if(isFirst&&floor%5===0&&typeof postNews==='function') await postNews('🗼',`${userData.nickname} ผ่านหอคอยชั้น ${floor}! (+${reward}🪙)`).catch(()=>{});
-        if(isFirst&&floor%5===0&&typeof confetti==='function') confetti({particleCount:120,spread:70,origin:{y:0.5}});
+        if(isFirst&&floor%5===0&&typeof confetti==='function') confetti({particleCount:60,spread:65,origin:{y:0.5},scalar:0.85});
         loadFbUsers();
     }catch(e){console.error('tower save',e);}
     finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
