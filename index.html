@@ -955,39 +955,6 @@ async function loadFbUsers() {
             if (g) g.innerHTML = memberGrid();
             updateGuestBadge();
         }
-        // ── aggregate interactions (likes + pvp_wins) ──
-        try {
-            const today = new Date().toISOString().slice(0,10);
-            const iSnap = await getDocs(collection(db,'interactions'));
-            // สะสม likes per toStudentId (dedup by fromUid+date)
-            const likeMap  = {}; // studentId → Set of fromUid_date
-            const pvpMap   = {}; // studentId → count
-            iSnap.forEach(d => {
-                const ev = d.data();
-                if(ev.type==='like' && ev.toStudentId && ev.fromUid){
-                    if(!likeMap[ev.toStudentId]) likeMap[ev.toStudentId]=new Set();
-                    likeMap[ev.toStudentId].add(ev.fromUid+'_'+(ev.date||''));
-                } else if(ev.type==='pvp_win' && ev.toStudentId){
-                    pvpMap[ev.toStudentId]=(pvpMap[ev.toStudentId]||0)+1;
-                }
-            });
-            // ตรวจว่า currentUser กดใจใคร วันนี้บ้าง
-            const myUid = currentUser?.uid || null;
-            Object.entries(window.__fbUsers||{}).forEach(([sid,u])=>{
-                if(likeMap[sid])  u.likes       = likeMap[sid].size;
-                if(pvpMap[sid])   u.pvpVictories= (u.pvpVictories||0)+pvpMap[sid];
-                // rebuild likedBy ชั่วคราวเพื่อ dedup ปุ่มวันนี้
-                if(myUid && likeMap[sid]){
-                    const todayKey = myUid+'_'+today;
-                    if(!u.likedBy) u.likedBy={};
-                    if(likeMap[sid].has(todayKey)) u.likedBy[myUid]=today;
-                }
-            });
-            if(window.__tab==='members'){
-                const g2=document.getElementById('mgrid');
-                if(g2) g2.innerHTML=memberGrid();
-            }
-        } catch(e){ console.warn('interactions aggregate:',e); }
     } catch(e) {} finally{__fbUsersLoading=false;}
 }
 function updateGuestBadge(){
@@ -1715,16 +1682,9 @@ window.showPetInfo=async(petInstId)=>{
         +(elInfo?`<div style="background:#0f172a;border-radius:10px;padding:8px 12px;font-size:0.78rem;color:rgba(255,255,255,.7);margin-bottom:8px;display:flex;align-items:center;gap:8px">`
         +`<span style="font-size:1.1rem">${elInfo.emoji}</span>`
         +`<span>ชนะ <b style="color:#fbbf24">${ELEMENTS[elInfo.beats]?.emoji||''}</b> · แพ้ <b style="color:#f87171">${Object.values(ELEMENTS).find(e=>e.beats===el)?.emoji||''}</b></span></div>`:'')
-        +'<div style="background:#f8fafc;border-radius:11px;padding:10px;font-size:0.82rem;text-align:left">'
-        +'<div style="font-weight:700;margin-bottom:5px">🧬 วิวัฒนาการยีน</div>'
-        +(isMax
-            ?'<div style="color:var(--gold);font-weight:700;text-align:center">🏆 Max Grade V!</div>'
-            :`<div style="color:var(--muted);margin-bottom:3px">Grade ${grade>0?GRADE_LABELS[grade]:'base'} → <b>Grade ${GRADE_LABELS[nextGrade]}</b></div>`
-            +`<div style="margin-bottom:3px">ต้องการ copies อีก <b>${neededForNext}</b> ตัว · มีอยู่ <b>${copiesOwned-1}</b> ตัว</div>`
-            +`<div style="color:${cfg.color};font-weight:600">ATK ${stats.atk} → ${Math.round(BASE_STATS[p.rarity].atk*STAT_MULTI[nextGrade])} · HP ${stats.hp} → ${Math.round(BASE_STATS[p.rarity].hp*STAT_MULTI[nextGrade])} · Daily +${RARITY[p.rarity].dailyBase*GRADE_MULTI[nextGrade]}🪙</div>`
-            +(!canUpgrade?`<div style="color:#94a3b8;font-size:0.73rem;margin-top:3px">ต้องการอีก ${totalNeeded-copiesOwned} ตัวเพื่ออัพ</div>`:''))
-        +`<button class="btn-gold full" style="margin-top:8px" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${(isMax||isOnExp)?'disabled':''}>🧬 ${isOnExp?'⏳ กำลังผจญภัย':'วิวัฒนาการยีน '+(isMax?'(Max)':GRADE_LABELS[nextGrade])}</button>`
-        +`<button style="width:100%;margin-top:6px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:10px;padding:10px;color:#fff;font-family:inherit;font-size:0.85rem;font-weight:800;cursor:pointer" onclick="closePetInfo();openForgeModal('${p.instId||p.id}')">🔨 ตีบวก</button>`
+        +`<div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">`
+        +`<button class="btn-gold full" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${(isMax||isOnExp)?'disabled':''}>🧬 ${isOnExp?'⏳ กำลังผจญภัย':'วิวัฒนาการยีน '+(isMax?'(Max Grade V)':'→ Grade '+GRADE_LABELS[nextGrade])}</button>`
+        +`<button style="width:100%;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:10px;padding:10px;color:#fff;font-family:inherit;font-size:0.85rem;font-weight:800;cursor:pointer" onclick="closePetInfo();openForgeModal('${p.instId||p.id}')">🔨 ตีบวก</button>`
         +'</div></div>';
     // Build slot buttons — 3 slots
     const _buildSlotButtons=()=>{
@@ -1977,7 +1937,6 @@ function buildHome(){
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
                     <span style="font-size:0.62rem;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:1px;text-transform:uppercase">ช่องทางติดต่อ</span>
                     <div style="display:flex;align-items:center;gap:8px">
-                        ${(userData?.likes||0)>0?`<span style="font-size:0.7rem;color:#f472b6;font-weight:700">💙 ${userData.likes}</span>`:''}
                         <button onclick="openContactEdit()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#a5b4fc;border-radius:8px;padding:5px 11px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:inherit">✏️ แก้ไขข้อมูลติดต่อ</button>
                     </div>
                 </div>
@@ -2221,7 +2180,6 @@ function memberGrid(){
                 <span class="track-badge" style="background:${tc};font-size:0.5rem;padding:2px 6px;margin-top:4px">${s.track==='sci'?'SCI':'CARE'}</span>
             </div>`;
         }
-        const likeCount=live?.likes||0;
         return`<div class="mcard" onclick="openProfileModal('${s.id}')" style="position:relative">
             <div style="position:relative;width:64px;height:64px;margin-bottom:4px">
                 <img loading="lazy" src="${photoSrc}" onerror="this.onerror=null;this.src='${def}'" class="mc-img" style="width:64px;height:64px">
@@ -2306,17 +2264,7 @@ window.openProfileModal=(id)=>{
         </div>`;
     })() : '';
 
-    // ── Like pill (top of hero) + Challenge button (bottom of team section) ──
-    const today_=new Date().toISOString().slice(0,10);
-    const likedBy_=liveData?.likedBy||{};
-    const myUid_=currentUser?.uid;
-    const alreadyLiked_=!isMe&&myUid_&&likedBy_[myUid_]===today_;
-    const likeCount_=liveData?.likes||0;
-
-    // pill ปุ่มกดใจ — แสดงที่ hero ด้านบนขวา
-    const likePill = (!isMe&&liveData) ? `<button onclick="giveLike('${id}')" ${alreadyLiked_?'disabled':''} style="background:${alreadyLiked_?'rgba(244,114,182,.12)':'rgba(244,114,182,.18)'};border:1px solid ${alreadyLiked_?'rgba(244,114,182,.25)':'rgba(244,114,182,.5)'};border-radius:20px;padding:4px 10px;color:${alreadyLiked_?'rgba(244,114,182,.45)':'#f9a8d4'};font-size:0.72rem;font-weight:700;cursor:${alreadyLiked_?'not-allowed':'pointer'};display:inline-flex;align-items:center;gap:4px;transition:.2s;font-family:inherit">💙${likeCount_>0?' '+likeCount_:''}</button>` : (likeCount_>0?`<span style="background:rgba(244,114,182,.12);border:1px solid rgba(244,114,182,.2);border-radius:20px;padding:3px 9px;color:#f472b6;font-size:0.7rem;font-weight:700">💙 ${likeCount_}</span>`:'');
-
-    // ปุ่ม PvP ท้าทาย
+    // ── Challenge button ──
     const challengeBtn=(!isMe&&liveData)?`
     <div class="pm-section" style="padding-bottom:8px">
         <button class="btn-pvp" onclick="startPvpChallenge('${id}')">⚔️ ท้าทาย ${s.nickname}</button>
@@ -2327,15 +2275,11 @@ window.openProfileModal=(id)=>{
         <div class="pm-hero">
             <img loading="lazy" src="${photo}" onerror="this.onerror=null;this.src='${def}'" class="pm-avatar">
             <div class="pm-info">
-                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
-                    <div class="name">${s.nickname}${(()=>{ const slot0=(liveData?.activePets||[])[0]||liveData?.activePet||null; if(!slot0)return ''; const ep=(liveData?.pets||[]).find(p=>p.instId&&String(p.instId)===String(slot0)||(p.id===slot0)); return ep?' '+ep.emoji:''; })()}</div>
-                    ${likePill}
-                </div>
+                <div class="name">${s.nickname}${(()=>{ const slot0=(liveData?.activePets||[])[0]||liveData?.activePet||null; if(!slot0)return ''; const ep=(liveData?.pets||[]).find(p=>p.instId&&String(p.instId)===String(slot0)||(p.id===slot0)); return ep?' '+ep.emoji:''; })()}</div>
                 <div class="realname">${s.realName}</div>
                 <div class="sid">${s.id}</div>
                 <div style="margin-top:5px;display:flex;gap:5px;align-items:center">
                     <span class="track-badge" style="background:${tc};display:inline-block">${s.track.toUpperCase()}</span>
-                    ${(liveData?.likes||0)>0?`<span style="font-size:0.68rem;color:#f472b6;font-weight:700">💙 ${liveData.likes} ใจ</span>`:''}
                 </div>
             </div>
             <button onclick="closePM()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem;flex-shrink:0;align-self:flex-start">✕</button>
@@ -2352,39 +2296,6 @@ window.openProfileModal=(id)=>{
 };
 window.closePM=()=>document.getElementById('profile-modal').classList.remove('active');
 
-// ══════════════════════════════════════════════════
-// ▶ LIKES SYSTEM
-// ══════════════════════════════════════════════════
-window.giveLike = async (targetStudentId) => {
-    if(!currentUser){ toast('กรุณา Login ก่อน','error'); return; }
-    const myUid = currentUser.uid;
-    const today = new Date().toISOString().slice(0,10);
-    const targetLive = window.__fbUsers?.[targetStudentId]
-        || Object.values(window.__fbUsers||{}).find(d=>d.studentId===targetStudentId);
-    const targetUid = targetLive?._uid || targetLive?.uid || null;
-    if(!targetUid){ toast('ไม่พบข้อมูลผู้ใช้','error'); return; }
-    if(targetUid===myUid){ toast('ไม่สามารถกดใจตัวเองได้ 😅','info'); return; }
-    // ตรวจ dedup จาก local cache ก่อน
-    const likedBy = targetLive?.likedBy||{};
-    if(likedBy[myUid]===today){ toast('กดใจไปแล้ววันนี้ 💙','info'); return; }
-    try{
-        // เขียนเข้า interactions collection (ทุกคนมีสิทธิ์เขียน doc ตัวเอง)
-        await addDoc(collection(db,'interactions'),{
-            type:'like',
-            fromUid: myUid,
-            toStudentId: targetStudentId,
-            date: today,
-            ts: serverTimestamp(),
-        });
-        // update local cache ทันที
-        if(window.__fbUsers[targetStudentId]){
-            window.__fbUsers[targetStudentId].likes=(window.__fbUsers[targetStudentId].likes||0)+1;
-            window.__fbUsers[targetStudentId].likedBy={...likedBy,[myUid]:today};
-        }
-        toast('💙 กดใจแล้ว!','success');
-        window.openProfileModal(targetStudentId);
-    }catch(e){ console.error('giveLike error:',e); toast('เกิดข้อผิดพลาด','error'); }
-};
 // ══════════════════════════════════════════════════
 // ▶ CONTACT EDIT
 // ══════════════════════════════════════════════════
@@ -4305,10 +4216,16 @@ function _renderTowerLobby(){
         const sel=__twSelTeam.includes(String(p.instId||p.id));
         const cfg=RARITY[p.rarity];
         const stats=calculatePetStats(p);
+        const petDef=PETS.find(x=>x.id===p.id);
+        const petEl=petDef?.element;
+        const petElEmoji=ELEMENTS[petEl]?.emoji||'';
+        const petElName=_EL_NAME[petEl]||'';
+        const beatsEl=ELEMENTS[petEl]?.beats;
+        const beatsEmoji=ELEMENTS[beatsEl]?.emoji||'';
         return`<div class="tower-pick${sel?' sel':''}" onclick="twPickPet('${String(p.instId||p.id)}')">
             <div style="font-size:1.5rem">${p.emoji}</div>
             <div style="font-size:0.5rem;color:rgba(255,255,255,.75);font-weight:700;line-height:1.3">${formatPetName(p)}</div>
-            <div style="font-size:0.44rem;color:${cfg.color};margin-top:1px">${cfg.label}</div>
+            ${petElEmoji?`<div style="font-size:0.75rem;font-weight:800;line-height:1;margin-top:2px" title="${petElName}">${petElEmoji}</div>`:''}
             <div style="font-size:0.42rem;color:rgba(255,255,255,.35);margin-top:1px">⚔️${stats.atk} ❤️${stats.hp}</div>
         </div>`;
     }).join('');
@@ -4334,7 +4251,14 @@ function _renderTowerLobby(){
                 <div style="font-size:1rem;font-weight:800;color:#fbbf24">🪙 ${reward}</div>
             </div>
         </div>
-        <div style="font-size:0.6rem;color:rgba(255,255,255,.35);margin-bottom:6px;font-weight:700">ธาตุบอส: ${_EL_NAME[bEl]}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px 12px;background:rgba(239,68,68,.1);border:1.5px solid rgba(239,68,68,.25);border-radius:12px">
+            <div style="font-size:1.8rem;line-height:1;filter:drop-shadow(0 0 8px rgba(239,68,68,.5))">${ELEMENTS[bEl]?.emoji||'?'}</div>
+            <div>
+                <div style="font-size:0.5rem;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:1px">ประเภทบอส</div>
+                <div style="font-size:0.95rem;font-weight:900;color:#fff;letter-spacing:.5px">${_EL_NAME[bEl]}</div>
+                <div style="font-size:0.6rem;color:rgba(255,255,255,.4);margin-top:1px">ชนะ <b style="color:#4ade80">${_EL_NAME[ELEMENTS[bEl]?.beats]||'?'}</b> · แพ้ <b style="color:#f87171">${_EL_NAME[Object.keys(ELEMENTS).find(k=>ELEMENTS[k].beats===bEl)]||'?'}</b></div>
+            </div>
+        </div>
         <div style="font-size:0.65rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px;margin-bottom:7px">🧩 จัดทีม (1–3 ตัว) — ลำดับ = ลำดับผลัด</div>
         <div class="tower-slot-row">${slotHtml}</div>
 
@@ -4543,16 +4467,6 @@ async function _pvpHandleResult(weWon, myName, enemyName, enemyStudentId){
             catch(e){} finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
             toast('+1 ชัยชนะ PvP! 🏆','success');
         }
-    } else {
-        // เขียน pvp_win เข้า interactions แทน (ไม่ต้องการสิทธิ์ users doc ของคนอื่น)
-        try{
-            await addDoc(collection(db,'interactions'),{
-                type:'pvp_win',
-                fromUid: currentUser.uid,
-                toStudentId: enemyStudentId,
-                ts: serverTimestamp(),
-            });
-        }catch(e){ console.error('pvp_win interaction:',e); }
     }
     if(typeof postNews==='function') await postNews(weWon?'🏆':'💀',newsMsg).catch(()=>{});
 }
