@@ -25,11 +25,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 .ticker-label{background:#f59e0b;color:#1e293b;padding:3px 9px;font-weight:800;font-size:0.72rem;white-space:nowrap;border-radius:6px 0 0 6px;}
 .ticker-scroll{flex:1;overflow:hidden;position:relative;height:34px;}
-.ticker-inner{position:absolute;white-space:nowrap;animation:tickerMove 22s linear infinite;padding:0 12px;line-height:34px;font-size:0.8rem;will-change:transform;}
-
-/* KEYFRAME ANIMATIONS */
-@keyframes tickerMove{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
-.ticker-inner:hover{animation-play-state:paused;}
+.ticker-inner{position:absolute;left:0;right:0;padding:0 12px;line-height:34px;font-size:0.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 /* COMPONENTS — CARDS & BANNERS */
 .news-banner{background:linear-gradient(135deg,#1e293b,#334155);color:#fde68a;font-weight:600;display:flex;align-items:center;border-radius:12px;overflow:hidden;cursor:pointer;margin-bottom:10px;height:36px;}
@@ -1281,23 +1277,13 @@ async function postNews(icon, msg) {
 
 async function loadTicker() {
     try {
-        const q=query(collection(db,"news"),orderBy("ts","desc"),limit(8));
+        const q=query(collection(db,"news"),orderBy("ts","desc"),limit(1));
         const snap=await getDocs(q);
-        let items=[];
-        snap.forEach(d=>{const x=d.data();items.push(`${sanitize(x.icon)} ${sanitize(x.msg)}`);});
-        if(!items.length)items=['ยินดีต้อนรับสู่ RxTU10 Dashboard! 🎉'];
-        window.__tickerCache=items.join('  •  ');
-        // อัปเดต ticker ที่กำลังแสดงอยู่ (ถ้า play tab เปิดอยู่)
+        let latest='ยินดีต้อนรับสู่ RxTU10 Dashboard! 🎉';
+        snap.forEach(d=>{const x=d.data();latest=`${sanitize(x.icon)} ${sanitize(x.msg)}`;});
+        window.__tickerCache=latest;
         const tickerInnerEl=document.querySelector('.ticker-inner');
-        if(tickerInnerEl){
-            tickerInnerEl.textContent=window.__tickerCache;
-            tickerInnerEl.style.animation='none';
-            void tickerInnerEl.offsetWidth;
-            tickerInnerEl.style.animation='';
-        }
-        // legacy hidden element
-        const legEl=document.getElementById('ticker-text');
-        if(legEl) legEl.textContent=window.__tickerCache;
+        if(tickerInnerEl) tickerInnerEl.textContent=latest;
     } catch(e){}
 }
 
@@ -2187,17 +2173,17 @@ window.openProfileModal=(id)=>{
     const photo=liveData?.customPhotoFull||liveData?.customPhoto||liveData?.googlePhoto||`img/${s.id}.jpg`;
 
     // ── Team slots (activePets 3 slots) ──
-    const buildTeamSlots=(ud,clickable)=>{
+    const buildTeamSlots=(ud,clickable,ownerSid)=>{
         const slots=(ud?.activePets||[null,null,null]).slice(0,3);
-        // ensure 3 slots
         while(slots.length<3) slots.push(null);
         return slots.map((instId,i)=>{
             const p=instId?(ud.pets||[]).find(x=>String(x.instId||x.id)===String(instId)):null;
             if(!p) return `<div class="pm-team-slot${clickable?' active-slot':''}" ${clickable?`onclick="pmPickSlot(${i})"`:''}><span class="slot-label${clickable?' filled':''}">Slot ${i+1}</span><span style="opacity:.3;font-size:1.1rem">＋</span></div>`;
             const cfg=RARITY[p.rarity];
             const s2=calculatePetStats(p);
-            const r=p.refine||0;
-            return `<div class="pm-team-slot filled${clickable?' active-slot':''}" ${clickable?`onclick="pmPickSlot(${i})"`:''}><span class="slot-label filled">Slot ${i+1}</span><div class="slot-em">${p.emoji}</div><div class="slot-name">${formatPetName(p)}</div><div class="slot-stats">⚔️${s2.atk} ❤️${s2.hp}</div></div>`;
+            const friendClick=(!clickable&&ownerSid&&p.instId)?`onclick="openFriendPetInfo('${ownerSid}','${String(p.instId||p.id)}')"`:'';
+            const friendStyle=(!clickable&&p.instId)?'cursor:pointer;':'';
+            return `<div class="pm-team-slot filled${clickable?' active-slot':''}" ${clickable?`onclick="pmPickSlot(${i})"`:friendClick} style="${friendStyle}"><span class="slot-label filled">Slot ${i+1}</span><div class="slot-em">${p.emoji}</div><div class="slot-name">${formatPetName(p)}</div><div class="slot-stats">⚔️${s2.atk} ❤️${s2.hp}</div></div>`;
         }).join('');
     };
 
@@ -2223,7 +2209,7 @@ window.openProfileModal=(id)=>{
     </div>`:(liveData?`
     <div class="pm-section">
         <div class="pm-section-label">🐾 ทีมสัตว์เลี้ยง</div>
-        <div class="pm-team">${buildTeamSlots(liveData,false)}</div>
+        <div class="pm-team">${buildTeamSlots(liveData,false,id)}</div>
     </div>`:'');
 
     // ── Contact info section ──
