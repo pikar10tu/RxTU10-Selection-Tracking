@@ -748,26 +748,27 @@ const PETS = [
 ];
 const HATCH_LABELS = { common:"1 นาที", rare:"1 นาที", epic:"1 นาที", legendary:"1 นาที", glow:"1 นาที" };
 const EGG_TYPES = {
-    pet: { label:"🥚 ไข่สัตว์เลี้ยง", cost:150, desc:"Common 40% · Rare 30% · Epic 20% · Legendary 10%", color:"#10b981" },
+    pet: { label:"🥚 ไข่สัตว์เลี้ยง", cost:150, desc:"Common 72% · Rare 25% · Epic 3%", color:"#10b981" },
 };
 const INSTANT_COST = 25; // ราคาซื้อ Instant Hatch Ticket
 const MEGA_COST = 25;
 const ADMIN_EMAIL = 'prawich.aum@dome.tu.ac.th';
 
 
-/** rollPetFromGlowEgg() → ระดับกลาง Rare 45% / Epic 35% / Legendary 20% */
+/** rollPetFromGlowEgg() → B-tier: Common 40% / Rare 38% / Epic 18% / Legendary 4% */
 function rollPetFromGlowEgg(){
     const rv=Math.random();
-    const rarity = rv<0.45 ? 'rare' : rv<0.80 ? 'epic' : 'legendary';
+    const rarity = rv<0.40 ? 'common' : rv<0.78 ? 'rare' : rv<0.96 ? 'epic' : 'legendary';
     const pool=PETS.filter(p=>p.rarity===rarity);
     const p=pool[Math.floor(Math.random()*pool.length)];
     return{...p, instId:`${p.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`};
 }
 
-/** rollPetFromStarEgg() → ระดับสูง Epic 60% / Legendary 40% */
+/** rollPetFromStarEgg() → B-tier: Rare 35% / Epic 45% / Legendary 20% */
 function rollPetFromStarEgg(){
-    const isLeg=Math.random()<0.40;
-    const pool=PETS.filter(p=>p.rarity===(isLeg?'legendary':'epic'));
+    const rv=Math.random();
+    const rarity=rv<0.35?'rare':rv<0.80?'epic':'legendary';
+    const pool=PETS.filter(p=>p.rarity===rarity);
     const p=pool[Math.floor(Math.random()*pool.length)];
     return{...p, instId:`${p.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`};
 }
@@ -775,7 +776,7 @@ window.buyStarEgg=async()=>{
     if(!currentUser){toast('กรุณา Login ก่อน','error');return;}
     const cost=3000;
     if((userData?.coins||0)<cost){toast(`เหรียญไม่พอ! ต้องการ ${cost}🪙`,'error');return;}
-    if(!await _confirm(`🌠 ไข่ตำนาน\nราคา ${cost}🪙\n\nสุ่ม Epic 60% / Legendary 40%\n\nยืนยันซื้อ?`))return;
+    if(!await _confirm(`🌠 ไข่ตำนาน\nราคา ${cost}🪙\n\nสุ่ม Rare 35% / Epic 45% / Legendary 20%\n\nยืนยันซื้อ?`))return;
     const pet=rollPetFromStarEgg();
     const egg={
         eggId:`star_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -799,7 +800,7 @@ window.buyGlowEgg=async()=>{
     if(!await _confirm(`🌐 ไข่เรืองแสง
 ราคา ${cost}🪙
 
-สุ่ม Rare 45% / Epic 35% / Legendary 20%
+สุ่ม Common 40% / Rare 38% / Epic 18% / Legendary 4%
 
 ยืนยันซื้อ?`))return;
     const pet=rollPetFromGlowEgg();
@@ -824,8 +825,8 @@ window.buyGlowEgg=async()=>{
  *  eggType: 'normal' | 'gold' | 'rainbow'
  *  Returns a pet def merged with fresh instId */
 function rollPetFromEgg(eggType){
-    // ไข่สัตว์เลี้ยง (pet): Common 40%, Rare 30%, Epic 20%, Legendary 10%
-    const RARITY_RATES = { common:0.40, rare:0.30, epic:0.20, legendary:0.10 };
+    // ไข่สัตว์เลี้ยง (pet): Common 72%, Rare 25%, Epic 3%, Legendary 0%
+    const RARITY_RATES = { common:0.72, rare:0.25, epic:0.03, legendary:0.00 };
     const rarities = Object.keys(RARITY_RATES);
     // สุ่ม rarity ก่อน
     const rv = Math.random(); let rc = 0; let chosenRarity = 'common';
@@ -1468,7 +1469,7 @@ window.buyEgg=async(eggType='pet')=>{
     if(!currentUser||!userData){toast("กรุณา Login","error");return;}
     const et=EGG_TYPES[eggType];if(!et)return;
     if(userData.coins<et.cost){toast(`เหรียญไม่พอ! ต้องการ ${et.cost}🪙`,"error");return;}
-    if(!await _confirm(`🥚 ซื้อ ${et.label}\nราคา ${et.cost}🪙 (คงเหลือ ${(userData.coins||0)-et.cost}🪙)\n\nยืนยันการซื้อ?`))return;
+    if(!await _confirm(`🥚 ซื้อ ${et.label}\nราคา ${et.cost}🪙 · คงเหลือ ${(userData.coins||0)-et.cost}🪙\n\n${et.desc}\n\nยืนยันการซื้อ?`))return;
     const pet=rollPetFromEgg(eggType);
     const egg={eggId:Date.now()+'_'+Math.random().toString(36).slice(2),eggType,petId:pet.id,petEmoji:pet.emoji,petName:pet.name,petRarity:pet.rarity,petInstId:pet.instId,hatchMins:pet.hatchMins,startedAt:null};
     await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(-et.cost),eggs:arrayUnion(egg)});
@@ -3611,10 +3612,9 @@ function buildShop(){
                 <div style="flex:1">
                     <div style="font-weight:800;font-size:1rem;margin-bottom:2px">ไข่สัตว์เลี้ยง</div>
                     <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
-                        <span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⬜ Common 40%</span>
-                        <span style="background:#eff6ff;color:#3b82f6;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 30%</span>
-                        <span style="background:#faf5ff;color:#a855f7;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 20%</span>
-                        <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 10%</span>
+                        <span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⬜ Common 72%</span>
+                        <span style="background:#eff6ff;color:#3b82f6;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 25%</span>
+                        <span style="background:#faf5ff;color:#a855f7;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 3%</span>
                     </div>
                 </div>
                 <button class="btn-gold" onclick="buyEgg('pet')" ${currentUser&&coins>=150?'':'disabled'} style="white-space:nowrap">150🪙</button>
@@ -3625,9 +3625,10 @@ function buildShop(){
                     <div style="flex:1">
                         <div style="font-weight:800;font-size:1rem;margin-bottom:2px">ไข่เรืองแสง <span style="font-size:0.62rem;color:#6366f1;background:#eef2ff;padding:1px 6px;border-radius:8px;font-weight:700">ระดับกลาง</span></div>
                         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
-                            <span style="background:#eff6ff;color:#3b82f6;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 45%</span>
-                            <span style="background:#faf5ff;color:#a855f7;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 35%</span>
-                            <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Leg 20%</span>
+                            <span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⬜ Common 40%</span>
+                            <span style="background:#eff6ff;color:#3b82f6;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 38%</span>
+                            <span style="background:#faf5ff;color:#a855f7;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 18%</span>
+                            <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Leg 4%</span>
                         </div>
                     </div>
                     <button class="btn-gold" onclick="buyGlowEgg()" ${currentUser&&(userData?.coins||0)>=1200?'':'disabled'} style="white-space:nowrap">1200🪙</button>
@@ -3637,8 +3638,9 @@ function buildShop(){
                     <div style="flex:1">
                         <div style="font-weight:800;font-size:1rem;margin-bottom:2px">ไข่ตำนาน <span style="font-size:0.62rem;color:#d97706;background:#fffbeb;padding:1px 6px;border-radius:8px;font-weight:700">ระดับสูง</span></div>
                         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
-                            <span style="background:#faf5ff;color:#a855f7;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 60%</span>
-                            <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 40%</span>
+                            <span style="background:#eff6ff;color:#3b82f6;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 35%</span>
+                            <span style="background:#faf5ff;color:#a855f7;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 45%</span>
+                            <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 20%</span>
                         </div>
                     </div>
                     <button class="btn-gold" onclick="buyStarEgg()" ${currentUser&&(userData?.coins||0)>=3000?'':'disabled'} style="white-space:nowrap">3000🪙</button>
