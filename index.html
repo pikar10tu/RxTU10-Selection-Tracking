@@ -955,6 +955,39 @@ async function loadFbUsers() {
             if (g) g.innerHTML = memberGrid();
             updateGuestBadge();
         }
+        // ── aggregate interactions (likes + pvp_wins) ──
+        try {
+            const today = new Date().toISOString().slice(0,10);
+            const iSnap = await getDocs(collection(db,'interactions'));
+            // สะสม likes per toStudentId (dedup by fromUid+date)
+            const likeMap  = {}; // studentId → Set of fromUid_date
+            const pvpMap   = {}; // studentId → count
+            iSnap.forEach(d => {
+                const ev = d.data();
+                if(ev.type==='like' && ev.toStudentId && ev.fromUid){
+                    if(!likeMap[ev.toStudentId]) likeMap[ev.toStudentId]=new Set();
+                    likeMap[ev.toStudentId].add(ev.fromUid+'_'+(ev.date||''));
+                } else if(ev.type==='pvp_win' && ev.toStudentId){
+                    pvpMap[ev.toStudentId]=(pvpMap[ev.toStudentId]||0)+1;
+                }
+            });
+            // ตรวจว่า currentUser กดใจใคร วันนี้บ้าง
+            const myUid = currentUser?.uid || null;
+            Object.entries(window.__fbUsers||{}).forEach(([sid,u])=>{
+                if(likeMap[sid])  u.likes       = likeMap[sid].size;
+                if(pvpMap[sid])   u.pvpVictories= (u.pvpVictories||0)+pvpMap[sid];
+                // rebuild likedBy ชั่วคราวเพื่อ dedup ปุ่มวันนี้
+                if(myUid && likeMap[sid]){
+                    const todayKey = myUid+'_'+today;
+                    if(!u.likedBy) u.likedBy={};
+                    if(likeMap[sid].has(todayKey)) u.likedBy[myUid]=today;
+                }
+            });
+            if(window.__tab==='members'){
+                const g2=document.getElementById('mgrid');
+                if(g2) g2.innerHTML=memberGrid();
+            }
+        } catch(e){ console.warn('interactions aggregate:',e); }
     } catch(e) {} finally{__fbUsersLoading=false;}
 }
 function updateGuestBadge(){
@@ -2326,26 +2359,31 @@ window.giveLike = async (targetStudentId) => {
     if(!currentUser){ toast('กรุณา Login ก่อน','error'); return; }
     const myUid = currentUser.uid;
     const today = new Date().toISOString().slice(0,10);
-    // หา targetUid จาก __fbUsers (d.id = Firestore doc ID = Auth UID)
     const targetLive = window.__fbUsers?.[targetStudentId]
         || Object.values(window.__fbUsers||{}).find(d=>d.studentId===targetStudentId);
     const targetUid = targetLive?._uid || targetLive?.uid || null;
-    if(!targetUid){ toast('ไม่พบข้อมูลผู้ใช้','error'); console.warn('giveLike: no uid for',targetStudentId,targetLive); return; }
+    if(!targetUid){ toast('ไม่พบข้อมูลผู้ใช้','error'); return; }
     if(targetUid===myUid){ toast('ไม่สามารถกดใจตัวเองได้ 😅','info'); return; }
+    // ตรวจ dedup จาก local cache ก่อน
     const likedBy = targetLive?.likedBy||{};
     if(likedBy[myUid]===today){ toast('กดใจไปแล้ววันนี้ 💙','info'); return; }
     try{
-        await updateDoc(doc(db,'users',targetUid),{
-            likes: increment(1),
-            [`likedBy.${myUid}`]: today,
+        // เขียนเข้า interactions collection (ทุกคนมีสิทธิ์เขียน doc ตัวเอง)
+        await addDoc(collection(db,'interactions'),{
+            type:'like',
+            fromUid: myUid,
+            toStudentId: targetStudentId,
+            date: today,
+            ts: serverTimestamp(),
         });
+        // update local cache ทันที
         if(window.__fbUsers[targetStudentId]){
             window.__fbUsers[targetStudentId].likes=(window.__fbUsers[targetStudentId].likes||0)+1;
             window.__fbUsers[targetStudentId].likedBy={...likedBy,[myUid]:today};
         }
         toast('💙 กดใจแล้ว!','success');
         window.openProfileModal(targetStudentId);
-    }catch(e){ console.error('giveLike error:',e); toast('เกิดข้อผิดพลาด: '+e.message,'error'); }
+    }catch(e){ console.error('giveLike error:',e); toast('เกิดข้อผิดพลาด','error'); }
 };
 // ══════════════════════════════════════════════════
 // ▶ CONTACT EDIT
@@ -4506,8 +4544,15 @@ async function _pvpHandleResult(weWon, myName, enemyName, enemyStudentId){
             toast('+1 ชัยชนะ PvP! 🏆','success');
         }
     } else {
-        const enUid=(window.__fbUsers?.[enemyStudentId])?.uid;
-        if(enUid){ try{await updateDoc(doc(db,'users',enUid),{pvpVictories:increment(1)});}catch(e){} }
+        // เขียน pvp_win เข้า interactions แทน (ไม่ต้องการสิทธิ์ users doc ของคนอื่น)
+        try{
+            await addDoc(collection(db,'interactions'),{
+                type:'pvp_win',
+                fromUid: currentUser.uid,
+                toStudentId: enemyStudentId,
+                ts: serverTimestamp(),
+            });
+        }catch(e){ console.error('pvp_win interaction:',e); }
     }
     if(typeof postNews==='function') await postNews(weWon?'🏆':'💀',newsMsg).catch(()=>{});
 }
