@@ -41,10 +41,10 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 }
 
 /* ── BOTTOM NAV ── */
-#bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--btm);background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -3px 12px rgba(0,0,0,.07);padding-bottom:env(safe-area-inset-bottom,0px);}
-.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:none;background:none;font-family:inherit;color:var(--muted);font-size:0.67rem;font-weight:600;transition:.15s;padding:5px 2px;}
+#bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--btm);background:linear-gradient(0deg,#0a0a1a,#0f0f2e);border-top:1px solid rgba(255,255,255,.08);display:flex;z-index:200;box-shadow:0 -4px 20px rgba(0,0,0,.4);padding-bottom:env(safe-area-inset-bottom,0px);}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:none;background:none;font-family:inherit;color:rgba(255,255,255,.35);font-size:0.67rem;font-weight:600;transition:.15s;padding:5px 2px;}
 .bn-icon{font-size:1.3rem;transition:.15s;}
-.bn-item.active{color:var(--gold);}
+.bn-item.active{color:#fbbf24;}
 .bn-item.active .bn-icon{transform:translateY(-2px);}
 
 /* ── COMMON ── */
@@ -101,24 +101,24 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 
 /* ── MEMBERS ── */
 .filter-row{display:flex;gap:6px;margin-bottom:8px;}
-.fbtn{flex:1;padding:7px 3px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:inherit;font-size:0.76rem;font-weight:600;cursor:pointer;color:var(--muted);transition:.2s;}
-.fbtn.fa{border-color:var(--gold);background:#fffbeb;color:#92400e;}
-.fbtn.fs{border-color:var(--sci);background:#eff6ff;color:var(--sci);}
-.fbtn.fc{border-color:var(--care);background:#ecfdf5;color:var(--care);}
+.fbtn{flex:1;padding:7px 3px;border-radius:10px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);font-family:inherit;font-size:0.76rem;font-weight:600;cursor:pointer;color:rgba(255,255,255,.45);transition:.2s;}
+.fbtn.fa{border-color:#fbbf24;background:rgba(251,191,36,.15);color:#fbbf24;}
+.fbtn.fs{border-color:#60a5fa;background:rgba(37,99,235,.2);color:#93c5fd;}
+.fbtn.fc{border-color:#34d399;background:rgba(16,185,129,.15);color:#6ee7b7;}
 .search-box{margin-bottom:8px;}
-.srch-inp{width:100%;padding:10px 13px;border:2px solid #fff;border-radius:12px;font-family:inherit;font-size:0.9rem;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.07);outline:none;transition:.2s;}
-.srch-inp:focus{border-color:var(--gold);}
+.srch-inp{width:100%;padding:10px 13px;border:2px solid rgba(255,255,255,.1);border-radius:12px;font-family:inherit;font-size:0.9rem;background:rgba(255,255,255,.06);color:#fff;box-shadow:none;outline:none;transition:.2s;}
+.srch-inp:focus{border-color:#fbbf24;background:rgba(255,255,255,.09);}
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px;}
 
 /* MEMBERS GRID */
-.mcard{background:#fff;border-radius:13px;padding:11px 6px 8px;cursor:pointer;text-align:center;border:1.5px solid var(--border);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:3px;overflow:hidden;}
-.mcard:hover{transform:translateY(-2px);box-shadow:0 5px 12px rgba(0,0,0,.07);}
+.mcard{background:rgba(255,255,255,.05);border-radius:13px;padding:11px 6px 8px;cursor:pointer;text-align:center;border:1.5px solid rgba(255,255,255,.09);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:3px;overflow:hidden;}
+.mcard:hover{transform:translateY(-2px);box-shadow:0 5px 16px rgba(0,0,0,.3);border-color:rgba(255,255,255,.18);}
 .mc-img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);}
 /* .mc-emoji-fallback removed — not used */
-.mc-nick{font-weight:600;font-size:0.82rem;} 
+.mc-nick{font-weight:600;font-size:0.82rem;color:#fff;} 
 .prog-bar{height:16px;background:var(--border);border-radius:50px;overflow:hidden;display:flex;margin-bottom:4px;}
 .pb-sci{background:var(--sci);height:100%;} .pb-care{background:var(--care);height:100%;}
-.prog-lbls{display:flex;justify-content:space-between;font-size:0.76rem;font-weight:600;}
+.prog-lbls{display:flex;justify-content:space-between;font-size:0.76rem;font-weight:600;color:rgba(255,255,255,.8);}
 
 /* ── PLAY ── */
 /* Game arena cards */
@@ -926,7 +926,6 @@ const DRUGS=[
 let currentUser=null, userData=null, unsub=null;
 // UI state
 let mTrack='all', mSearch='';
-let tradeIdx=null;
 // Quiz state
 let qScore=0, qAnswer=null, qHigh=0;
 let dqScore=0, dqAnswer=null, dqHigh=0;
@@ -1076,7 +1075,13 @@ onAuthStateChanged(auth,async u=>{
                 userData={...userData, activePets:migrateSlots};
                 updateDoc(doc(db,'users',u.uid),{activePets:migrateSlots}).catch(()=>{});
             }
-            renderAll();checkDaily();_startHatchTick();
+            if(window.__tab==='home'||!window.__tab) renderAll();
+            else { /* อัปเดต userData แต่ไม่ re-render tab อื่น */
+                const _t=window.__tab;
+                if(_t==='shop') document.getElementById('main-content').innerHTML=buildShop();
+                else if(_t==='members'){ const g=document.getElementById('mgrid'); if(g) g.innerHTML=memberGrid(); }
+            }
+            checkDaily();_startHatchTick();
         });
         loadFbUsers();
         // checkPetDaily removed
@@ -1262,10 +1267,10 @@ function renderUpgradeModal(mainPet,candidates,cfg,nextGrade){
                     const isSel=state.selected.includes(String(c.instId));
                     const grade=c.grade||0;
                     return`<div onclick="toggleUpgradeSelect('${c.instId}')"
-                        style="background:${isSel?cfg.color+'22':'#f8fafc'};border:2px solid ${isSel?cfg.color:'var(--border)'};border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;transition:.15s;position:relative">
+                        style="background:${isSel?cfg.color+'33':'rgba(255,255,255,.05)'};border:2px solid ${isSel?cfg.color:'rgba(255,255,255,.1)'};border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;transition:.15s;position:relative">
                         <div style="font-size:1.4rem">${mainPet.emoji}</div>
-                        <div style="font-size:0.6rem;font-weight:700;margin-top:2px">${grade>0?'Grade '+GRADE_LABELS[grade]:'ยังไม่วิวัฒน์'}</div>
-                        <div style="font-size:0.55rem;color:var(--muted)">+${petDailyCoins(c)}🪙</div>
+                        <div style="font-size:0.6rem;font-weight:700;margin-top:2px;color:rgba(255,255,255,.7)">${grade>0?'Grade '+GRADE_LABELS[grade]:'ยังไม่วิวัฒน์'}</div>
+                        <div style="font-size:0.55rem;color:rgba(255,255,255,.4)">+${petDailyCoins(c)}🪙</div>
                         ${isSel?`<div style="position:absolute;top:-5px;right:-5px;background:${cfg.color};color:#fff;width:16px;height:16px;border-radius:50%;font-size:0.6rem;display:flex;align-items:center;justify-content:center;font-weight:800">✓</div>`:''}
                     </div>`;
                 }).join('')}
@@ -2514,7 +2519,7 @@ function buildMembers(){
     const all=window.__students||[];const sci=all.filter(s=>s.track==='sci').length;const care=all.filter(s=>s.track==='care').length;const tot=all.length;
     const guestCount=(window.__guestUsers||[]).length;
     return`
-        <div class="card" style="margin-bottom:8px">
+        <div class="card" style="margin-bottom:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);">
             <div style="font-weight:700;font-size:0.95rem;text-align:center;margin-bottom:8px">💊 RxTU10 — ${tot} คน</div>
             <div><div class="prog-bar"><div class="pb-sci" style="width:${(sci/tot*100).toFixed(1)}%"></div><div class="pb-care" style="width:${(care/tot*100).toFixed(1)}%"></div></div>
             <div class="prog-lbls"><span style="color:var(--sci)">Sci ${sci}</span><span style="color:var(--care)">Care ${care}</span></div></div>
@@ -4029,9 +4034,9 @@ function buildShop(){
                 <div style="flex:1">
                     <div style="font-weight:800;font-size:1rem;margin-bottom:2px">ไข่สัตว์เลี้ยง</div>
                     <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
-                        <span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⬜ Common 72%</span>
-                        <span style="background:#eff6ff;color:#3b82f6;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 25%</span>
-                        <span style="background:#faf5ff;color:#a855f7;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 3%</span>
+                        <span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⬜ Common 72%</span>
+                        <span style="background:rgba(59,130,246,.2);color:#93c5fd;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 25%</span>
+                        <span style="background:rgba(168,85,247,.2);color:#c4b5fd;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 3%</span>
                     </div>
                 </div>
                 <button class="btn-gold" onclick="buyEgg('pet')" ${currentUser&&coins>=150?'':'disabled'} style="white-space:nowrap">150🪙</button>
@@ -4042,9 +4047,9 @@ function buildShop(){
                     <div style="flex:1">
                         <div style="font-weight:800;font-size:1rem;margin-bottom:2px">ไข่เรืองแสง <span style="font-size:0.62rem;color:#6366f1;background:#eef2ff;padding:1px 6px;border-radius:8px;font-weight:700">ระดับกลาง</span></div>
                         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
-                            <span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⬜ Common 40%</span>
-                            <span style="background:#eff6ff;color:#3b82f6;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 38%</span>
-                            <span style="background:#faf5ff;color:#a855f7;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 18%</span>
+                            <span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⬜ Common 40%</span>
+                            <span style="background:rgba(59,130,246,.2);color:#93c5fd;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 38%</span>
+                            <span style="background:rgba(168,85,247,.2);color:#c4b5fd;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 18%</span>
                             <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 4%</span>
                         </div>
                     </div>
@@ -4055,7 +4060,7 @@ function buildShop(){
                     <div style="flex:1">
                         <div style="font-weight:800;font-size:1rem;margin-bottom:2px">ไข่การันตีตำนาน <span style="font-size:0.62rem;color:#f59e0b;background:#fffbeb;padding:1px 6px;border-radius:8px;font-weight:700">Admin</span></div>
                         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
-                            <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 100%</span>
+                            <span style="background:rgba(245,158,11,.2);color:#fcd34d;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 100%</span>
                         </div>
                     </div>
                     <button class="btn-gold" onclick="buyGuaranteedEgg()" ${(userData?.coins||0)>=20000?'':'disabled'} style="white-space:nowrap">20000🪙</button>
@@ -4065,8 +4070,8 @@ function buildShop(){
                     <div style="flex:1">
                         <div style="font-weight:800;font-size:1rem;margin-bottom:2px">ไข่ตำนาน <span style="font-size:0.62rem;color:#d97706;background:#fffbeb;padding:1px 6px;border-radius:8px;font-weight:700">ระดับสูง</span></div>
                         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
-                            <span style="background:#eff6ff;color:#3b82f6;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 35%</span>
-                            <span style="background:#faf5ff;color:#a855f7;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 45%</span>
+                            <span style="background:rgba(59,130,246,.2);color:#93c5fd;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 35%</span>
+                            <span style="background:rgba(168,85,247,.2);color:#c4b5fd;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 45%</span>
                             <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 20%</span>
                         </div>
                     </div>
@@ -5092,10 +5097,10 @@ function _showCCFinal() {
     overlay.id = 'cc-final-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9001;display:flex;align-items:center;justify-content:center;padding:24px;';
     overlay.innerHTML = `
-    <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:360px;width:100%;text-align:center">
-        <div style="font-size:1.1rem;font-weight:800;color:#1e293b;margin-bottom:12px">หมดครับ...</div>
-        <div style="font-size:0.88rem;color:#475569;line-height:1.7;margin-bottom:22px">จริงๆ คือยังไม่ได้ทำครับ<br>แยกย้ายกันไปฝึกงานก่อนนะ</div>
-        <button onclick="document.getElementById('cc-final-overlay')?.remove()" style="background:#1e293b;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-family:inherit;font-size:0.88rem;font-weight:700;cursor:pointer">โอเค...</button>
+    <div style="background:linear-gradient(160deg,#1e1b4b,#0f172a);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;text-align:center">
+        <div style="font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:12px">หมดครับ...</div>
+        <div style="font-size:0.88rem;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:22px">จริงๆ คือยังไม่ได้ทำครับ<br>แยกย้ายกันไปฝึกงานก่อนนะ</div>
+        <button onclick="document.getElementById('cc-final-overlay')?.remove()" style="background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;border:none;border-radius:10px;padding:11px 28px;font-family:inherit;font-size:0.88rem;font-weight:700;cursor:pointer">โอเค...</button>
     </div>`;
     document.body.appendChild(overlay);
 }
