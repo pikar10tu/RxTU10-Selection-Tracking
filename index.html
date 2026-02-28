@@ -84,7 +84,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:linear-gradient(
 .rarity-chip{padding:4px 9px;border-radius:20px;font-size:0.65rem;font-weight:700;border:1px solid;}
 /* egg section */
 .egg-section-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0 7px;}
-.egg-section-head span{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+.egg-section-head span{font-size:0.72rem;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:1.5px;text-transform:uppercase;}
 /* inv upgrade — defined below in Inventory section */
 /* pet badge effects */
 
@@ -162,7 +162,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:linear-gradient(
 .lb-me{background:rgba(251,191,36,.1) !important;border-top-color:rgba(251,191,36,.2) !important;}
 
 /* ── SHOP ── */@keyframes wobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}.egg-bag-item{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;background:var(--rb,rgba(255,255,255,.05));border:1.5px solid var(--rc,rgba(255,255,255,.1));margin-bottom:8px;}
-.hatch-bar{height:5px;background:var(--border);border-radius:8px;overflow:hidden;margin:4px 0 2px;}
+.hatch-bar{height:5px;background:rgba(255,255,255,.1);border-radius:8px;overflow:hidden;margin:4px 0 2px;}
 .hatch-fill{height:100%;border-radius:8px;transition:width .3s;}
 
 /* ── MODALS ── */
@@ -1925,13 +1925,13 @@ let __calcTool=null;
 window.openCalc=()=>{ __calcTool=null; document.getElementById('calc-panel').classList.add('active'); _renderCalcBody(); };
 window.closeCalc=()=>{ document.getElementById('calc-panel').classList.remove('active'); };
 
-function _renderCalcBody(){
+window._renderCalcBody=function _renderCalcBody(){
     const el=document.getElementById('calc-body'); if(!el) return;
     if(!__calcTool){ _renderCalcMenu(el); return; }
     _renderCalcForm(el, __calcTool);
 }
 
-function _renderCalcMenu(el){
+window._renderCalcMenu=function _renderCalcMenu(el){
     el.innerHTML=`
         <div class="calc-grid">
             ${CALC_TOOLS.map(t=>`
@@ -1943,7 +1943,7 @@ function _renderCalcMenu(el){
         </div>`;
 }
 
-function _renderCalcForm(el, id){
+window._renderCalcForm=function _renderCalcForm(el, id){
     const t=CALC_TOOLS.find(x=>x.id===id);
     const backBtn=`<button onclick="__calcTool=null;_renderCalcBody()" style="background:none;border:none;color:rgba(255,255,255,.5);font-family:inherit;font-size:0.8rem;cursor:pointer;padding:0;margin-bottom:12px;display:flex;align-items:center;gap:4px">‹ กลับ</button>`;
     const title=`<div style="font-size:1rem;font-weight:800;margin-bottom:12px">${t.icon} ${t.name} <span style="font-size:0.62rem;color:rgba(255,255,255,.35);font-weight:400">${t.desc}</span></div>`;
@@ -2041,7 +2041,7 @@ function _renderCalcForm(el, id){
 }
 
 // ── Calculation functions ──────────────────────────────────────────
-function _showCalcResult(val, unit, sub=''){
+window._showCalcResult=function _showCalcResult(val, unit, sub=''){
     const el=document.getElementById('calc-result');
     if(!el) return;
     el.className='calc-result show';
@@ -2686,7 +2686,7 @@ function buildHome(){
         <div class="card">${eggs.map(egg=>{
             const hatching=!!egg.startedAt;const done=hatching&&(now>=egg.startedAt+egg.hatchMins*60000);
             // ซ่อน rarity จนกว่าจะฟักเสร็จ — แสดงแค่เวลาฟัก
-            const cfg={color:'var(--muted)',bg:'#f1f5f9',label:'???'}; // ซ่อน rarity ก่อนเปิด
+            const cfg={color:'rgba(255,255,255,.4)',bg:'rgba(255,255,255,.05)',label:'???'}; // ซ่อน rarity ก่อนเปิด
             let timeLeft='';if(hatching&&!done){const ms=(egg.startedAt+egg.hatchMins*60000)-now;const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);const s=Math.floor((ms%60000)/1000);timeLeft=h>0?`${h}ชม ${m}น`:m>0?`${m}น ${s}ว`:`${s}ว`;}
             const pct=hatching&&!done?Math.min(100,Math.floor((now-egg.startedAt)/(egg.hatchMins*60000)*100)):0;
             const eggEmoji=egg.eggType==='star'?'🌠':egg.eggType==='glow'?'🌐':egg.eggType==='guaranteed'?'🎁':'🥚';
@@ -2789,7 +2789,7 @@ function _buildMembersTopBar(){
             + '<div>'
             + '<div style="font-size:0.58rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px">PLE-CC</div>'
             + '<div style="font-size:1.2rem;font-weight:800;color:#f87171;line-height:1">'+diffDays+' <span style="font-size:0.7rem;font-weight:600">วัน</span></div>'
-            + '<div style="font-size:0.55rem;color:rgba(255,255,255,.3);margin-top:1px">11 ธ.ค. 2568</div>'
+            + '<div style="font-size:0.55rem;color:rgba(255,255,255,.3);margin-top:1px">11 ธ.ค. 2569</div>'
             + '</div></div>';
     } else if(diffDays === 0){
         pleHtml = '<div style="flex:1;background:linear-gradient(135deg,rgba(239,68,68,.3),rgba(220,38,38,.2));border:1.5px solid rgba(239,68,68,.5);border-radius:14px;padding:10px 12px;text-align:center"><div style="font-size:0.72rem;font-weight:800;color:#f87171">🚨 วันนี้คือวันสอบ PLE-CC!</div></div>';
@@ -5547,4 +5547,3 @@ window.toast=(msg,type='info',duration=2800)=>{const t=document.getElementById('
 </div>
 </body>
 </html>
-
