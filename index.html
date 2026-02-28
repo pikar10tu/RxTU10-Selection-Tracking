@@ -772,6 +772,36 @@ function rollPetFromStarEgg(){
     const p=pool[Math.floor(Math.random()*pool.length)];
     return{...p, instId:`${p.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`};
 }
+
+/** rollPetFromGuaranteedEgg() → Legendary 100% */
+function rollPetFromGuaranteedEgg(){
+    const pool=PETS.filter(p=>p.rarity==='legendary');
+    const p=pool[Math.floor(Math.random()*pool.length)];
+    return{...p, instId:`${p.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`};
+}
+
+window.buyGuaranteedEgg=async()=>{
+    if(!currentUser){toast('กรุณา Login ก่อน','error');return;}
+    const cost=20000;
+    if((userData?.coins||0)<cost){toast(`เหรียญไม่พอ! ต้องการ ${cost}🪙`,'error');return;}
+    if(!await _confirm(`🎁 ไข่การันตีตำนาน\nราคา ${cost}🪙\n\nLegendary 100% รับประกัน!\n\nยืนยันซื้อ?`))return;
+    const pet=rollPetFromGuaranteedEgg();
+    const egg={
+        eggId:`gtd_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        eggType:'guaranteed', petId:pet.id, petEmoji:pet.emoji,
+        petName:pet.name, petRarity:pet.rarity,
+        petInstId:pet.instId, hatchMins:1, startedAt:null,
+    };
+    window.__blockSnapshot=true;
+    userData={...userData, coins:(userData.coins||0)-cost, eggs:[...(userData.eggs||[]),egg]};
+    renderAll();
+    try{
+        await updateDoc(doc(db,'users',currentUser.uid),{coins:increment(-cost),eggs:arrayUnion(egg)});
+        await window._spendCoins(cost);
+    }catch(e){toast('ซื้อไม่สำเร็จ','error');}
+    finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
+    toast('🎁 ได้รับไข่การันตีตำนานแล้ว! ⭐ Legendary รอฟัก!','success');
+};
 window.buyStarEgg=async()=>{
     if(!currentUser){toast('กรุณา Login ก่อน','error');return;}
     const cost=3000;
@@ -791,6 +821,7 @@ window.buyStarEgg=async()=>{
         await updateDoc(doc(db,'users',currentUser.uid),{coins:increment(-cost), eggs:arrayUnion(egg)});
     }catch(e){toast('ซื้อไม่สำเร็จ','error');}
     finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
+    await window._spendCoins(cost);
     toast(`🌠 ได้รับไข่ตำนานแล้ว! ${pet.rarity==='legendary'?'⭐ Legendary!':'🟣 Epic'}...`,'success');
 };
 window.buyGlowEgg=async()=>{
@@ -819,6 +850,7 @@ window.buyGlowEgg=async()=>{
         });
     }catch(e){toast('ซื้อไม่สำเร็จ','error');}
     finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
+    await window._spendCoins(cost);
     toast(`🌐 ได้รับไข่เรืองแสงแล้ว! ${pet.rarity==='legendary'?'⭐ Legendary!! ✨':pet.rarity==='epic'?'🟣 Epic!':'💎 Rare'}...`,'success');
 };
 /** rollPetFromEgg(eggType) → pet object with instId
@@ -1017,7 +1049,7 @@ window.logoutUser=()=>{
  */
 async function ensureDoc(u){
     const ref=doc(db,"users",u.uid);const snap=await getDoc(ref);
-    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:2000,pets:[],eggs:[],activePet:null,activePets:[null,null,null],pvpVictories:0,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,ctHigh:0,towerFloor:1,towerBest:0,towerLastReset:null,lastDaily:null,contact:{phone:'',ig:'',line:''},likes:0,likedBy:{},createdAt:serverTimestamp()});
+    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:2000,pets:[],eggs:[],activePet:null,activePets:[null,null,null],pvpVictories:0,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,ctHigh:0,towerFloor:1,towerBest:0,towerLastReset:null,lastDaily:null,contact:{phone:'',ig:'',line:''},likes:0,likedBy:{},totalSpent:0,createdAt:serverTimestamp()});
 }
 
 onAuthStateChanged(auth,async u=>{
@@ -1410,12 +1442,12 @@ window.confirmLink=async()=>{
         all.forEach(d=>{if(d.data().studentId===sid&&d.id!==currentUser.uid)claimed=true;});
     }
     if(claimed){toast("รหัสนี้ถูกใช้แล้ว","error");if(confirmBtn)confirmBtn.disabled=false;return;}
-    // Welcome package: ไข่เรืองแสง 1 + ไข่ธรรมดา 3 + เงิน 2000
-    const _mkNormalEgg=()=>{const p=rollPetFromEgg('normal');return{eggId:`welcome_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,eggType:'normal',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:1,startedAt:null};};
-    const _mkGlowEgg=()=>{const p=rollPetFromGlowEgg();return{eggId:`glow_welcome_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,eggType:'glow',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:1,startedAt:null};};
-    const welcomeEggs=[_mkGlowEgg(),_mkNormalEgg(),_mkNormalEgg(),_mkNormalEgg()];
-    await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track,coins:increment(2000),eggs:arrayUnion(...welcomeEggs)});
-    closeLinkModal();toast(`ยินดีต้อนรับ ${found.nickname}! 🎁 ไข่เรืองแสง×1 ไข่ธรรมดา×3 เหรียญ 2000🪙!`,"success");
+    // Welcome package: ไข่ตำนาน×5 + ไข่การันตีตำนาน×1 + 5000🪙
+    const _mkStarEgg=()=>{const p=rollPetFromStarEgg();return{eggId:`star_welcome_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,eggType:'star',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:2,startedAt:null};};
+    const _mkGtdEgg=()=>{const p=rollPetFromGuaranteedEgg();return{eggId:`gtd_welcome_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,eggType:'guaranteed',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:1,startedAt:null};};
+    const welcomeEggs=[_mkStarEgg(),_mkStarEgg(),_mkStarEgg(),_mkStarEgg(),_mkStarEgg(),_mkGtdEgg()];
+    await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track,coins:increment(5000),eggs:arrayUnion(...welcomeEggs)});
+    closeLinkModal();toast(`ยินดีต้อนรับ ${found.nickname}! 🎁 ไข่ตำนาน×5 + ไข่การันตีตำนาน×1 + 5000🪙!`,"success");
     confetti({particleCount:150,spread:80,origin:{y:0.5}});
     await postNews("🔗",`ยินดีต้อนรับ ${found.nickname} เข้าสู่ RxTU10 Dashboard! 🎉`);
 };
@@ -1473,6 +1505,7 @@ window.buyEgg=async(eggType='pet')=>{
     const pet=rollPetFromEgg(eggType);
     const egg={eggId:Date.now()+'_'+Math.random().toString(36).slice(2),eggType,petId:pet.id,petEmoji:pet.emoji,petName:pet.name,petRarity:pet.rarity,petInstId:pet.instId,hatchMins:pet.hatchMins,startedAt:null};
     await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(-et.cost),eggs:arrayUnion(egg)});
+    await window._spendCoins(et.cost);
     toast(`${et.label} ได้แล้ว! ไปฟักใน Inventory 🥚`,"success");
 };
 // ซื้อ Instant Hatch Ticket เก็บไว้ใช้ทีหลัง
@@ -1818,7 +1851,7 @@ window.answerQ=async(btn,ans)=>{
     if(ans===qAnswer){
         qScore++;
         const qs=document.getElementById('q-score');qs.textContent=qScore;qs.classList.remove('score-flash');void qs.offsetWidth;qs.classList.add('score-flash');
-        await window.awardCoins(10,'__qCoinsEarned');
+        await window.awardCoins(20,'__qCoinsEarned');
         confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#10b981']});
         setTimeout(nextQ,700);
     } else {
@@ -1866,7 +1899,7 @@ window.answerDQ=async(btn,ans)=>{
     if(ans===dqAnswer){
         dqScore++;
         const ds=document.getElementById('dq-score');ds.textContent=dqScore;ds.classList.remove('score-flash');void ds.offsetWidth;ds.classList.add('score-flash');
-        await window.awardCoins(10,'__dqCoinsEarned');confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#818cf8','#a5b4fc']});
+        await window.awardCoins(20,'__dqCoinsEarned');confetti({particleCount:25,spread:50,origin:{y:0.7},colors:['#818cf8','#a5b4fc']});
         setTimeout(nextDQ,700);
     } else {
         const finalScore=dqScore;
@@ -2082,8 +2115,8 @@ function buildHome(){
             const cfg={color:'var(--muted)',bg:'#f1f5f9',label:'???'}; // ซ่อน rarity ก่อนเปิด
             let timeLeft='';if(hatching&&!done){const ms=(egg.startedAt+egg.hatchMins*60000)-now;const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);const s=Math.floor((ms%60000)/1000);timeLeft=h>0?`${h}ชม ${m}น`:m>0?`${m}น ${s}ว`:`${s}ว`;}
             const pct=hatching&&!done?Math.min(100,Math.floor((now-egg.startedAt)/(egg.hatchMins*60000)*100)):0;
-            const eggEmoji=egg.eggType==='star'?'🌠':egg.eggType==='glow'?'🌐':'🥚';
-            const eggLabel=egg.eggType==='star'?'ไข่ตำนาน 🌠':egg.eggType==='glow'?'ไข่เรืองแสง 🌐':'ไข่ปริศนา 🔮';
+            const eggEmoji=egg.eggType==='star'?'🌠':egg.eggType==='glow'?'🌐':egg.eggType==='guaranteed'?'🎁':'🥚';
+            const eggLabel=egg.eggType==='star'?'ไข่ตำนาน 🌠':egg.eggType==='glow'?'ไข่เรืองแสง 🌐':egg.eggType==='guaranteed'?'ไข่การันตีตำนาน 🎁':'ไข่ปริศนา 🔮';
             return`<div class="egg-bag-item" style="--rc:${cfg.color};--rb:${cfg.bg}">
                 <div style="font-size:2rem;flex-shrink:0">${done?'❓':eggEmoji}</div>
                 <div style="flex:1;min-width:0">
@@ -2143,7 +2176,7 @@ function buildHome(){
             <span style="font-size:0.6rem;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:1px">เรียงโดย</span>
             ${sortBtns}
           </div>
-          <div class="inv-grid">${sortedPets.map(p=>{const cfg=RARITY[p.rarity];const _activePetSlots=(userData?.activePets||[]);const _slotIdx=_activePetSlots.findIndex(id=>id&&String(id)===String(p.instId||p.id));const on=_slotIdx>=0;const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${formatPetName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}${gr>0?' '+GRADE_LABELS[gr]:''}${(p.refine||0)>0?` +${p.refine}`:''}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?`<div class="inv-on" style="font-size:0.5rem">${_slotIdx+1}</div>`:''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
+          <div class="inv-grid">${sortedPets.map(p=>{const cfg=RARITY[p.rarity];const _activePetSlots=(userData?.activePets||[]);const _slotIdx=_activePetSlots.findIndex(id=>id&&String(id)===String(p.instId||p.id));const on=_slotIdx>=0;const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${formatPetName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?`<div class="inv-on" style="font-size:0.5rem">${_slotIdx+1}</div>`:''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
         <div style="display:flex;gap:7px;justify-content:center;margin-top:8px;flex-wrap:wrap">
             
             ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
@@ -2952,7 +2985,7 @@ function buildQuizBody(){
             <div class="game-start">
                 <span class="game-start-icon">🕵️</span>
                 <div class="game-start-hi">High Score: ${qHigh} คะแนน</div>
-                <div class="game-start-desc" id="q-msg">เห็นชื่อเล่น → ทายชื่อจริง<br>ตอบถูกต่อเนื่อง +10🪙/ข้อ</div>
+                <div class="game-start-desc" id="q-msg">เห็นชื่อเล่น → ทายชื่อจริง<br>ตอบถูกต่อเนื่อง +20🪙/ข้อ</div>
                 <button class="btn-play" onclick="startQuiz()">▶ เริ่มเกม</button>
             </div>
         </div>
@@ -2981,7 +3014,7 @@ function buildDrugBody(){
             <div class="game-start">
                 <span class="game-start-icon">💊</span>
                 <div class="game-start-hi">High Score: ${dqHigh} คะแนน</div>
-                <div class="game-start-desc" id="dq-msg">เห็นชื่อยา → ทาย Drug Class<br>ตอบถูกต่อเนื่อง +10🪙/ข้อ</div>
+                <div class="game-start-desc" id="dq-msg">เห็นชื่อยา → ทาย Drug Class<br>ตอบถูกต่อเนื่อง +20🪙/ข้อ</div>
                 <button class="btn-play" onclick="startDrugQuiz()">▶ เริ่มเกม</button>
             </div>
         </div>
@@ -3003,7 +3036,7 @@ function buildDrugBody(){
 const CT_LANES   = 3;
 const CT_ROWS    = 6;       // visible rows
 const CT_COLORS  = ['0','1','2']; // 0=Red 1=Green 2=Blue
-const CT_COIN_PER_SCORE = 2;
+const CT_COIN_PER_SCORE = 5;
 const CT_TIME_START = 5.0;  // วินาทีเริ่มต้น
 const CT_TIME_MIN   = 1.0;  // ขั้นต่ำ
 const CT_TIME_STEP  = 0.1;  // ลดทุก 5 คะแนน
@@ -3446,7 +3479,7 @@ function _renderForgeBody(){
                         <div style="font-size:2.5rem;filter:drop-shadow(0 0 8px ${cfg.glow})">${p.emoji}</div>
                         <div>
                             <div style="font-size:0.9rem;font-weight:800;color:#fff">${formatPetName(p)}</div>
-                            <div style="font-size:0.7rem;color:${cfg.color}">${cfg.label}${p.grade>0?' · Grade '+GRADE_LABELS[p.grade]:''}</div>
+                            <div style="font-size:0.7rem;color:${cfg.color}">${cfg.label}</div>
                             <div style="font-size:0.78rem;margin-top:2px">
                                 <span style="color:rgba(255,255,255,.5)">ระดับปัจจุบัน: </span>
                                 <span style="color:${refineColor(r)};font-weight:800">${r>0?'+'+r:'ยังไม่ได้ตี'}</span>
@@ -3593,6 +3626,12 @@ function buildShop(){
     const coins=userData?.coins||0;const canMega=!!currentUser&&coins>=MEGA_COST;
     const owned=new Set((userData?.pets||[]).map(p=>p.id));
     const pendingEgg=(userData?.eggs||[]).some(e=>!e.startedAt);
+    const isAdmin=userData?.email===ADMIN_EMAIL;
+    const PITY=15000;
+    const totalSpent=userData?.totalSpent||0;
+    const pityProgress=totalSpent%PITY;
+    const pityPct=Math.min(100,pityProgress/PITY*100);
+    const pityReady=pityPct>=100;
     return`
         <div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
             <div>
@@ -3603,6 +3642,25 @@ function buildShop(){
             <div style="text-align:right">
                 <div style="font-size:0.68rem;color:rgba(255,255,255,.4);margin-bottom:4px">ซื้อไข่เพื่อฟักสัตว์เลี้ยง</div>
                 <div style="font-size:0.78rem;color:rgba(255,255,255,.5)">Normal → Rare → Epic → Legendary</div>
+            </div>
+        </div>
+        <!-- ใช้จ่ายสะสม progress bar -->
+        <div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:14px;padding:12px 16px;margin-bottom:10px;border:1px solid rgba(251,191,36,.15)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <div>
+                    <div style="font-size:0.68rem;color:#fbbf24;font-weight:800;letter-spacing:1px">🎁 ใช้จ่ายสะสม</div>
+                    <div style="font-size:0.6rem;color:rgba(255,255,255,.4);margin-top:1px">ทุก ${PITY.toLocaleString()}🪙 รับไข่การันตีตำนาน</div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-size:0.78rem;font-weight:800;color:#fff">${pityProgress.toLocaleString()} <span style="color:rgba(255,255,255,.3);font-size:0.62rem">/ ${PITY.toLocaleString()}</span></div>
+                    <div style="font-size:0.58rem;color:rgba(255,255,255,.35)">รวมใช้ไป ${totalSpent.toLocaleString()}🪙</div>
+                </div>
+            </div>
+            <div style="height:10px;background:rgba(255,255,255,.08);border-radius:50px;overflow:hidden;margin-bottom:8px">
+                <div style="width:${pityPct}%;height:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:50px;transition:width .5s ease"></div>
+            </div>
+            <div style="font-size:0.62rem;color:rgba(255,255,255,.4);text-align:center">
+                เหลืออีก ${Math.max(0,PITY-pityProgress).toLocaleString()}🪙 จะได้ไข่การันตีตำนานใบต่อไป
             </div>
         </div>
         <div class="card">
@@ -3633,6 +3691,16 @@ function buildShop(){
                     </div>
                     <button class="btn-gold" onclick="buyGlowEgg()" ${currentUser&&(userData?.coins||0)>=1200?'':'disabled'} style="white-space:nowrap">1200🪙</button>
                 </div>
+                ${isAdmin?`<div style="display:flex;align-items:center;gap:12px;padding-top:10px;border-top:1px solid var(--border)">
+                    <span style="font-size:3rem;animation:wobble 2s ease infinite;display:inline-block;filter:drop-shadow(0 0 18px rgba(251,191,36,1))">🎁</span>
+                    <div style="flex:1">
+                        <div style="font-weight:800;font-size:1rem;margin-bottom:2px">ไข่การันตีตำนาน <span style="font-size:0.62rem;color:#f59e0b;background:#fffbeb;padding:1px 6px;border-radius:8px;font-weight:700">Admin</span></div>
+                        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
+                            <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 100%</span>
+                        </div>
+                    </div>
+                    <button class="btn-gold" onclick="buyGuaranteedEgg()" ${(userData?.coins||0)>=20000?'':'disabled'} style="white-space:nowrap">20000🪙</button>
+                </div>`:``}
                 <div style="display:flex;align-items:center;gap:12px;padding-top:10px;border-top:1px solid var(--border)">
                     <span style="font-size:3rem;animation:wobble 3.5s ease infinite 1s;display:inline-block;filter:drop-shadow(0 0 14px rgba(245,158,11,.8))">🌠</span>
                     <div style="flex:1">
@@ -3964,12 +4032,12 @@ function _coreTick() {
                 if(typeof onEnd==='function') onEnd();
                 return;
             }
-            // Relay: next combatant enters
+            // Relay: next combatant enters → rebuild shell เพื่ออัปเดต emoji/ชื่อ/stats
             c[defKey] = nextIdx;
             const newcomer = defIsA ? c.sA[c.iA] : c.sB[c.iB];
             c.log.push(`⬆️ ${newcomer.pet.emoji} ${formatPetName(newcomer.pet)} ลงสนาม!`);
             c.whoseTurn = defIsA ? 0 : 1;
-            _coreRender();
+            _coreBuildShell(c); // force rebuild ให้ emoji/ชื่อ/stats ตัวใหม่
             // Enter bounce animation on new combatant
             setTimeout(()=>{ _corePlayEnter(deadSid); }, 80);
             setTimeout(()=>{ if(__core){ const _rLoop=()=>{ if(!__core||!__core.running)return; _coreTick(); if(__core?.running)__core.timer=setTimeout(_rLoop,c.cfg.tickMs); }; __core.timer=setTimeout(_rLoop,c.cfg.tickMs); } }, 520);
@@ -4169,11 +4237,19 @@ function _corePatch(c) {
         if(ind) ind.textContent=isAtt&&!isDead?'⚔️ โจมตี!':'';
         const em=document.getElementById('cem-'+sid);
         if(em){
+            // อัปเดต emoji เมื่อ relay เปลี่ยนตัว
+            if(em.textContent!==com.pet.emoji) em.textContent=com.pet.emoji;
             em.style.filter=`drop-shadow(0 0 ${isDead?'0px #0000':isAtt?'16px '+cfg.glow:'8px '+cfg.glow+'88'})`;
             em.style.opacity=isDead?'0.15':'1';
             em.style.animation=isAtt&&!isDead?'attackGlow .7s ease infinite':'';
         }
+        // อัปเดตชื่อและ HP max เมื่อตัวเปลี่ยน (relay)
         const nm=document.getElementById('cname-'+sid);
+        if(nm){
+            const elInfo=ELEMENTS[com.def?.element||PETS.find(x=>x.id===com.pet.id)?.element];
+            const newName=formatPetName(com.pet)+(elInfo?` <span style="font-size:.85rem">${elInfo.emoji}</span>`:'');
+            if(nm.innerHTML!==newName) nm.innerHTML=newName;
+        }
         if(nm) nm.style.color=isDead?'rgba(255,255,255,.3)':isAtt?'#fbbf24':'rgba(255,255,255,.85)';
         const bar=document.getElementById('chp-bar-'+sid);
         if(bar){bar.style.width=pct+'%';bar.style.background=hpCol(pct);}
@@ -4417,7 +4493,7 @@ window.startTowerBattle=()=>{
         titleExtra: (c)=>`ชั้น ${floor} · เทิร์น ${c.turn}`,
         onClose: ()=>closeTower(),
         renderResult:(c, weWon)=>{
-            const reward=floor<=towerBestAtStart?floor*5:floor*20;
+            const reward=500+(floor*10);
             const _title = weWon?'✅ ผ่านชั้น '+floor+' สำเร็จ!':'❌ พ่ายแพ้ที่ชั้น '+floor;
             const _sub   = weWon
                 ?'<div style="font-size:0.82rem;color:#fbbf24;margin-bottom:12px">+'+reward+'🪙</div>'
@@ -4440,7 +4516,7 @@ window.startTowerBattle=()=>{
 
 async function _towerOnWin(floor, bestAtStart){
     const isFirst=floor>bestAtStart;
-    const reward=isFirst?floor*20:floor*5;
+    const reward=500+(floor*10);
     const newFloor=floor+1;
     const newBest=Math.max(bestAtStart,floor);
     const newCoins=(userData?.coins||0)+reward;
