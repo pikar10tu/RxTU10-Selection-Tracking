@@ -875,12 +875,12 @@ function petDailyCoins(p){
     return base*GRADE_MULTI[g];
 }
 /** calcTotalDaily(pets) → {base, passive, total}
- *  base: login base (50🪙/day)
+ *  base: login base (1000🪙/day)
  *  passive: sum ของ petDailyCoins ทุกตัว
  *  total: base + passive */
 function calcTotalDaily(pets){
     const passive=(pets||[]).reduce((sum,p)=>sum+petDailyCoins(p),0);
-    return {base:50, passive, total:50+passive};
+    return {base:1000, passive, total:1000+passive};
 }
 
 
@@ -1049,7 +1049,7 @@ window.logoutUser=()=>{
  */
 async function ensureDoc(u){
     const ref=doc(db,"users",u.uid);const snap=await getDoc(ref);
-    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:2000,pets:[],eggs:[],activePet:null,activePets:[null,null,null],pvpVictories:0,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,ctHigh:0,towerFloor:1,towerBest:0,towerLastReset:null,lastDaily:null,contact:{phone:'',ig:'',line:''},likes:0,likedBy:{},totalSpent:0,createdAt:serverTimestamp()});
+    if(!snap.exists())await setDoc(ref,{uid:u.uid,name:u.displayName,email:u.email,googlePhoto:u.photoURL,customPhoto:null,coins:2000,pets:[],eggs:[],activePet:null,activePets:[null,null,null],pvpVictories:0,studentId:null,nickname:null,realName:null,track:null,quizHigh:0,drugHigh:0,ctHigh:0,towerFloor:1,towerBest:0,towerLastReset:null,lastDaily:null,contact:{phone:'',ig:'',line:''},likes:0,likedBy:{},totalSpent:0,pityClaimedRounds:0,createdAt:serverTimestamp()});
 }
 
 onAuthStateChanged(auth,async u=>{
@@ -1124,6 +1124,49 @@ window.claimDaily=async()=>{
 //  DAILY BREAKDOWN MODAL
 // ════════════════════════════════════════
 window.closeDailyModal=()=>document.getElementById('daily-modal').classList.remove('active');
+
+window.openDailyDetail=()=>{
+    if(!currentUser||!userData){toast('กรุณา Login ก่อน','error');return;}
+    const {base,passive,total}=calcTotalDaily(userData?.pets||[]);
+    const pets=userData?.pets||[];
+    const petRows=pets.length===0
+        ?'<div style="color:rgba(255,255,255,.35);font-size:0.76rem;text-align:center;padding:8px 0">ยังไม่มีสัตว์เลี้ยง</div>'
+        :pets.sort((a,b)=>petDailyCoins(b)-petDailyCoins(a)).map(p=>{
+            const cfg=RARITY[p.rarity];
+            const coins=petDailyCoins(p);
+            return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+                <span style="font-size:1.3rem">${p.emoji}</span>
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:0.78rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${formatPetName(p)}</div>
+                    <div style="font-size:0.62rem;color:${cfg.color}">${cfg.label}</div>
+                </div>
+                <div style="font-size:0.82rem;font-weight:800;color:#6ee7b7;white-space:nowrap">+${coins}🪙</div>
+            </div>`;
+        }).join('');
+    const content=document.getElementById('daily-content');
+    if(content) content.innerHTML=`
+        <div style="padding:4px 0">
+            <div style="font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:14px;text-align:center">📊 รายละเอียดรายได้รายวัน</div>
+            <div style="background:rgba(255,255,255,.06);border-radius:12px;padding:10px 14px;margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0">
+                    <span style="font-size:0.78rem;color:rgba(255,255,255,.6)">🏅 รายได้ฐาน</span>
+                    <span style="font-size:0.88rem;font-weight:800;color:#fbbf24">+${base.toLocaleString()}🪙</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid rgba(255,255,255,.06)">
+                    <span style="font-size:0.78rem;color:rgba(255,255,255,.6)">🐾 รายได้จากสัตว์เลี้ยง (${pets.length} ตัว)</span>
+                    <span style="font-size:0.88rem;font-weight:800;color:#6ee7b7">+${passive.toLocaleString()}🪙</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 4px;border-top:2px solid rgba(255,255,255,.12);margin-top:2px">
+                    <span style="font-size:0.82rem;font-weight:700;color:#fff">รวมทั้งหมด</span>
+                    <span style="font-size:1rem;font-weight:800;color:#fff">+${total.toLocaleString()}🪙</span>
+                </div>
+            </div>
+            <div style="font-size:0.72rem;font-weight:700;color:rgba(255,255,255,.45);margin-bottom:8px">รายได้จากสัตว์เลี้ยง</div>
+            <div style="max-height:260px;overflow-y:auto">${petRows}</div>
+            <button onclick="closeDailyModal()" style="width:100%;margin-top:14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);padding:10px;border-radius:12px;font-family:inherit;font-size:0.84rem;cursor:pointer">ปิด</button>
+        </div>`;
+    document.getElementById('daily-modal').classList.add('active');
+};
 
 // ════════════════════════════════════════
 //  UPGRADE SELECT MODAL
@@ -2091,6 +2134,7 @@ function buildHome(){
                     <button id="daily-claim-btn" onclick="claimDaily()" style="background:linear-gradient(135deg,#059669,#047857);border:none;border-radius:8px;padding:3px 9px;color:#fff;font-family:inherit;font-size:0.65rem;font-weight:800;cursor:pointer;white-space:nowrap;transition:.2s;line-height:1.4">💰 รับ</button>
                 </div>
                 <div style="font-size:0.62rem;color:rgba(255,255,255,.3)" id="daily-claim-status">ต่อวัน</div>
+                <div style="font-size:0.6rem;color:rgba(255,255,255,.25);margin-top:3px;cursor:pointer;text-decoration:underline;text-underline-offset:2px" onclick="openDailyDetail()">ดูรายละเอียด</div>
             </div>
         </div>
         <div class="coll-bar-bg"><div class="coll-bar-fill" style="width:${pct}%"></div></div>
@@ -3622,37 +3666,47 @@ function buildTowerLb(){
 // ════════════════════════════════════════
 // ▶ TAB BUILDERS — SHOP
 // ════════════════════════════════════════
-/** _spendCoins(amount) — บันทึกยอดใช้จ่ายสะสม และ check pity reward */
+/** _spendCoins(amount) — บันทึกยอดใช้จ่ายสะสม (ไม่ให้รางวัลทันที ต้องกดรับเอง) */
 window._spendCoins=async(amount)=>{
     if(!currentUser||!userData||amount<=0) return;
     const prev=userData?.totalSpent||0;
     const next=prev+amount;
-    const PITY=15000;
-    const prevRewards=Math.floor(prev/PITY);
-    const newRewards=Math.floor(next/PITY);
-    const got=newRewards-prevRewards;
-    const remaining=next%PITY;
-    const updates={totalSpent:next};
-    if(got>0){
-        const newEggs=[...(userData?.eggs||[])];
-        for(let k=0;k<got;k++){
-            const p=rollPetFromGuaranteedEgg();
-            newEggs.push({eggId:`pity_${Date.now()}_${k}_${Math.random().toString(36).slice(2,6)}`,eggType:'guaranteed',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:1,startedAt:null});
-        }
-        updates.eggs=newEggs;
-        window.__blockSnapshot=true;
-        userData={...userData,totalSpent:next,eggs:newEggs};
-        renderAll();
-        setTimeout(()=>{window.__blockSnapshot=false;},1500);
-        toast(`🎁 ยอดใช้จ่ายครบ! ได้ไข่การันตีตำนาน ${got} ใบ! (สะสมเหลือ ${remaining.toLocaleString()}/${PITY.toLocaleString()})`, 'success');
-        if(typeof confetti==='function') confetti({particleCount:80,spread:70,origin:{y:0.5},scalar:0.9});
-    } else {
-        window.__blockSnapshot=true;
-        userData={...userData,totalSpent:next};
-        setTimeout(()=>{window.__blockSnapshot=false;},200);
-    }
-    try{ await updateDoc(doc(db,'users',currentUser.uid),updates); }
+    window.__blockSnapshot=true;
+    userData={...userData,totalSpent:next};
+    setTimeout(()=>{window.__blockSnapshot=false;},200);
+    try{ await updateDoc(doc(db,'users',currentUser.uid),{totalSpent:next}); }
     catch(e){ console.error('spendCoins save',e); }
+    // refresh shop ถ้า tab shop เปิดอยู่
+    if(document.querySelector('.tab-btn.active')?.dataset?.tab==='shop'){
+        const main=document.getElementById('main-content');
+        if(main&&typeof buildShop==='function') main.innerHTML=buildShop();
+    }
+};
+
+/** claimPityReward() — กดรับไข่การันตีตำนานจากยอดใช้จ่ายสะสม */
+window.claimPityReward=async()=>{
+    if(!currentUser||!userData) return;
+    const PITY=15000;
+    const totalSpent=userData?.totalSpent||0;
+    const claimedRounds=userData?.pityClaimedRounds||0;
+    const earnedRounds=Math.floor(totalSpent/PITY);
+    const pending=earnedRounds-claimedRounds;
+    if(pending<=0){ toast('ยังไม่ครบยอด','info'); return; }
+    const newEggs=[...(userData?.eggs||[])];
+    for(let k=0;k<pending;k++){
+        const p=rollPetFromGuaranteedEgg();
+        newEggs.push({eggId:`pity_${Date.now()}_${k}_${Math.random().toString(36).slice(2,6)}`,eggType:'guaranteed',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:1,startedAt:null});
+    }
+    const newClaimed=claimedRounds+pending;
+    window.__blockSnapshot=true;
+    userData={...userData,eggs:newEggs,pityClaimedRounds:newClaimed};
+    renderAll();
+    setTimeout(()=>{window.__blockSnapshot=false;},1500);
+    try{
+        await updateDoc(doc(db,'users',currentUser.uid),{eggs:arrayUnion(...newEggs.slice(-pending)),pityClaimedRounds:newClaimed});
+    }catch(e){ toast('บันทึกผิดพลาด','error'); return; }
+    toast(`🎁 รับไข่การันตีตำนาน ${pending} ใบแล้ว! ⭐`,'success');
+    if(typeof confetti==='function') confetti({particleCount:100,spread:70,origin:{y:0.5},scalar:0.9});
 };
 
 function buildShop(){
@@ -3662,9 +3716,11 @@ function buildShop(){
     const isAdmin=userData?.email===ADMIN_EMAIL;
     const PITY=15000;
     const totalSpent=userData?.totalSpent||0;
+    const claimedRounds=userData?.pityClaimedRounds||0;
+    const earnedRounds=Math.floor(totalSpent/PITY);
+    const pendingPity=earnedRounds-claimedRounds;
     const pityProgress=totalSpent%PITY;
     const pityPct=Math.min(100,pityProgress/PITY*100);
-    const pityReady=pityPct>=100;
     return`
         <div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
             <div>
@@ -3692,8 +3748,13 @@ function buildShop(){
             <div style="height:10px;background:rgba(255,255,255,.08);border-radius:50px;overflow:hidden;margin-bottom:8px">
                 <div style="width:${pityPct}%;height:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:50px;transition:width .5s ease"></div>
             </div>
-            <div style="font-size:0.62rem;color:rgba(255,255,255,.4);text-align:center">
-                เหลืออีก ${Math.max(0,PITY-pityProgress).toLocaleString()}🪙 จะได้ไข่การันตีตำนานใบต่อไป
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px">
+                <div style="font-size:0.6rem;color:rgba(255,255,255,.35)">
+                    ${pendingPity>0?`มี <b style="color:#fbbf24">${pendingPity} ใบ</b> รอรับ!`:`เหลืออีก ${Math.max(0,PITY-pityProgress).toLocaleString()}🪙`}
+                </div>
+                ${pendingPity>0
+                    ?`<button onclick="claimPityReward()" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:9px;padding:5px 14px;color:#fff;font-family:inherit;font-size:0.72rem;font-weight:800;cursor:pointer;animation:wobble 1.5s ease infinite">🎁 กดรับ ${pendingPity} ใบ!</button>`
+                    :`<div style="font-size:0.58rem;color:rgba(255,255,255,.2)">ครบ ${PITY.toLocaleString()}🪙 = 1 ใบ</div>`}
             </div>
         </div>
         <div class="card">
