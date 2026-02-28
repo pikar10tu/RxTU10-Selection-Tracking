@@ -3622,6 +3622,39 @@ function buildTowerLb(){
 // ════════════════════════════════════════
 // ▶ TAB BUILDERS — SHOP
 // ════════════════════════════════════════
+/** _spendCoins(amount) — บันทึกยอดใช้จ่ายสะสม และ check pity reward */
+window._spendCoins=async(amount)=>{
+    if(!currentUser||!userData||amount<=0) return;
+    const prev=userData?.totalSpent||0;
+    const next=prev+amount;
+    const PITY=15000;
+    const prevRewards=Math.floor(prev/PITY);
+    const newRewards=Math.floor(next/PITY);
+    const got=newRewards-prevRewards;
+    const remaining=next%PITY;
+    const updates={totalSpent:next};
+    if(got>0){
+        const newEggs=[...(userData?.eggs||[])];
+        for(let k=0;k<got;k++){
+            const p=rollPetFromGuaranteedEgg();
+            newEggs.push({eggId:`pity_${Date.now()}_${k}_${Math.random().toString(36).slice(2,6)}`,eggType:'guaranteed',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:1,startedAt:null});
+        }
+        updates.eggs=newEggs;
+        window.__blockSnapshot=true;
+        userData={...userData,totalSpent:next,eggs:newEggs};
+        renderAll();
+        setTimeout(()=>{window.__blockSnapshot=false;},1500);
+        toast(`🎁 ยอดใช้จ่ายครบ! ได้ไข่การันตีตำนาน ${got} ใบ! (สะสมเหลือ ${remaining.toLocaleString()}/${PITY.toLocaleString()})`, 'success');
+        if(typeof confetti==='function') confetti({particleCount:80,spread:70,origin:{y:0.5},scalar:0.9});
+    } else {
+        window.__blockSnapshot=true;
+        userData={...userData,totalSpent:next};
+        setTimeout(()=>{window.__blockSnapshot=false;},200);
+    }
+    try{ await updateDoc(doc(db,'users',currentUser.uid),updates); }
+    catch(e){ console.error('spendCoins save',e); }
+};
+
 function buildShop(){
     const coins=userData?.coins||0;const canMega=!!currentUser&&coins>=MEGA_COST;
     const owned=new Set((userData?.pets||[]).map(p=>p.id));
@@ -4493,7 +4526,7 @@ window.startTowerBattle=()=>{
         titleExtra: (c)=>`ชั้น ${floor} · เทิร์น ${c.turn}`,
         onClose: ()=>closeTower(),
         renderResult:(c, weWon)=>{
-            const reward=500+(floor*10);
+            const reward=(floor<=towerBestAtStart)?(50+(floor*10)):(500+(floor*10));
             const _title = weWon?'✅ ผ่านชั้น '+floor+' สำเร็จ!':'❌ พ่ายแพ้ที่ชั้น '+floor;
             const _sub   = weWon
                 ?'<div style="font-size:0.82rem;color:#fbbf24;margin-bottom:12px">+'+reward+'🪙</div>'
@@ -4516,7 +4549,7 @@ window.startTowerBattle=()=>{
 
 async function _towerOnWin(floor, bestAtStart){
     const isFirst=floor>bestAtStart;
-    const reward=500+(floor*10);
+    const reward=isFirst?(500+(floor*10)):(50+(floor*10));
     const newFloor=floor+1;
     const newBest=Math.max(bestAtStart,floor);
     const newCoins=(userData?.coins||0)+reward;
