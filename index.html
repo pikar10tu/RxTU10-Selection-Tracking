@@ -654,9 +654,9 @@ const RARITY = {
 };
 
 // Grade: copies ที่ใช้อัพ และ multiplier (×2 ทุกขั้น)
-const GRADE_LABELS = ['','I','II','III','IV','V'];
-const GRADE_COPIES = [0,1,2,4,7,12]; // copies needed for each grade
-const GRADE_MULTI  = [1,2,4,8,16,32]; // ×base daily
+const GRADE_LABELS = ['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+const GRADE_COPIES = [0,1,1,1,1,2,2,2,2,3,3,3,3]; // copies needed for each grade (I-IV=1, V-VIII=2, IX-XII=3)
+const GRADE_MULTI  = [1.0,2.5,4.0,5.5,7.0,10.0,13.0,16.0,19.0,23.5,28.0,32.5,37.0]; // ×base daily (copies×1.5+1)
 
 
 // ── ELEMENT SYSTEM ──
@@ -680,7 +680,7 @@ const BASE_STATS = {
     legendary: { atk:25, hp:125 },
 };
 // Grade multiplier สำหรับ stats (อ่อนกว่า daily ×)
-const STAT_MULTI = [1.0, 1.3, 1.7, 2.2, 2.8, 3.5];
+const STAT_MULTI = [1.0, 1.3, 1.7, 2.2, 2.8, 3.5, 4.3, 5.2, 6.2, 7.3, 8.5, 9.8, 11.2];
 
 /** petStats(p) → {atk, hp}
  *  p: stored pet object {rarity, grade}
@@ -1196,7 +1196,7 @@ window.openUpgradeModal=async(petInstId)=>{
     }
     const cfg=RARITY[mainPet.rarity];
     const grade=mainPet.grade||0;
-    if(grade>=5){toast("Max Grade แล้ว!","info");return;}
+    if(grade>=12){toast("Max Grade แล้ว!","info");return;}
     const nextGrade=grade+1;
     const needed=GRADE_COPIES[nextGrade];
     // สัตว์เดียวกันที่ไม่ใช่ตัวหลัก
@@ -1292,7 +1292,11 @@ window.confirmUpgrade=async()=>{
     // refresh inventory view ถ้าเปิดอยู่
     if(window.__tab==='home') renderTab('home');
     const pet=newPets[mainIdx];
-    const ns=calculatePetStats({...pet,grade:newGrade});toast(`${pet.emoji} Grade ${GRADE_LABELS[newGrade]}! ATK ${ns.atk} · HP ${ns.hp} · +${RARITY[pet.rarity].dailyBase*GRADE_MULTI[newGrade]}🪙/วัน`,"success");
+    const ns=calculatePetStats({...pet,grade:newGrade});toast(`${pet.emoji} Grade ${GRADE_LABELS[newGrade]}! ATK ${ns.atk} · HP ${ns.hp} · +${RARITY[pet.rarity].dailyBase*GRADE_MULTI[newGrade]}🪙/วัน`,'success');
+    if(newGrade>=3 && typeof postNews==='function'){
+        const _uName=userData?.nickname||userData?.name||'ผู้เล่น';
+        await postNews('🧬',`${_uName} วิวัฒน์ ${pet.emoji} ถึง Grade ${GRADE_LABELS[newGrade]}! [${RARITY[pet.rarity].label}]`).catch(()=>{});
+    }
     confetti({particleCount:120,spread:70,origin:{y:0.5}});
 };
 
@@ -1610,8 +1614,8 @@ window.claimEgg=async(eggId)=>{
 function showDuplicatePopup(newPet,existing){
     const cfg=RARITY[newPet.rarity];
     const curGrade=existing.grade||0;
-    const nextGrade=Math.min(5,curGrade+1);
-    const canUpgrade=curGrade<5;
+    const nextGrade=Math.min(12,curGrade+1);
+    const canUpgrade=curGrade<12;
     const copiesOwned=(userData.pets||[]).filter(p=>p.id===newPet.id).length;
     const neededForNext=canUpgrade?GRADE_COPIES[nextGrade]:0;
     const canUpgradeNow=canUpgrade&&copiesOwned>=neededForNext+1;
@@ -1772,8 +1776,8 @@ window.showPetInfo=async(petInstId)=>{
     const daily=petDailyCoins(p);
     const stats=calculatePetStats(p);
     const copiesOwned=owned.filter(x=>x.id===p.id).length;
-    const isMax=grade>=5;
-    const nextGrade=Math.min(5,grade+1);
+    const isMax=grade>=12;
+    const nextGrade=Math.min(12,grade+1);
     const neededForNext=isMax?0:GRADE_COPIES[nextGrade];
     const totalNeeded=isMax?0:neededForNext+1;
     const canUpgrade=!isMax&&copiesOwned>=totalNeeded;
@@ -1812,7 +1816,7 @@ window.showPetInfo=async(petInstId)=>{
         +`<span style="font-size:1.1rem">${elInfo.emoji}</span>`
         +`<span>ชนะ <b style="color:#fbbf24">${ELEMENTS[elInfo.beats]?.emoji||''}</b> · แพ้ <b style="color:#f87171">${Object.values(ELEMENTS).find(e=>e.beats===el)?.emoji||''}</b></span></div>`:'')
         +`<div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">`
-        +`<button class="btn-gold full" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${(isMax||isOnExp)?'disabled':''}>🧬 ${isOnExp?'⏳ กำลังผจญภัย':'วิวัฒนาการยีน '+(isMax?'(Max Grade V)':'→ Grade '+GRADE_LABELS[nextGrade])}</button>`
+        +`<button class="btn-gold full" onclick="closePetInfo();openUpgradeModal('${p.instId||p.id}')" ${(isMax||isOnExp)?'disabled':''}>🧬 ${isOnExp?'⏳ กำลังผจญภัย':'วิวัฒนาการยีน '+(isMax?'(Max Grade XII)':'→ Grade '+GRADE_LABELS[nextGrade])}</button>`
         +`<button style="width:100%;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:10px;padding:10px;color:#fff;font-family:inherit;font-size:0.85rem;font-weight:800;cursor:pointer" onclick="closePetInfo();openForgeModal('${p.instId||p.id}')">🔨 ตีบวก</button>`
         +'</div></div>';
     // Build slot buttons — 3 slots
@@ -3613,6 +3617,10 @@ ${formatPetName(p)}
         const statNew = calculatePetStats({...p, refine:nextR});
         toast(`✨ ตีบวก +${nextR} สำเร็จ! ATK ${statNew.atk} · HP ${statNew.hp}`,'success',4000);
         if(nextR>=10) confetti({particleCount:80,spread:60,origin:{y:0.5},colors:['#f59e0b','#a855f7','#fff']});
+        if(nextR>=7 && typeof postNews==='function'){
+            const _fName=userData?.nickname||userData?.name||'ผู้เล่น';
+            await postNews('🔨',`${_fName} ตีบวก ${p.emoji} สำเร็จถึง +${nextR}${nextR>=15?' 👑':''}! [${RARITY[p.rarity].label}]`).catch(()=>{});
+        }
     } else {
         toast(`💔 ตีแหก! +${r} → +${r} (เสียแค่ ${rate.cost}🪙)`,'error',3500);
     }
