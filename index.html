@@ -1921,21 +1921,21 @@ const CALC_TOOLS = [
     { id:'carbo', icon:'🔬', name:'Carboplatin', desc:'Calvert AUC dose' },
 ];
 
-let __calcTool=null;
-window.openCalc=()=>{ __calcTool=null; document.getElementById('calc-panel').classList.add('active'); _renderCalcBody(); };
+window.__calcTool=null;
+window.openCalc=()=>{ window.__calcTool=null; document.getElementById('calc-panel').classList.add('active'); _renderCalcBody(); };
 window.closeCalc=()=>{ document.getElementById('calc-panel').classList.remove('active'); };
 
 window._renderCalcBody=function _renderCalcBody(){
     const el=document.getElementById('calc-body'); if(!el) return;
-    if(!__calcTool){ _renderCalcMenu(el); return; }
-    _renderCalcForm(el, __calcTool);
+    if(!window.__calcTool){ _renderCalcMenu(el); return; }
+    _renderCalcForm(el, window.__calcTool);
 }
 
 window._renderCalcMenu=function _renderCalcMenu(el){
     el.innerHTML=`
         <div class="calc-grid">
             ${CALC_TOOLS.map(t=>`
-                <button class="calc-tool-btn" onclick="__calcTool='${t.id}';_renderCalcBody()">
+                <button class="calc-tool-btn" onclick="window.__calcTool='${t.id}';_renderCalcBody()">
                     <span class="ct-icon">${t.icon}</span>
                     <span class="ct-name">${t.name}</span>
                     <span class="ct-desc">${t.desc}</span>
@@ -1959,7 +1959,7 @@ window._renderCalcForm=function _renderCalcForm(el, id){
                 <div><div class="calc-inp-label">น้ำหนัก (kg)</div><input class="calc-inp" id="c-wt" type="number" placeholder="เช่น 60" min="1"></div>
                 <div><div class="calc-inp-label">SCr (mg/dL)</div><input class="calc-inp" id="c-scr" type="number" placeholder="เช่น 1.2" step="0.01" min="0.1"></div>
             </div>
-            <button class="btn-gold full" onclick="_calcCrCl()">คำนวณ CrCl</button>
+            <button class="btn-gold full" onclick="window._calcCrCl()">คำนวณ CrCl</button>
             <div class="calc-result" id="calc-result"></div>`,
 
         bmi: `
@@ -1971,7 +1971,7 @@ window._renderCalcForm=function _renderCalcForm(el, id){
                     <button class="calc-radio" id="bmi-sex-f" onclick="document.getElementById('bmi-sex-f').classList.add('sel');document.getElementById('bmi-sex-m').classList.remove('sel')">♀ หญิง</button>
                 </div>
             </div>
-            <button class="btn-gold full" onclick="_calcBMI()">คำนวณ BMI / IBW / ABW</button>
+            <button class="btn-gold full" onclick="window._calcBMI()">คำนวณ BMI / IBW / ABW</button>
             <div class="calc-result" id="calc-result"></div>`,
 
         bsa: `
@@ -1979,7 +1979,7 @@ window._renderCalcForm=function _renderCalcForm(el, id){
                 <div><div class="calc-inp-label">น้ำหนัก (kg)</div><input class="calc-inp" id="s-wt" type="number" placeholder="เช่น 65" min="1"></div>
                 <div><div class="calc-inp-label">ส่วนสูง (cm)</div><input class="calc-inp" id="s-ht" type="number" placeholder="เช่น 165" min="50"></div>
             </div>
-            <button class="btn-gold full" onclick="_calcBSA()">คำนวณ BSA</button>
+            <button class="btn-gold full" onclick="window._calcBSA()">คำนวณ BSA</button>
             <div class="calc-result" id="calc-result"></div>`,
 
         egfr: `
@@ -1991,7 +1991,7 @@ window._renderCalcForm=function _renderCalcForm(el, id){
                 <div><div class="calc-inp-label">อายุ (ปี)</div><input class="calc-inp" id="eg-age" type="number" placeholder="เช่น 55" min="18"></div>
                 <div><div class="calc-inp-label">SCr (mg/dL)</div><input class="calc-inp" id="eg-scr" type="number" placeholder="เช่น 1.0" step="0.01" min="0.1"></div>
             </div>
-            <button class="btn-gold full" onclick="_calcEGFR()">คำนวณ eGFR (CKD-EPI)</button>
+            <button class="btn-gold full" onclick="window._calcEGFR()">คำนวณ eGFR (CKD-EPI)</button>
             <div class="calc-result" id="calc-result"></div>`,
 
         ag: `
@@ -2001,7 +2001,7 @@ window._renderCalcForm=function _renderCalcForm(el, id){
                 <div><div class="calc-inp-label">HCO₃ (mEq/L)</div><input class="calc-inp" id="ag-hco3" type="number" placeholder="เช่น 24" min="1"></div>
                 <div><div class="calc-inp-label">Albumin (g/dL) <span style="color:rgba(255,255,255,.3)">optional</span></div><input class="calc-inp" id="ag-alb" type="number" placeholder="เช่น 4.0 (ปกติ)" step="0.1" min="0"></div>
             </div>
-            <button class="btn-gold full" onclick="_calcAG()">คำนวณ Anion Gap</button>
+            <button class="btn-gold full" onclick="window._calcAG()">คำนวณ Anion Gap</button>
             <div class="calc-result" id="calc-result"></div>`,
 
         ca: `
@@ -2009,7 +2009,7 @@ window._renderCalcForm=function _renderCalcForm(el, id){
                 <div><div class="calc-inp-label">Total Ca (mg/dL)</div><input class="calc-inp" id="ca-ca" type="number" placeholder="เช่น 7.8" step="0.1" min="1"></div>
                 <div><div class="calc-inp-label">Albumin (g/dL)</div><input class="calc-inp" id="ca-alb" type="number" placeholder="เช่น 2.5" step="0.1" min="0"></div>
             </div>
-            <button class="btn-gold full" onclick="_calcCa()">คำนวณ Corrected Ca</button>
+            <button class="btn-gold full" onclick="window._calcCa()">คำนวณ Corrected Ca</button>
             <div class="calc-result" id="calc-result"></div>`,
 
         drip: `
@@ -2018,7 +2018,7 @@ window._renderCalcForm=function _renderCalcForm(el, id){
                 <div><div class="calc-inp-label">น้ำหนัก (kg)</div><input class="calc-inp" id="dr-wt" type="number" placeholder="เช่น 60" min="1"></div>
                 <div><div class="calc-inp-label">ความเข้มข้น (mcg/mL)</div><input class="calc-inp" id="dr-conc" type="number" placeholder="เช่น 1600" min="1"></div>
             </div>
-            <button class="btn-gold full" onclick="_calcDrip()">คำนวณ Drip Rate</button>
+            <button class="btn-gold full" onclick="window._calcDrip()">คำนวณ Drip Rate</button>
             <div class="calc-result" id="calc-result"></div>`,
 
         carbo: `
@@ -2033,7 +2033,7 @@ window._renderCalcForm=function _renderCalcForm(el, id){
                 </div>
                 <div><div class="calc-inp-label">GFR / CrCl (mL/min)</div><input class="calc-inp" id="cb-gfr" type="number" placeholder="เช่น 80" min="1"></div>
             </div>
-            <button class="btn-gold full" onclick="_calcCarbo()">คำนวณ Carboplatin dose</button>
+            <button class="btn-gold full" onclick="window._calcCarbo()">คำนวณ Carboplatin dose</button>
             <div class="calc-result" id="calc-result"></div>`,
     };
 
@@ -2779,7 +2779,7 @@ function buildHome(){
 // ════════════════════════════════════════
 // ▶ TAB BUILDERS — MEMBERS
 // ════════════════════════════════════════
-function _buildMembersTopBar(){
+window._buildMembersTopBar=function _buildMembersTopBar(){
     const ple = new Date('2026-12-11T00:00:00+07:00');
     const diffDays = Math.ceil((ple - new Date()) / 86400000);
     let pleHtml;
