@@ -193,6 +193,25 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:linear-gradient(
 .slide-panel{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(175deg,#1a0533,#0d0220);border:1px solid rgba(255,255,255,.08);color:#fff;border-radius:20px 20px 0 0;padding:18px 14px;box-shadow:0 -5px 32px rgba(0,0,0,.4);z-index:400;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);max-height:72vh;overflow-y:auto;}
 .slide-panel.active{transform:translateY(0);}
 
+/* CALC TOOLS */
+.calc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:4px;}
+.calc-tool-btn{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 10px;text-align:center;cursor:pointer;transition:.15s;font-family:inherit;color:#fff;}
+.calc-tool-btn:active{transform:scale(.95);}
+.calc-tool-btn .ct-icon{font-size:1.8rem;display:block;margin-bottom:5px;}
+.calc-tool-btn .ct-name{font-size:0.78rem;font-weight:700;display:block;}
+.calc-tool-btn .ct-desc{font-size:0.58rem;color:rgba(255,255,255,.4);display:block;margin-top:2px;}
+.calc-inp-row{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.calc-inp-label{font-size:0.65rem;color:rgba(255,255,255,.5);font-weight:700;letter-spacing:.5px;margin-bottom:2px;}
+.calc-inp{width:100%;padding:9px 12px;border:1.5px solid rgba(255,255,255,.12);border-radius:10px;font-family:inherit;font-size:0.9rem;background:rgba(255,255,255,.06);color:#fff;outline:none;transition:.15s;}
+.calc-inp:focus{border-color:#a78bfa;background:rgba(167,139,250,.1);}
+.calc-result{background:linear-gradient(135deg,rgba(109,40,217,.2),rgba(124,58,237,.15));border:1.5px solid rgba(167,139,250,.3);border-radius:14px;padding:14px;margin-top:10px;text-align:center;display:none;}
+.calc-result.show{display:block;}
+.calc-result-val{font-size:1.6rem;font-weight:800;color:#a78bfa;}
+.calc-result-label{font-size:0.72rem;color:rgba(255,255,255,.5);margin-top:3px;}
+.calc-result-sub{font-size:0.78rem;color:rgba(255,255,255,.6);margin-top:6px;line-height:1.6;}
+.calc-radio-row{display:flex;gap:6px;margin-bottom:4px;}
+.calc-radio{flex:1;padding:7px 4px;border-radius:9px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.45);font-family:inherit;font-size:0.72rem;font-weight:700;cursor:pointer;transition:.15s;text-align:center;}
+.calc-radio.sel{border-color:#a78bfa;background:rgba(167,139,250,.2);color:#d8b4fe;}
 /* LAB SYSTEM */
 .lab-tab-btn{flex:1;padding:8px 4px;border:none;border-radius:10px;font-family:inherit;font-size:0.72rem;font-weight:700;cursor:pointer;transition:.15s;background:rgba(255,255,255,.06);color:rgba(255,255,255,.45);}
 .lab-tab-btn.active{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 2px 12px rgba(109,40,217,.4);}
@@ -582,6 +601,18 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:linear-gradient(
         <button class="lab-tab-btn" id="lab-tab-mutate" onclick="switchLabTab('mutate')">⚗️ Force Mutation</button>
     </div>
     <div id="lab-body"></div>
+</div>
+
+<!-- CALC TOOLS PANEL -->
+<div class="slide-panel" id="calc-panel" style="max-height:85vh">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div>
+            <div style="font-weight:800;font-size:1rem">🧮 เครื่องมือคำนวณ <span style="font-size:0.65rem;color:rgba(255,255,255,.35);font-weight:500">(ทดสอบ)</span></div>
+            <div style="font-size:0.6rem;color:rgba(255,255,255,.35);margin-top:1px">Pharmacy Calculators</div>
+        </div>
+        <button class="mclose" style="position:static" onclick="closeCalc()">✕</button>
+    </div>
+    <div id="calc-body"></div>
 </div>
 
 <!-- DAILY BREAKDOWN MODAL -->
@@ -1876,6 +1907,239 @@ window.closePetInfo=()=>document.getElementById('petinfo-modal').classList.remov
 // ▶ TRADE SYSTEM
 // ════════════════════════════════════════
 // ════════════════════════════════════════
+// ════════════════════════════════════════
+// ▶ CALC TOOLS
+// ════════════════════════════════════════
+const CALC_TOOLS = [
+    { id:'crcl',  icon:'🫘', name:'CrCl',       desc:'Cockcroft-Gault' },
+    { id:'bmi',   icon:'⚖️', name:'BMI / IBW',  desc:'Body indices'    },
+    { id:'bsa',   icon:'📐', name:'BSA',         desc:'Mosteller'       },
+    { id:'egfr',  icon:'🩸', name:'eGFR',        desc:'CKD-EPI'         },
+    { id:'ag',    icon:'⚗️', name:'Anion Gap',   desc:'± albumin corr.' },
+    { id:'ca',    icon:'💊', name:'Corrected Ca',desc:'Low albumin adj.' },
+    { id:'drip',  icon:'💧', name:'Drip Rate',   desc:'mcg/kg/min→mL/hr'},
+    { id:'carbo', icon:'🔬', name:'Carboplatin', desc:'Calvert AUC dose' },
+];
+
+let __calcTool=null;
+window.openCalc=()=>{ __calcTool=null; document.getElementById('calc-panel').classList.add('active'); _renderCalcBody(); };
+window.closeCalc=()=>{ document.getElementById('calc-panel').classList.remove('active'); };
+
+function _renderCalcBody(){
+    const el=document.getElementById('calc-body'); if(!el) return;
+    if(!__calcTool){ _renderCalcMenu(el); return; }
+    _renderCalcForm(el, __calcTool);
+}
+
+function _renderCalcMenu(el){
+    el.innerHTML=`
+        <div class="calc-grid">
+            ${CALC_TOOLS.map(t=>`
+                <button class="calc-tool-btn" onclick="__calcTool='${t.id}';_renderCalcBody()">
+                    <span class="ct-icon">${t.icon}</span>
+                    <span class="ct-name">${t.name}</span>
+                    <span class="ct-desc">${t.desc}</span>
+                </button>`).join('')}
+        </div>`;
+}
+
+function _renderCalcForm(el, id){
+    const t=CALC_TOOLS.find(x=>x.id===id);
+    const backBtn=`<button onclick="__calcTool=null;_renderCalcBody()" style="background:none;border:none;color:rgba(255,255,255,.5);font-family:inherit;font-size:0.8rem;cursor:pointer;padding:0;margin-bottom:12px;display:flex;align-items:center;gap:4px">‹ กลับ</button>`;
+    const title=`<div style="font-size:1rem;font-weight:800;margin-bottom:12px">${t.icon} ${t.name} <span style="font-size:0.62rem;color:rgba(255,255,255,.35);font-weight:400">${t.desc}</span></div>`;
+
+    const forms = {
+        crcl: `
+            <div class="calc-inp-row">
+                <div class="calc-radio-row" id="crcl-sex-row">
+                    <button class="calc-radio sel" id="crcl-sex-m" onclick="document.getElementById('crcl-sex-m').classList.add('sel');document.getElementById('crcl-sex-f').classList.remove('sel')">♂ ชาย</button>
+                    <button class="calc-radio" id="crcl-sex-f" onclick="document.getElementById('crcl-sex-f').classList.add('sel');document.getElementById('crcl-sex-m').classList.remove('sel')">♀ หญิง</button>
+                </div>
+                <div><div class="calc-inp-label">อายุ (ปี)</div><input class="calc-inp" id="c-age" type="number" placeholder="เช่น 65" min="1" max="120"></div>
+                <div><div class="calc-inp-label">น้ำหนัก (kg)</div><input class="calc-inp" id="c-wt" type="number" placeholder="เช่น 60" min="1"></div>
+                <div><div class="calc-inp-label">SCr (mg/dL)</div><input class="calc-inp" id="c-scr" type="number" placeholder="เช่น 1.2" step="0.01" min="0.1"></div>
+            </div>
+            <button class="btn-gold full" onclick="_calcCrCl()">คำนวณ CrCl</button>
+            <div class="calc-result" id="calc-result"></div>`,
+
+        bmi: `
+            <div class="calc-inp-row">
+                <div><div class="calc-inp-label">น้ำหนัก (kg)</div><input class="calc-inp" id="b-wt" type="number" placeholder="เช่น 65" min="1"></div>
+                <div><div class="calc-inp-label">ส่วนสูง (cm)</div><input class="calc-inp" id="b-ht" type="number" placeholder="เช่น 165" min="50"></div>
+                <div class="calc-radio-row">
+                    <button class="calc-radio sel" id="bmi-sex-m" onclick="document.getElementById('bmi-sex-m').classList.add('sel');document.getElementById('bmi-sex-f').classList.remove('sel')">♂ ชาย</button>
+                    <button class="calc-radio" id="bmi-sex-f" onclick="document.getElementById('bmi-sex-f').classList.add('sel');document.getElementById('bmi-sex-m').classList.remove('sel')">♀ หญิง</button>
+                </div>
+            </div>
+            <button class="btn-gold full" onclick="_calcBMI()">คำนวณ BMI / IBW / ABW</button>
+            <div class="calc-result" id="calc-result"></div>`,
+
+        bsa: `
+            <div class="calc-inp-row">
+                <div><div class="calc-inp-label">น้ำหนัก (kg)</div><input class="calc-inp" id="s-wt" type="number" placeholder="เช่น 65" min="1"></div>
+                <div><div class="calc-inp-label">ส่วนสูง (cm)</div><input class="calc-inp" id="s-ht" type="number" placeholder="เช่น 165" min="50"></div>
+            </div>
+            <button class="btn-gold full" onclick="_calcBSA()">คำนวณ BSA</button>
+            <div class="calc-result" id="calc-result"></div>`,
+
+        egfr: `
+            <div class="calc-inp-row">
+                <div class="calc-radio-row">
+                    <button class="calc-radio sel" id="eg-sex-m" onclick="document.getElementById('eg-sex-m').classList.add('sel');document.getElementById('eg-sex-f').classList.remove('sel')">♂ ชาย</button>
+                    <button class="calc-radio" id="eg-sex-f" onclick="document.getElementById('eg-sex-f').classList.add('sel');document.getElementById('eg-sex-m').classList.remove('sel')">♀ หญิง</button>
+                </div>
+                <div><div class="calc-inp-label">อายุ (ปี)</div><input class="calc-inp" id="eg-age" type="number" placeholder="เช่น 55" min="18"></div>
+                <div><div class="calc-inp-label">SCr (mg/dL)</div><input class="calc-inp" id="eg-scr" type="number" placeholder="เช่น 1.0" step="0.01" min="0.1"></div>
+            </div>
+            <button class="btn-gold full" onclick="_calcEGFR()">คำนวณ eGFR (CKD-EPI)</button>
+            <div class="calc-result" id="calc-result"></div>`,
+
+        ag: `
+            <div class="calc-inp-row">
+                <div><div class="calc-inp-label">Na (mEq/L)</div><input class="calc-inp" id="ag-na" type="number" placeholder="เช่น 140" min="100"></div>
+                <div><div class="calc-inp-label">Cl (mEq/L)</div><input class="calc-inp" id="ag-cl" type="number" placeholder="เช่น 102" min="50"></div>
+                <div><div class="calc-inp-label">HCO₃ (mEq/L)</div><input class="calc-inp" id="ag-hco3" type="number" placeholder="เช่น 24" min="1"></div>
+                <div><div class="calc-inp-label">Albumin (g/dL) <span style="color:rgba(255,255,255,.3)">optional</span></div><input class="calc-inp" id="ag-alb" type="number" placeholder="เช่น 4.0 (ปกติ)" step="0.1" min="0"></div>
+            </div>
+            <button class="btn-gold full" onclick="_calcAG()">คำนวณ Anion Gap</button>
+            <div class="calc-result" id="calc-result"></div>`,
+
+        ca: `
+            <div class="calc-inp-row">
+                <div><div class="calc-inp-label">Total Ca (mg/dL)</div><input class="calc-inp" id="ca-ca" type="number" placeholder="เช่น 7.8" step="0.1" min="1"></div>
+                <div><div class="calc-inp-label">Albumin (g/dL)</div><input class="calc-inp" id="ca-alb" type="number" placeholder="เช่น 2.5" step="0.1" min="0"></div>
+            </div>
+            <button class="btn-gold full" onclick="_calcCa()">คำนวณ Corrected Ca</button>
+            <div class="calc-result" id="calc-result"></div>`,
+
+        drip: `
+            <div class="calc-inp-row">
+                <div><div class="calc-inp-label">Dose (mcg/kg/min)</div><input class="calc-inp" id="dr-dose" type="number" placeholder="เช่น 5" step="0.1" min="0"></div>
+                <div><div class="calc-inp-label">น้ำหนัก (kg)</div><input class="calc-inp" id="dr-wt" type="number" placeholder="เช่น 60" min="1"></div>
+                <div><div class="calc-inp-label">ความเข้มข้น (mcg/mL)</div><input class="calc-inp" id="dr-conc" type="number" placeholder="เช่น 1600" min="1"></div>
+            </div>
+            <button class="btn-gold full" onclick="_calcDrip()">คำนวณ Drip Rate</button>
+            <div class="calc-result" id="calc-result"></div>`,
+
+        carbo: `
+            <div class="calc-inp-row">
+                <div><div class="calc-inp-label">Target AUC</div>
+                    <div class="calc-radio-row" style="margin-top:4px">
+                        <button class="calc-radio" onclick="this.parentElement.querySelectorAll('.calc-radio').forEach(b=>b.classList.remove('sel'));this.classList.add('sel')" data-auc="4">AUC 4</button>
+                        <button class="calc-radio sel" onclick="this.parentElement.querySelectorAll('.calc-radio').forEach(b=>b.classList.remove('sel'));this.classList.add('sel')" data-auc="5">AUC 5</button>
+                        <button class="calc-radio" onclick="this.parentElement.querySelectorAll('.calc-radio').forEach(b=>b.classList.remove('sel'));this.classList.add('sel')" data-auc="6">AUC 6</button>
+                        <button class="calc-radio" onclick="this.parentElement.querySelectorAll('.calc-radio').forEach(b=>b.classList.remove('sel'));this.classList.add('sel')" data-auc="7">AUC 7</button>
+                    </div>
+                </div>
+                <div><div class="calc-inp-label">GFR / CrCl (mL/min)</div><input class="calc-inp" id="cb-gfr" type="number" placeholder="เช่น 80" min="1"></div>
+            </div>
+            <button class="btn-gold full" onclick="_calcCarbo()">คำนวณ Carboplatin dose</button>
+            <div class="calc-result" id="calc-result"></div>`,
+    };
+
+    el.innerHTML = backBtn + title + (forms[id]||'<div style="color:rgba(255,255,255,.4);padding:20px;text-align:center">ยังไม่รองรับ</div>');
+}
+
+// ── Calculation functions ──────────────────────────────────────────
+function _showCalcResult(val, unit, sub=''){
+    const el=document.getElementById('calc-result');
+    if(!el) return;
+    el.className='calc-result show';
+    el.innerHTML=`<div class="calc-result-val">${val} <span style="font-size:1rem;font-weight:600;color:rgba(255,255,255,.6)">${unit}</span></div>${sub?`<div class="calc-result-sub">${sub}</div>`:''}`;
+}
+
+window._calcCrCl=()=>{
+    const male=document.getElementById('crcl-sex-m')?.classList.contains('sel');
+    const age=parseFloat(document.getElementById('c-age')?.value);
+    const wt =parseFloat(document.getElementById('c-wt')?.value);
+    const scr=parseFloat(document.getElementById('c-scr')?.value);
+    if([age,wt,scr].some(isNaN)||age<=0||wt<=0||scr<=0){toast('กรอกข้อมูลให้ครบ','error');return;}
+    const sex=male?1:0.85;
+    const crcl=((140-age)*wt*sex)/(72*scr);
+    const stage=crcl>=90?'G1 (ปกติ)':crcl>=60?'G2 (ลดน้อย)':crcl>=30?'G3 (ปานกลาง)':crcl>=15?'G4 (รุนแรง)':'G5 (ไตวาย)';
+    _showCalcResult(crcl.toFixed(1),'mL/min',`CKD Stage: <b>${stage}</b>`);
+};
+
+window._calcBMI=()=>{
+    const male=document.getElementById('bmi-sex-m')?.classList.contains('sel');
+    const wt=parseFloat(document.getElementById('b-wt')?.value);
+    const ht=parseFloat(document.getElementById('b-ht')?.value);
+    if([wt,ht].some(isNaN)||wt<=0||ht<=0){toast('กรอกข้อมูลให้ครบ','error');return;}
+    const htM=ht/100;
+    const bmi=wt/(htM*htM);
+    const ibw=male?(50+2.3*(ht/2.54-60)):(45.5+2.3*(ht/2.54-60));
+    const abw=ibw+0.4*(wt-ibw);
+    const bmiCat=bmi<18.5?'น้ำหนักน้อย':bmi<23?'ปกติ':bmi<25?'ท้วม':bmi<30?'อ้วนระดับ 1':'อ้วนระดับ 2+';
+    const ibwShow=Math.max(0,ibw).toFixed(1);
+    const abwShow=wt>ibw?abw.toFixed(1):'-';
+    _showCalcResult(bmi.toFixed(1),'kg/m²',
+        `${bmiCat} · IBW: <b>${ibwShow} kg</b> · ABW: <b>${abwShow} kg</b>`);
+};
+
+window._calcBSA=()=>{
+    const wt=parseFloat(document.getElementById('s-wt')?.value);
+    const ht=parseFloat(document.getElementById('s-ht')?.value);
+    if([wt,ht].some(isNaN)||wt<=0||ht<=0){toast('กรอกข้อมูลให้ครบ','error');return;}
+    const bsa=Math.sqrt((ht*wt)/3600);
+    _showCalcResult(bsa.toFixed(2),'m²','Mosteller formula');
+};
+
+window._calcEGFR=()=>{
+    const male=document.getElementById('eg-sex-m')?.classList.contains('sel');
+    const age=parseFloat(document.getElementById('eg-age')?.value);
+    const scr=parseFloat(document.getElementById('eg-scr')?.value);
+    if([age,scr].some(isNaN)||age<=0||scr<=0){toast('กรอกข้อมูลให้ครบ','error');return;}
+    // CKD-EPI 2021 (race-free)
+    const k=male?0.9:0.7; const a=male?-0.302:-0.241;
+    const ratio=scr/k;
+    const egfr=142*Math.pow(Math.min(ratio,1),a)*Math.pow(Math.max(ratio,1),-1.200)*Math.pow(0.9938,age)*(male?1:1.012);
+    const stage=egfr>=90?'G1':egfr>=60?'G2':egfr>=45?'G3a':egfr>=30?'G3b':egfr>=15?'G4':'G5';
+    _showCalcResult(Math.round(egfr),'mL/min/1.73m²',`CKD Stage: <b>${stage}</b>`);
+};
+
+window._calcAG=()=>{
+    const na  =parseFloat(document.getElementById('ag-na')?.value);
+    const cl  =parseFloat(document.getElementById('ag-cl')?.value);
+    const hco3=parseFloat(document.getElementById('ag-hco3')?.value);
+    const alb =parseFloat(document.getElementById('ag-alb')?.value)||4.0;
+    if([na,cl,hco3].some(isNaN)){toast('กรอกข้อมูลให้ครบ','error');return;}
+    const ag=na-cl-hco3;
+    const corrAG=ag+2.5*(4.0-alb);
+    const interp=corrAG>12?'⚠️ AG เพิ่มขึ้น (HAGMA)':'✅ AG ปกติ (non-HAGMA)';
+    _showCalcResult(ag.toFixed(0),'mEq/L',
+        `Corrected AG (albumin): <b>${corrAG.toFixed(1)}</b> · ${interp}`);
+};
+
+window._calcCa=()=>{
+    const ca =parseFloat(document.getElementById('ca-ca')?.value);
+    const alb=parseFloat(document.getElementById('ca-alb')?.value);
+    if([ca,alb].some(isNaN)||ca<=0||alb<0){toast('กรอกข้อมูลให้ครบ','error');return;}
+    const corrCa=ca+0.8*(4.0-alb);
+    const interp=corrCa<8.5?'⬇️ Hypocalcemia':corrCa>10.5?'⬆️ Hypercalcemia':'✅ ปกติ';
+    _showCalcResult(corrCa.toFixed(1),'mg/dL',interp);
+};
+
+window._calcDrip=()=>{
+    const dose=parseFloat(document.getElementById('dr-dose')?.value);
+    const wt  =parseFloat(document.getElementById('dr-wt')?.value);
+    const conc=parseFloat(document.getElementById('dr-conc')?.value);
+    if([dose,wt,conc].some(isNaN)||dose<=0||wt<=0||conc<=0){toast('กรอกข้อมูลให้ครบ','error');return;}
+    const rate=(dose*wt*60)/conc;
+    _showCalcResult(rate.toFixed(1),'mL/hr',
+        `${dose} mcg/kg/min × ${wt} kg ÷ ${conc} mcg/mL × 60`);
+};
+
+window._calcCarbo=()=>{
+    const gfr=parseFloat(document.getElementById('cb-gfr')?.value);
+    const aucBtn=document.querySelector('[data-auc].sel');
+    const auc=aucBtn?parseFloat(aucBtn.dataset.auc):5;
+    if(isNaN(gfr)||gfr<=0){toast('กรอก GFR/CrCl ก่อน','error');return;}
+    const dose=auc*(gfr+25);
+    _showCalcResult(Math.round(dose),'mg',
+        `Calvert: AUC ${auc} × (GFR ${gfr} + 25) = ${Math.round(dose)} mg`);
+};
+
+// ════════════════════════════════════════
 // ▶ LAB SYSTEM — Selective DNA Fusion + Force Mutation
 // ════════════════════════════════════════
 let __labTab='fuse';        // 'fuse' | 'mutate'
@@ -2515,6 +2779,32 @@ function buildHome(){
 // ════════════════════════════════════════
 // ▶ TAB BUILDERS — MEMBERS
 // ════════════════════════════════════════
+function _buildMembersTopBar(){
+    const ple = new Date('2025-12-11T00:00:00+07:00');
+    const diffDays = Math.ceil((ple - new Date()) / 86400000);
+    let pleHtml;
+    if(diffDays > 0){
+        pleHtml = '<div style="flex:1;background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(220,38,38,.1));border:1.5px solid rgba(239,68,68,.25);border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px">'
+            + '<div style="font-size:1.6rem;line-height:1">📅</div>'
+            + '<div>'
+            + '<div style="font-size:0.58rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px">PLE-CC</div>'
+            + '<div style="font-size:1.2rem;font-weight:800;color:#f87171;line-height:1">'+diffDays+' <span style="font-size:0.7rem;font-weight:600">วัน</span></div>'
+            + '<div style="font-size:0.55rem;color:rgba(255,255,255,.3);margin-top:1px">11 ธ.ค. 2568</div>'
+            + '</div></div>';
+    } else if(diffDays === 0){
+        pleHtml = '<div style="flex:1;background:linear-gradient(135deg,rgba(239,68,68,.3),rgba(220,38,38,.2));border:1.5px solid rgba(239,68,68,.5);border-radius:14px;padding:10px 12px;text-align:center"><div style="font-size:0.72rem;font-weight:800;color:#f87171">🚨 วันนี้คือวันสอบ PLE-CC!</div></div>';
+    } else {
+        pleHtml = '<div style="flex:1;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:14px;padding:10px 12px;text-align:center"><div style="font-size:0.72rem;color:rgba(255,255,255,.3)">✅ PLE-CC ผ่านไปแล้ว</div></div>';
+    }
+    return '<div style="display:flex;gap:8px;margin-bottom:8px">'
+        + pleHtml
+        + '<button onclick="openCalc()" style="flex:1;background:linear-gradient(135deg,rgba(109,40,217,.25),rgba(124,58,237,.2));border:1.5px solid rgba(167,139,250,.3);border-radius:14px;padding:10px 12px;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:8px">'
+        + '<div style="font-size:1.6rem;line-height:1">🧮</div>'
+        + '<div><div style="font-size:0.78rem;font-weight:800;color:#c4b5fd">คำนวณ</div>'
+        + '<div style="font-size:0.56rem;color:rgba(255,255,255,.35);margin-top:1px">(ทดสอบ)</div></div>'
+        + '<div style="margin-left:auto;color:rgba(255,255,255,.2);font-size:0.8rem">›</div>'
+        + '</button></div>';
+}
 function buildMembers(){
     const all=window.__students||[];const sci=all.filter(s=>s.track==='sci').length;const care=all.filter(s=>s.track==='care').length;const tot=all.length;
     const guestCount=(window.__guestUsers||[]).length;
@@ -2525,6 +2815,7 @@ function buildMembers(){
             <div class="prog-lbls"><span style="color:var(--sci)">Sci ${sci}</span><span style="color:var(--care)">Care ${care}</span></div></div>
             ${guestCount?`<div style="text-align:center;margin-top:8px"><button onclick="openGuestList()" id="guest-count-badge" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.2);border-radius:16px;padding:4px 12px;font-size:0.75rem;color:rgba(255,255,255,.55);cursor:pointer;font-family:inherit">👋 Guest ${guestCount} คน</button></div>`:''}
         </div>
+        ${_buildMembersTopBar()}
         <div class="filter-row">
             <button class="fbtn${mTrack==='all'?' fa':''}" onclick="mFilter('all')">รวม ${tot}</button>
             <button class="fbtn${mTrack==='sci'?' fs':''}" onclick="mFilter('sci')">Sci ${sci}</button>
