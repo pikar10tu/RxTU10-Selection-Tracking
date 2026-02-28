@@ -193,11 +193,17 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .slide-panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:18px 14px;box-shadow:0 -5px 24px rgba(0,0,0,.1);z-index:400;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);max-height:65vh;overflow-y:auto;}
 .slide-panel.active{transform:translateY(0);}
 
-/* TRADE SYSTEM */
-.trade-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:9px;border:2px solid var(--border);cursor:pointer;margin-bottom:6px;transition:.15s;}
-.trade-item.sel{border-color:var(--sci);background:#eff6ff;}
-.trade-inp{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.86rem;outline:none;margin:8px 0;}
-.trade-inp:focus{border-color:var(--sci);}
+/* LAB SYSTEM */
+.lab-tab-btn{flex:1;padding:8px 4px;border:none;border-radius:10px;font-family:inherit;font-size:0.72rem;font-weight:700;cursor:pointer;transition:.15s;background:rgba(255,255,255,.06);color:rgba(255,255,255,.45);}
+.lab-tab-btn.active{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 2px 12px rgba(109,40,217,.4);}
+.lab-pet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;max-height:260px;overflow-y:auto;margin-bottom:10px;}
+.lab-pet-card{border-radius:10px;padding:7px 4px;text-align:center;cursor:pointer;transition:.12s;border:2px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);}
+.lab-pet-card:active{transform:scale(.93);}
+.lab-pet-card.sel{border-color:#a78bfa;background:rgba(167,139,250,.15);box-shadow:0 0 10px rgba(167,139,250,.3);}
+.lab-pet-card.disabled{opacity:.3;cursor:not-allowed;}
+.lab-slot-row{display:flex;gap:7px;margin-bottom:10px;}
+.lab-slot{flex:1;height:58px;border-radius:10px;border:2px dashed rgba(255,255,255,.15);background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;font-size:1.6rem;position:relative;transition:.15s;}
+.lab-slot.filled{border-style:solid;border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.08);}
 
 /* Feed/News modal */
 .feed-item{padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;}
@@ -562,16 +568,20 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
     </div>
 </div>
 
-<!-- TRADE PANEL -->
+<!-- LAB PANEL -->
 <div class="slide-panel" id="trade-panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-weight:700">🔄 Trade สัตว์เลี้ยง</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+            <div style="font-weight:800;font-size:1rem">🔬 ห้องทดลอง</div>
+            <div style="font-size:0.62rem;color:rgba(255,255,255,.4);margin-top:1px">Gene Lab</div>
+        </div>
         <button class="mclose" style="position:static" onclick="closeTrade()">✕</button>
     </div>
-    <p style="font-size:0.8rem;color:var(--muted);margin-bottom:8px">เลือกสัตว์ที่อยากส่ง:</p>
-    <div id="trade-pets"></div>
-    <input type="email" class="trade-inp" id="trade-email" placeholder="Email เพื่อนที่อยากส่งให้">
-    <button class="btn-gold full" onclick="sendTrade()">ส่งให้เพื่อน ✉️</button>
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+        <button class="lab-tab-btn active" id="lab-tab-fuse" onclick="switchLabTab('fuse')">🧬 Selective DNA Fusion</button>
+        <button class="lab-tab-btn" id="lab-tab-mutate" onclick="switchLabTab('mutate')">⚗️ Force Mutation</button>
+    </div>
+    <div id="lab-body"></div>
 </div>
 
 <!-- DAILY BREAKDOWN MODAL -->
@@ -897,7 +907,7 @@ function calcTotalDaily(pets){
 // ════════════════════════════════════════
 const R_SCI=["กิ้ฟท์ 🎁 (6418610082)","โบ 🎀 (6418610140)","อิกคิว 👦 (6418610264)","เหนือ ⛰️ (6418610280)","ขิม 🎼 (6518540015)","มายด์ 💖 (6518610016)","ติน 💎 (6518610024)","อ้น 🐿️ (6518610073)","เอ็มมี่ 🌸 (6518610099)","โฟกัส 🔍 (6518610123)","ลิ้ง 🔗 (6518610164)","ติณณ์ ✨ (6518610172)","เพ่ยเพ่ย 🏮 (6518610180)","ป่าน 🌿 (6518610198)","เอเชีย 🌏 (6518610214)","แพร 👗 (6518610222)","กาฟิว 🐱 (6518610297)","แตงโม 🍉 (6518610347)","ส้มโอ 🍊 (6518610420)","อุ้ม 🤗 (6518610446)","ทิว 🌲 (6518610479)","แพน 🐼 (6518610503)","ปั้น 🏺 (6518610545)","แก๊ป 🧢 (6518610560)","แยม 🍓 (6518610578)","แพรไหม 🧵 (6518610586)","ไอจัง 🍦 (6518610610)","เพ้นท์ 🎨 (6518670010)","สุ่น 🧶 (6518670069)","ทะเล 🌊 (6518670077)","ตั้ว 🎟️ (6518670093)","แพรวา 💎 (6518670101)","ซาเนียร์ 🎐 (6518670119)","เปปเปอร์ 🌶️ (6518670150)","ว่านว่าน 🍃 (6518670176)","ฟ้าใส ☀️ (6518670192)","เขต 🏁 (6518670200)","เบเบ้ 🧸 (6518670226)","เชอร์รี่ 🍒 (6518670267)"];
 const R_CARE=["เมย์ 🌙 (6418610157)","เดียร 🦌 (6418670110)","บัว 🪷 (6518610032)","ปาล์มมี่ 🌴 (6518610040)","อุ๋งอิ๋ง 🦭 (6518610057)","เพียว 🫧 (6518610065)","ใบบัว 🍃 (6518610081)","บลู 💙 (6518610107)","ต้นน้ำ 🌱 (6518610115)","แซนนี่ ☀️ (6518610131)","กัส ⛽ (6518610149)","นินจี้ 🥷 (6518610206)","นนท์ 🕶️ (6518610230)","มินท์ 🌿 (6518610248)","แป้ง 🍞 (6518610255)","ตีตี้ 🎸 (6518610263)","แพม 👒 (6518610271)","อะตอม ⚛️ (6518610305)","นาย 👔 (6518610313)","การ์ตูน 📖 (6518610321)","นัซ 🌠 (6518610354)","แพนด้า 🐼 (6518610362)","ปิ๊ก 🎸 (6518610388)","จอย 😊 (6518610396)","มายด์ ✨ (6518610404)","โดนัท 🍩 (6518610453)","บุ๊ค 📚 (6518610461)","ปอนด์ 💷 (6518610495)","เบค 🥓 (6518610511)","ต้นกล้า 🪴 (6518610537)","มิ้นท์ 🌱 (6518610552)","ต้นน้ำ 💧 (6518610602)","แพรทอง ✨ (6518660011)","แก้ม 😊 (6518660029)","แสนดี 😇 (6518670028)","อุ๊กอิ๊ก 🐣 (6518670044)","ต้้นน้ำ 🌊 (6518670085)","เจ 🃏 (6518670135)","เปมี่ 🍭 (6518670143)","ท้องฟ้า ☁️ (6518670184)","พีช 🍑 (6518670218)","สมายด์ 😁 (6518670242)","แพร 🌸 (6518670259)","ตะวัน 🌻 (6518670283)"];
-const RN="นางสาวชญานิศ ชายเมฆนางสาวณัชชา ศรีทองสุขนางสาวณัฏฐณิชา ตราหยกนายปวริศ ชูชมชื่นนายพศวัต พุทธิชนม์นางสาวณัฎฐริณีย์ เทือกท้าวนางสาวหรรษธร เปลี่ยนภักดีนางสาวกชกร ทรงเตชะเลิศนายกฎปิยราช ชนะสิทธิ์นางสาวกมลพร ว่องไวนางสาวกฤติยาพร คำศรีนางสาวกอแก้ว พัฒนาศูรนางสาวกัญญาณัฏฐ์ ลาภทรงสุขนายเกตุโพธิ์ ใจสงฆ์นางสาวแก้วบุษราภรณ์ เลาหกัยกุลนางสาวงามวรินทร์ กิตติจิตต์นายจิรวัฒน์ รักษ์วิเชียรนางสาวชนัญธิดา วีระวุฒิพงศ์นายชนาธิป บุญมาศิรินางสาวชวัลพัชร วิชัยศิริรัตน์นายชาคริษ บวรกิจนางสาวชาลิสา พรสุขจันทรานายญาณพัฒน์ สุขเกษมนางสาวฐณิชา จรัสวิชากรนางสาวฐิตารีย์ ปานสง่านายณพงศ์ เจริญเนติศาสตร์นางสาวณัฏฐณิชา สุดคงนางสาวณัฐกฤตา ศรีวิเชียรนายณัฐชนนท์ เครือตานางสาวณัฐณิชา ขวาลำธารนางสาวณัฐธิดา อรุณแสงนางสาวต่วนนีซาวาตี อัลอาตัสนางสาวธัญรดา โทธรัตน์นายธิติวุฒิ เพชรเงินทองนายธีรเมธ แสงอรุณนายนพเก้า วิวัฒชยางกูลนางสาวนภัสวรรณ แผลงศรนางสาวนัชชา ลักษณ์เชื้อวงศ์นางสาวนัซรียา บุญชูนางสาวนันตรา อินทร์น้อยนายประวิชญ์ อำนวยพันธ์วิไลนางสาวปรางค์ทิพย์ บุญมีวิเศษนางสาวปราณปริยา จ่าพลนางสาวปาณิสรา ศรีอาจนางสาวพรปวีณ์ บุญนำนายพิธินันท์ สัตติยารักษ์นายพุฒิพงศ์ ผดุงวัฒนะโชคนายภูมิรพี บูรณะสมทบนายภูวเดช นิลคตนางสาวมนณิชชา บุญนำนายรัชชานนท์ ขมิ้นทองนายวชิรวิทย์ ชำนาญวงศ์นายวศิน เอี่ยมต่อมนางสาวศุภิสรา สุวรรณศักดิ์สินนายสุรพงษ์ จันทบูรณ์นางสาวหทัยนันท์ เทพกำปนาทนางสาวอชิรญาณ์ ลำพรหมแก้วนายอัครวิทย์ นิธิบุญญาพันธ์นางสาวไอลดา ทาหะพรหมนางสาวแพรทอง เพอรัตน์นางสาวอภิสรา นุตภูติพงศ์นางสาวกวินธร เมฆะจำรูญนางสาวกานติมา มัทกิจนางสาวจาริญดา อินอัญชัญนายโชคชัย อริยะบุญสกุลนางสาวณภัทร ดำแก้วนายณัฐดนย์ อภิรติชัยศิริกุลนางสาวทัศน์สุดา ประสิทธิ์วิเศษนางสาวธีริศรา อินตรานางสาวนรมล พรหมโชตินายปิติพัตน์ รัตนสัมพันธ์นางสาวเปมิกา บุรณศิรินางสาวพรภรณ์ บุญยู่ฮงนางสาวภานิลนาถ มานะธัญญานายภาสกร นาคานางสาวมศารัศม์ พุทธะไชยทัศน์นายรัฐธีร์ พนิตจินดาศักดิ์นางสาววิรัลพัชร คุณาสถิตย์ชัยนางสาวศศินิภา แก้วสุวรรณ์นางสาวสุชัญญา หนูยิ้มนางสาวสุภัสสรา ฤกษ์รัตนีนางสาวสุมาลี นิมิตรมงคลนางสาวแสงตะวัน บุษปวนิช";
+const RN="นางสาวชญานิศ ชายเมฆนางสาวณัชชา ศรีทองสุขนางสาวณัฏฐณิชา ตราหยกนายปวริศ ชูชมชื่นนายพศวัต พุทธิชนม์นางสาวณัฎฐริณีย์ เทือกท้าวนางสาวหรรษธร เปลี่ยนภักดีนางสาวกชกร ทรงเตชะเลิศนายกฎปิยราช ชนะสิทธิ์นางสาวกมลพร ว่องไวนางสาวกฤติยาพร คำศรีนางสาวกอแก้ว พัฒนาศูรนางสาวกัญญาณัฏฐ์ ลาภทรงสุขนายเกตุโพธิ์ ใจสงฆ์นางสาวแก้วบุษราภรณ์ เลาหกัยกุลนางสาวงามวรินทร์ กิตติจิตต์นายจิรวัฒน์ รักษ์วิเชียรนางสาวชนัญธิดา วีระวุฒิพงศ์นายชนาธิป บุญมาศิรินางสาวชวัลพัชร วิชัยศิริรัตน์นายชาคริษ บวรกิจนางสาวชาลิสา พรสุขจันทรานายญาณพัฒน์ สุขเกษมนางสาวฐณิชา จรัสวิชากรนางสาวฐิตารีย์ ปานสง่านายณพงศ์ เจริญเนติศาสตร์นางสาวณัฏฐณิชา สุดคงนางสาวณัฐกฤตา ศรีวิเชียรนายณัฐชนนท์ เครือตานางสาวณัฐณิชา ขวาลำธารนางสาวณัฐธิดา อรุณแสงนางสาวต่วนนีซาวาตี อัลอาตัสนางสาวธัญรดา โทธรัตน์นายธิติวุฒิ เพชรเงินทองนายธีรเมธ แสงอรุณนายนพเก้า วิวัฒชยางกูลนางสาวนภัสวรรณ แผลงศรนางสาวนัชชา ลักษณ์เชื้อวงศ์นางสาวนัซรียา บุญชูนางสาวนันตรา อินทร์น้อยนายประวิชญ์ อำนวยพันธ์วิไลนางสาวปรางค์ทิพย์ บุญมีวิเศษนางสาวปราณปริยา จ่าพลนางสาวปาณิสรา ศรีอาจนางสาวพรปวีณ์ บุราณเคนนายพิธินันท์ สัตติยารักษ์นายพุฒิพงศ์ ผดุงวัฒนะโชคนายภูมิรพี บูรณะสมทบนายภูวเดช นิลคตนางสาวมนณิชชา บุญนำนายรัชชานนท์ ขมิ้นทองนายวชิรวิทย์ ชำนาญวงศ์นายวศิน เอี่ยมต่อมนางสาวศุภิสรา สุวรรณศักดิ์สินนายสุรพงษ์ จันทบูรณ์นางสาวหทัยนันท์ เทพกำปนาทนางสาวอชิรญาณ์ ลำพรหมแก้วนายอัครวิทย์ นิธิบุญญาพันธ์นางสาวไอลดา ทาหะพรหมนางสาวแพรทอง เพอรัตน์นางสาวอภิสรา นุตภูติพงศ์นางสาวกวินธร เมฆะจำรูญนางสาวกานติมา มัทกิจนางสาวจาริญดา อินอัญชัญนายโชคชัย อริยะบุญสกุลนางสาวณภัทร ดำแก้วนายณัฐดนย์ อภิรติชัยศิริกุลนางสาวทัศน์สุดา ประสิทธิ์วิเศษนางสาวธีริศรา อินตรานางสาวนรมล พรหมโชตินายปิติพัตน์ รัตนสัมพันธ์นางสาวเปมิกา บุรณศิรินางสาวพรภรณ์ บุญยู่ฮงนางสาวภานิลนาถ มานะธัญญานายภาสกร นาคานางสาวมศารัศม์ พุทธะไชยทัศน์นายรัฐธีร์ พนิตจินดาศักดิ์นางสาววิรัลพัชร คุณาสถิตย์ชัยนางสาวศศินิภา แก้วสุวรรณ์นางสาวสุชัญญา หนูยิ้มนางสาวสุภัสสรา ฤกษ์รัตนีนางสาวสุมาลี นิมิตรมงคลนางสาวแสงตะวัน บุษปวนิช";
 
 
 // ════════════════════════════════════════
@@ -1843,32 +1853,262 @@ window.closePetInfo=()=>document.getElementById('petinfo-modal').classList.remov
 // ════════════════════════════════════════
 // ▶ TRADE SYSTEM
 // ════════════════════════════════════════
-window.openTrade=()=>{if(!currentUser){toast("Login ก่อน","error");return;}tradeIdx=null;renderTradeList();document.getElementById('trade-panel').classList.add('active');};
-window.closeTrade=()=>document.getElementById('trade-panel').classList.remove('active');
-function renderTradeList(){
-    const el=document.getElementById('trade-pets');
-    const list=(userData?.pets||[]).filter(p=>!p.isExpedition);
-    window.__tradeList=list;
-    if(!list.length){el.innerHTML='<p style="color:#94a3b8;text-align:center;padding:8px">ไม่มีสัตว์ที่เทรดได้<br><small style="font-size:0.7rem;color:#64748b">(สัตว์ที่ผจญภัยอยู่เทรดไม่ได้)</small></p>';return;}
-    el.innerHTML=list.map((p,i)=>{const c=RARITY[p.rarity];
-    return`<div class="trade-item${tradeIdx===i?' sel':''}" onclick="pickTrade(${i})"><span style="font-size:1.4rem">${p.emoji}</span><div><div style="font-weight:600;font-size:0.82rem">${formatPetName(p)}</div><div style="color:${c.color};font-size:0.68rem;font-weight:700">${c.label}</div></div></div>`;}).join('');}
-window.pickTrade=i=>{tradeIdx=i;renderTradeList();};
-window.sendTrade=async()=>{
-    const email=document.getElementById('trade-email').value.trim();if(!email||tradeIdx===null){toast("เลือกสัตว์และใส่ email","error");return;}
-    const pet=(window.__tradeList||userData.pets)[tradeIdx];
-    if(!await _confirm(`ส่ง ${pet.emoji}${pet.name} ให้ ${email} จริงๆ?\nสัตว์จะออกจากกระเป๋าทันที!`))return;
-    // หา target จาก cache ก่อน — fallback getDocs เฉพาะถ้าไม่เจอ
-    const allCached=[...Object.values(window.__fbUsers||{}),...(window.__guestUsers||[])];
-    let targetUid=allCached.find(u=>u.email===email)?.uid||null;
-    if(!targetUid){
-        const all=await getDocs(collection(db,"users"));
-        all.forEach(d=>{if(d.data().email===email)targetUid=d.id;});
+// ════════════════════════════════════════
+// ▶ LAB SYSTEM — Selective DNA Fusion + Force Mutation
+// ════════════════════════════════════════
+let __labTab='fuse';        // 'fuse' | 'mutate'
+let __labFuseTarget=null;   // petId ที่เลือกใน fuse
+let __labSlots=[];          // instId ที่เลือกเป็น sacrifice (max 3)
+let __labFilterRarity=null; // rarity lock หลังเลือกตัวแรก (mutate)
+
+window.openTrade=()=>{
+    if(!currentUser){toast('Login ก่อน','error');return;}
+    __labTab='fuse'; __labFuseTarget=null; __labSlots=[]; __labFilterRarity=null;
+    document.getElementById('trade-panel').classList.add('active');
+    _renderLabBody();
+};
+window.closeTrade=()=>{
+    document.getElementById('trade-panel').classList.remove('active');
+};
+window.switchLabTab=(tab)=>{
+    __labTab=tab; __labFuseTarget=null; __labSlots=[]; __labFilterRarity=null;
+    document.getElementById('lab-tab-fuse').classList.toggle('active',tab==='fuse');
+    document.getElementById('lab-tab-mutate').classList.toggle('active',tab==='mutate');
+    _renderLabBody();
+};
+
+function _labMkInstId(p){ return String(p.instId||p.id); }
+
+function _renderLabBody(){
+    const el=document.getElementById('lab-body');
+    if(!el) return;
+    if(__labTab==='fuse') _renderLabFuse(el);
+    else _renderLabMutate(el);
+}
+
+// ── Selective DNA Fusion ──────────────────────────────────────────
+function _renderLabFuse(el){
+    const RARITY_ORDER={legendary:0,epic:1,rare:2,common:3};
+    const allPets=[...PETS].sort((a,b)=>(RARITY_ORDER[a.rarity]??9)-(RARITY_ORDER[b.rarity]??9));
+    const owned=new Set((userData?.pets||[]).map(p=>p.id));
+    const rarityGroups=['legendary','epic','rare','common'];
+
+    // slot display
+    const slotsHtml=`
+        <div style="font-size:0.62rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:1px;margin-bottom:6px">SACRIFICE SLOTS (${__labSlots.length}/3)</div>
+        <div class="lab-slot-row">${[0,1,2].map(i=>{
+            const id=__labSlots[i];
+            const p=id?(userData?.pets||[]).find(x=>_labMkInstId(x)===id):null;
+            return`<div class="lab-slot${p?' filled':''}" ${p?`onclick="labRemoveSlot(${i})" title="คลิกเพื่อถอด"`:''}>
+                ${p?`<div style="font-size:1.6rem">${p.emoji}</div><button style="position:absolute;top:-5px;right:-5px;background:#ef4444;border:none;color:#fff;width:14px;height:14px;border-radius:50%;font-size:0.5rem;cursor:pointer;padding:0" onclick="event.stopPropagation();labRemoveSlot(${i})">✕</button>`:'<span style="color:rgba(255,255,255,.15);font-size:1.2rem">＋</span>'}
+            </div>`;
+        }).join('')}</div>`;
+
+    // target pet grid (all PETS pool grouped by rarity)
+    const targetHtml=rarityGroups.map(r=>{
+        const group=allPets.filter(p=>p.rarity===r);
+        if(!group.length) return '';
+        const cfg=RARITY[r];
+        return`<div style="margin-bottom:10px">
+            <div style="font-size:0.6rem;font-weight:800;color:${cfg.color};letter-spacing:1px;margin-bottom:5px">${cfg.label}</div>
+            <div class="lab-pet-grid">${group.map(p=>{
+                const isSel=__labFuseTarget===p.id;
+                // check ถ้าเลือก target แล้ว slot ต้องเป็น rarity เดียวกัน
+                const ownCount=(userData?.pets||[]).filter(x=>x.id===p.id).length;
+                return`<div class="lab-pet-card${isSel?' sel':''}" onclick="labPickFuseTarget('${p.id}')">
+                    <div style="font-size:1.5rem">${p.emoji}</div>
+                    <div style="font-size:0.48rem;color:rgba(255,255,255,.7);font-weight:700;line-height:1.3;margin-top:2px">${p.name}</div>
+                    <div style="font-size:0.44rem;color:rgba(255,255,255,.3)">มี ${ownCount} ตัว</div>
+                </div>`;
+            }).join('')}</div>
+        </div>`;
+    }).join('');
+
+    // sacrifice pool — filter rarity เดียวกับ target
+    const targetDef=__labFuseTarget?PETS.find(x=>x.id===__labFuseTarget):null;
+    const sacrificeHtml=targetDef?`
+        <div style="font-size:0.62rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:1px;margin-bottom:5px">SACRIFICE — ${RARITY[targetDef.rarity].label} (${__labSlots.length}/3)</div>
+        <div class="lab-pet-grid">${(userData?.pets||[]).filter(p=>p.rarity===targetDef.rarity).map(p=>{
+            const id=_labMkInstId(p); const cfg=RARITY[p.rarity];
+            const isSel=__labSlots.includes(id);
+            const onExp=!!p.isExpedition;
+            return`<div class="lab-pet-card${isSel?' sel':''}${onExp?' disabled':''}" onclick="${onExp?'void 0':`labToggleSacrifice('${id}')`}">
+                <div style="font-size:1.4rem;${onExp?'filter:grayscale(1)':''}">${p.emoji}</div>
+                <div style="font-size:0.48rem;color:rgba(255,255,255,.7);font-weight:600;margin-top:2px">${formatPetName(p)}</div>
+                ${onExp?'<div style="font-size:0.42rem;color:#f59e0b">⏳ ผจญภัย</div>':''}
+            </div>`;
+        }).join('')}</div>`
+        :'<div style="font-size:0.74rem;color:rgba(255,255,255,.3);text-align:center;padding:8px 0">← เลือก pet เป้าหมายก่อน</div>';
+
+    const canFuse=__labFuseTarget&&__labSlots.length===3;
+    const fuseLabel=targetDef?`สังเคราะห์ ${targetDef.emoji} ${targetDef.name}`:'เลือก target + sacrifice 3 ตัว';
+
+    el.innerHTML=`
+        <div style="background:rgba(109,40,217,.08);border:1px solid rgba(109,40,217,.2);border-radius:12px;padding:10px 12px;margin-bottom:10px">
+            <div style="font-size:0.72rem;font-weight:800;color:#a78bfa;margin-bottom:2px">🧬 Selective DNA Fusion</div>
+            <div style="font-size:0.62rem;color:rgba(255,255,255,.4);line-height:1.5">รวม DNA จากสายพันธุ์เดียวกัน 3 ตัว เพื่อสังเคราะห์ตัวใหม่ที่ต้องการ (grade 0, refine 0)</div>
+        </div>
+        <div style="font-size:0.62rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:1px;margin-bottom:6px">TARGET PET</div>
+        ${targetHtml}
+        <div style="height:1px;background:rgba(255,255,255,.08);margin:10px 0"></div>
+        ${slotsHtml}
+        ${sacrificeHtml}
+        <button onclick="labConfirmFuse()" ${canFuse?'':'disabled'} style="width:100%;margin-top:10px;background:${canFuse?'linear-gradient(135deg,#6d28d9,#7c3aed)':'rgba(255,255,255,.06)'};border:none;border-radius:12px;padding:12px;color:${canFuse?'#fff':'rgba(255,255,255,.25)'};font-family:inherit;font-size:0.84rem;font-weight:800;cursor:${canFuse?'pointer':'not-allowed'}">${fuseLabel}</button>
+    `;
+}
+
+// ── Force Mutation ──────────────────────────────────────────────
+function _renderLabMutate(el){
+    const ownedPets=(userData?.pets||[]).filter(p=>p.rarity!=='legendary');
+    const selSlots=__labSlots;
+    const filterR=__labFilterRarity;
+
+    const petCards=ownedPets.map(p=>{
+        const id=_labMkInstId(p); const cfg=RARITY[p.rarity];
+        const isSel=selSlots.includes(id);
+        const onExp=!!p.isExpedition;
+        const dimmed=filterR&&p.rarity!==filterR&&!isSel;
+        return`<div class="lab-pet-card${isSel?' sel':''}${(onExp||dimmed)?' disabled':''}" onclick="${(onExp||dimmed)?'void 0':`labToggleMutate('${id}')`}">
+            <div style="font-size:1.4rem;${onExp||dimmed?'filter:grayscale(.8) opacity(.4)':''}">${p.emoji}</div>
+            <div style="font-size:0.48rem;color:rgba(255,255,255,.7);font-weight:600;margin-top:2px;line-height:1.3">${formatPetName(p)}</div>
+            <div style="font-size:0.44rem;color:${cfg.color};font-weight:700">${cfg.label}</div>
+            ${onExp?'<div style="font-size:0.4rem;color:#f59e0b">⏳</div>':''}
+        </div>`;
+    }).join('');
+
+    const slotsHtml=`
+        <div class="lab-slot-row">${[0,1,2].map(i=>{
+            const id=selSlots[i];
+            const p=id?(userData?.pets||[]).find(x=>_labMkInstId(x)===id):null;
+            return`<div class="lab-slot${p?' filled':''}">
+                ${p?`<div style="font-size:1.6rem">${p.emoji}</div><button style="position:absolute;top:-5px;right:-5px;background:#ef4444;border:none;color:#fff;width:14px;height:14px;border-radius:50%;font-size:0.5rem;cursor:pointer;padding:0" onclick="labRemoveMutate('${_labMkInstId(p)}')">✕</button>`:'<span style="color:rgba(255,255,255,.15);font-size:1.2rem">＋</span>'}
+            </div>`;
+        }).join('')}</div>`;
+
+    const nextRarity={common:'rare',rare:'epic',epic:'legendary'};
+    const resultLabel=filterR?`→ สุ่ม <b style="color:${RARITY[nextRarity[filterR]].color}">${RARITY[nextRarity[filterR]].label}</b>`:'เลือก 3 ตัว rarity เดียวกัน';
+    const canMutate=selSlots.length===3&&filterR;
+
+    el.innerHTML=`
+        <div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:10px 12px;margin-bottom:10px">
+            <div style="font-size:0.72rem;font-weight:800;color:#fbbf24;margin-bottom:2px">⚗️ Force Mutation</div>
+            <div style="font-size:0.62rem;color:rgba(255,255,255,.4);line-height:1.5">บังคับกลายพันธุ์โดยใช้ DNA ดิบ 3 สาย — ผลลัพธ์จะก้าวกระโดดสู่สายพันธุ์ที่สูงกว่า</div>
+        </div>
+        ${slotsHtml}
+        <div style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,.5);margin-bottom:8px">${resultLabel}</div>
+        <div style="font-size:0.6rem;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:1px;margin-bottom:5px">เลือก SACRIFICE (ไม่รวม Legendary)</div>
+        <div class="lab-pet-grid">${petCards||'<div style="color:rgba(255,255,255,.3);font-size:0.74rem;padding:8px">ไม่มีสัตว์ที่ใช้ได้</div>'}</div>
+        <button onclick="labConfirmMutate()" ${canMutate?'':'disabled'} style="width:100%;margin-top:10px;background:${canMutate?'linear-gradient(135deg,#d97706,#f59e0b)':'rgba(255,255,255,.06)'};border:none;border-radius:12px;padding:12px;color:${canMutate?'#fff':'rgba(255,255,255,.25)'};font-family:inherit;font-size:0.84rem;font-weight:800;cursor:${canMutate?'pointer':'not-allowed'}">⚗️ Force Mutation!</button>
+    `;
+}
+
+// ── Lab interaction handlers ──────────────────────────────────────
+window.labPickFuseTarget=(petId)=>{
+    __labFuseTarget=(__labFuseTarget===petId)?null:petId;
+    __labSlots=[];
+    _renderLabBody();
+};
+window.labToggleSacrifice=(id)=>{
+    if(__labSlots.includes(id)){ __labSlots=__labSlots.filter(x=>x!==id); }
+    else if(__labSlots.length<3){ __labSlots.push(id); }
+    else{ toast('เลือกได้สูงสุด 3 ตัว','info'); return; }
+    _renderLabBody();
+};
+window.labRemoveSlot=(i)=>{ __labSlots.splice(i,1); _renderLabBody(); };
+window.labToggleMutate=(id)=>{
+    if(__labSlots.includes(id)){ 
+        __labSlots=__labSlots.filter(x=>x!==id);
+        if(__labSlots.length===0) __labFilterRarity=null;
+        else {
+            const firstPet=(userData?.pets||[]).find(x=>_labMkInstId(x)===__labSlots[0]);
+            __labFilterRarity=firstPet?.rarity||null;
+        }
+    } else if(__labSlots.length<3){
+        const p=(userData?.pets||[]).find(x=>_labMkInstId(x)===id);
+        if(!p) return;
+        if(__labFilterRarity&&p.rarity!==__labFilterRarity){ toast('ต้องเลือก rarity เดียวกัน','info'); return; }
+        __labSlots.push(id);
+        if(__labSlots.length===1) __labFilterRarity=p.rarity;
+    } else { toast('เลือกได้สูงสุด 3 ตัว','info'); return; }
+    _renderLabBody();
+};
+window.labRemoveMutate=(id)=>{ 
+    __labSlots=__labSlots.filter(x=>x!==id);
+    if(__labSlots.length===0) __labFilterRarity=null;
+    _renderLabBody();
+};
+
+// ── Confirm Fuse ─────────────────────────────────────────────────
+window.labConfirmFuse=async()=>{
+    if(!currentUser||!userData) return;
+    const targetDef=PETS.find(x=>x.id===__labFuseTarget);
+    if(!targetDef||__labSlots.length!==3){ toast('ข้อมูลไม่ครบ','error'); return; }
+    const sNames=__labSlots.map(id=>{const p=(userData.pets||[]).find(x=>_labMkInstId(x)===id); return p?p.emoji:'?';}).join(' ');
+    if(!await _confirm(`🧬 Selective DNA Fusion\n${sNames} → ${targetDef.emoji} ${targetDef.name}\n\nสละ 3 ตัว เพื่อสังเคราะห์ตัวใหม่ grade 0 refine 0\n\nยืนยัน?`)) return;
+
+    // สร้าง pet ใหม่
+    const newPet={...targetDef, instId:`${targetDef.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, grade:0, refine:0};
+    // ลบ sacrifice
+    let pets=[...(userData.pets||[])];
+    for(const id of __labSlots){
+        const idx=pets.findIndex(x=>_labMkInstId(x)===id);
+        if(idx>=0) pets.splice(idx,1);
     }
-    if(!targetUid){toast("ไม่พบผู้ใช้","error");return;}
-    const newPets=userData.pets.filter(p=>!pet.instId?p.id!==pet.id:(p.instId||'')!==String(pet.instId));
-    await setDoc(doc(db,"users",currentUser.uid),{pets:newPets},{merge:true});
-    await updateDoc(doc(db,"users",targetUid),{pets:arrayUnion(pet)});
-    toast(`ส่ง ${pet.emoji}${pet.name} ให้ ${email}!`,"success");closeTrade();tradeIdx=null;loadFbUsers();
+    pets.push(newPet);
+
+    window.__blockSnapshot=true;
+    userData={...userData,pets};
+    renderAll();
+    try{
+        await updateDoc(doc(db,'users',currentUser.uid),{pets});
+        const _name=userData?.nickname||userData?.name||'ผู้เล่น';
+        await postNews('🧬',`${_name} สังเคราะห์ ${newPet.emoji} ${newPet.name} สำเร็จ!`).catch(()=>{});
+    }catch(e){ toast('บันทึกผิดพลาด','error'); }
+    finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
+
+    __labFuseTarget=null; __labSlots=[];
+    closeTrade();
+    // แสดงผลผ่าน roulette
+    document.getElementById('gacha-modal').classList.add('active');
+    showGachaResult(newPet);
+    toast(`🧬 สังเคราะห์สำเร็จ! ได้ ${newPet.emoji} ${newPet.name}!`,'success');
+};
+
+// ── Confirm Mutation ─────────────────────────────────────────────
+window.labConfirmMutate=async()=>{
+    if(!currentUser||!userData||__labSlots.length!==3||!__labFilterRarity) return;
+    const nextRarity={common:'rare',rare:'epic',epic:'legendary'};
+    const resultRarity=nextRarity[__labFilterRarity];
+    if(!resultRarity){ toast('ไม่สามารถ Mutate ได้','error'); return; }
+    const sNames=__labSlots.map(id=>{const p=(userData.pets||[]).find(x=>_labMkInstId(x)===id);return p?p.emoji:'?';}).join(' ');
+    if(!await _confirm(`⚗️ Force Mutation\n${sNames} → สุ่ม ${RARITY[resultRarity].label}\n\nสละ 3 ตัว เพื่อบังคับกลายพันธุ์\n\nยืนยัน?`)) return;
+
+    // สุ่ม pet จาก pool ของ resultRarity
+    const pool=PETS.filter(p=>p.rarity===resultRarity);
+    const picked=pool[Math.floor(Math.random()*pool.length)];
+    const newPet={...picked, instId:`${picked.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, grade:0, refine:0};
+
+    let pets=[...(userData.pets||[])];
+    for(const id of __labSlots){
+        const idx=pets.findIndex(x=>_labMkInstId(x)===id);
+        if(idx>=0) pets.splice(idx,1);
+    }
+    pets.push(newPet);
+
+    window.__blockSnapshot=true;
+    userData={...userData,pets};
+    renderAll();
+    try{
+        await updateDoc(doc(db,'users',currentUser.uid),{pets});
+        const _name=userData?.nickname||userData?.name||'ผู้เล่น';
+        await postNews('⚗️',`${_name} Force Mutation สำเร็จ! ได้ ${newPet.emoji} ${newPet.name} [${RARITY[newPet.rarity].label}]!`).catch(()=>{});
+    }catch(e){ toast('บันทึกผิดพลาด','error'); }
+    finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
+
+    __labSlots=[]; __labFilterRarity=null;
+    closeTrade();
+    document.getElementById('gacha-modal').classList.add('active');
+    showGachaResult(newPet);
 };
 
 // ════════════════════════════════════════
@@ -2227,7 +2467,7 @@ function buildHome(){
           <div class="inv-grid">${sortedPets.map(p=>{const cfg=RARITY[p.rarity];const _activePetSlots=(userData?.activePets||[]);const _slotIdx=_activePetSlots.findIndex(id=>id&&String(id)===String(p.instId||p.id));const on=_slotIdx>=0;const gr=p.grade||0;const pDef=PETS.find(x=>x.id===p.id);const elEmoji=ELEMENTS[pDef?.element]?.emoji||'';return(()=>{const onExp=!!p.isExpedition;return`<div class="inv-item${on?' on':''}" style="--rc:${cfg.color};--rb:${cfg.bg};position:relative;${onExp?'opacity:.45;':''}" onclick="${onExp?'void toast(\'กำลังผจญภัยอยู่\',\'info\')':'showPetInfo(\''+String(p.instId||p.id)+'\')'}"><div class="inv-em" style="${onExp?'filter:grayscale(.7)':''}">${p.emoji}</div><div class="inv-nm">${formatPetName(p)}</div><div style="font-size:0.55rem;color:${cfg.color};font-weight:700">${cfg.label}</div><div style="font-size:0.52rem;color:var(--care)">+${petDailyCoins(p)}🪙</div>${on?`<div class="inv-on" style="font-size:0.5rem">${_slotIdx+1}</div>`:''}${onExp?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-radius:10px"><span style="background:rgba(0,0,0,.6);color:#e2e8f0;font-size:0.48rem;font-weight:700;padding:1px 5px;border-radius:4px">⏳ ผจญภัย</span></div>':''}</div>`;})()}).join('')}</div>
         <div style="display:flex;gap:7px;justify-content:center;margin-top:8px;flex-wrap:wrap">
             
-            ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔄 Trade</button>`:''}
+            ${pets.length?`<button class="btn-gray sm" onclick="openTrade()">🔬 ห้องทดลอง</button>`:''}
             <button class="btn-gray sm" onclick="openMega()">📣 โทรโข่ง</button>
             ${pets.length?`<button onclick="openForgeModal()" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:9px;padding:5px 12px;color:#fff;font-family:inherit;font-size:0.76rem;font-weight:700;cursor:pointer;white-space:nowrap">🔨 ตีบวก</button>`:''}
             ${pets.length?`<button onclick="openBattle()" style="background:linear-gradient(135deg,#ef4444,#dc2626);border:none;border-radius:9px;padding:5px 12px;color:#fff;font-family:inherit;font-size:0.76rem;font-weight:700;cursor:pointer;white-space:nowrap">⚔️ ลองต่อสู้</button>`:''}
@@ -4603,7 +4843,8 @@ window.startTowerBattle=()=>{
         pet:p, def:PETS.find(x=>x.id===p.id)||{element:'fist'},
         stats:calculatePetStats(p), hp:calculatePetStats(p).hp, maxHp:calculatePetStats(p).hp,
     }));
-    const bossPet={id:'boss',emoji:'👾',name:`ไวรัส ชั้น ${floor}`,rarity:'rare',grade:0,instId:'boss'};
+    const isBossFloor=(floor%10===0);
+    const bossPet={id:'boss',emoji:isBossFloor?'🦠':'👾',name:isBossFloor?`ไวรัสกลายพันธุ์ ชั้น ${floor}`:`ไวรัสทั่วไป ชั้น ${floor}`,rarity:isBossFloor?'epic':'rare',grade:0,instId:'boss'};
     const sideB=[{pet:bossPet,def:{id:'boss',element:bEl},stats:{atk:bStats.atk,hp:bStats.hp},hp:bStats.hp,maxHp:bStats.hp}];
 
     if(__core?.timer){clearInterval(__core.timer);clearTimeout(__core.timer);}
@@ -4655,8 +4896,9 @@ async function _towerOnWin(floor, bestAtStart){
     renderAll();
     try{
         await updateDoc(doc(db,'users',currentUser.uid),{towerFloor:newFloor,towerBest:newBest,coins:increment(reward)});
-        if(isFirst&&floor%5===0&&typeof postNews==='function') await postNews('🗼',`${userData.nickname} ผ่านหอคอยชั้น ${floor}! (+${reward}🪙)`).catch(()=>{});
-        if(isFirst&&floor%5===0&&typeof confetti==='function') confetti({particleCount:60,spread:65,origin:{y:0.5},scalar:0.85});
+        const _bossTag=floor%100===0?'⭐ ร้อยชั้น!':floor%10===0?'🦠 Boss ✅':'';
+        if(isFirst&&floor%10===0&&typeof postNews==='function') await postNews('🗼',`${userData.nickname} ผ่านหอคอยชั้น ${floor} ${_bossTag}! (+${reward}🪙)`).catch(()=>{});
+        if(isFirst&&floor%10===0&&typeof confetti==='function') confetti({particleCount:floor%100===0?120:60,spread:65,origin:{y:0.5},scalar:0.85});
         loadFbUsers();
     }catch(e){console.error('tower save',e);}
     finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
