@@ -93,7 +93,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:linear-gradient(
 /* HOME — INVENTORY */
 .inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;}
 .inv-empty{text-align:center;color:var(--muted);padding:20px;font-size:0.84rem;}
-.inv-item{background:var(--rb,#f8fafc);border:2px solid transparent;border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
+.inv-item{background:var(--rb,rgba(255,255,255,.05));border:2px solid rgba(255,255,255,.07);border-radius:11px;padding:8px 4px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
 .inv-item:hover{transform:translateY(-2px);border-color:var(--rc);}
 .inv-item.on{border-color:var(--rc);box-shadow:0 0 10px color-mix(in srgb,var(--rc) 20%,transparent);}
 .inv-em{font-size:1.6rem;} .inv-nm{font-size:0.62rem;font-weight:600;margin-top:2px;}
@@ -161,7 +161,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:linear-gradient(
 .lb-score{font-size:0.72rem;font-weight:800;color:#fbbf24;flex-shrink:0;}
 .lb-me{background:rgba(251,191,36,.1) !important;border-top-color:rgba(251,191,36,.2) !important;}
 
-/* ── SHOP ── */@keyframes wobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}.egg-bag-item{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;background:var(--rb,#f8fafc);border:1.5px solid var(--rc,var(--border));margin-bottom:8px;}
+/* ── SHOP ── */@keyframes wobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}.egg-bag-item{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;background:var(--rb,rgba(255,255,255,.05));border:1.5px solid var(--rc,rgba(255,255,255,.1));margin-bottom:8px;}
 .hatch-bar{height:5px;background:var(--border);border-radius:8px;overflow:hidden;margin:4px 0 2px;}
 .hatch-fill{height:100%;border-radius:8px;transition:width .3s;}
 
@@ -657,10 +657,10 @@ const provider = new GoogleAuthProvider();
 // ▶ CONSTANTS — RARITY / GRADES / ELEMENTS
 // ════════════════════════════════════════
 const RARITY = {
-    common:    { color:"#64748b", bg:"#f1f5f9", label:"COMMON",    glow:"#94a3b8", dailyBase:5  },
-    rare:      { color:"#3b82f6", bg:"#eff6ff", label:"RARE",      glow:"#60a5fa", dailyBase:15 },
-    epic:      { color:"#a855f7", bg:"#faf5ff", label:"EPIC",      glow:"#c084fc", dailyBase:35 },
-    legendary: { color:"#f59e0b", bg:"#fffbeb", label:"LEGENDARY", glow:"#fbbf24", dailyBase:80 },
+    common:    { color:"#94a3b8", bg:"rgba(148,163,184,.12)", label:"COMMON",    glow:"#94a3b8", dailyBase:5  },
+    rare:      { color:"#60a5fa", bg:"rgba(59,130,246,.15)",  label:"RARE",      glow:"#60a5fa", dailyBase:15 },
+    epic:      { color:"#c084fc", bg:"rgba(168,85,247,.15)",  label:"EPIC",      glow:"#c084fc", dailyBase:35 },
+    legendary: { color:"#fbbf24", bg:"rgba(251,191,36,.12)",  label:"LEGENDARY", glow:"#fbbf24", dailyBase:80 },
 };
 
 // Grade: copies ที่ใช้อัพ และ multiplier (×2 ทุกขั้น)
@@ -4061,7 +4061,7 @@ function buildShop(){
                             <span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⬜ Common 40%</span>
                             <span style="background:rgba(59,130,246,.2);color:#93c5fd;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 38%</span>
                             <span style="background:rgba(168,85,247,.2);color:#c4b5fd;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 18%</span>
-                            <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 4%</span>
+                            <span style="background:rgba(245,158,11,.2);color:#fcd34d;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 4%</span>
                         </div>
                     </div>
                     <button class="btn-gold" onclick="buyGlowEgg()" ${currentUser&&(userData?.coins||0)>=1200?'':'disabled'} style="white-space:nowrap">1200🪙</button>
@@ -4083,7 +4083,7 @@ function buildShop(){
                         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
                             <span style="background:rgba(59,130,246,.2);color:#93c5fd;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🔵 Rare 35%</span>
                             <span style="background:rgba(168,85,247,.2);color:#c4b5fd;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">🟣 Epic 45%</span>
-                            <span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 20%</span>
+                            <span style="background:rgba(245,158,11,.2);color:#fcd34d;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:700">⭐ Legendary 20%</span>
                         </div>
                     </div>
                     <button class="btn-gold" onclick="buyStarEgg()" ${currentUser&&(userData?.coins||0)>=3000?'':'disabled'} style="white-space:nowrap">3000🪙</button>
