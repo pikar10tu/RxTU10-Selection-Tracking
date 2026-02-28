@@ -2697,19 +2697,19 @@ function buildPlay(){
         <div class="hub-card live" style="--hc-glow:rgba(37,99,235,.4);background:linear-gradient(145deg,#1e3a5f,#0f172a);border-color:rgba(96,165,250,.25);" onclick="openQuizModal()">
             <div class="hub-card-icon">🕵️</div>
             <div class="hub-card-title">ทายชื่อเพื่อน</div>
-            <div class="hub-card-sub">เห็นชื่อเล่น → ทายชื่อจริง<br>High Score: ${qHigh} คะแนน</div>
+            <div class="hub-card-sub">เห็นชื่อเล่น → ทายชื่อจริง</div><div style="font-size:0.72rem;font-weight:800;color:#fbbf24;margin-top:2px">🏆 ${qHigh} คะแนน</div>
         </div>
         <!-- Quiz: ยา -->
         <div class="hub-card live" style="--hc-glow:rgba(99,102,241,.4);background:linear-gradient(145deg,#312e81,#1e1b4b);border-color:rgba(165,180,252,.2);" onclick="openDrugModal()">
             <div class="hub-card-icon">💊</div>
             <div class="hub-card-title">ทายยา</div>
-            <div class="hub-card-sub">Drug Class Quiz<br>High Score: ${dqHigh} คะแนน</div>
+            <div class="hub-card-sub">Drug Class Quiz</div><div style="font-size:0.72rem;font-weight:800;color:#fbbf24;margin-top:2px">🏆 ${dqHigh} คะแนน</div>
         </div>
         <!-- Color Tiles -->
         <div class="hub-card live" style="--hc-glow:rgba(16,185,129,.4);background:linear-gradient(145deg,#052e16,#0a1a0a);border-color:rgba(34,197,94,.25);" onclick="openColorTilesModal()">
             <div class="hub-card-icon">🟩</div>
             <div class="hub-card-title">Color Tiles</div>
-            <div class="hub-card-sub">Piano Tiles สไตล์<br>High Score: ${ctHigh} คะแนน</div>
+            <div class="hub-card-sub">Piano Tiles สไตล์</div><div style="font-size:0.72rem;font-weight:800;color:#fbbf24;margin-top:2px">🏆 ${ctHigh} คะแนน</div>
         </div>
         <!-- CC Exam (Easter Egg — Coming Soon facade) -->
         <div class="hub-card soon" style="background:linear-gradient(145deg,#1a1000,#120d00);border-color:rgba(255,255,255,.06);" onclick="openCCExam()">
@@ -4401,7 +4401,14 @@ function _coreRender() {
 // ▶ TOWER SYSTEM
 // ════════════════════════════════════════
 function _towerBossEl(floor){ const r=floor%3; return r===1?'fist':r===2?'scissors':'paper'; }
-function _towerBossStats(floor){ return{hp:60+((floor-1)*8),atk:10+((floor-1)*2)}; }
+function _towerBossStats(floor){
+    const atk = 3 + floor * 0.45;
+    const hp  = 25 + floor * 3.5;
+    if(floor % 10 === 0){
+        return { atk: Math.round(atk * 1.2), hp: Math.round(hp * 2.5) };
+    }
+    return { atk: Math.round(atk), hp: Math.round(hp) };
+}
 
 let __tower=null;
 let __twSelTeam=[];
@@ -4427,7 +4434,7 @@ function _renderTowerLobby(){
     const today=new Date().toDateString();
     const canReset=userData?.towerLastReset!==today;
     const isFirstClear=floor>(userData?.towerBest||0);
-    const reward=isFirstClear?floor*20:floor*5;
+    const reward=isFirstClear?(500+(floor*10)):(50+(floor*10));
 
     const slotHtml=__twSelTeam.map((id,i)=>{
         const p=(userData?.pets||[]).find(x=>String(x.instId||x.id)===id);
@@ -4481,6 +4488,10 @@ function _renderTowerLobby(){
             <div class="tower-title">🗼 หอคอย ชั้น ${floor}</div>
             <button onclick="closeTower()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.5);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem">✕</button>
         </div>
+        <button onclick="toggleLb('twlb')" style="width:100%;margin-bottom:10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:7px;color:rgba(251,191,36,.7);font-family:inherit;font-size:0.72rem;font-weight:700;cursor:pointer">
+            🏆 กระดานหอคอย
+        </button>
+        <div id="twlb" style="display:none;margin-bottom:10px"></div>
         <div style="display:flex;gap:8px;margin-bottom:12px">
             <div style="flex:1;background:rgba(239,68,68,.12);border-radius:10px;padding:8px;text-align:center">
                 <div style="font-size:0.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">Boss HP</div>
@@ -4522,16 +4533,20 @@ function _renderTowerLobby(){
         </div>
         <div class="tower-team-grid">${petCards}</div>
 
-        ${floor>1?`<button onclick="${canReset?'resetTower()':'void 0'}"
-            style="width:100%;margin-top:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-            color:${canReset?'rgba(255,255,255,.5)':'rgba(255,255,255,.2)'};padding:9px;border-radius:10px;
-            font-family:inherit;font-size:0.76rem;cursor:${canReset?'pointer':'not-allowed'}">
-            🔄 เริ่มชั้น 1 ใหม่ (วันละครั้ง)${!canReset?' — ใช้ไปแล้ววันนี้':''}</button>`:''}
+        <div style="display:flex;gap:6px;margin-top:8px">
+            ${floor>1?`<button onclick="${canReset?'backTower()':'void 0'}"
+                style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+                color:${canReset?'rgba(255,255,255,.55)':'rgba(255,255,255,.2)'};padding:9px 4px;border-radius:10px;
+                font-family:inherit;font-size:0.72rem;cursor:${canReset?'pointer':'not-allowed'}">
+                ⬇️ ย้อน 50 ชั้น${!canReset?' ✗':''}</button>`:''}
+            ${floor>1?`<button onclick="${canReset?'resetTower()':'void 0'}"
+                style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+                color:${canReset?'rgba(255,255,255,.55)':'rgba(255,255,255,.2)'};padding:9px 4px;border-radius:10px;
+                font-family:inherit;font-size:0.72rem;cursor:${canReset?'pointer':'not-allowed'}">
+                🔄 เริ่มชั้น 1${!canReset?' ✗':''}</button>`:''}
+        </div>
+        ${!canReset?`<div style="text-align:center;font-size:0.58rem;color:rgba(255,255,255,.2);margin-top:3px">ใช้สิทธิ์วันนี้ไปแล้ว — รีเซ็ตพรุ่งนี้</div>`:''}
 
-        <button onclick="toggleLb('twlb')" style="width:100%;margin-top:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:7px;color:rgba(255,255,255,.45);font-family:inherit;font-size:0.72rem;cursor:pointer">
-            🏆 กระดานหอคอย
-        </button>
-        <div id="twlb" style="display:none;margin-top:6px"></div>
     </div>`;
 }
 window.twPickPet=(instId)=>{
@@ -4543,6 +4558,19 @@ window.twPickPet=(instId)=>{
     _renderTowerLobby();
 };
 window.twRemoveSlot=(i)=>{ if(i>=0&&i<__twSelTeam.length) __twSelTeam.splice(i,1); _renderTowerLobby(); };
+window.backTower=async()=>{
+    const today=new Date().toDateString();
+    if(!currentUser||!userData) return;
+    if(userData?.towerLastReset===today){toast('ใช้สิทธิ์วันนี้ไปแล้ว (ร่วมกับปุ่มเริ่มใหม่)','info');return;}
+    const floor=userData?.towerFloor||1;
+    const newFloor=Math.max(1,floor-50);
+    if(!await _confirm(`⬇️ ย้อนกลับ 50 ชั้น\nจากชั้น ${floor} → ชั้น ${newFloor}\n(ใช้ได้วันละ 1 ครั้ง ร่วมกับปุ่มเริ่มใหม่)\n\nยืนยัน?`)) return;
+    window.__blockSnapshot=true;
+    userData={...userData,towerFloor:newFloor,towerLastReset:today};
+    await updateDoc(doc(db,'users',currentUser.uid),{towerFloor:newFloor,towerLastReset:today});
+    setTimeout(()=>{window.__blockSnapshot=false;},1500);
+    __twSelTeam=[]; _renderTowerLobby(); toast(`⬇️ ย้อนกลับชั้น ${newFloor} แล้ว!`,'success');
+};
 window.resetTower=async()=>{
     const today=new Date().toDateString();
     if(!await _confirm('🔄 เริ่มต้นใหม่จากชั้น 1\nรางวัลชั้นที่เคยผ่านแล้วจะเป็น ×10\n(ใช้ได้วันละ 1 ครั้ง)\n\nยืนยัน?')) return;
