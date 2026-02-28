@@ -737,8 +737,24 @@ function petStats(p){
 // eggTypes: ['normal'] | ['gold'] | ['rainbow'] | ['normal','gold'] ฯลฯ
 
 // ════════════════════════════════════════
+// ▶ LOGGER UTILITY
+// ════════════════════════════════════════
+const IS_DEV = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const log = {
+    error: (ctx, err) => { if(IS_DEV) console.error(`[${ctx}]`, err); },
+    warn:  (ctx, msg) => { if(IS_DEV) console.warn(`[${ctx}]`, msg);  },
+    info:  (ctx, msg) => { if(IS_DEV) console.info(`[${ctx}]`, msg);  },
+};
+
+// ════════════════════════════════════════
 // ▶ DATA — PET DEFINITIONS
 // ════════════════════════════════════════
+/**
+ * PETS — รายการ pet ทั้งหมดในเกม
+ * Format: { id, emoji, name, rarity, element, flavor, rate:{normal,gold,rainbow}, hatchMins }
+ * rate.normal = โอกาสออกจากไข่ปกติ (รวมทุก common = 1.0)
+ * หากต้องการเพิ่ม pet ใหม่: เพิ่มที่ท้าย array ของ rarity ที่ต้องการ
+ */
 const PETS = [
     // ── COMMON (8 ตัวเดิม + 7 ใหม่) ──
     { id:"cat",       emoji:"🐱", name:"แมวเหมียว",     rarity:"common",    element:"paper",    flavor:"เพื่อนซี้ประจำห้องยา ชอบนั่งบนตำราและทำตัวเป็นที่ปรึกษา",        rate:{normal:0.148,gold:0.0,rainbow:0.0}, hatchMins:1 },
@@ -795,6 +811,19 @@ const INSTANT_COST = 25; // ราคาซื้อ Instant Hatch Ticket
 const MEGA_COST = 25;
 const ADMIN_EMAIL = 'prawich.aum@dome.tu.ac.th';
 
+// ── SYSTEM CONSTANTS ──────────────────────────────────────────────
+const SNAPSHOT_DELAY  = 1500;  // ms — blockSnapshot guard duration after write
+const PLE_CC_DATE     = '2026-12-11T00:00:00+07:00'; // วันสอบ PLE-CC
+const DAILY_RESET_HR  = 24;    // reset ที่ เที่ยงคืน (offset hours)
+// ── VANCOMYCIN PK CONSTANTS (Matzke 1984 population model) ────────
+const VANCO_KE_SLOPE  = 0.00083; // ke = slope × CrCl + intercept
+const VANCO_KE_INT    = 0.0044;
+const VANCO_VD_POP    = 0.7;   // L/kg  population Vd
+// ── PHARMACOKINETIC CALC CONSTANTS ────────────────────────────────
+const CG_MALE_FACTOR  = 1.0;   // Cockcroft-Gault sex factor (male)
+const CG_FEMALE_FACTOR= 0.85;  // Cockcroft-Gault sex factor (female)
+const CG_DENOMINATOR  = 72;    // Cockcroft-Gault denominator
+
 
 /** rollPetFromGlowEgg() → B-tier: Common 40% / Rare 38% / Epic 18% / Legendary 4% */
 function rollPetFromGlowEgg(){
@@ -840,7 +869,7 @@ window.buyGuaranteedEgg=async()=>{
         await updateDoc(doc(db,'users',currentUser.uid),{coins:increment(-cost),eggs:arrayUnion(egg)});
         await window._spendCoins(cost);
     }catch(e){toast('ซื้อไม่สำเร็จ','error');}
-    finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
+    finally{setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY);}
     toast('🎁 ได้รับไข่การันตีตำนานแล้ว! ⭐ Legendary รอฟัก!','success');
 };
 window.buyStarEgg=async()=>{
@@ -861,7 +890,7 @@ window.buyStarEgg=async()=>{
     try{
         await updateDoc(doc(db,'users',currentUser.uid),{coins:increment(-cost), eggs:arrayUnion(egg)});
     }catch(e){toast('ซื้อไม่สำเร็จ','error');}
-    finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
+    finally{setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY);}
     await window._spendCoins(cost);
     toast(`🌠 ได้รับไข่ตำนานแล้ว! ${pet.rarity==='legendary'?'⭐ Legendary!':'🟣 Epic'}...`,'success');
 };
@@ -890,7 +919,7 @@ window.buyGlowEgg=async()=>{
             coins:increment(-cost), eggs:arrayUnion(egg),
         });
     }catch(e){toast('ซื้อไม่สำเร็จ','error');}
-    finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
+    finally{setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY);}
     await window._spendCoins(cost);
     toast(`🌐 ได้รับไข่เรืองแสงแล้ว! ${pet.rarity==='legendary'?'⭐ Legendary!! ✨':pet.rarity==='epic'?'🟣 Epic!':'💎 Rare'}...`,'success');
 };
@@ -944,6 +973,12 @@ const RN="นางสาวชญานิศ ชายเมฆนางสา
 // ════════════════════════════════════════
 // ▶ DATA — DRUG QUIZ DATA
 // ════════════════════════════════════════
+/**
+ * DRUGS — ข้อมูลยาสำหรับ Quiz ทายชื่อยา
+ * Format: { id, name, nickName, category, hint }
+ * หากต้องการเพิ่มข้อสอบในอนาคต: เพิ่ม entry ใหม่ที่นี่
+ * หรือ load จาก Firestore/JSON ใน loadQuizData() (TODO: Phase 2)
+ */
 const DRUGS=[
     {n:"Paracetamol",a:"Analgesic / Antipyretic"},{n:"Amoxicillin",a:"Antibiotic (Penicillin)"},{n:"Cetirizine",a:"Antihistamine Gen 2"},{n:"Omeprazole",a:"Proton Pump Inhibitor (PPI)"},{n:"Simvastatin",a:"HMG-CoA Reductase Inhibitor (Statin)"},{n:"Metformin",a:"Biguanide (เบาหวาน)"},{n:"Amlodipine",a:"Calcium Channel Blocker (CCB)"},{n:"Ibuprofen",a:"NSAIDs (COX-1/2 inhibitor)"},{n:"Prednisolone",a:"Systemic Corticosteroid"},{n:"Salbutamol",a:"Short-acting β2-agonist (SABA)"},{n:"Losartan",a:"Angiotensin II Receptor Blocker (ARB)"},{n:"Atorvastatin",a:"HMG-CoA Reductase Inhibitor (Statin)"},{n:"Clopidogrel",a:"P2Y12 Antiplatelet"},{n:"Gabapentin",a:"Anticonvulsant / Neuropathic pain"},{n:"Domperidone",a:"Dopamine Antagonist Antiemetic"},{n:"Lorazepam",a:"Benzodiazepine (anxiolytic)"},{n:"Tramadol",a:"Weak Opioid Analgesic"},{n:"Acetylcysteine",a:"Mucolytic / Antidote (paracetamol OD)"},{n:"Mefenamic Acid",a:"NSAIDs (NSAID fenamate)"},{n:"Enalapril",a:"ACE Inhibitor"},{n:"Propranolol",a:"Non-selective Beta-blocker"},{n:"Furosemide",a:"Loop Diuretic"},{n:"Warfarin",a:"Vitamin K Antagonist (Anticoagulant)"},{n:"Digoxin",a:"Cardiac Glycoside (inotrope)"},{n:"Azithromycin",a:"Macrolide Antibiotic"},{n:"Ciprofloxacin",a:"Fluoroquinolone Antibiotic"},{n:"Doxycycline",a:"Tetracycline Antibiotic"},{n:"Ceftriaxone",a:"3rd-gen Cephalosporin"},{n:"Diazepam",a:"Benzodiazepine (anticonvulsant/anxiolytic)"},{n:"Fluoxetine",a:"Selective Serotonin Reuptake Inhibitor (SSRI)"},{n:"Amitriptyline",a:"Tricyclic Antidepressant (TCA)"},{n:"Phenytoin",a:"Hydantoin Anticonvulsant (Na+ channel blocker)"},{n:"Chlorpheniramine (CPM)",a:"1st-gen Antihistamine (sedating)"},{n:"Loratadine",a:"2nd-gen Antihistamine (non-sedating)"},{n:"Fexofenadine",a:"3rd-gen Antihistamine (peripherally selective)"},{n:"Dextromethorphan",a:"NMDA Antagonist Antitussive"},{n:"Bromhexine",a:"Mucolytic (depolymerizes mucopolysaccharides)"},{n:"Famotidine",a:"H2-Receptor Antagonist"},{n:"Hyoscine (Scopolamine)",a:"Anticholinergic / Antispasmodic"},{n:"Loperamide",a:"Peripheral Opioid Receptor Agonist (Antidiarrheal)"},{n:"Glibenclamide",a:"Sulfonylurea (closes K-ATP channel)"},{n:"Allopurinol",a:"Xanthine Oxidase Inhibitor (antigout)"},{n:"Colchicine",a:"Microtubule Inhibitor (acute gout)"},{n:"Diclofenac",a:"NSAIDs (acetic acid derivative)"},{n:"Naproxen",a:"NSAIDs (propionic acid derivative)"},{n:"Celecoxib",a:"Selective COX-2 Inhibitor"},{n:"Aspirin (Low dose)",a:"Irreversible COX-1 Inhibitor / Antiplatelet"},{n:"Ergotamine",a:"Serotonin Agonist Antimigraine"},{n:"Norfloxacin",a:"Fluoroquinolone (urinary/GI tract)"},{n:"ORS",a:"Oral Rehydration Solution (WHO formula)"}
 ];
@@ -954,6 +989,18 @@ const DRUGS=[
 // ════════════════════════════════════════
 // ▶ RUNTIME STATE
 // ════════════════════════════════════════
+/**
+ * RUNTIME STATE — ตัวแปร global ที่ใช้ทั่วทั้งแอป
+ *
+ * Auth:      currentUser, userData, unsub (Firestore listener)
+ * Members:   mTrack, mSearch (filter state)
+ * Quiz:      qScore, qAnswer, qHigh  (member quiz)
+ * DrugQuiz:  dqScore, dqAnswer, dqHigh
+ * Flags:     __quizTop5Posted, __drugTop5Posted (dedup news)
+ *
+ * ── FUTURE: quiz engine state จะอยู่ใน __quizEngine object ──
+ * window.__quizEngine = { questions:[], currentIdx:0, score:0, ... }
+ */
 let currentUser=null, userData=null, unsub=null;
 // UI state
 let mTrack='all', mSearch='';
@@ -966,6 +1013,28 @@ let __quizTop5Posted=false, __drugTop5Posted=false;
 // ════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════
+// ════════════════════════════════════════
+// ▶ QUIZ ENGINE — EXTERNAL QUESTION LOADER  (Phase 2 placeholder)
+// ════════════════════════════════════════
+/**
+ * loadQuizBank(source) — Phase 2: โหลดข้อสอบจากภายนอก
+ *
+ * ตัวเลือก:
+ *   A) JSON file:     fetch('./questions/ple_2568.json')
+ *   B) Firestore:     getDocs(collection(db,'questions'))
+ *   C) Google Sheets: fetch(SHEETS_API_URL)
+ *
+ * Schema มาตรฐาน (ดู README หรือ questions/SCHEMA.md):
+ * {
+ *   id: string, text: string, choices: string[4],
+ *   answer: 0-3, explanation: string,
+ *   subject: string, year: number, tags: string[]
+ * }
+ *
+ * TODO: implement เมื่อมีไฟล์ข้อสอบพร้อม
+ */
+// async function loadQuizBank(source='firestore'){ ... }
+
 // ════════════════════════════════════════
 // ▶ AUTH & USER MANAGEMENT
 // ════════════════════════════════════════
@@ -1349,7 +1418,7 @@ window.confirmUpgrade=async()=>{
     await updateDoc(doc(db,"users",currentUser.uid),{pets:newPets});
     // sync local userData ทันที ไม่รอ snapshot
     userData={...userData,pets:newPets};
-    setTimeout(()=>{window.__blockSnapshot=false;},1500);
+    setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY);
     closeUpgradeModal();
     window.__upgradingPet=false;
     // refresh inventory view ถ้าเปิดอยู่
@@ -1814,7 +1883,7 @@ window.togglePetSlot=async(slotIdx, instOrId)=>{
         await updateDoc(doc(db,'users',currentUser.uid),{activePets:slots});
         loadFbUsers();
     }catch(e){ toast('เซฟผิดพลาด','error'); }
-    finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
+    finally{ setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY); }
 };
 // Legacy shim — gacha "ใช้งานเลย!" button uses setActive
 window.setActive=async(instId)=>togglePetSlot(0, instId);
@@ -1905,8 +1974,6 @@ window.closePetInfo=()=>document.getElementById('petinfo-modal').classList.remov
 // ════════════════════════════════════════
 // ════════════════════════════════════════
 // ▶ TRADE SYSTEM
-// ════════════════════════════════════════
-// ════════════════════════════════════════
 // ════════════════════════════════════════
 // ▶ CALC TOOLS
 // ════════════════════════════════════════
@@ -2106,8 +2173,8 @@ window._calcCrCl=()=>{
     const wt =parseFloat(document.getElementById('c-wt')?.value);
     const scr=parseFloat(document.getElementById('c-scr')?.value);
     if([age,wt,scr].some(isNaN)||age<=0||wt<=0||scr<=0){toast('กรอกข้อมูลให้ครบ','error');return;}
-    const sex=male?1:0.85;
-    const crcl=((140-age)*wt*sex)/(72*scr);
+    const sex=male?CG_MALE_FACTOR:CG_FEMALE_FACTOR;
+    const crcl=((140-age)*wt*sex)/(CG_DENOMINATOR*scr);
     const stage=crcl>=90?'G1 (ปกติ)':crcl>=60?'G2 (ลดน้อย)':crcl>=30?'G3 (ปานกลาง)':crcl>=15?'G4 (รุนแรง)':'G5 (ไตวาย)';
     _showCalcResult(crcl.toFixed(1),'mL/min',`CKD Stage: <b>${stage}</b>`);
 };
@@ -2204,12 +2271,12 @@ window._calcVanco=()=>{
     if([age,wt,scr,dose,tau,c1,c2].some(isNaN)){toast('กรอกข้อมูลให้ครบ','error');return;}
     if(c2<=c1){toast('Trough 2 ต้องมากกว่า Trough 1 (หรือใกล้เคียง steady-state)','error');return;}
     // CrCl สำหรับประมาณ Vd และ ke
-    const sexF=male?1:0.85;
-    const crcl=Math.max(10,((140-age)*wt*sexF)/(72*scr));
+    const sexF=male?CG_MALE_FACTOR:CG_FEMALE_FACTOR;
+    const crcl=Math.max(10,((140-age)*wt*sexF)/(CG_DENOMINATOR*scr));
     // Population-based ke (Matzke 1984): ke = 0.00083×CrCl + 0.0044
-    const ke=0.00083*crcl+0.0044;
+    const ke=VANCO_KE_SLOPE*crcl+VANCO_KE_INT;
     // Vd population ≈ 0.7 L/kg
-    const vd=0.7*wt;
+    const vd=VANCO_VD_POP*wt;
     // AUC₂₄ = (Dose/tau × 1/ke) × (1 - e^(-ke×tau)) ≈ Dose×24/tau / (ke×Vd) × correction
     // Simplified trapezoidal using 2 troughs (pre-dose values at steady state)
     // AUC_tau ≈ Dose/(ke × Vd) × eff_factor; use empirical 2-level
@@ -2471,7 +2538,7 @@ window.labConfirmFuse=async()=>{
         const _name=userData?.nickname||userData?.name||'ผู้เล่น';
         await postNews('🧬',`${_name} สังเคราะห์ ${newPet.emoji} ${newPet.name} สำเร็จ!`).catch(()=>{});
     }catch(e){ toast('บันทึกผิดพลาด','error'); }
-    finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
+    finally{ setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY); }
 
     __labFuseTarget=null; __labSlots=[];
     closeTrade();
@@ -2510,7 +2577,7 @@ window.labConfirmMutate=async()=>{
         const _name=userData?.nickname||userData?.name||'ผู้เล่น';
         await postNews('⚗️',`${_name} Force Mutation สำเร็จ! ได้ ${newPet.emoji} ${newPet.name} [${RARITY[newPet.rarity].label}]!`).catch(()=>{});
     }catch(e){ toast('บันทึกผิดพลาด','error'); }
-    finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
+    finally{ setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY); }
 
     __labSlots=[]; __labFilterRarity=null;
     closeTrade();
@@ -2901,7 +2968,7 @@ function buildHome(){
 // ▶ TAB BUILDERS — MEMBERS
 // ════════════════════════════════════════
 window._buildMembersTopBar=function _buildMembersTopBar(){
-    const ple = new Date('2026-12-11T00:00:00+07:00');
+    const ple = new Date(PLE_CC_DATE);
     const diffDays = Math.ceil((ple - new Date()) / 86400000);
     let pleHtml;
     if(diffDays > 0){
@@ -3207,7 +3274,7 @@ window.pmSaveTeam=async()=>{
         toast('💾 บันทึกทีมแล้ว!','success');
         renderAll(); loadFbUsers();
     } catch(e){ toast('เซฟผิดพลาด','error'); }
-    finally{ setTimeout(()=>{window.__blockSnapshot=false;},1500); }
+    finally{ setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY); }
     document.getElementById('pm-save-team-btn').style.display='none';
     document.getElementById('pm-pick-grid').style.display='none';
 };
@@ -3647,7 +3714,7 @@ window.startExpedition=async()=>{
     // เซฟ Firestore ใน background
     updateDoc(doc(db,'users',currentUser.uid),{
         expeditions:arrayUnion(newExp),pets:newPets,
-    }).catch(e=>{ toast('เซฟข้อมูลผิดพลาด','error'); console.error(e); });
+    }).catch(e=>{ toast('เซฟข้อมูลผิดพลาด','error'); log.error('contact-save',e); });
 };
 
 window.claimExpedition=async(expId)=>{
@@ -3946,7 +4013,7 @@ async function _ctGameOver(isMiss){
                 const ctName=userData?.nickname||userData?.name||'ผู้เล่น';
                 await postNews("🟩",`${ctName} ทำคะแนน ${score} ในเกม Color Tiles`).catch(()=>{});
             }
-        } catch(e){ console.warn('ct save err',e); }
+        } catch(e){ log.warn('ct-save',e); }
     }
 
     // Render result screen
@@ -4315,7 +4382,7 @@ ${formatPetName(p)}
     try {
         await updateDoc(doc(db,'users',currentUser.uid),{pets:newPets,coins:newCoins});
     } catch(e) {
-        console.error('forge save',e);
+        log.error('forge-save',e);
         toast('เซฟข้อมูลผิดพลาด กรุณาลองใหม่','error');
     } finally {
         // คืน flag หลัง Firestore acknowledge — snapshot ถัดไปจะมีค่าใหม่แล้ว
@@ -4368,7 +4435,7 @@ window._spendCoins=async(amount)=>{
     userData={...userData,totalSpent:next};
     setTimeout(()=>{window.__blockSnapshot=false;},200);
     try{ await updateDoc(doc(db,'users',currentUser.uid),{totalSpent:next}); }
-    catch(e){ console.error('spendCoins save',e); }
+    catch(e){ log.error('spendCoins-save',e); }
     // refresh shop ถ้า tab shop เปิดอยู่
     if(document.querySelector('.tab-btn.active')?.dataset?.tab==='shop'){
         const main=document.getElementById('main-content');
@@ -4394,7 +4461,7 @@ window.claimPityReward=async()=>{
     window.__blockSnapshot=true;
     userData={...userData,eggs:newEggs,pityClaimedRounds:newClaimed};
     renderAll();
-    setTimeout(()=>{window.__blockSnapshot=false;},1500);
+    setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY);
     try{
         await updateDoc(doc(db,'users',currentUser.uid),{eggs:arrayUnion(...newEggs.slice(-pending)),pityClaimedRounds:newClaimed});
     }catch(e){ toast('บันทึกผิดพลาด','error'); return; }
@@ -5261,7 +5328,7 @@ window.backTower=async()=>{
     window.__blockSnapshot=true;
     userData={...userData,towerFloor:newFloor,towerLastReset:today};
     await updateDoc(doc(db,'users',currentUser.uid),{towerFloor:newFloor,towerLastReset:today});
-    setTimeout(()=>{window.__blockSnapshot=false;},1500);
+    setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY);
     __twSelTeam=[]; _renderTowerLobby(); toast(`⬇️ ย้อนกลับชั้น ${newFloor} แล้ว!`,'success');
 };
 window.resetTower=async()=>{
@@ -5270,7 +5337,7 @@ window.resetTower=async()=>{
     window.__blockSnapshot=true;
     userData={...userData,towerFloor:1,towerLastReset:today};
     await updateDoc(doc(db,'users',currentUser.uid),{towerFloor:1,towerLastReset:today});
-    setTimeout(()=>{window.__blockSnapshot=false;},1500);
+    setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY);
     __twSelTeam=[]; _renderTowerLobby(); toast('รีเซ็ตชั้น 1 แล้ว!','success');
 };
 
@@ -5345,8 +5412,8 @@ async function _towerOnWin(floor, bestAtStart){
         if(isFirst&&floor%10===0&&typeof postNews==='function') await postNews('🗼',`${userData.nickname} ผ่านหอคอยชั้น ${floor} ${_bossTag}! (+${reward}🪙)`).catch(()=>{});
         if(isFirst&&floor%10===0&&typeof confetti==='function') confetti({particleCount:floor%100===0?120:60,spread:65,origin:{y:0.5},scalar:0.85});
         loadFbUsers();
-    }catch(e){console.error('tower save',e);}
-    finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
+    }catch(e){ log.error('tower-save',e); }
+    finally{setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY);}
 }
 
 // ════════════════════════════════════════
@@ -5431,7 +5498,7 @@ async function _pvpHandleResult(weWon, myName, enemyName, enemyStudentId){
             window.__blockSnapshot=true;
             userData={...userData,pvpVictories:newVic,pvpWinsToday:newLog};
             try{ await updateDoc(doc(db,'users',currentUser.uid),{pvpVictories:newVic,pvpWinsToday:newLog}); }
-            catch(e){} finally{setTimeout(()=>{window.__blockSnapshot=false;},1500);}
+            catch(e){} finally{setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY);}
             toast('+1 ชัยชนะ PvP! 🏆','success');
         }
     }
