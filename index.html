@@ -116,7 +116,7 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:var(--bg);color:
 .mc-img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);}
 /* .mc-emoji-fallback removed — not used */
 .mc-nick{font-weight:600;font-size:0.82rem;color:#fff;} 
-.prog-bar{height:16px;background:var(--border);border-radius:50px;overflow:hidden;display:flex;margin-bottom:4px;}
+.prog-bar{height:16px;background:rgba(255,255,255,.1);border-radius:50px;overflow:hidden;display:flex;margin-bottom:4px;}
 .pb-sci{background:var(--sci);height:100%;} .pb-care{background:var(--care);height:100%;}
 .prog-lbls{display:flex;justify-content:space-between;font-size:0.76rem;font-weight:600;color:rgba(255,255,255,.8);}
 
@@ -2520,10 +2520,10 @@ function buildMembers(){
     const guestCount=(window.__guestUsers||[]).length;
     return`
         <div class="card" style="margin-bottom:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);">
-            <div style="font-weight:700;font-size:0.95rem;text-align:center;margin-bottom:8px">💊 RxTU10 — ${tot} คน</div>
+            <div style="font-weight:700;font-size:0.95rem;text-align:center;margin-bottom:8px;color:#fff">💊 RxTU10 — ${tot} คน</div>
             <div><div class="prog-bar"><div class="pb-sci" style="width:${(sci/tot*100).toFixed(1)}%"></div><div class="pb-care" style="width:${(care/tot*100).toFixed(1)}%"></div></div>
             <div class="prog-lbls"><span style="color:var(--sci)">Sci ${sci}</span><span style="color:var(--care)">Care ${care}</span></div></div>
-            ${guestCount?`<div style="text-align:center;margin-top:8px"><button onclick="openGuestList()" id="guest-count-badge" style="background:none;border:1.5px solid var(--muted);border-radius:16px;padding:4px 12px;font-size:0.75rem;color:var(--muted);cursor:pointer;font-family:inherit">👋 Guest ${guestCount} คน</button></div>`:''}
+            ${guestCount?`<div style="text-align:center;margin-top:8px"><button onclick="openGuestList()" id="guest-count-badge" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.2);border-radius:16px;padding:4px 12px;font-size:0.75rem;color:rgba(255,255,255,.55);cursor:pointer;font-family:inherit">👋 Guest ${guestCount} คน</button></div>`:''}
         </div>
         <div class="filter-row">
             <button class="fbtn${mTrack==='all'?' fa':''}" onclick="mFilter('all')">รวม ${tot}</button>
@@ -2559,7 +2559,7 @@ function memberGrid(){
                     ${s.track==='sci'?'🔬':'💊'}
                 </div>
                 <div class="mc-nick" style="font-size:0.77rem">${s.nickname}</div>
-                <div style="font-size:0.58rem;color:var(--muted);margin-top:1px;line-height:1.3;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.realName}</div>
+                <div style="font-size:0.58rem;color:rgba(255,255,255,.4);margin-top:1px;line-height:1.3;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.realName}</div>
                 <span class="track-badge" style="background:${tc};font-size:0.5rem;padding:2px 6px;margin-top:4px">${s.track==='sci'?'SCI':'CARE'}</span>
             </div>`;
         }
@@ -2573,7 +2573,18 @@ function memberGrid(){
         </div>`;
     }).join('')}</div>`;
 }
-window.mFilter=t=>{mTrack=t;const g=document.getElementById('mgrid');if(g)g.innerHTML=memberGrid();};
+window.mFilter=t=>{
+    mTrack=t;
+    const g=document.getElementById('mgrid');
+    if(g) g.innerHTML=memberGrid();
+    // อัปเดต active class บน filter buttons
+    const btns=document.querySelectorAll('.filter-row .fbtn');
+    if(btns.length>=3){
+        btns[0].className='fbtn'+(t==='all'?' fa':'');
+        btns[1].className='fbtn'+(t==='sci'?' fs':'');
+        btns[2].className='fbtn'+(t==='care'?' fc':'');
+    }
+};
 window.mSearchFn=v=>{mSearch=v;const g=document.getElementById('mgrid');if(g)g.innerHTML=memberGrid();};
 
 window.openProfileModal=(id)=>{
