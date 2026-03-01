@@ -615,6 +615,49 @@ html,body{height:100%;font-family:'Kanit',sans-serif;background:linear-gradient(
     <div id="calc-body"></div>
 </div>
 
+<!-- WELCOME MODAL -->
+<div class="modal-ov" id="welcome-modal">
+    <div class="modal-box" style="text-align:center;max-width:360px">
+        <div style="font-size:3rem;margin-bottom:4px">🎉</div>
+        <div style="font-weight:800;font-size:1.2rem;margin-bottom:2px" id="wm-title">ยินดีต้อนรับ!</div>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,.45);margin-bottom:16px">ผูกบัญชีเรียบร้อยแล้ว</div>
+
+        <!-- ของขวัญ -->
+        <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;margin-bottom:14px;text-align:left">
+            <div style="font-size:0.65rem;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:1px;margin-bottom:10px">🎁 ของขวัญที่ได้รับ</div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <div style="font-size:1.4rem">🌠</div>
+                    <div><div style="font-size:0.82rem;font-weight:700">ไข่ตำนาน ×5</div><div style="font-size:0.62rem;color:rgba(255,255,255,.4)">Rare 35% · Epic 45% · Legendary 20%</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px">
+                    <div style="font-size:1.4rem">🎁</div>
+                    <div><div style="font-size:0.82rem;font-weight:700">ไข่การันตีตำนาน ×1</div><div style="font-size:0.62rem;color:rgba(255,255,255,.4)">Legendary 100% รับประกัน</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px">
+                    <div style="font-size:1.4rem">🪙</div>
+                    <div><div style="font-size:0.82rem;font-weight:700">20,000 เหรียญ</div><div style="font-size:0.62rem;color:rgba(255,255,255,.4)">สำหรับเริ่มต้นการผจญภัย</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ขอให้ใส่ข้อมูล -->
+        <div style="background:linear-gradient(135deg,rgba(109,40,217,.2),rgba(124,58,237,.15));border:1.5px solid rgba(167,139,250,.3);border-radius:14px;padding:12px;margin-bottom:16px;text-align:left">
+            <div style="font-size:0.8rem;font-weight:700;color:#c4b5fd;margin-bottom:6px">📋 ขอความร่วมมือหน่อยนะ</div>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,.65);line-height:1.7">
+                📷 ใส่รูปโปรไฟล์ให้เพื่อนจำได้<br>
+                📱 ใส่ข้อมูลติดต่อ (IG / Line / เบอร์)<br>
+                <span style="font-size:0.62rem;color:rgba(255,255,255,.35)">กด ✏️ แก้ไขโปรไฟล์ได้ที่หน้าหลัก</span>
+            </div>
+        </div>
+
+        <button onclick="document.getElementById('welcome-modal').classList.remove('active')" 
+            style="width:100%;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:12px;padding:12px;color:#fff;font-family:inherit;font-size:0.9rem;font-weight:800;cursor:pointer">
+            รับของขวัญแล้ว เริ่มเลย! 🚀
+        </button>
+    </div>
+</div>
+
 <!-- DAILY BREAKDOWN MODAL -->
 <div class="modal-ov" id="daily-modal" onclick="if(event.target===this)closeDailyModal()">
     <div class="modal-box" style="text-align:center">
@@ -1639,9 +1682,12 @@ window.confirmLink=async()=>{
     const _mkStarEgg=()=>{const p=rollPetFromStarEgg();return{eggId:`star_welcome_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,eggType:'star',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:2,startedAt:null};};
     const _mkGtdEgg=()=>{const p=rollPetFromGuaranteedEgg();return{eggId:`gtd_welcome_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,eggType:'guaranteed',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:1,startedAt:null};};
     const welcomeEggs=[_mkStarEgg(),_mkStarEgg(),_mkStarEgg(),_mkStarEgg(),_mkStarEgg(),_mkGtdEgg()];
-    await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track,coins:increment(5000),eggs:arrayUnion(...welcomeEggs)});
-    closeLinkModal();toast(`ยินดีต้อนรับ ${found.nickname}! 🎁 ไข่ตำนาน×5 + ไข่การันตีตำนาน×1 + 5000🪙!`,"success");
-    confetti({particleCount:150,spread:80,origin:{y:0.5}});
+    await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track,coins:increment(20000),eggs:arrayUnion(...welcomeEggs)});
+    closeLinkModal();
+    // แสดง welcome modal
+    document.getElementById('wm-title').textContent=`ยินดีต้อนรับ ${found.nickname}! 🎉`;
+    document.getElementById('welcome-modal').classList.add('active');
+    confetti({particleCount:180,spread:90,origin:{y:0.5}});
     await postNews("🔗",`ยินดีต้อนรับ ${found.nickname} เข้าสู่ RxTU10 Dashboard! 🎉`);
 };
 
