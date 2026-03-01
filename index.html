@@ -1286,8 +1286,10 @@ window.claimDaily=async()=>{
     if(!currentUser)return;
     if(!window.__dailyReady){toast("รับได้อีกครั้งพรุ่งนี้!","info");return;}
     const {base,passive,total}=calcTotalDaily(userData?.pets||[]);
-    await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(total),lastDaily:serverTimestamp()});
-    window.__dailyReady=false;
+    try{
+        await updateDoc(doc(db,"users",currentUser.uid),{coins:increment(total),lastDaily:serverTimestamp()});
+        window.__dailyReady=false;
+    }catch(e){ toast('รับ Daily ไม่สำเร็จ กรุณาลองใหม่','error'); log.error('claimDaily',e); return; }
     window.__lastDailyDate=new Date();
     _refreshDailyCard();
     const passiveStr=passive>0?` (base ${base}🪙 + pets ${passive}🪙)`:'';
@@ -1472,10 +1474,17 @@ window.confirmUpgrade=async()=>{
     const newGrade=(newPets[mainIdx].grade||0)+1;
     newPets[mainIdx]={...newPets[mainIdx],grade:newGrade};
     window.__blockSnapshot=true;
-    await updateDoc(doc(db,"users",currentUser.uid),{pets:newPets});
-    // sync local userData ทันที ไม่รอ snapshot
-    userData={...userData,pets:newPets};
-    setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY);
+    try{
+        await updateDoc(doc(db,"users",currentUser.uid),{pets:newPets});
+        // sync local userData ทันที ไม่รอ snapshot
+        userData={...userData,pets:newPets};
+    }catch(e){
+        toast('วิวัฒน์ไม่สำเร็จ กรุณาลองใหม่','error');
+        log.error('confirmUpgrade',e);
+        window.__upgradingPet=false;
+        window.__blockSnapshot=false;
+        return;
+    }finally{ setTimeout(()=>{window.__blockSnapshot=false;},SNAPSHOT_DELAY); }
     closeUpgradeModal();
     window.__upgradingPet=false;
     // refresh inventory view ถ้าเปิดอยู่
@@ -1682,7 +1691,14 @@ window.confirmLink=async()=>{
     const _mkStarEgg=()=>{const p=rollPetFromStarEgg();return{eggId:`star_welcome_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,eggType:'star',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:2,startedAt:null};};
     const _mkGtdEgg=()=>{const p=rollPetFromGuaranteedEgg();return{eggId:`gtd_welcome_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,eggType:'guaranteed',petId:p.id,petEmoji:p.emoji,petName:p.name,petRarity:p.rarity,petInstId:p.instId,hatchMins:1,startedAt:null};};
     const welcomeEggs=[_mkStarEgg(),_mkStarEgg(),_mkStarEgg(),_mkStarEgg(),_mkStarEgg(),_mkGtdEgg()];
-    await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track,coins:increment(20000),eggs:arrayUnion(...welcomeEggs)});
+    try{
+        await updateDoc(doc(db,"users",currentUser.uid),{studentId:sid,nickname:found.nickname,realName:found.realName,track:found.track,coins:increment(20000),eggs:arrayUnion(...welcomeEggs)});
+    }catch(e){
+        toast('ผูกบัญชีไม่สำเร็จ กรุณาลองใหม่','error');
+        log.error('confirmLink',e);
+        if(confirmBtn) confirmBtn.disabled=false;
+        return;
+    }
     closeLinkModal();
     // แสดง welcome modal
     document.getElementById('wm-title').textContent=`ยินดีต้อนรับ ${found.nickname}! 🎉`;
@@ -1776,7 +1792,10 @@ window.useInstantHatch=async(eggId)=>{
 window.startHatch=async(eggId)=>{
     if(!currentUser||!userData)return;
     const eggs=(userData.eggs||[]).map(e=>e.eggId===eggId?{...e,startedAt:Date.now()}:e);
-    await updateDoc(doc(db,"users",currentUser.uid),{eggs});toast("🔥 เริ่มฟักแล้ว!","info");
+    try{
+        await updateDoc(doc(db,"users",currentUser.uid),{eggs});
+        toast("🔥 เริ่มฟักแล้ว!","info");
+    }catch(e){ toast('เริ่มฟักไม่สำเร็จ กรุณาลองใหม่','error'); log.error('startHatch',e); }
 };
 
 window.claimEgg=async(eggId)=>{
@@ -1791,7 +1810,15 @@ window.claimEgg=async(eggId)=>{
     const pet={id:egg.petId,emoji:egg.petEmoji,name:egg.petName,rarity:egg.petRarity,instId:egg.petInstId,grade:0};
     // เช็ค duplicate — ถ้ามีตัวเดิมแล้ว แสดง upgrade popup แทน
     const existing=(userData.pets||[]).find(p=>p.id===pet.id);
-    await updateDoc(doc(db,"users",currentUser.uid),{eggs:newEggs,pets:arrayUnion(pet)});
+    try{
+        await updateDoc(doc(db,"users",currentUser.uid),{eggs:newEggs,pets:arrayUnion(pet)});
+        userData={...userData,eggs:newEggs,pets:[...(userData.pets||[]),pet]};
+    }catch(e){
+        toast('ฟักไม่สำเร็จ กรุณาลองใหม่','error');
+        log.error('claimEgg',e);
+        if(claimBtn){claimBtn.disabled=false;claimBtn.textContent='เปิดไข่!';}
+        return;
+    }
     if(existing){
         showDuplicatePopup(pet,existing);
     } else {
@@ -1799,7 +1826,7 @@ window.claimEgg=async(eggId)=>{
         if(pet.rarity!=='common'){
             const name=userData.nickname?.split(' ')[0]||userData.name||'?';
             const icons={rare:'✨',epic:'💥',legendary:'🌟'};
-            await postNews(icons[pet.rarity]||'🎉',`${name} ฟักได้ ${pet.emoji} ${pet.name} [${RARITY[pet.rarity].label}]!`);
+            await postNews(icons[pet.rarity]||'🎉',`${name} ฟักได้ ${pet.emoji} ${pet.name} [${RARITY[pet.rarity].label}]!`).catch(()=>{});
         }
     }
 };
