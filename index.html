@@ -1429,6 +1429,8 @@ function renderUpgradeModal(mainPet,candidates,cfg,nextGrade){
 }
 
 window.toggleUpgradeSelect=async(instId)=>{
+    // ── LOCK: ป้องกัน race condition ขณะรอ confirm dialog ──
+    if(window.__upgradeSelecting){ toast('กรุณารอสักครู่','info'); return; }
     const state=window.__upgradeState;if(!state)return;
     const sid=String(instId);
     const idx=state.selected.indexOf(sid);
@@ -1442,11 +1444,16 @@ window.toggleUpgradeSelect=async(instId)=>{
             const warn=[];
             if(g>0) warn.push(`วิวัฒน์ Grade ${GRADE_LABELS[g]}`);
             if(r>0) warn.push(`ตีบวก +${r}`);
+            window.__upgradeSelecting=true;
             const ok=await _confirm(
                 `⚠️ Pet ที่เลือกไม่ใช่ตัวเริ่มต้น\n\n${p?.emoji||''} ${p?.name||''} (${warn.join(' · ')})\n\nถ้าสละแล้วจะหายถาวร ยืนยันหรือไม่?`
             );
+            window.__upgradeSelecting=false;
             if(!ok) return;
         }
+        // ── ตรวจอีกครั้งหลัง await เผื่อ state เปลี่ยนระหว่างรอ ──
+        if(state.selected.length>=state.needed){ toast(`เลือกครบแล้ว`,'info'); return; }
+        if(state.selected.includes(sid)){ return; } // ถูกเลือกไปแล้วในระหว่างรอ
         state.selected.push(sid);
     } else{toast(`เลือกได้แค่ ${state.needed} ตัว`,"info");return;}
     // re-render
@@ -2570,6 +2577,7 @@ window.labPickFuseTarget=(petId)=>{
     _renderLabBody();
 };
 window.labToggleSacrifice=async(id)=>{
+    if(window.__labFuseSelecting){ toast('กรุณารอสักครู่','info'); return; }
     if(__labSlots.includes(id)){
         __labSlots=__labSlots.filter(x=>x!==id);
     } else if(__labSlots.length<3){
@@ -2580,17 +2588,22 @@ window.labToggleSacrifice=async(id)=>{
             const warn=[];
             if(g>0) warn.push(`วิวัฒน์ Grade ${GRADE_LABELS[g]}`);
             if(r>0) warn.push(`ตีบวก +${r}`);
+            window.__labFuseSelecting=true;
             const ok=await _confirm(
                 `⚠️ Pet ที่เลือกไม่ใช่ตัวเริ่มต้น\n\n${p?.emoji||''} ${p?.name||''} (${warn.join(' · ')})\n\nถ้าสละใน Fusion แล้วจะหายถาวร ยืนยันหรือไม่?`
             );
+            window.__labFuseSelecting=false;
             if(!ok) return;
         }
+        if(__labSlots.length>=3){ toast('เลือกได้สูงสุด 3 ตัว','info'); return; }
+        if(__labSlots.includes(id)){ return; }
         __labSlots.push(id);
     } else{ toast('เลือกได้สูงสุด 3 ตัว','info'); return; }
     _renderLabBody();
 };
 window.labRemoveSlot=(i)=>{ __labSlots.splice(i,1); _renderLabBody(); };
 window.labToggleMutate=async(id)=>{
+    if(window.__labMutateSelecting){ toast('กรุณารอสักครู่','info'); return; }
     if(__labSlots.includes(id)){
         __labSlots=__labSlots.filter(x=>x!==id);
         if(__labSlots.length===0) __labFilterRarity=null;
@@ -2608,11 +2621,15 @@ window.labToggleMutate=async(id)=>{
             const warn=[];
             if(g>0) warn.push(`วิวัฒน์ Grade ${GRADE_LABELS[g]}`);
             if(r>0) warn.push(`ตีบวก +${r}`);
+            window.__labMutateSelecting=true;
             const ok=await _confirm(
                 `⚠️ Pet ที่เลือกไม่ใช่ตัวเริ่มต้น\n\n${p?.emoji||''} ${p?.name||''} (${warn.join(' · ')})\n\nถ้าสละใน Mutation แล้วจะหายถาวร ยืนยันหรือไม่?`
             );
+            window.__labMutateSelecting=false;
             if(!ok) return;
         }
+        if(__labSlots.length>=3){ toast('เลือกได้สูงสุด 3 ตัว','info'); return; }
+        if(__labSlots.includes(id)){ return; }
         __labSlots.push(id);
         if(__labSlots.length===1) __labFilterRarity=p.rarity;
     } else { toast('เลือกได้สูงสุด 3 ตัว','info'); return; }
