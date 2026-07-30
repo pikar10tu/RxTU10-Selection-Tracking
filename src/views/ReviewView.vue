@@ -58,14 +58,20 @@
             >{{ v.label }}</button>
           </div>
 
-          <label class="rv-label">หมวด / หัวข้อ (ติดแท็กระหว่างตรวจ — ใช้ทำสถิติรายหัวข้อ)</label>
-          <TopicSelect v-model="topic" />
+          <label class="rv-label">หมวด / กลุ่มโรค (เลือกได้หลายกลุ่ม — ใช้ทำสถิติรายหัวข้อ)</label>
+          <TopicSelect v-model="topics" />
 
           <label class="rv-label">เหตุผล (บังคับเมื่อ "ต้องแก้ / ผิด")</label>
           <textarea v-model="reason" :maxlength="LIMITS.reviewReason" class="rv-input" rows="3" placeholder="อธิบายว่าทำไมตัดสินแบบนี้…"></textarea>
 
           <label class="rv-label">เรฟอ้างอิง (ไม่บังคับ)</label>
           <input v-model="refText" :maxlength="LIMITS.reviewRef" class="rv-input" placeholder="ลิงก์ / ชื่อหนังสือ / แนวทาง…" />
+
+          <label class="rv-label">
+            หมายเหตุผู้ตรวจ (นักศึกษาเห็นท้ายเฉลย — ไม่บังคับ)
+            <span v-if="hadNote" class="rv-note-hint">มีหมายเหตุจากผู้ตรวจคนก่อน — ต่อเติมหรือขัดเกลาได้</span>
+          </label>
+          <textarea v-model="note" :maxlength="LIMITS.reviewNote" class="rv-input" rows="3" placeholder="ข้อควรระวัง / จุดที่คนมักเข้าใจผิด…"></textarea>
 
           <div class="rv-actions">
             <button class="rv-btn rv-gray" :disabled="submitting" @click="skip">ข้ามข้อนี้</button>
@@ -110,6 +116,7 @@ import { useToast } from '../composables/useToast.js'
 import { cleanText, LIMITS } from '../utils/text.js'
 import { domainLabel } from '../data/domains.js'
 import { computeStatus, nextReviewQueue, buildLeaderboard, VERDICT_LABEL, pickWeighted } from '../utils/questionReview.js'
+import { getCategories, normalizeCategories } from '../utils/questionCategories.js'
 import { quizSample } from '../utils/quizSample.js'
 import TopicSelect from '../components/questions/TopicSelect.vue'
 import { useConfirm } from '../composables/useConfirm.js'
@@ -133,7 +140,9 @@ const verdict = ref(null)
 const reason = ref('')
 const refText = ref('')
 const priorReviews = ref([])
-const topic = ref(null)   // แท็กหมวดของข้อปัจจุบัน (ตั้งต้นจาก category เดิม แก้ได้ระหว่างตรวจ)
+const topics = ref([])        // หมวด/กลุ่มโรคของข้อปัจจุบัน (ตั้งต้นจากของเดิม แก้ได้ระหว่างตรวจ)
+const note = ref('')          // หมายเหตุผู้ตรวจ (นักศึกษาเห็นท้ายเฉลย) — ต่อเติมจากของเดิมได้
+const hadNote = ref(false)    // ข้อนี้มีหมายเหตุจากคนก่อนไหม (ใช้โชว์ป้ายเตือนไม่ให้ลบทิ้ง)
 
 const myUid = computed(() => authStore.currentUser?.uid || null)
 
@@ -207,7 +216,9 @@ async function load() {
 // เปลี่ยนข้อปัจจุบัน → ล้างฟอร์ม + โหลดรีวิวเดิมถ้าเป็นข้อ conflict (ให้คนที่ 3 เห็น)
 watch(current, async (q) => {
   verdict.value = null; reason.value = ''; refText.value = ''; priorReviews.value = []
-  topic.value = q?.category || null
+  topics.value = getCategories(q)
+  note.value = q?.reviewNote || ''
+  hadNote.value = !!q?.reviewNote
   if (q && currentStatus.value === 'conflict') {
     try {
       const snap = await getDocs(collection(db, 'questions', q.id, 'reviews'))
@@ -232,7 +243,7 @@ function unskipAll() { skippedIds.value = new Set(); pickNext() }
 async function submit() {
   if (!canSubmit.value || submitting.value || !current.value || !myUid.value) return
   const lbl = VERDICT_LABEL[verdict.value] || verdict.value
-  if (!(await confirm(`ยืนยันส่งผลตรวจ: "${lbl}"?\nส่งแล้วแก้เองไม่ได้ — ถ้ากดพลาดให้แจ้งแอดมินล้างผลตรวจ`))) return
+  if (!(await confirm(`ยืนยันส่งผลตรวจ: "${lbl}"?\nส่งแล้วยังกดแก้ได้จากแถบด้านล่างก่อนออกจากหน้านี้`))) return
   submitting.value = true
   const q = current.value
   const uid = myUid.value
@@ -241,6 +252,8 @@ async function submit() {
   const v = verdict.value
   const isPass = v === 'correct'
   let newPass = 0, newFail = 0, newStatus = 'pending', already = false
+  let wasResolved = false      // ข้อปิดไปแล้วตอนเราส่ง = เราเป็นเสียงที่ 3
+  let oldStatusLocal = 'pending'   // สถานะก่อนหน้า — Task 13 ใช้ขยับแถบความคืบหน้าในเครื่อง
   try {
     // transaction: อ่านค่าสดก่อนคำนวณ → reviewStatus บน doc เชื่อถือได้แม้ 2 คนส่งพร้อมกัน
     // (จำเป็น เพราะ load() query จาก reviewStatus ตรงๆ — ถ้าค่าเพี้ยนข้อจะหลุดคิวถาวร)
@@ -253,9 +266,12 @@ async function submit() {
       // ข้อถูกแก้เนื้อหาไประหว่างเราดูอยู่ (qhash เปลี่ยน) — verdict เราตัดสินจากเวอร์ชันเก่า ห้ามนับ
       if ((cur.qhash || null) !== (q.qhash || null)) throw new Error('__stale')
       if ((cur.reviewedBy || []).includes(uid)) { already = true; return }   // เคยส่งไปแล้ว (เช่น จากอีกเครื่อง)
+      const oldStatus = computeStatus(cur)
+      oldStatusLocal = oldStatus
       newPass = (cur.reviewPass || 0) + (isPass ? 1 : 0)
       newFail = (cur.reviewFail || 0) + (isPass ? 0 : 1)
       newStatus = computeStatus({ reviewPass: newPass, reviewFail: newFail })
+      wasResolved = oldStatus === 'passed' || oldStatus === 'failed'   // ข้อปิดไปแล้ว = เราเป็นเสียงที่ 3
       // 1) รายละเอียดเต็มใน subcollection (doc id = uid → กันตรวจซ้ำ)
       tx.set(doc(db, 'questions', q.id, 'reviews', uid), {
         reviewerUid: uid,
@@ -265,9 +281,7 @@ async function submit() {
         ref: cleanText(refText.value, LIMITS.reviewRef),
         ts: serverTimestamp(),
       })
-      // 2) aggregate: ตัวนับ pass/fail + สถานะ — ห้ามเก็บ uid→verdict บน doc
-      //    (ข้อ published นักศึกษาอ่านได้ทั้งใบ) · rules บังคับว่า update แบบนี้
-      //    ต้องมาพร้อม reviews/{uid} ของตัวเองใน transaction เดียวกัน
+      // 2) aggregate บนข้อ — ห้ามใส่ field นอก reviewSubmitKeys (rules ใช้ hasOnly จะปฏิเสธทั้งก้อน)
       const qPatch = {
         reviewedBy: arrayUnion(uid),
         reviewPass: newPass,
@@ -275,27 +289,45 @@ async function submit() {
         reviewStatus: newStatus,
         reviewVerdicts: deleteField(),   // ล้าง map โครงเก่า (ถ้ามี)
       }
-      if (topic.value && topic.value !== (cur.category || null)) qPatch.category = topic.value
+      const newCats = normalizeCategories(topics.value)
+      if (JSON.stringify(newCats) !== JSON.stringify(getCategories(cur))) qPatch.categories = newCats
+      const newNote = cleanText(note.value, LIMITS.reviewNote)
+      if (newNote !== (cur.reviewNote || '')) qPatch.reviewNote = newNote || null
       tx.update(qRef, qPatch)
-      // 3) ตัวนับ leaderboard + ชื่อ snapshot (collection แยก — นักศึกษาอ่านไม่ได้)
+      // 3) ตัวนับ leaderboard + ชื่อ snapshot + ความคืบหน้าคลัง (collection แยก นักศึกษาอ่านไม่ได้)
+      //    oldStatus === newStatus ได้จริง (เช่น passed 2-0 + เสียงที่ 3 = passed 3-0)
+      //    ต้องไม่ใส่ increment ซ้ำ key เดียวกันในก้อนเดียว ไม่งั้นตัวหลังทับตัวแรก = ตัวเลขเพี้ยน
+      const progress = oldStatus === newStatus
+        ? {}
+        : { [oldStatus]: increment(-1), [newStatus]: increment(1) }
       tx.set(doc(db, 'reviewMeta', 'main'),
-        { counts: { [uid]: increment(1) }, names: { [uid]: reviewerName } }, { merge: true })
+        { counts: { [uid]: increment(1) }, names: { [uid]: reviewerName }, progress }, { merge: true })
     })
     usage.track(1, already ? 0 : 3)
-    // อัปเดต local ให้คิว/leaderboard เลื่อนทันที (ไม่ reload)
+    // อัปเดต local ให้คิว/leaderboard เลื่อนทันที (ไม่ reload) — ต้องตรงกับที่เขียนจริงเป๊ะ
     const idx = list.value.findIndex(x => x.id === q.id)
     if (idx >= 0) {
-      const patch = already ? {} : { reviewPass: newPass, reviewFail: newFail, reviewStatus: newStatus, ...(topic.value ? { category: topic.value } : {}) }
+      const patch = already ? {} : {
+        reviewPass: newPass, reviewFail: newFail, reviewStatus: newStatus,
+        categories: normalizeCategories(topics.value),
+        reviewNote: cleanText(note.value, LIMITS.reviewNote) || null,
+      }
       list.value[idx] = { ...q, reviewedBy: [...(q.reviewedBy || []), uid], ...patch }
     }
-    pickNext()
     if (!already) {
       meta.value = {
         counts: { ...(meta.value.counts || {}), [uid]: ((meta.value.counts || {})[uid] || 0) + 1 },
         names: { ...(meta.value.names || {}), [uid]: reviewerName },
       }
     }
-    toast('ส่งผลตรวจแล้ว ขอบคุณ!', 'success')
+    if (already) {
+      toast('คุณตรวจข้อนี้ไปแล้ว', 'info')
+    } else if (wasResolved) {
+      toast('มีคนตรวจข้อนี้พร้อมกัน — นับเสียงคุณเป็นเสียงที่ 3 ด้วยแล้ว', 'success')
+    } else {
+      toast('ส่งผลตรวจแล้ว ขอบคุณ!', 'success')
+    }
+    pickNext()
   } catch (e) {
     if (e.message === '__stale') {
       toast('ข้อนี้เพิ่งถูกแก้เนื้อหา — โหลดคิวใหม่ให้แล้ว', 'error')
@@ -349,6 +381,7 @@ async function submit() {
 .rv-vbtn.fix.on { background: #f59e0b; border-color: #f59e0b; color: #fff; }
 .rv-vbtn.wrong.on { background: #ef4444; border-color: #ef4444; color: #fff; }
 .rv-label { display: block; font-size: .68rem; font-weight: 700; color: #64748b; margin: 9px 0 5px; }
+.rv-note-hint { display: block; font-weight: 700; color: #b45309; font-size: .64rem; margin-top: 2px; }
 .rv-input { width: 100%; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 10px; padding: 9px 11px; font-family: inherit; font-size: .82rem; resize: vertical; }
 .rv-input:focus { outline: none; box-shadow: var(--pop); }
 .rv-actions { display: flex; gap: 8px; margin-top: 13px; }
