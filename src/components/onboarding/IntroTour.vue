@@ -23,7 +23,7 @@
       <template v-else>
         <div class="it-ico"><Emoji char="🚀" /></div>
         <div class="it-title">เริ่มที่การทบทวนก่อน</div>
-        <p class="it-body">สงสัยอะไรกดปุ่ม ℹ️ ที่มุมของแต่ละหน้าได้เลย มีคำอธิบายให้ทุกหน้า</p>
+        <p class="it-body">สงสัยอะไร กดปุ่ม ? ที่มุมของหน้าต่างๆ ได้เลย</p>
       </template>
 
       <button class="it-btn" @click="next">{{ step < 3 ? 'ต่อไป →' : 'ไปทบทวนเลย' }}</button>
@@ -43,7 +43,10 @@ const router = useRouter()
 
 const step = ref(1)
 const dismissed = ref(false)
-const show = computed(() => !dismissed.value && auth.isLoggedIn && !auth.userData?.seenIntro)
+// gate ให้กล่องของขวัญต้อนรับ (z1000) โผล่ก่อนเสมอ — mirror เงื่อนไข show ของ WelcomeBox.vue เป๊ะๆ
+// ไม่งั้นทัวร์ (z330) โผล่ใต้กล่องที่มืด กดอะไรไม่ได้ หรือกล่องเด้งทับทัวร์กลางจอ 2
+const welcomeBoxShowing = computed(() => !!auth.userData?.welcomeGiftV1 && !auth.userData?.welcomeBoxSeen)
+const show = computed(() => !dismissed.value && auth.isLoggedIn && !auth.userData?.seenIntro && !welcomeBoxShowing.value)
 
 function next() {
   if (step.value < 3) { step.value += 1; return }
@@ -51,19 +54,22 @@ function next() {
 }
 
 // ปิดทัวร์ + ประทับ flag (ไม่ toast — ผู้ใช้ไม่ได้ขออะไร) · goStudy=true เฉพาะตอนกดจบจอสุดท้าย
+// nav ก่อน await เสมอ — เน็ตช้า (force long-polling) ไม่งั้น overlay หายแล้วค้างอยู่ Home
+// เดี๋ยวโดนเด้งไป /study ทีหลังแบบไม่ทันตั้งตัว · component mount ที่ root ไม่ได้อยู่ใต้ RouterView
+// เลยไม่โดน unmount ระหว่างเปลี่ยนหน้า → patchUser ยังรันจบได้ปกติ
 async function finish(goStudy) {
   dismissed.value = true
-  await auth.patchUser({ seenIntro: true }, { seenIntro: true })
   if (goStudy) router.push('/study')
+  await auth.patchUser({ seenIntro: true }, { seenIntro: true })
 }
 </script>
 
 <style scoped>
-.it-ov { position: fixed; inset: 0; z-index: 330; background: linear-gradient(160deg,#eef2ff,#fff); display: flex; align-items: center; justify-content: center; padding: 18px; overflow-y: auto; }
+.it-ov { position: fixed; inset: 0; z-index: 330; background: linear-gradient(160deg,var(--primary-light),#fff); display: flex; align-items: center; justify-content: center; padding: 18px; overflow-y: auto; }
 .it-box { background: #fff; width: 100%; max-width: 400px; border: 2px solid var(--ink); border-radius: 20px; box-shadow: var(--pop-lg); padding: 24px 22px; text-align: center; max-height: 88vh; overflow-y: auto; }
 .it-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; }
 .it-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(0,0,0,.15); }
-.it-dot.on { background: #4f46e5; }
+.it-dot.on { background: var(--primary); }
 .it-ico { font-size: 2.6rem; margin-bottom: 8px; }
 .it-title { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; color: var(--ink); margin-bottom: 10px; }
 .it-body { font-size: .84rem; color: rgba(0,0,0,.65); line-height: 1.6; margin: 0 0 10px; }
