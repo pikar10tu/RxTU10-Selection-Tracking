@@ -14,7 +14,7 @@
       <div class="rv-summary">
         <div class="rv-sum-line">
           <Emoji char="📋" /> ผ่านแล้ว <b>{{ progress.passed }}</b> · ค้าง 1 เสียง <b>{{ progress.half }}</b> ·
-          รอตรวจ <b>{{ progress.pending }}</b><span v-if="progress.conflict"> · ขัดแย้ง <b>{{ progress.conflict }}</b></span>
+          รอตรวจ <b>{{ progress.pending }}</b><span v-if="progress.conflict"> · ขัดแย้ง <b>{{ progress.conflict }}</b></span><span v-if="progress.failed"> · ไม่ผ่าน <b>{{ progress.failed }}</b></span>
         </div>
         <div v-if="progress.total" class="rv-bar"><div class="rv-bar-fill" :style="{ width: progress.pct + '%' }"></div></div>
         <div class="rv-sum-mine">คิวรอบนี้ของคุณ: <b>{{ myQueueCount }}</b> ข้อ</div>
@@ -299,6 +299,17 @@ function skip() {
 }
 function unskipAll() { skippedIds.value = new Set(); pickNext() }
 
+// ขยับตัวนับ progress ในเครื่อง 1 ข้อ จากสถานะเดิมไปสถานะใหม่ — ใช้ร่วมกันทั้ง submit()/submitAmend()
+// ไม่เปลี่ยน from ถ้า from === to (คืน clone เฉยๆ) — caller เป็นคนตัดสินใจว่าจะเรียกเมื่อไหร่
+function bumpedProgress(from, to) {
+  const p = { ...(meta.value.progress || {}) }
+  if (from !== to) {
+    p[from] = Math.max(0, (p[from] || 0) - 1)
+    p[to] = (p[to] || 0) + 1
+  }
+  return p
+}
+
 async function submit() {
   if (!canSubmit.value || submitting.value || !current.value || !myUid.value) return
   const lbl = VERDICT_LABEL[verdict.value] || verdict.value
@@ -384,15 +395,10 @@ async function submit() {
       list.value[idx] = { ...q, reviewedBy: [...(q.reviewedBy || []), uid], ...patch }
     }
     if (!already) {
-      const p = { ...(meta.value.progress || {}) }
-      if (oldStatusLocal !== newStatus) {
-        p[oldStatusLocal] = Math.max(0, (p[oldStatusLocal] || 0) - 1)
-        p[newStatus] = (p[newStatus] || 0) + 1
-      }
       meta.value = {
         counts: { ...(meta.value.counts || {}), [uid]: ((meta.value.counts || {})[uid] || 0) + 1 },
         names: { ...(meta.value.names || {}), [uid]: reviewerName },
-        progress: p,
+        progress: bumpedProgress(oldStatusLocal, newStatus),
       }
       lastSubmit.value = {
         qid: q.id, qhash: q.qhash || null, verdict: v,
@@ -472,10 +478,7 @@ async function submitAmend() {
     if (idx >= 0) list.value[idx] = { ...list.value[idx], reviewPass: newPass, reviewFail: newFail, reviewStatus: newStatus }
     // แถบความคืบหน้า (Task 13) ต้องขยับด้วย — เซิร์ฟเวอร์อัปเดต progress เฉพาะตอนสถานะเปลี่ยนจริง (ดูเงื่อนไขใน transaction ด้านบน) ต้องเช็กเงื่อนไขเดียวกัน
     if (oldStatus !== newStatus) {
-      const p = { ...(meta.value.progress || {}) }
-      p[oldStatus] = Math.max(0, (p[oldStatus] || 0) - 1)
-      p[newStatus] = (p[newStatus] || 0) + 1
-      meta.value = { ...meta.value, progress: p }
+      meta.value = { ...meta.value, progress: bumpedProgress(oldStatus, newStatus) }
     }
     lastSubmit.value = { ...ls, verdict: v, reason: committedReason, ref: committedRef }
     amending.value = false
