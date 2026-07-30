@@ -3,7 +3,7 @@
     <div class="shop-head">
       <div class="page-title" style="margin-bottom:0"><Emoji char="🛒" /> Shop</div>
       <span class="shop-coins">{{ coins.toLocaleString() }} <Emoji char="🪙" /></span>
-      <HelpButton topic="shop" />
+      <HelpButton topic="summon" />
     </div>
 
     <!-- ร้านค้าปิดปรับปรุง (ยังไม่เปิดให้นักศึกษา) — flip SHOP_OPEN=true เมื่อพร้อม; admin เห็นร้านปกติไว้ทดสอบ -->

@@ -9,6 +9,7 @@
         <div class="pd-name">{{ pet.name }}</div>
         <div class="pd-tags">
           <span class="pd-tag"><Emoji :char="ELEMENTS[elDef]?.emoji || '✊'" /> {{ EL_NAME[elDef] || elDef }}</span>
+          <HelpButton topic="element" style="width:18px;height:18px;font-size:.6rem" />
           <span class="pd-tag">ตัวซ้ำ {{ pet.copies || 0 }}</span>
         </div>
       </div>
@@ -33,7 +34,7 @@
           <span class="pd-axis-v pd-rarity" :style="{ background: RARITY[pet.rarity]?.color }">{{ RARITY[pet.rarity]?.label }}</span>
         </div>
         <div class="pd-axis">
-          <span class="pd-axis-k">เกรด</span>
+          <span class="pd-axis-k pd-axis-k-help">เกรด<HelpButton topic="grade" style="width:18px;height:18px;font-size:.6rem" /></span>
           <span class="pd-axis-v">
             <b class="pd-grade-badge">{{ GRADE_LABELS[gradeNow] || '0' }}</b>
             <button v-if="gradeNow < MAX_GRADE" class="pd-btn" :class="{ ok: canUp }" :disabled="!canUp || busy" @click="evolve">วิวัฒน์ → {{ GRADE_LABELS[gradeNow + 1] }}</button>
@@ -60,6 +61,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import Emoji from '../shared/Emoji.vue'
+import HelpButton from '../help/HelpButton.vue'
 import { increment } from 'firebase/firestore'
 import { useAuthStore } from '../../stores/auth.js'
 import { useToast } from '../../composables/useToast.js'
@@ -187,6 +189,7 @@ async function evolve() {
 .pd-axes { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; padding: 0 16px; }
 .pd-axis { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 11px; border: 2px solid var(--ink); border-radius: 12px; }
 .pd-axis-k { font-size: .72rem; font-weight: 800; color: #64748b; }
+.pd-axis-k-help { display: inline-flex; align-items: center; gap: 4px; }
 .pd-axis-v { display: inline-flex; align-items: center; gap: 8px; font-size: .82rem; font-weight: 800; }
 .pd-rarity { color: #fff; padding: 2px 12px; border-radius: 999px; font-size: .74rem; }
 .pd-grade-badge { background: #1e293b; color: #fff; min-width: 26px; text-align: center; padding: 2px 8px; border-radius: 8px; }
