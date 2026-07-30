@@ -12,7 +12,12 @@
     <template v-else>
       <!-- ── แถบสรุปคิว ── -->
       <div class="rv-summary">
-        <Emoji char="📋" /> เหลือต้องตรวจ <b>{{ summary.remaining }}</b> ข้อ<span v-if="summary.conflicts"> · ขัดแย้ง <b>{{ summary.conflicts }}</b> ข้อ</span>
+        <div class="rv-sum-line">
+          <Emoji char="📋" /> ผ่านแล้ว <b>{{ progress.passed }}</b> · ค้าง 1 เสียง <b>{{ progress.half }}</b> ·
+          รอตรวจ <b>{{ progress.pending }}</b><span v-if="progress.conflict"> · ขัดแย้ง <b>{{ progress.conflict }}</b></span>
+        </div>
+        <div v-if="progress.total" class="rv-bar"><div class="rv-bar-fill" :style="{ width: progress.pct + '%' }"></div></div>
+        <div class="rv-sum-mine">คิวรอบนี้ของคุณ: <b>{{ myQueueCount }}</b> ข้อ</div>
       </div>
 
       <div v-if="loading" class="rv-empty">กำลังโหลดคลังข้อสอบ…</div>
@@ -82,8 +87,8 @@
         </div>
       </section>
 
-      <div v-else-if="summary.remaining" class="rv-empty">
-        <Emoji char="⏭️" /> ข้ามไว้ {{ summary.remaining }} ข้อ — ยังไม่ได้ตรวจ
+      <div v-else-if="myQueueCount" class="rv-empty">
+        <Emoji char="⏭️" /> ข้ามไว้ {{ myQueueCount }} ข้อ — ยังไม่ได้ตรวจ
         <button class="rv-btn rv-gray rv-unskip" @click="unskipAll">ดูข้อที่ข้ามอีกรอบ</button>
       </div>
       <div v-else class="rv-empty rv-done">
@@ -193,10 +198,18 @@ function pickNext() {
 }
 const currentStatus = computed(() => current.value ? computeStatus(current.value) : null)
 
-const summary = computed(() => ({
-  remaining: nextReviewQueue(list.value, myUid.value).length,
-  conflicts: list.value.filter(q => !q.retired && computeStatus(q) === 'conflict').length,
-}))
+// ความคืบหน้าทั้งคลัง — มาจากตัวนับใน reviewMeta (ไม่เปลือง read)
+// half/conflict เป็นเลขสดจากคิวที่โหลดมาจริงได้ก็จริง แต่ใช้ค่าจาก meta ให้เป็นชุดเดียวกันทั้งแถบ
+const progress = computed(() => {
+  const p = meta.value.progress || {}
+  const num = k => Math.max(0, p[k] || 0)
+  const passed = num('passed'), failed = num('failed')
+  const half = num('half'), conflict = num('conflict'), pending = num('pending')
+  const total = passed + failed + half + conflict + pending
+  return { passed, failed, half, conflict, pending, total, pct: total ? Math.round((passed / total) * 100) : 0 }
+})
+// จำนวนข้อที่ต้องให้ฉันตรวจ "ในคิวรอบนี้" (เท่าที่โหลดมา ไม่ใช่ทั้งคลัง)
+const myQueueCount = computed(() => nextReviewQueue(list.value, myUid.value).length)
 
 // เหตุผลบังคับเฉพาะ verdict ที่ไม่ผ่าน — "ถูกต้อง" ไม่ต้องพิมพ์ (ลด friction กันเหตุผลขยะ)
 const canSubmit = computed(() => !!verdict.value && (verdict.value === 'correct' || !!reason.value.trim()))
@@ -371,9 +384,15 @@ async function submit() {
       list.value[idx] = { ...q, reviewedBy: [...(q.reviewedBy || []), uid], ...patch }
     }
     if (!already) {
+      const p = { ...(meta.value.progress || {}) }
+      if (oldStatusLocal !== newStatus) {
+        p[oldStatusLocal] = Math.max(0, (p[oldStatusLocal] || 0) - 1)
+        p[newStatus] = (p[newStatus] || 0) + 1
+      }
       meta.value = {
         counts: { ...(meta.value.counts || {}), [uid]: ((meta.value.counts || {})[uid] || 0) + 1 },
         names: { ...(meta.value.names || {}), [uid]: reviewerName },
+        progress: p,
       }
       lastSubmit.value = {
         qid: q.id, qhash: q.qhash || null, verdict: v,
@@ -451,6 +470,13 @@ async function submitAmend() {
     // sync local ให้ตรงเซิร์ฟเวอร์ — กันป้าย "ขัดแย้ง" บนแถบสรุปคิวค้างเลขเก่าถ้าข้อนี้ยังอยู่ใน list ระหว่างเซสชัน
     const idx = list.value.findIndex(x => x.id === ls.qid)
     if (idx >= 0) list.value[idx] = { ...list.value[idx], reviewPass: newPass, reviewFail: newFail, reviewStatus: newStatus }
+    // แถบความคืบหน้า (Task 13) ต้องขยับด้วย — เซิร์ฟเวอร์อัปเดต progress เฉพาะตอนสถานะเปลี่ยนจริง (ดูเงื่อนไขใน transaction ด้านบน) ต้องเช็กเงื่อนไขเดียวกัน
+    if (oldStatus !== newStatus) {
+      const p = { ...(meta.value.progress || {}) }
+      p[oldStatus] = Math.max(0, (p[oldStatus] || 0) - 1)
+      p[newStatus] = (p[newStatus] || 0) + 1
+      meta.value = { ...meta.value, progress: p }
+    }
     lastSubmit.value = { ...ls, verdict: v, reason: committedReason, ref: committedRef }
     amending.value = false
   } catch (e) {
@@ -482,6 +508,10 @@ async function submitAmend() {
 
 .rv-summary { font-size: .76rem; color: var(--ink); background: var(--primary-light, #eef2ff); border-radius: 10px; padding: 9px 12px; margin-bottom: 12px; line-height: 1.5; }
 .rv-summary b { font-weight: 800; }
+.rv-sum-line { line-height: 1.5; }
+.rv-bar { height: 7px; border-radius: 999px; background: rgba(0,0,0,.09); overflow: hidden; margin: 8px 0 6px; }
+.rv-bar-fill { height: 100%; background: #22c55e; border-radius: 999px; transition: width .3s; }
+.rv-sum-mine { font-size: .7rem; color: rgba(0,0,0,.5); }
 
 .rv-card { background: #fff; border: 2px solid var(--ink); border-radius: 16px; box-shadow: var(--pop); padding: 14px; margin-bottom: 16px; }
 .rv-card-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 9px; }
