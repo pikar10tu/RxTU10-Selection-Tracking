@@ -62,6 +62,24 @@ test('กฎ 4: เควสวันนี้ยังไม่กดรับ 
   assert.equal(a.to, undefined)
 })
 
+test('กฎ 4: เควสครบแล้วแต่ยังไม่กดรับ → quest (ข้อความ "ครบแล้ว")', () => {
+  const u = { ...allDone(), dailyQuest: { date: TODAY, quiz: 5, farm: 3, gacha: 2, claimed: false } }
+  const a = nextAction(u, ctx)
+  assert.equal(a.key, 'quest')
+  assert.equal(a.sheet, 'quest')
+  assert.match(a.title, /ครบแล้ว/)
+  assert.equal(a.cta, 'ไปกดรับ')
+})
+
+test('กฎ 4: เควสยังไม่ครบ claimed false → quest (ข้อความ "ยังไม่ครบ")', () => {
+  const u = { ...allDone(), dailyQuest: { date: TODAY, quiz: 2, farm: 1, gacha: 0, claimed: false } }
+  const a = nextAction(u, ctx)
+  assert.equal(a.key, 'quest')
+  assert.equal(a.sheet, 'quest')
+  assert.match(a.title, /ยังไม่ครบ/)
+  assert.equal(a.cta, 'ดูเควส')
+})
+
 test('กฎ 5: ยังไม่มีเพ็ท → first-pet', () => {
   const u = { ...allDone(), pets: [] }
   assert.equal(nextAction(u, ctx).key, 'first-pet')
@@ -87,8 +105,8 @@ test('กฎ 7: array สั้นกว่า plotsUnlocked = ช่องท�
 
 test('กฎ 7: แปลงที่ยังไม่ปลดล็อก ไม่นับว่าว่าง', () => {
   const u = { ...allDone(), farm: { plotsUnlocked: 1, plots: [{ seedId: 's' }, null, null] } }
-  // ?. เพราะฐาน allDone() ผ่านทุกกฎ ⇒ ผลลัพธ์ที่ถูกคือ null · เจตนาของเทสคือ "ต้องไม่ใช่ farm-empty"
-  assert.notEqual(nextAction(u, ctx)?.key, 'farm-empty')
+  // allDone() ผ่านทุกกฎ · แปลงปลดล็อกเพียง 1 ม่ายอาร์ด + มีพืช ⇒ ไม่มี empty plot ⇒ null
+  assert.equal(nextAction(u, ctx), null)
 })
 
 test('กฎ 8: ไม่มีสายผจญภัยอยู่ → expedition', () => {
@@ -107,6 +125,17 @@ test('ลำดับ: ควิซชนะเควส · เควสชน�
     dailyQuest: { date: TODAY, quiz: 0, farm: 0, gacha: 0, claimed: false }, pets: [] }
   assert.equal(nextAction(base, ctx).key, 'quiz-today')
   assert.equal(nextAction({ ...base, quizCoinDate: TODAY }, ctx).key, 'quest')
+})
+
+test('dueCount ทำงานเมื่อไม่มี study object (ไม่ throw)', () => {
+  const u = { studyReviewedTotal: 5, pets: [{ id: 'p1' }, { id: 'p2' }, { id: 'p3' }], activePets: ['p1', 'p2', 'p3'],
+    quizCoinDate: TODAY, dailyQuest: { date: TODAY, claimed: true }, farm: { plotsUnlocked: 1, plots: [{ seedId: 's' }] }, expedition: { missionId: 'm1' } }
+  assert.equal(nextAction(u, { now: NOW }), null)
+})
+
+test('ลำดับ: ทีมไม่ครบชนะแปลงว่างและผจญภัยว่าง', () => {
+  const u = { ...allDone(), activePets: ['p1', null], farm: { plotsUnlocked: 2, plots: [{ seedId: 's' }, null] }, expedition: null }
+  assert.equal(nextAction(u, ctx).key, 'team')
 })
 
 test('ไม่มี today ใน ctx → ข้ามกฎที่ต้องใช้วันที่ ไม่ throw', () => {
