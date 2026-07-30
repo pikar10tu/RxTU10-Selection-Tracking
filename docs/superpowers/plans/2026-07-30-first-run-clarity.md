@@ -572,6 +572,7 @@ git commit -m "Onboarding: ทัวร์ 3 จอครั้งแรกเ�
 - `src/components/WelcomeBox.vue:10` — `🎟️ ตั๋วกาชา {{ WELCOME_GIFT_TICKETS }} ใบ` → `🎟️ ตั๋วอัญเชิญ {{ WELCOME_GIFT_TICKETS }} ใบ`
 - `src/views/ShopView.vue:51` — `🎟️ ตั๋วกาชา: {{ tickets }} ใบ (ใช้ตั๋วก่อนอัตโนมัติ)` → `🎟️ ตั๋วอัญเชิญ: {{ tickets }} ใบ (ใช้ตั๋วก่อนอัตโนมัติ)`
 - `src/utils/mailbox.js:91` — ข้อความจดหมายต้อนรับ `... + ตั๋วกาชา ${WELCOME_GIFT_TICKETS} ใบ` → `... + ตั๋วอัญเชิญ ${WELCOME_GIFT_TICKETS} ใบ`
+- `src/data/expeditions.js:32` — `gachaTicket: { label: 'ตั๋วกาชา', … }` → `label: 'ตั๋วอัญเชิญ'` · **แก้แค่ `label`** ห้ามแตะคีย์ `gachaTicket` (แมตช์กับ `r.type`) และห้ามแตะ `field: 'freeGachaTickets'` (ชื่อฟิลด์จริงบน user doc) · label นี้ผู้ใช้เห็นผ่าน `ExpeditionView.vue:81` (`REWARD_TYPES[r.type]?.label`)
 
 > **ตรวจแล้วว่าปลอดภัย:** `firestore.rules` ฝั่ง `users/{userId}/mail/welcome-v1` ตรวจแค่ `from`, `claimed`, และค่าใน `reward` (`coins == 15000`, `tickets == 50`) — **ไม่ได้ตรวจข้อความ `body`** ⇒ แก้คำในจดหมายไม่ทำให้สร้างจดหมายต้อนรับพัง
 > คอมเมนต์ในโค้ดที่มีคำ "กาชา" (`utils/dailyQuest.js:4`, `utils/expedition.js:50`, `utils/gachaMerge.js:1`, `utils/mailbox.js:16`) **ไม่ต้องแก้** — ผู้ใช้ไม่เห็น
@@ -582,8 +583,11 @@ git commit -m "Onboarding: ทัวร์ 3 จอครั้งแรกเ�
 Run: `grep -rn "ทีม Active" src/`
 Expected: ไม่มีผลลัพธ์
 
-Run: `grep -rn "จ่าย copies\|pd-tag\">copies\|ตั๋วกาชา\|เปิดกาชา" src/`
+Run: `grep -rn "จ่าย copies\|pd-tag\">copies\|เปิดกาชา" src/`
 Expected: ไม่มีผลลัพธ์
+
+Run: `grep -rn "ตั๋วกาชา" src/`
+Expected: เหลือเฉพาะ **คอมเมนต์ในโค้ด** (`utils/dailyQuest.js:4`, `utils/expedition.js:50`, `utils/mailbox.js:16`) และ `src/data/guide.js` (เป็นของ Task 5) — ห้ามเหลือใน string ที่ผู้ใช้เห็น
 
 Run: `npm run build`
 Expected: build ผ่าน
