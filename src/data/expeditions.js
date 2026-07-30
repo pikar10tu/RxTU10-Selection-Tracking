@@ -29,7 +29,7 @@ export const TICKET_CHANCE_MAX = 0.9
 // reward table — extensible: เพิ่มชนิดใหม่ = เพิ่ม entry (field = field ใน user doc ที่จะ increment)
 export const REWARD_TYPES = {
   coins:       { label: 'เหรียญ',   emoji: '🪙', field: 'coins' },
-  gachaTicket: { label: 'ตั๋วกาชา', emoji: '🎟️', field: 'freeGachaTickets' },
+  gachaTicket: { label: 'ตั๋วอัญเชิญ', emoji: '🎟️', field: 'freeGachaTickets' },
 }
 
 export const EXPEDITION_PARTY_SIZE = 3
