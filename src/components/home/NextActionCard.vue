@@ -40,11 +40,11 @@ function onClick() {
 </script>
 
 <style scoped>
-.na-card { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; text-align: left; text-decoration: none; background: var(--primary-light, #eef2ff); border: 2px solid var(--ink); border-radius: 16px; padding: 14px; margin-bottom: 14px; box-shadow: var(--pop); cursor: pointer; font-family: inherit; transition: transform .12s, box-shadow .12s; }
+.na-card { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; text-align: left; text-decoration: none; background: var(--primary-light); border: 2px solid var(--ink); border-radius: 16px; padding: 14px; margin-bottom: 14px; box-shadow: var(--pop); cursor: pointer; font-family: inherit; transition: transform .12s, box-shadow .12s; }
 .na-card:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--ink); }
 .na-ico { font-size: 1.7rem; flex-shrink: 0; }
 .na-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .na-title { font-size: .92rem; color: var(--ink); line-height: 1.3; }
 .na-sub { font-size: .72rem; color: rgba(0,0,0,.55); line-height: 1.4; }
-.na-cta { flex-shrink: 0; font-size: .74rem; font-weight: 800; color: #4f46e5; }
+.na-cta { flex-shrink: 0; font-size: .74rem; font-weight: 800; color: var(--primary); }
 </style>

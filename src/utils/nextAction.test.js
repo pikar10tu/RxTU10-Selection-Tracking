@@ -11,7 +11,7 @@ function allDone() {
   return {
     studyReviewedTotal: 10,
     study: { cards: { a: { nextReviewDate: NOW + 999_999 } } },
-    quizCoinDate: TODAY,
+    // dailyQuest.date===today && quiz>0 คือสัญญาณเดียวที่ QuizView เขียนจริง — ครอบทั้งกฎ 3 (ทำข้อสอบวันนี้) และกฎ 6 (เควส)
     dailyQuest: { date: TODAY, quiz: 5, farm: 3, gacha: 2, claimed: true },
     pets: [{ id: 'p1' }, { id: 'p2' }, { id: 'p3' }],
     activePets: ['p1', 'p2', 'p3'],
@@ -48,13 +48,31 @@ test('กฎ 2: มีการ์ดครบกำหนด → study-due พ�
   assert.match(a.title, /2/)            // a และ b ครบกำหนด (<= now) · c ยังไม่ถึง
 })
 
-test('กฎ 3: วันนี้ยังไม่ทำข้อสอบ → quiz-today', () => {
-  const u = { ...allDone(), quizCoinDate: '2026-07-29' }
+test('กฎ 3: dailyQuest เป็นของเมื่อวาน → quiz-today (ยังไม่ได้ทำข้อสอบวันนี้)', () => {
+  const u = { ...allDone(), dailyQuest: { date: '2026-07-29', quiz: 5, farm: 3, gacha: 2, claimed: true } }
   assert.equal(nextAction(u, ctx).key, 'quiz-today')
   assert.equal(nextAction(u, ctx).to, '/quiz')
 })
 
-test('กฎ 4: เควสวันนี้ยังไม่กดรับ → quest (เปิด sheet ไม่ใช่ route)', () => {
+test('กฎ 3: dailyQuest.date วันนี้ + quiz>0 → ไม่ได้ quiz-today (ทำข้อสอบวันนี้แล้วจริง)', () => {
+  const u = { ...allDone(), dailyQuest: { date: TODAY, quiz: 1, farm: 0, gacha: 0, claimed: false } }
+  assert.notEqual(nextAction(u, ctx).key, 'quiz-today')
+})
+
+test('กฎ 4: ยังไม่มีเพ็ท → first-pet', () => {
+  const u = { ...allDone(), pets: [] }
+  assert.equal(nextAction(u, ctx).key, 'first-pet')
+  assert.equal(nextAction(u, ctx).to, '/shop')
+})
+
+test('กฎ 5: ทีมไม่ครบ → team', () => {
+  const u = { ...allDone(), activePets: ['p1', null, null] }
+  const a = nextAction(u, ctx)
+  assert.equal(a.key, 'team')
+  assert.match(a.title, new RegExp(String(BATTLE_TEAM_SIZE)))
+})
+
+test('กฎ 6: เควสวันนี้ยังไม่กดรับ → quest (เปิด sheet ไม่ใช่ route)', () => {
   const u = { ...allDone(), dailyQuest: { date: TODAY, quiz: 5, farm: 3, gacha: 2, claimed: false } }
   const a = nextAction(u, ctx)
   assert.equal(a.key, 'quest')
@@ -62,7 +80,7 @@ test('กฎ 4: เควสวันนี้ยังไม่กดรับ 
   assert.equal(a.to, undefined)
 })
 
-test('กฎ 4: เควสครบแล้วแต่ยังไม่กดรับ → quest (ข้อความ "ครบแล้ว")', () => {
+test('กฎ 6: เควสครบแล้วแต่ยังไม่กดรับ → quest (ข้อความ "ครบแล้ว")', () => {
   const u = { ...allDone(), dailyQuest: { date: TODAY, quiz: 5, farm: 3, gacha: 2, claimed: false } }
   const a = nextAction(u, ctx)
   assert.equal(a.key, 'quest')
@@ -71,26 +89,13 @@ test('กฎ 4: เควสครบแล้วแต่ยังไม่ก�
   assert.equal(a.cta, 'ไปกดรับ')
 })
 
-test('กฎ 4: เควสยังไม่ครบ claimed false → quest (ข้อความ "ยังไม่ครบ")', () => {
+test('กฎ 6: เควสยังไม่ครบ claimed false → quest (ข้อความ "ยังไม่ครบ")', () => {
   const u = { ...allDone(), dailyQuest: { date: TODAY, quiz: 2, farm: 1, gacha: 0, claimed: false } }
   const a = nextAction(u, ctx)
   assert.equal(a.key, 'quest')
   assert.equal(a.sheet, 'quest')
   assert.match(a.title, /ยังไม่ครบ/)
   assert.equal(a.cta, 'ดูเควส')
-})
-
-test('กฎ 5: ยังไม่มีเพ็ท → first-pet', () => {
-  const u = { ...allDone(), pets: [] }
-  assert.equal(nextAction(u, ctx).key, 'first-pet')
-  assert.equal(nextAction(u, ctx).to, '/shop')
-})
-
-test('กฎ 6: ทีมไม่ครบ → team', () => {
-  const u = { ...allDone(), activePets: ['p1', null, null] }
-  const a = nextAction(u, ctx)
-  assert.equal(a.key, 'team')
-  assert.match(a.title, new RegExp(String(BATTLE_TEAM_SIZE)))
 })
 
 test('กฎ 7: มีแปลงว่างในช่วงที่ปลดล็อกแล้ว → farm-empty', () => {
@@ -116,20 +121,26 @@ test('กฎ 8: ไม่มีสายผจญภัยอยู่ → exped
 
 test('ลำดับ: การเรียนชนะเกมเสมอ (เข้าหลายกฎพร้อมกัน)', () => {
   const u = { ...allDone(), studyReviewedTotal: 0, pets: [], activePets: [], expedition: null,
-    quizCoinDate: '2026-07-29', farm: { plotsUnlocked: 2, plots: [null, null] } }
+    dailyQuest: { date: '2026-07-29', quiz: 5, farm: 3, gacha: 2, claimed: true },
+    farm: { plotsUnlocked: 2, plots: [null, null] } }
   assert.equal(nextAction(u, ctx).key, 'study-new')
 })
 
-test('ลำดับ: ควิซชนะเควส · เควสชนะเพ็ท', () => {
-  const base = { ...allDone(), quizCoinDate: '2026-07-29',
-    dailyQuest: { date: TODAY, quiz: 0, farm: 0, gacha: 0, claimed: false }, pets: [] }
+test('ลำดับ: ควิซชนะทุกอย่างที่เหลือ (ยังไม่ทำข้อสอบวันนี้ ต่อให้ไม่มีเพ็ทด้วย)', () => {
+  const base = { ...allDone(),
+    dailyQuest: { date: '2026-07-29', quiz: 0, farm: 0, gacha: 0, claimed: false }, pets: [] }
   assert.equal(nextAction(base, ctx).key, 'quiz-today')
-  assert.equal(nextAction({ ...base, quizCoinDate: TODAY }, ctx).key, 'quest')
+})
+
+test('ลำดับ: บัญชีใหม่ไม่มีเพ็ท → first-pet ชนะเควส (แม้เควสวันนี้ยังไม่ครบ/ยังไม่กดรับ)', () => {
+  const u = { ...allDone(),
+    dailyQuest: { date: TODAY, quiz: 5, farm: 0, gacha: 0, claimed: false }, pets: [] }
+  assert.equal(nextAction(u, ctx).key, 'first-pet')
 })
 
 test('dueCount ทำงานเมื่อไม่มี study object (ไม่ throw)', () => {
   const u = { studyReviewedTotal: 5, pets: [{ id: 'p1' }, { id: 'p2' }, { id: 'p3' }], activePets: ['p1', 'p2', 'p3'],
-    quizCoinDate: TODAY, dailyQuest: { date: TODAY, claimed: true }, farm: { plotsUnlocked: 1, plots: [{ seedId: 's' }] }, expedition: { missionId: 'm1' } }
+    dailyQuest: { date: TODAY, quiz: 5, farm: 3, gacha: 2, claimed: true }, farm: { plotsUnlocked: 1, plots: [{ seedId: 's' }] }, expedition: { missionId: 'm1' } }
   assert.equal(nextAction(u, { now: NOW }), null)
 })
 
@@ -139,7 +150,7 @@ test('ลำดับ: ทีมไม่ครบชนะแปลงว่า
 })
 
 test('ไม่มี today ใน ctx → ข้ามกฎที่ต้องใช้วันที่ ไม่ throw', () => {
-  const u = { ...allDone(), quizCoinDate: '2026-07-29' }
+  const u = { ...allDone() }
   const a = nextAction(u, { now: NOW })
   assert.equal(a, null)
 })

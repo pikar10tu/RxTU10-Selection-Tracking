@@ -46,17 +46,36 @@ export function nextAction(userData, ctx = {}) {
       sub: 'ทบทวนตามรอบช่วยให้จำได้นานขึ้น', cta: 'ไปทบทวน', to: '/study',
     }
   }
-  // 3) วันนี้ยังไม่ทำข้อสอบ
-  if (today && userData.quizCoinDate !== today) {
+  // 3) วันนี้ยังไม่ทำข้อสอบ — dailyQuest.quiz คือสัญญาณเดียวที่ QuizView เขียนจริง
+  //    (quizCoinDate ตายตั้งแต่ปลดเพดานเหรียญควิซ 11 ก.ค. — ไม่มีใครเขียนแล้ว อย่าเอากลับมาใช้)
+  const dq = userData.dailyQuest
+  if (today && !(dq?.date === today && (dq.quiz || 0) > 0)) {
     return {
       key: 'quiz-today', icon: '📝', title: 'ทำข้อสอบวันนี้',
       sub: 'ตอบถูกได้เหรียญทุกข้อ ทำมากได้มาก', cta: 'ไปทำข้อสอบ', to: '/quiz',
     }
   }
-  // 4) เควสวันนี้ยังไม่ได้กดรับรางวัล — เปิด bottom-sheet บน Home ไม่ใช่เปลี่ยนหน้า
+  // 4) ยังไม่มีเพ็ท
+  const pets = userData.pets || []
+  if (!pets.length) {
+    return {
+      key: 'first-pet', icon: '🥚', title: 'อัญเชิญเพ็ทตัวแรก',
+      sub: 'เพ็ทเพิ่มรายได้รายวัน และใช้ลงสนามต่อสู้', cta: 'ไปร้านค้า', to: '/shop',
+    }
+  }
+  // 5) ทีมต่อสู้ไม่ครบ
+  const active = (userData.activePets || []).filter(Boolean)
+  if (active.length < BATTLE_TEAM_SIZE) {
+    return {
+      key: 'team', icon: '⭐', title: `จัดทีมต่อสู้ให้ครบ ${BATTLE_TEAM_SIZE} ตัว`,
+      sub: `ตอนนี้ ${active.length}/${BATTLE_TEAM_SIZE} — ทีมไม่ครบเสียเปรียบตอนสู้`,
+      cta: 'ไปจัดทีม', to: '/play/pets',
+    }
+  }
+  // 6) เควสวันนี้ยังไม่ได้กดรับรางวัล — เปิด bottom-sheet บน Home ไม่ใช่เปลี่ยนหน้า
   //    แยกข้อความ 2 สถานะ: ทำครบแล้วรอกดรับ vs ยังทำไม่ครบ (questNotClaimed จริงทั้งสองแบบ)
-  if (today && questNotClaimed(userData.dailyQuest, today)) {
-    return questClaimable(userData.dailyQuest, today)
+  if (today && questNotClaimed(dq, today)) {
+    return questClaimable(dq, today)
       ? {
           key: 'quest', icon: '🎯', title: 'เควสวันนี้ครบแล้ว — ยังไม่ได้กดรับรางวัล',
           sub: 'กดรับเลยจะได้รายได้ ×1.5 กับตั๋วอัญเชิญฟรี', cta: 'ไปกดรับ', sheet: 'quest',
@@ -66,23 +85,6 @@ export function nextAction(userData, ctx = {}) {
           sub: 'ทำครบรับรายได้ ×1.5 กับตั๋วอัญเชิญฟรี', cta: 'ดูเควส', sheet: 'quest',
         }
   }
-  // 5) ยังไม่มีเพ็ท
-  const pets = userData.pets || []
-  if (!pets.length) {
-    return {
-      key: 'first-pet', icon: '🥚', title: 'อัญเชิญเพ็ทตัวแรก',
-      sub: 'เพ็ทเพิ่มรายได้รายวัน และใช้ลงสนามต่อสู้', cta: 'ไปร้านค้า', to: '/shop',
-    }
-  }
-  // 6) ทีมต่อสู้ไม่ครบ
-  const active = (userData.activePets || []).filter(Boolean)
-  if (active.length < BATTLE_TEAM_SIZE) {
-    return {
-      key: 'team', icon: '⭐', title: `จัดทีมต่อสู้ให้ครบ ${BATTLE_TEAM_SIZE} ตัว`,
-      sub: `ตอนนี้ ${active.length}/${BATTLE_TEAM_SIZE} — ทีมไม่ครบเสียเปรียบตอนสู้`,
-      cta: 'ไปจัดทีม', to: '/play/pets',
-    }
-  }
   // 7) มีแปลงฟาร์มว่าง
   if (hasEmptyPlot(userData)) {
     return {
@@ -90,7 +92,7 @@ export function nextAction(userData, ctx = {}) {
       sub: 'ปลูกทิ้งไว้ แล้วกลับมาเก็บขายเป็นเหรียญ', cta: 'ไปปลูก', to: '/play/farm',
     }
   }
-  // 8) ส่งผจญภัยได้ — มาถึงบรรทัดนี้ได้แปลว่าทีมครบ 3 แล้ว (กฎ 6 คืนค่าไปก่อนถ้าไม่ครบ)
+  // 8) ส่งผจญภัยได้ — มาถึงบรรทัดนี้ได้แปลว่าทีมครบ 3 แล้ว (กฎ 5 คืนค่าไปก่อนถ้าไม่ครบ)
   if (!userData.expedition) {
     return {
       key: 'expedition', icon: '🧭', title: 'ส่งเพ็ทไปผจญภัย',

@@ -26,8 +26,8 @@ export const USER_DEFAULTS = {
   quizHigh: 0,
   drugHigh: 0,
   ctHigh: 0,
-  quizCoinDate: null,   // YYYY-MM-DD of last quiz-coin earning (daily cap)
-  quizCoinsToday: 0,    // quiz coins earned today (capped)
+  quizCoinDate: null,   // ⚠️ deprecated 11 ก.ค. (ปลดเพดานเหรียญควิซ) — ไม่มีใครเขียนแล้ว อย่าใช้เป็นเงื่อนไข
+  quizCoinsToday: 0,    // ⚠️ deprecated เช่นกัน
   studyCoinDate: null,  // YYYY-MM-DD of last study (SRS) coin earning (daily cap)
   studyCoinsToday: 0,   // study coins earned today (capped)
   towerFloor: 1,
