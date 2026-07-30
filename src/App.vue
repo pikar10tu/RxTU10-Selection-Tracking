@@ -31,6 +31,7 @@
 
       <HelpModal />
       <MigrationWelcome />
+      <IntroTour />
       <WelcomeBox />
     </template>
 
@@ -55,6 +56,7 @@ import ToastContainer   from './components/layout/ToastContainer.vue'
 import ConfirmModal     from './components/layout/ConfirmModal.vue'
 import HelpModal        from './components/help/HelpModal.vue'
 import MigrationWelcome from './components/onboarding/MigrationWelcome.vue'
+import IntroTour from './components/onboarding/IntroTour.vue'
 import MaintenanceScreen from './components/layout/MaintenanceScreen.vue'
 import ErrorBoundary     from './components/layout/ErrorBoundary.vue'
 import AchievementBalloon from './components/shared/AchievementBalloon.vue'
