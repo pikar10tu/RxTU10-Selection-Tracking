@@ -79,6 +79,7 @@
           {{ picked === current.answer ? '✓ ถูกต้อง!' : `✗ ยังไม่ถูก — เฉลยคือข้อ ${LETTERS[current.answer]}` }}
         </div>
         <div v-if="current.explanation" class="qv-exp"><Emoji char="💡" /> {{ current.explanation }}</div>
+        <div v-if="current.reviewNote" class="qv-note"><Emoji char="📝" /> หมายเหตุจากผู้ตรวจ: {{ current.reviewNote }}</div>
         <button class="qv-next" @click="next">{{ idx + 1 < quiz.length ? 'ข้อถัดไป →' : 'ดูผลคะแนน' }}</button>
 
         <!-- 🚩 แจ้งข้อผิด -->
@@ -543,6 +544,7 @@ async function finish() {
 .qv-fb.ok { color: #15803d; background: rgba(34,197,94,.12); }
 .qv-fb.no { color: #dc2626; background: rgba(239,68,68,.1); }
 .qv-exp { margin-top: 10px; font-size: .76rem; color: #b45309; background: #fffbeb; border-radius: 10px; padding: 10px 12px; line-height: 1.5; }
+.qv-note { margin-top: 8px; font-size: .76rem; color: #1e40af; background: #eff6ff; border-radius: 8px; padding: 9px 11px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .qv-next { width: 100%; margin-top: 14px; border: none; border-radius: 12px; padding: 13px; font-family: inherit; font-size: .88rem; font-weight: 800; color: #fff; background: linear-gradient(135deg,#4f46e5,#6366f1); cursor: pointer; }
 
 .qv-report { margin-top: 12px; }
