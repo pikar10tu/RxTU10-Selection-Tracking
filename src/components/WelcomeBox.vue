@@ -7,7 +7,7 @@
         <div class="wb-sub">รับของขวัญต้อนรับของคุณได้เลย</div>
         <div class="wb-gifts">
           <div class="wb-gift"><Emoji char="🪙" /> {{ WELCOME_GIFT_COINS.toLocaleString() }} เหรียญ</div>
-          <div class="wb-gift"><Emoji char="🎟️" /> ตั๋วกาชา {{ WELCOME_GIFT_TICKETS }} ใบ</div>
+          <div class="wb-gift"><Emoji char="🎟️" /> ตั๋วอัญเชิญ {{ WELCOME_GIFT_TICKETS }} ใบ</div>
         </div>
         <div class="wb-hint">เปิด <b>กล่องจดหมาย</b> ที่หน้าหลักเพื่อกดรับ</div>
         <button class="wb-btn" @click="close">เริ่มเล่นเลย</button>

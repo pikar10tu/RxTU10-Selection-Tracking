@@ -27,7 +27,7 @@
       </div>
 
       <!-- Tier 3: active team (tap to see stats) -->
-      <div class="pf-team-label"><Emoji char="⭐" /> ทีม Active</div>
+      <div class="pf-team-label"><Emoji char="⭐" /> ทีมต่อสู้</div>
       <div v-if="showcase.length" class="pf-showcase">
         <button v-for="(p, i) in showcase" :key="p.id || i" class="pf-pet" @click="petPopup = p">
           <PetThumb :pet="p" />

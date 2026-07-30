@@ -10,7 +10,7 @@
         <span class="dq-task-n">{{ Math.min(q.farm, GOALS.farm) }}/{{ GOALS.farm }}</span>
       </div>
       <div class="dq-task" :class="{ done: q.gacha >= GOALS.gacha }">
-        <span class="dq-task-l"><Emoji char="🎰" /> เปิดกาชา</span>
+        <span class="dq-task-l"><Emoji char="🎰" /> อัญเชิญเพ็ท</span>
         <span class="dq-task-n">{{ Math.min(q.gacha, GOALS.gacha) }}/{{ GOALS.gacha }}</span>
       </div>
     </div>
@@ -21,7 +21,7 @@
     <div v-else class="dq-claimed"><Emoji char="✅" /> รับรางวัลแล้ววันนี้</div>
 
     <div v-if="buffActive" class="dq-buff"><Emoji char="⚡" /> รายได้ ×1.5 · เหลือ {{ buffRemain }}</div>
-    <div v-if="tickets > 0" class="dq-ticket"><Emoji char="🎟️" /> ตั๋วกาชาฟรี ×{{ tickets }} (ใช้ที่ร้านค้า)</div>
+    <div v-if="tickets > 0" class="dq-ticket"><Emoji char="🎟️" /> ตั๋วอัญเชิญฟรี ×{{ tickets }} (ใช้ที่ร้านค้า)</div>
   </div>
 </template>
 
@@ -73,7 +73,7 @@ async function claimReward() {
     { dailyQuest: dq, freeGachaTickets: tickets.value + QUEST_TICKETS, incomeBuffUntil: until, incomeBuffFrom: from },
     { 'dailyQuest.claimed': true, freeGachaTickets: increment(QUEST_TICKETS), incomeBuffUntil: until, incomeBuffFrom: from },
   )
-  toast(ok ? `รับรางวัลแล้ว! รายได้ ×1.5 24 ชม. + ตั๋วกาชาฟรี ×${QUEST_TICKETS}` : 'รับรางวัลไม่สำเร็จ', ok ? 'success' : 'error')
+  toast(ok ? `รับรางวัลแล้ว! รายได้ ×1.5 24 ชม. + ตั๋วอัญเชิญฟรี ×${QUEST_TICKETS}` : 'รับรางวัลไม่สำเร็จ', ok ? 'success' : 'error')
   claiming.value = false
 }
 </script>

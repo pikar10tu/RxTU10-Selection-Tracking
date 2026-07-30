@@ -88,7 +88,7 @@ export function buildWelcomeGiftMail(createdAt) {
   return {
     type: 'reward',
     title: 'ของขวัญต้อนรับ',
-    body: `ยินดีต้อนรับสู่ RxTU10! รับของขวัญต้อนรับ ${WELCOME_GIFT_COINS.toLocaleString()} เหรียญ + ตั๋วกาชา ${WELCOME_GIFT_TICKETS} ใบ`,
+    body: `ยินดีต้อนรับสู่ RxTU10! รับของขวัญต้อนรับ ${WELCOME_GIFT_COINS.toLocaleString()} เหรียญ + ตั๋วอัญเชิญ ${WELCOME_GIFT_TICKETS} ใบ`,
     reward: { coins: WELCOME_GIFT_COINS, tickets: WELCOME_GIFT_TICKETS },
     from: 'welcome',
     createdAt,

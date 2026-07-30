@@ -9,14 +9,14 @@
         <div class="pd-name">{{ pet.name }}</div>
         <div class="pd-tags">
           <span class="pd-tag"><Emoji :char="ELEMENTS[elDef]?.emoji || '✊'" /> {{ EL_NAME[elDef] || elDef }}</span>
-          <span class="pd-tag">copies {{ pet.copies || 0 }}</span>
+          <span class="pd-tag">ตัวซ้ำ {{ pet.copies || 0 }}</span>
         </div>
       </div>
 
       <!-- active team toggle -->
       <button class="pd-active" :class="{ on: isActive }" :disabled="busy" @click="toggleActive">
-        <template v-if="isActive"><Emoji char="⭐" /> อยู่ในทีม Active · กดเพื่อเอาออก</template>
-        <template v-else><Emoji char="➕" /> ตั้งเป็นทีม Active ({{ activeList.length }}/{{ battleSlots }})</template>
+        <template v-if="isActive"><Emoji char="⭐" /> อยู่ในทีมต่อสู้ · กดเพื่อเอาออก</template>
+        <template v-else><Emoji char="➕" /> ใส่ในทีมต่อสู้ ({{ activeList.length }}/{{ battleSlots }})</template>
       </button>
 
       <!-- stats -->
@@ -95,7 +95,7 @@ async function toggleActive() {
   let next
   if (isActive.value) next = cur.filter(id => id !== pet.value.id)
   else {
-    if (cur.length >= battleSlots.value) { toast(`ทีม Active เต็ม (${battleSlots.value}) — เอาตัวอื่นออกก่อน`, 'info'); return }
+    if (cur.length >= battleSlots.value) { toast(`ทีมต่อสู้เต็ม (${battleSlots.value}) — เอาตัวอื่นออกก่อน`, 'info'); return }
     next = [...cur, pet.value.id]
   }
   busy.value = true

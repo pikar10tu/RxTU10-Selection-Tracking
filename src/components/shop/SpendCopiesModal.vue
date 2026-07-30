@@ -3,7 +3,7 @@
     <div class="ov" @click.self="$emit('cancel')">
       <div class="sc-box">
         <div class="sc-head">
-          เลือก {{ rarityLabel }} จ่าย copies
+          เลือก {{ rarityLabel }} จ่ายตัวซ้ำ
         </div>
         <div class="sc-sub">
           <template v-if="mode === 'fusion'">เลือกแล้ว {{ total }}/{{ required }}</template>

@@ -48,7 +48,7 @@
           <span v-for="r in rateList" :key="r.key" :style="{ color: r.color }">{{ r.label }} {{ r.pct }}%</span>
         </div>
 
-        <div v-if="tickets > 0" class="ticket-note"><Emoji char="🎟️" /> ตั๋วกาชา: {{ tickets }} ใบ (ใช้ตั๋วก่อนอัตโนมัติ)</div>
+        <div v-if="tickets > 0" class="ticket-note"><Emoji char="🎟️" /> ตั๋วอัญเชิญ: {{ tickets }} ใบ (ใช้ตั๋วก่อนอัตโนมัติ)</div>
         <div class="pull-row">
           <button class="pull-btn" :class="{ ok: pay1.pay === 'ticket' || coins >= PULL_COST }" :disabled="buying" @click="pull(1)">
             สุ่ม 1<br>
