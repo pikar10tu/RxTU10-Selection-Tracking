@@ -10,12 +10,15 @@
 // ════════════════════════════════════════════════════════════
 
 // สรุปสถานะจากตัวนับเสียงบนเอกสารข้อสอบ
-//  <2 เสียง → pending · pass>fail → passed · fail>pass → failed · เสมอ → conflict
-//  (2 เสียงเสมอ = correct+fail = ขัดแย้ง รอคนที่ 3 · 3 เสียงไม่มีทางเสมอ → ตัดสินได้)
+//  0 เสียง → pending · 1 เสียง → half (ค้างครึ่งทาง คิวจะเร่งให้)
+//  ≥2 เสียง: pass>fail → passed · fail>pass → failed · เสมอ → conflict (รอคนตัดสิน)
+//  เสียงที่ 3 นับด้วย (เกิดตอนหลายคนตรวจชนกัน) — เสียงข้างมากตัดสิน ไม่มีทางเสมอที่เลขคี่
 export function computeStatus(question) {
   const pass = question?.reviewPass || 0
   const fail = question?.reviewFail || 0
-  if (pass + fail < 2) return 'pending'
+  const votes = pass + fail
+  if (votes === 0) return 'pending'
+  if (votes === 1) return 'half'
   if (pass > fail) return 'passed'
   if (fail > pass) return 'failed'
   return 'conflict'
@@ -62,12 +65,32 @@ export function nextReviewQueue(questions, myUid) {
 // ป้าย verdict / สถานะตรวจ — ใช้ร่วมหน้า Review + Questions
 export const VERDICT_LABEL = { correct: 'ถูกต้อง', fix: 'ต้องแก้', wrong: 'ผิด' }
 export const REVIEW_STATUS_LABEL = {
-  pending: 'รอตรวจ', passed: 'ผ่านตรวจ', conflict: 'ขัดแย้ง', failed: 'ไม่ผ่าน', retired: 'นำออก',
+  pending: 'รอตรวจ', half: 'ตรวจแล้ว 1 คน', passed: 'ผ่านตรวจ', conflict: 'ขัดแย้ง', failed: 'ไม่ผ่าน', retired: 'นำออก',
 }
 
 // key ป้ายสถานะของข้อ — 'retired' (นำออก) ทับสถานะที่คำนวณจากตัวนับ
 export function reviewStatusKey(question) {
   return question?.retired ? 'retired' : computeStatus(question)
+}
+
+// น้ำหนักคิวสุ่ม — ข้อที่ "ใกล้จบ" ต้องถูกหยิบบ่อยกว่า เพื่อให้มีข้อที่ตรวจครบ 2 เยอะขึ้น
+export const REVIEW_WEIGHTS = { conflict: 8, half: 4, pending: 1 }
+export function reviewWeight(question) {
+  return REVIEW_WEIGHTS[computeStatus(question)] || 1
+}
+
+// สุ่ม 1 ข้อจากคิวตามน้ำหนัก (rnd ฉีดได้เพื่อเทส)
+//  ผลพลอยได้: ต่างคนได้คนละข้อ → ลดการตรวจชนกันเทียบกับการเรียงแบบเดิม
+export function pickWeighted(list, rnd = Math.random) {
+  const items = list || []
+  if (!items.length) return null
+  const total = items.reduce((sum, q) => sum + reviewWeight(q), 0)
+  let r = rnd() * total
+  for (const q of items) {
+    r -= reviewWeight(q)
+    if (r < 0) return q
+  }
+  return items[items.length - 1]   // กันปัดเศษทศนิยมจนหลุดลูป
 }
 
 // leaderboard เรียงมาก→น้อย (tiebreak ชื่อ) แมพ uid→ชื่อจริงผ่าน nameMap
