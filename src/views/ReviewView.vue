@@ -21,7 +21,7 @@
       <section v-else-if="current" class="rv-card">
         <div class="rv-card-tags">
           <span v-if="current.domain" class="rv-cat">{{ domainLabel(current.domain) || current.domain }}</span>
-          <span v-if="current.category" class="rv-cat rv-cat-sub">{{ current.category }}</span>
+          <span v-for="c in getCategories(current)" :key="c" class="rv-cat rv-cat-sub">{{ c }}</span>
           <span v-if="!current.isPublished" class="rv-draft">ร่าง</span>
           <span v-if="currentStatus === 'conflict'" class="rv-conflict-badge">⚠️ ขัดแย้ง — คุณคือผู้ตัดสิน</span>
         </div>
@@ -254,11 +254,13 @@ async function submit() {
   let newPass = 0, newFail = 0, newStatus = 'pending', already = false
   let wasResolved = false      // ข้อปิดไปแล้วตอนเราส่ง = เราเป็นเสียงที่ 3
   let oldStatusLocal = 'pending'   // สถานะก่อนหน้า — Task 13 ใช้ขยับแถบความคืบหน้าในเครื่อง
+  let committedCats = null, committedNote = null   // ค่าที่ "เขียนจริง" ไปยัง Firestore รอบที่ commit สำเร็จ — ใช้ sync local ให้ตรงเป๊ะ
   try {
     // transaction: อ่านค่าสดก่อนคำนวณ → reviewStatus บน doc เชื่อถือได้แม้ 2 คนส่งพร้อมกัน
     // (จำเป็น เพราะ load() query จาก reviewStatus ตรงๆ — ถ้าค่าเพี้ยนข้อจะหลุดคิวถาวร)
     await runTransaction(db, async (tx) => {
       already = false
+      oldStatusLocal = 'pending'   // reset ทุกรอบที่ callback รัน กันค่าเก่าจากรอบก่อนหน้าค้าง (ทรานแซกชันรีทรายได้)
       const qRef = doc(db, 'questions', q.id)
       const snap = await tx.get(qRef)
       if (!snap.exists()) { already = true; return }   // ข้อถูกลบระหว่างตรวจ
@@ -292,25 +294,33 @@ async function submit() {
       const newCats = normalizeCategories(topics.value)
       if (JSON.stringify(newCats) !== JSON.stringify(getCategories(cur))) qPatch.categories = newCats
       const newNote = cleanText(note.value, LIMITS.reviewNote)
-      if (newNote !== (cur.reviewNote || '')) qPatch.reviewNote = newNote || null
+      const baseNote = cleanText(q.reviewNote || '', LIMITS.reviewNote)   // ค่าที่เราโหลดมาเห็นตอนเปิดข้อ
+      if (newNote !== baseNote) {
+        // ล้างช่องทิ้ง = ลบโน้ตจริง แต่ถ้ามีคนเพิ่งเขียนโน้ตใหม่หลังเราโหลด (cur ต่างจาก baseline ที่เราเห็น) อย่าลบของเขา
+        if (newNote || baseNote === (cur.reviewNote || '')) qPatch.reviewNote = newNote || null
+      }
+      // เก็บค่าที่ "เขียนจริง" ไว้ sync local ทีหลัง — ถ้า key ไหนไม่ได้แตะ ให้ยึดค่าปัจจุบันบน doc (cur) แทน กันจอเพี้ยนจากเซิร์ฟเวอร์
+      committedCats = 'categories' in qPatch ? newCats : getCategories(cur)
+      committedNote = 'reviewNote' in qPatch ? qPatch.reviewNote : (cur.reviewNote || null)
       tx.update(qRef, qPatch)
       // 3) ตัวนับ leaderboard + ชื่อ snapshot + ความคืบหน้าคลัง (collection แยก นักศึกษาอ่านไม่ได้)
-      //    oldStatus === newStatus ได้จริง (เช่น passed 2-0 + เสียงที่ 3 = passed 3-0)
-      //    ต้องไม่ใส่ increment ซ้ำ key เดียวกันในก้อนเดียว ไม่งั้นตัวหลังทับตัวแรก = ตัวเลขเพี้ยน
-      const progress = oldStatus === newStatus
-        ? {}
-        : { [oldStatus]: increment(-1), [newStatus]: increment(1) }
-      tx.set(doc(db, 'reviewMeta', 'main'),
-        { counts: { [uid]: increment(1) }, names: { [uid]: reviewerName }, progress }, { merge: true })
+      const metaPatch = { counts: { [uid]: increment(1) }, names: { [uid]: reviewerName } }
+      // สถานะไม่เปลี่ยน (เช่น passed 2-0 + เสียงที่ 3) = ไม่ต้องขยับแถบ — และห้ามส่ง progress: {} เข้าไป
+      // เพราะ tx.set(merge) เจอ empty map จะดันเข้า field mask ทำให้ progress ทั้งก้อนถูกล้างทิ้ง (ไม่ใช่ "เว้นไว้เฉยๆ")
+      // (ต้องไม่ใส่ increment ซ้ำ key เดียวกันในก้อนเดียว ไม่งั้นตัวหลังทับตัวแรก = ตัวเลขเพี้ยน — เคสนี้ oldStatus !== newStatus เสมอเมื่อเข้าเงื่อนไข)
+      if (oldStatus !== newStatus) {
+        metaPatch.progress = { [oldStatus]: increment(-1), [newStatus]: increment(1) }
+      }
+      tx.set(doc(db, 'reviewMeta', 'main'), metaPatch, { merge: true })
     })
     usage.track(1, already ? 0 : 3)
-    // อัปเดต local ให้คิว/leaderboard เลื่อนทันที (ไม่ reload) — ต้องตรงกับที่เขียนจริงเป๊ะ
+    // อัปเดต local ให้คิว/leaderboard เลื่อนทันที (ไม่ reload) — ใช้ค่าที่ "เขียนจริง" เป๊ะ ไม่คำนวณซ้ำจากฟอร์ม
     const idx = list.value.findIndex(x => x.id === q.id)
     if (idx >= 0) {
       const patch = already ? {} : {
         reviewPass: newPass, reviewFail: newFail, reviewStatus: newStatus,
-        categories: normalizeCategories(topics.value),
-        reviewNote: cleanText(note.value, LIMITS.reviewNote) || null,
+        categories: committedCats,
+        reviewNote: committedNote,
       }
       list.value[idx] = { ...q, reviewedBy: [...(q.reviewedBy || []), uid], ...patch }
     }
