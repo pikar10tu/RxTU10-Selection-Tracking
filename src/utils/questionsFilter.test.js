@@ -54,3 +54,22 @@ test('normForSearch: lowercase + collapse + trim', () => {
   assert.equal(normForSearch('  Hello   World '), 'hello world')
   assert.equal(normForSearch(undefined), '')
 })
+
+const QM = [
+  { id: 'm1', question: 'ผู้ป่วยเบาหวานร่วมกับโรคไต', categories: ['เบาหวาน', 'ไต'], isPublished: true },
+  { id: 'm2', question: 'ยาลดความดัน', categories: ['ความดัน'], isPublished: true },
+  { id: 'm3', question: 'ข้อเก่ายังใช้ category เดี่ยว', category: 'ไต', isPublished: true },
+]
+
+test('distinctCategories — รวมทุกค่าจาก categories + ข้อเก่าที่ยังเป็น category', () => {
+  assert.deepEqual(distinctCategories(QM), ['ความดัน', 'เบาหวาน', 'ไต'].sort((a, b) => a.localeCompare(b)))
+})
+
+test('กรองหมวด — ข้อที่มีหลายหมวดต้องติดทุกหมวดที่ตัวเองอยู่', () => {
+  assert.deepEqual(filterQuestions(QM, { category: 'เบาหวาน' }).map(q => q.id), ['m1'])
+  assert.deepEqual(filterQuestions(QM, { category: 'ไต' }).map(q => q.id), ['m1', 'm3'])
+})
+
+test('ค้นหา — คำค้นแมตช์ชื่อหมวดที่สองได้', () => {
+  assert.deepEqual(filterQuestions(QM, { search: 'ไต' }).map(q => q.id), ['m1', 'm3'])
+})
