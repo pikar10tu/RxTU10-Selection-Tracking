@@ -40,6 +40,7 @@
             <p class="qz-fmt-note">
               <code>answer</code> = ลำดับตัวเลือกที่ถูก เริ่มที่ 0 · <code>choices</code> 2–6 ตัว ·
               <code>category</code>/<code>explanation</code> ไม่บังคับ ·
+              <code>categories</code> = array ชื่อหมวด/กลุ่มโรค เช่น <code>["เบาหวาน","ไต"]</code> (หรือ <code>category</code> เดี่ยว) · ไม่บังคับ · สูงสุด 5 กลุ่ม ·
               <code>examSets</code> = array ชื่อชุด เช่น <code>["PLE-CC1 ชุด 1"]</code> (หรือ <code>examSet</code> เดี่ยว) · ไม่บังคับ ·
               ทุกข้อนำเข้าเป็น <b>“ร่าง”</b> ต้องไปกดเผยแพร่ทีหลัง
             </p>
@@ -147,8 +148,8 @@
         </div>
         <button class="qz-add-choice" type="button" :disabled="draft.choices.length >= 6" @click="draft.choices.push('')">+ เพิ่มตัวเลือก</button>
 
-        <label class="qz-label">หมวด / กลุ่มเนื้อหา</label>
-        <TopicSelect v-model="draft.category" />
+        <label class="qz-label">หมวด / กลุ่มโรค (เลือกได้หลายกลุ่ม)</label>
+        <TopicSelect v-model="draft.categories" />
 
         <label class="qz-label">ชุดข้อสอบย้อนหลัง (ไม่บังคับ — 1 ข้ออยู่ได้หลายชุด)</label>
         <ExamSetSelect v-model="draft.examSets" />
@@ -161,6 +162,9 @@
 
         <label class="qz-label">คำอธิบายเฉลย (ไม่บังคับ)</label>
         <textarea v-model="draft.explanation" :maxlength="LIMITS.explanation" class="qz-input" rows="2" placeholder="อธิบายว่าทำไมข้อนี้ถูก…"></textarea>
+
+        <label class="qz-label">หมายเหตุผู้ตรวจ (นักศึกษาเห็นท้ายเฉลย — ไม่บังคับ)</label>
+        <textarea v-model="draft.reviewNote" :maxlength="LIMITS.reviewNote" class="qz-input" rows="2" placeholder="ข้อควรระวัง / จุดที่คนมักเข้าใจผิด…"></textarea>
 
         <label class="qz-check">
           <input type="checkbox" v-model="draft.isPublished" />
@@ -234,6 +238,7 @@
         <select v-model="reviewFilter" class="qz-input qz-filter-rv" aria-label="กรองตามสถานะตรวจ">
           <option value="">สถานะตรวจ: ทั้งหมด</option>
           <option value="pending">รอตรวจ</option>
+          <option value="half">ตรวจแล้ว 1 คน</option>
           <option value="passed">ผ่านตรวจ</option>
           <option value="conflict">ขัดแย้ง</option>
           <option value="failed">ไม่ผ่าน</option>
@@ -288,13 +293,14 @@
           </div>
           <div v-if="expandedId === q.id" class="qz-detail">
             <div class="qz-detail-q">{{ q.question }}</div>
-            <span v-if="q.category" class="qz-cat qz-cat-sm">{{ q.category }}</span>
+            <span v-for="c in getCategories(q)" :key="c" class="qz-cat qz-cat-sm">{{ c }}</span>
             <ul class="qz-choices">
               <li v-for="(c, i) in q.choices" :key="i" :class="{ correct: i === q.answer }">
                 <span class="qz-c-letter">{{ LETTERS[i] }}</span>{{ c }}
               </li>
             </ul>
             <div v-if="q.explanation" class="qz-exp"><Emoji char="💡" /> {{ q.explanation }}</div>
+            <div v-if="q.reviewNote" class="qz-note"><Emoji char="📝" /> {{ q.reviewNote }}</div>
             <div class="qz-audit">
               <div class="qz-audit-row"><b>เพิ่มโดย:</b> {{ q.createdByName || 'ไม่ระบุ' }}<span v-if="q.source === 'import'"> · นำเข้า</span> · {{ fmtTime(q.createdAt) || '—' }}</div>
               <div class="qz-audit-row"><b>สถานะตรวจ:</b> {{ REVIEW_STATUS_LABEL[reviewStatusKey(q)] }}</div>
@@ -342,6 +348,7 @@ import { keepKnownSets } from '../utils/examSets.js'
 import { useExamSets } from '../composables/useExamSets.js'
 import { buildMeta } from '../utils/questionsMeta.js'
 import { filterQuestions, distinctCategories } from '../utils/questionsFilter.js'
+import { getCategories, normalizeCategories } from '../utils/questionCategories.js'
 import { groupReports, resolvePayload } from '../utils/questionReport.js'
 import { buildReportRewardMail } from '../utils/mailbox.js'
 import { pctCorrect, isProblem } from '../utils/questionStats.js'
@@ -369,7 +376,7 @@ const search = ref('')
 const statusFilter = ref('all')   // all | published | draft
 const catFilter = ref('__all')
 const domainFilter = ref('__all')
-const reviewFilter = ref('')      // '' | pending | passed | conflict | failed | retired
+const reviewFilter = ref('')      // '' | pending | half | passed | conflict | failed | retired
 const visibleCount = ref(PAGE)
 const selected = ref(new Set())   // เก็บ id ที่เลือก (Vue 3 track Set ได้)
 const batchBusy = ref(false)
@@ -506,7 +513,7 @@ async function publishAllFilteredDrafts() {
 }
 
 function blankDraft() {
-  return { id: null, question: '', choices: ['', '', '', ''], answer: 0, category: '', explanation: '', isPublished: false, domain: null, examSets: [] }
+  return { id: null, question: '', choices: ['', '', '', ''], answer: 0, categories: [], reviewNote: '', explanation: '', isPublished: false, domain: null, examSets: [] }
 }
 const draft = ref(blankDraft())
 // รีวิวของข้อที่กำลังแก้ (ประกาศก่อน resetDraft — กัน TDZ ถ้าอนาคตมีใครเรียกตอน setup)
@@ -705,7 +712,8 @@ async function save() {
     question: cleanText(d.question, LIMITS.question),
     choices: d.choices.map(c => cleanText(c, LIMITS.choice)).filter(Boolean),
     answer: d.answer,
-    category: cleanText(d.category, LIMITS.category) || null,
+    categories: normalizeCategories(d.categories),
+    reviewNote: cleanText(d.reviewNote, LIMITS.reviewNote) || null,
     explanation: cleanText(d.explanation, LIMITS.explanation) || null,
     isPublished: !!d.isPublished,
     domain: d.domain || null,
@@ -792,7 +800,8 @@ function edit(q) {
     question: q.question || '',
     choices: (q.choices && q.choices.length >= 2) ? [...q.choices] : ['', ''],
     answer: q.answer || 0,
-    category: q.category || '',
+    categories: getCategories(q),
+    reviewNote: q.reviewNote || '',
     explanation: q.explanation || '',
     isPublished: !!q.isPublished,
     domain: q.domain || null,
@@ -1019,6 +1028,7 @@ async function resolveReports(g, verdict) {
 .qz-choices li.correct { background: rgba(34,197,94,.1); color: #15803d; font-weight: 700; }
 .qz-c-letter { font-weight: 800; flex-shrink: 0; }
 .qz-exp { margin-top: 8px; font-size: .72rem; color: #b45309; background: #fffbeb; border-radius: 8px; padding: 7px 10px; line-height: 1.4; }
+.qz-note { margin-top: 7px; font-size: .74rem; color: #1e40af; background: #eff6ff; border-radius: 8px; padding: 8px 10px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* ── ข้อที่ถูกแจ้งว่าผิด (Phase 5) ── */
 .qz-reports { background: #fff; border: 2px dashed #f59e0b; border-radius: 16px; padding: 4px 14px; margin-bottom: 16px; }
@@ -1046,6 +1056,7 @@ async function resolveReports(g, verdict) {
 
 /* ── ป้ายสถานะตรวจ ── */
 .qz-badge.rv.pending { background: #eef2ff; color: #4f46e5; }
+.qz-badge.rv.half { background: rgba(245,158,11,.15); color: #b45309; }
 .qz-badge.rv.passed { background: rgba(34,197,94,.15); color: #15803d; }
 .qz-badge.rv.conflict { background: #fff7ed; color: #c2410c; }
 .qz-badge.rv.failed { background: #fef2f2; color: #b91c1c; }
