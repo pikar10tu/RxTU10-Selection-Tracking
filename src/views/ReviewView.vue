@@ -90,6 +90,29 @@
         <Emoji char="🎉" /> ตรวจครบทุกข้อที่เข้าคิวให้คุณแล้ว — ขอบคุณมาก!
       </div>
 
+      <!-- ── แถบแก้ผลตรวจที่เพิ่งส่ง (session เดียว หายเมื่อรีโหลด) ── -->
+      <div v-if="lastSubmit" class="rv-last">
+        <div class="rv-last-top">
+          <span>เพิ่งส่ง: <b>{{ VERDICT_LABEL[lastSubmit.verdict] }}</b> — {{ lastSubmit.questionText }}…</span>
+          <button v-if="!amending" class="rv-mini" @click="openAmend">แก้ผลตรวจ</button>
+        </div>
+        <div v-if="amending" class="rv-last-form">
+          <div class="rv-verdicts">
+            <button
+              v-for="vv in VERDICTS" :key="vv.key"
+              type="button" class="rv-vbtn" :class="[vv.key, { on: amendVerdict === vv.key }]"
+              @click="amendVerdict = vv.key"
+            >{{ vv.label }}</button>
+          </div>
+          <textarea v-model="amendReason" :maxlength="LIMITS.reviewReason" class="rv-input" rows="2" placeholder="เหตุผล (บังคับเมื่อไม่ผ่าน)"></textarea>
+          <input v-model="amendRef" :maxlength="LIMITS.reviewRef" class="rv-input" placeholder="เรฟอ้างอิง (ไม่บังคับ)" />
+          <div class="rv-actions">
+            <button class="rv-btn rv-gray" :disabled="submitting" @click="amending = false">ยกเลิก</button>
+            <button class="rv-btn rv-primary" :disabled="!canAmend || submitting" @click="submitAmend">บันทึกการแก้</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ── leaderboard ── -->
       <section class="rv-board">
         <div class="rv-board-head"><Emoji char="🏅" /> ใครตรวจไปกี่ข้อ</div>
@@ -144,6 +167,13 @@ const topics = ref([])        // หมวด/กลุ่มโรคของ�
 const note = ref('')          // หมายเหตุผู้ตรวจ (นักศึกษาเห็นท้ายเฉลย) — ต่อเติมจากของเดิมได้
 const hadNote = ref(false)    // ข้อนี้มีหมายเหตุจากคนก่อนไหม (ใช้โชว์ป้ายเตือนไม่ให้ลบทิ้ง)
 
+// ข้อที่เพิ่งส่งในเซสชันนี้ — ให้กดแก้ได้ถ้ากดพลาด (หายเมื่อรีโหลดหน้า)
+const lastSubmit = ref(null)     // { qid, qhash, verdict, reason, ref, questionText }
+const amending = ref(false)      // กำลังเปิดฟอร์มแก้อยู่ไหม
+const amendVerdict = ref(null)
+const amendReason = ref('')
+const amendRef = ref('')
+
 const myUid = computed(() => authStore.currentUser?.uid || null)
 
 const HALF_LIMIT = 200      // ข้อค้าง 1 เสียง + ขัดแย้ง — ดึงมาให้ครบ (ปกติมีไม่เยอะ)
@@ -170,6 +200,16 @@ const summary = computed(() => ({
 
 // เหตุผลบังคับเฉพาะ verdict ที่ไม่ผ่าน — "ถูกต้อง" ไม่ต้องพิมพ์ (ลด friction กันเหตุผลขยะ)
 const canSubmit = computed(() => !!verdict.value && (verdict.value === 'correct' || !!reason.value.trim()))
+
+function openAmend() {
+  amendVerdict.value = lastSubmit.value?.verdict || null
+  amendReason.value = lastSubmit.value?.reason || ''
+  amendRef.value = lastSubmit.value?.ref || ''
+  amending.value = true
+}
+// เหตุผลบังคับเฉพาะผลที่ไม่ผ่าน (เหมือนฟอร์มหลัก)
+const canAmend = computed(() =>
+  !!amendVerdict.value && (amendVerdict.value === 'correct' || !!amendReason.value.trim()))
 
 // leaderboard จาก reviewMeta doc (ตัวนับ + ชื่อ snapshot ตอน submit) — 1 read
 // ไม่ต้องอ่านทั้งคลัง/users collection และไม่พึ่ง members store (บางคนไม่มี studentId)
@@ -329,6 +369,11 @@ async function submit() {
         counts: { ...(meta.value.counts || {}), [uid]: ((meta.value.counts || {})[uid] || 0) + 1 },
         names: { ...(meta.value.names || {}), [uid]: reviewerName },
       }
+      lastSubmit.value = {
+        qid: q.id, qhash: q.qhash || null, verdict: v,
+        reason: reason.value, ref: refText.value,
+        questionText: (q.question || '').slice(0, 60),
+      }
     }
     if (already) {
       toast('คุณตรวจข้อนี้ไปแล้ว', 'info')
@@ -343,6 +388,63 @@ async function submit() {
       toast('ข้อนี้เพิ่งถูกแก้เนื้อหา — โหลดคิวใหม่ให้แล้ว', 'error')
       load()
     } else { console.error('[review submit]', e); toast('ส่งไม่สำเร็จ', 'error') }
+  } finally { submitting.value = false }
+}
+
+// แก้ผลตรวจของตัวเอง — ย้ายเสียงข้ามฝั่ง เสียงรวมเท่าเดิม (rules: isReviewAmend)
+async function submitAmend() {
+  const ls = lastSubmit.value
+  if (!canAmend.value || submitting.value || !ls || !myUid.value) return
+  if (!(await confirm(`แก้ผลตรวจเป็น "${VERDICT_LABEL[amendVerdict.value]}"?`))) return
+  submitting.value = true
+  const uid = myUid.value
+  const v = amendVerdict.value
+  const isPass = v === 'correct'
+  // ค่าที่ transaction คำนวณ ไว้ใช้ sync local หลังสำเร็จ — ต้อง reset ทุกรอบ callback รัน (ทรานแซกชันรีทรายได้)
+  let newPass = 0, newFail = 0, newStatus = 'pending'
+  try {
+    await runTransaction(db, async (tx) => {
+      const qRef = doc(db, 'questions', ls.qid)
+      const snap = await tx.get(qRef)
+      if (!snap.exists()) throw new Error('__gone')
+      const cur = snap.data()
+      if ((cur.qhash || null) !== (ls.qhash || null)) throw new Error('__stale')
+      if (!(cur.reviewedBy || []).includes(uid)) throw new Error('__gone')
+      const revRef = doc(db, 'questions', ls.qid, 'reviews', uid)
+      const revSnap = await tx.get(revRef)
+      const oldVerdict = revSnap.exists() ? revSnap.data().verdict : ls.verdict
+      const oldIsPass = oldVerdict === 'correct'
+      const oldStatus = computeStatus(cur)
+      newPass = (cur.reviewPass || 0) - (oldIsPass ? 1 : 0) + (isPass ? 1 : 0)
+      newFail = (cur.reviewFail || 0) - (oldIsPass ? 0 : 1) + (isPass ? 0 : 1)
+      newStatus = computeStatus({ reviewPass: newPass, reviewFail: newFail })
+      tx.set(revRef, {
+        reviewerUid: uid,
+        reviewerName: revSnap.exists() ? revSnap.data().reviewerName : null,
+        verdict: v,
+        reason: cleanText(amendReason.value, LIMITS.reviewReason),
+        ref: cleanText(amendRef.value, LIMITS.reviewRef),
+        ts: serverTimestamp(),
+      })
+      tx.update(qRef, { reviewPass: newPass, reviewFail: newFail, reviewStatus: newStatus })
+      // counts ไม่แตะ — ไม่ใช่การตรวจข้อใหม่ · progress ขยับเฉพาะเมื่อสถานะเปลี่ยนจริง
+      if (oldStatus !== newStatus) {
+        tx.set(doc(db, 'reviewMeta', 'main'),
+          { progress: { [oldStatus]: increment(-1), [newStatus]: increment(1) } }, { merge: true })
+      }
+    })
+    usage.track(2, 3)
+    toast('แก้ผลตรวจแล้ว', 'success')
+    // sync local ให้ตรงเซิร์ฟเวอร์ — กันป้าย "ขัดแย้ง" บนแถบสรุปคิวค้างเลขเก่าถ้าข้อนี้ยังอยู่ใน list ระหว่างเซสชัน
+    const idx = list.value.findIndex(x => x.id === ls.qid)
+    if (idx >= 0) list.value[idx] = { ...list.value[idx], reviewPass: newPass, reviewFail: newFail, reviewStatus: newStatus }
+    lastSubmit.value = { ...ls, verdict: v, reason: amendReason.value, ref: amendRef.value }
+    amending.value = false
+  } catch (e) {
+    if (e.message === '__stale') toast('ข้อนี้เพิ่งถูกแก้เนื้อหา — แก้ผลตรวจไม่ได้แล้ว', 'error')
+    else if (e.message === '__gone') toast('ผลตรวจนี้ถูกล้างไปแล้ว', 'error')
+    else { console.error('[review amend]', e); toast('แก้ไม่สำเร็จ', 'error') }
+    lastSubmit.value = null
   } finally { submitting.value = false }
 }
 </script>
@@ -401,6 +503,12 @@ async function submit() {
 .rv-primary:disabled { background: #cbd5e1; cursor: default; box-shadow: none; }
 .rv-gray { background: #fff; color: var(--ink); flex: 0 0 110px; }
 .rv-unskip { flex: none; display: block; margin: 12px auto 0; padding: 9px 18px; font-size: .78rem; }
+
+.rv-last { background: #fffdf7; border: 2px dashed rgba(0,0,0,.18); border-radius: 14px; padding: 11px 13px; margin-bottom: 16px; }
+.rv-last-top { display: flex; align-items: center; gap: 10px; justify-content: space-between; font-size: .76rem; color: rgba(0,0,0,.65); line-height: 1.4; }
+.rv-mini { flex-shrink: 0; border: 2px solid var(--ink); border-radius: 9px; padding: 5px 11px; font-family: inherit; font-size: .72rem; font-weight: 800; background: #fff; color: var(--ink); cursor: pointer; }
+.rv-last-form { margin-top: 10px; }
+.rv-last-form .rv-input { margin-bottom: 6px; }
 
 .rv-board { background: #fff; border: 2px solid var(--ink); border-radius: 16px; box-shadow: var(--pop); padding: 14px; }
 .rv-board-head { font-weight: 800; font-size: .9rem; margin-bottom: 10px; }
