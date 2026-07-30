@@ -12,10 +12,11 @@
     <template v-else>
       <!-- ── แถบสรุปคิว ── -->
       <div class="rv-summary">
-        <div class="rv-sum-line">
+        <div v-if="progress.total" class="rv-sum-line">
           <Emoji char="📋" /> ผ่านแล้ว <b>{{ progress.passed }}</b> · ค้าง 1 เสียง <b>{{ progress.half }}</b> ·
           รอตรวจ <b>{{ progress.pending }}</b><span v-if="progress.conflict"> · ขัดแย้ง <b>{{ progress.conflict }}</b></span><span v-if="progress.failed"> · ไม่ผ่าน <b>{{ progress.failed }}</b></span>
         </div>
+        <div v-else class="rv-sum-line">ยังไม่มีตัวเลขสรุป — รอแอดมินกด "🔄 ซิงก์ระบบตรวจ" ในหน้า Admin ครั้งแรกก่อน</div>
         <div v-if="progress.total" class="rv-bar"><div class="rv-bar-fill" :style="{ width: progress.pct + '%' }"></div></div>
         <div class="rv-sum-mine">คิวรอบนี้ของคุณ: <b>{{ myQueueCount }}</b> ข้อ</div>
       </div>
@@ -92,7 +93,8 @@
         <button class="rv-btn rv-gray rv-unskip" @click="unskipAll">ดูข้อที่ข้ามอีกรอบ</button>
       </div>
       <div v-else class="rv-empty rv-done">
-        <Emoji char="🎉" /> ตรวจครบทุกข้อที่เข้าคิวให้คุณแล้ว — ขอบคุณมาก!
+        <Emoji char="🎉" /> ตรวจครบคิวรอบนี้แล้ว — กดโหลดรอบใหม่เพื่อสุ่มข้อชุดถัดไป
+        <button class="rv-btn rv-gray rv-unskip" :disabled="loading" @click="load">โหลดรอบใหม่</button>
       </div>
 
       <!-- ── แถบแก้ผลตรวจที่เพิ่งส่ง (session เดียว หายเมื่อรีโหลด) ── -->
