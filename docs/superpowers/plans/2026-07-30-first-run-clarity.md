@@ -493,8 +493,9 @@ async function finish(goStudy) {
 </script>
 
 <style scoped>
-.it-ov { position: fixed; inset: 0; z-index: 330; background: linear-gradient(160deg,#eef2ff,#fff); display: flex; align-items: center; justify-content: center; padding: 18px; }
-.it-box { background: #fff; width: 100%; max-width: 400px; border: 2px solid var(--ink); border-radius: 20px; box-shadow: var(--pop-lg); padding: 24px 22px; text-align: center; }
+.it-ov { position: fixed; inset: 0; z-index: 330; background: linear-gradient(160deg,#eef2ff,#fff); display: flex; align-items: center; justify-content: center; padding: 18px; overflow-y: auto; }
+/* max-height + overflow กันกรณีตัวอักษรใหญ่/จอแนวนอน แล้วกดปุ่มไม่ถึง — แพทเทิร์นเดียวกับ ow-box/mw-box */
+.it-box { background: #fff; width: 100%; max-width: 400px; max-height: 88vh; overflow-y: auto; border: 2px solid var(--ink); border-radius: 20px; box-shadow: var(--pop-lg); padding: 24px 22px; text-align: center; }
 .it-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; }
 .it-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(0,0,0,.15); }
 .it-dot.on { background: #4f46e5; }
