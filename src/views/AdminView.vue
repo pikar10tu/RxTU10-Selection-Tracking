@@ -374,7 +374,8 @@ import { TAG_LIST } from '../data/tags.js'
 import { getPetDef } from '../data/index.js'
 import { ACHIEVEMENTS } from '../data/achievements.js'
 import { usageStatus, DAILY_READ_LIMIT, DAILY_WRITE_LIMIT } from '../utils/usageMeter.js'
-import { computeStatus, tallyReviewCounts } from '../utils/questionReview.js'
+import { computeStatus, reviewStatusKey, tallyReviewCounts } from '../utils/questionReview.js'
+import { getCategories } from '../utils/questionCategories.js'
 
 const authStore = useAuthStore()
 const members   = useMembersStore()
@@ -384,8 +385,9 @@ const { toast } = useToast()
 const { confirm } = useConfirm()
 
 // ซิงก์ระบบตรวจข้อสอบ: เติม reviewStatus ให้ข้อเก่า (ก่อนมีระบบตรวจ — query หน้า /review
-// มองไม่เห็นข้อที่ไม่มี field นี้) + ซ่อมสถานะที่ drift + ล้าง reviewVerdicts โครงเก่า
-// + rebuild ตัวนับ leaderboard จาก reviewedBy ทั้งคลัง · idempotent กดซ้ำได้
+// มองไม่เห็นข้อที่ไม่มี field นี้) + ซ่อมสถานะที่ drift (รวมข้อค้าง 1 เสียง pending → half)
+// + ล้าง reviewVerdicts โครงเก่า + เติม categories ให้ข้อเก่าที่มีแค่ category เดี่ยว
+// + rebuild ตัวนับ leaderboard และตัวนับ progress จาก reviewedBy/สถานะทั้งคลัง · idempotent กดซ้ำได้
 const reviewSyncBusy = ref(false)
 async function syncReviewSystem() {
   if (reviewSyncBusy.value) return
@@ -393,25 +395,42 @@ async function syncReviewSystem() {
   try {
     const snap = await getDocs(collection(db, 'questions'))
     const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    const stale = all.filter(q => (q.reviewStatus || null) !== computeStatus(q) || q.reviewVerdicts !== undefined)
+    // ข้อที่ต้องแก้: สถานะไม่ตรงกับที่คำนวณได้ (รวมข้อค้าง 1 เสียงที่ยังเป็น pending → half)
+    // หรือยังมี map โครงเก่า หรือยังไม่มี categories ทั้งที่มี category เดี่ยว
+    const stale = all.filter(q =>
+      (q.reviewStatus || null) !== computeStatus(q)
+      || q.reviewVerdicts !== undefined
+      || (!Array.isArray(q.categories) && !!q.category))
     for (let i = 0; i < stale.length; i += 500) {
       const batch = writeBatch(db)
       for (const q of stale.slice(i, i + 500)) {
-        batch.update(doc(db, 'questions', q.id), {
+        const patch = {
           reviewStatus: computeStatus(q),
           reviewPass: q.reviewPass || 0,
           reviewFail: q.reviewFail || 0,
           reviewVerdicts: deleteField(),
-        })
+        }
+        if (!Array.isArray(q.categories) && q.category) patch.categories = getCategories(q)
+        batch.update(doc(db, 'questions', q.id), patch)
       }
       await batch.commit()
     }
     // ตัวนับใหม่จากคลังจริง — ชื่อคงของเดิมไว้ (ชื่อมาจาก snapshot ตอน submit)
+    // progress คำนวณใหม่ทั้งก้อน = ซ่อม drift จากการสร้างข้อใหม่/import/ล้างผลตรวจ/นำออก
+    const progress = { pending: 0, half: 0, passed: 0, failed: 0, conflict: 0, retired: 0 }
+    for (const q of all) {
+      const key = reviewStatusKey(q)
+      if (key in progress) progress[key]++
+    }
     const metaRef = doc(db, 'reviewMeta', 'main')
     const cur = await getDoc(metaRef)
-    await setDoc(metaRef, { counts: tallyReviewCounts(all), names: cur.exists() ? (cur.data().names || {}) : {} })
+    await setDoc(metaRef, {
+      counts: tallyReviewCounts(all),
+      names: cur.exists() ? (cur.data().names || {}) : {},
+      progress,
+    })
     usage.track(snap.size + 1, stale.length + 1)
-    toast(`ซิงก์แล้ว — อัปเดต ${stale.length} ข้อ`, 'success')
+    toast(`ซิงก์แล้ว — อัปเดต ${stale.length} ข้อ · ความคืบหน้าตั้งต้นใหม่แล้ว`, 'success')
   } catch (e) { console.error('[review sync]', e); toast('ซิงก์ไม่สำเร็จ', 'error') }
   finally { reviewSyncBusy.value = false }
 }
