@@ -93,7 +93,7 @@
       <!-- ── แถบแก้ผลตรวจที่เพิ่งส่ง (session เดียว หายเมื่อรีโหลด) ── -->
       <div v-if="lastSubmit" class="rv-last">
         <div class="rv-last-top">
-          <span>เพิ่งส่ง: <b>{{ VERDICT_LABEL[lastSubmit.verdict] }}</b> — {{ lastSubmit.questionText }}…</span>
+          <span>เพิ่งส่ง: <b>{{ VERDICT_LABEL[lastSubmit.verdict] }}</b> — {{ lastSubmit.questionText }}</span>
           <button v-if="!amending" class="rv-mini" @click="openAmend">แก้ผลตรวจ</button>
         </div>
         <div v-if="amending" class="rv-last-form">
@@ -200,6 +200,12 @@ const summary = computed(() => ({
 
 // เหตุผลบังคับเฉพาะ verdict ที่ไม่ผ่าน — "ถูกต้อง" ไม่ต้องพิมพ์ (ลด friction กันเหตุผลขยะ)
 const canSubmit = computed(() => !!verdict.value && (verdict.value === 'correct' || !!reason.value.trim()))
+
+// ตัดโจทย์ให้สั้นไว้โชว์ในแถบ "เพิ่งส่ง" — เติม … เฉพาะตอนตัดจริง กันจุดไข่ปลาโผล่ต่อท้ายข้อความสั้น
+function truncate60(text) {
+  const t = text || ''
+  return t.length > 60 ? t.slice(0, 60) + '…' : t
+}
 
 function openAmend() {
   amendVerdict.value = lastSubmit.value?.verdict || null
@@ -372,8 +378,11 @@ async function submit() {
       lastSubmit.value = {
         qid: q.id, qhash: q.qhash || null, verdict: v,
         reason: reason.value, ref: refText.value,
-        questionText: (q.question || '').slice(0, 60),
+        questionText: truncate60(q.question),
       }
+      // ข้อใหม่แล้ว — ปิดฟอร์มแก้ที่อาจค้างเปิดจากข้อก่อนหน้า กันเผลอบันทึกเวอร์ดิกต์เก่าทับข้อใหม่
+      amending.value = false
+      amendVerdict.value = null; amendReason.value = ''; amendRef.value = ''
     }
     if (already) {
       toast('คุณตรวจข้อนี้ไปแล้ว', 'info')
@@ -400,8 +409,11 @@ async function submitAmend() {
   const uid = myUid.value
   const v = amendVerdict.value
   const isPass = v === 'correct'
+  // จับค่าฟอร์ม ณ ตอนกดยืนยัน — กันกรณีพิมพ์ต่อระหว่างรอเน็ต แล้ว "เพิ่งส่ง" ในเครื่องเพี้ยนไปจากที่เซิร์ฟเวอร์ได้จริง
+  const committedReason = cleanText(amendReason.value, LIMITS.reviewReason)
+  const committedRef = cleanText(amendRef.value, LIMITS.reviewRef)
   // ค่าที่ transaction คำนวณ ไว้ใช้ sync local หลังสำเร็จ — ต้อง reset ทุกรอบ callback รัน (ทรานแซกชันรีทรายได้)
-  let newPass = 0, newFail = 0, newStatus = 'pending'
+  let newPass = 0, newFail = 0, newStatus = 'pending', oldStatus = 'pending'
   try {
     await runTransaction(db, async (tx) => {
       const qRef = doc(db, 'questions', ls.qid)
@@ -414,16 +426,16 @@ async function submitAmend() {
       const revSnap = await tx.get(revRef)
       const oldVerdict = revSnap.exists() ? revSnap.data().verdict : ls.verdict
       const oldIsPass = oldVerdict === 'correct'
-      const oldStatus = computeStatus(cur)
+      oldStatus = computeStatus(cur)
       newPass = (cur.reviewPass || 0) - (oldIsPass ? 1 : 0) + (isPass ? 1 : 0)
       newFail = (cur.reviewFail || 0) - (oldIsPass ? 0 : 1) + (isPass ? 0 : 1)
       newStatus = computeStatus({ reviewPass: newPass, reviewFail: newFail })
       tx.set(revRef, {
         reviewerUid: uid,
-        reviewerName: revSnap.exists() ? revSnap.data().reviewerName : null,
+        reviewerName: revSnap.data()?.reviewerName ?? null,
         verdict: v,
-        reason: cleanText(amendReason.value, LIMITS.reviewReason),
-        ref: cleanText(amendRef.value, LIMITS.reviewRef),
+        reason: committedReason,
+        ref: committedRef,
         ts: serverTimestamp(),
       })
       tx.update(qRef, { reviewPass: newPass, reviewFail: newFail, reviewStatus: newStatus })
@@ -433,18 +445,30 @@ async function submitAmend() {
           { progress: { [oldStatus]: increment(-1), [newStatus]: increment(1) } }, { merge: true })
       }
     })
-    usage.track(2, 3)
+    // 2 อ่านเสมอ (question + review เดิม) · เขียน 2 หรือ 3 แล้วแต่ว่าสถานะขยับหรือเปล่า (ข้าม reviewMeta ถ้าไม่ขยับ)
+    usage.track(2, oldStatus !== newStatus ? 3 : 2)
     toast('แก้ผลตรวจแล้ว', 'success')
     // sync local ให้ตรงเซิร์ฟเวอร์ — กันป้าย "ขัดแย้ง" บนแถบสรุปคิวค้างเลขเก่าถ้าข้อนี้ยังอยู่ใน list ระหว่างเซสชัน
     const idx = list.value.findIndex(x => x.id === ls.qid)
     if (idx >= 0) list.value[idx] = { ...list.value[idx], reviewPass: newPass, reviewFail: newFail, reviewStatus: newStatus }
-    lastSubmit.value = { ...ls, verdict: v, reason: amendReason.value, ref: amendRef.value }
+    lastSubmit.value = { ...ls, verdict: v, reason: committedReason, ref: committedRef }
     amending.value = false
   } catch (e) {
-    if (e.message === '__stale') toast('ข้อนี้เพิ่งถูกแก้เนื้อหา — แก้ผลตรวจไม่ได้แล้ว', 'error')
-    else if (e.message === '__gone') toast('ผลตรวจนี้ถูกล้างไปแล้ว', 'error')
-    else { console.error('[review amend]', e); toast('แก้ไม่สำเร็จ', 'error') }
-    lastSubmit.value = null
+    // __stale/__gone = แก้ไม่ได้แล้วจริงๆ (เนื้อหาเปลี่ยน/ผลตรวจถูกล้าง) → ปิดแถบ + โหลดคิวใหม่กันสถานะเครื่องค้าง
+    // (list.value[idx] ยังมี uid ใน reviewedBy จาก submit() เดิม ทั้งที่เซิร์ฟเวอร์ไม่นับเสียงนี้แล้ว — ต้อง reload ให้ตรง)
+    // ข้อผิดพลาดชั่วคราว (เน็ตหลุด/permission เด้งแป๊บเดียว) ต้อง "ไม่" ล้างแถบ — ไม่งั้นกดพลาดแล้วต้องไปตามแอดมิน ผิดจุดประสงค์ฟีเจอร์นี้
+    if (e.message === '__stale') {
+      toast('ข้อนี้เพิ่งถูกแก้เนื้อหา — แก้ผลตรวจไม่ได้แล้ว', 'error')
+      lastSubmit.value = null
+      load()
+    } else if (e.message === '__gone') {
+      toast('ข้อนี้หรือผลตรวจของคุณไม่อยู่แล้ว — แก้ไม่ได้', 'error')
+      lastSubmit.value = null
+      load()
+    } else {
+      console.error('[review amend]', e)
+      toast('แก้ไม่สำเร็จ — ลองอีกครั้ง', 'error')
+    }
   } finally { submitting.value = false }
 }
 </script>
