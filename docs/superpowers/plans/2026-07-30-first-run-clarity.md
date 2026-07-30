@@ -567,6 +567,7 @@ git commit -m "Onboarding: ทัวร์ 3 จอครั้งแรกเ�
 
 > **ตรวจแล้วว่าปลอดภัย:** `firestore.rules` ฝั่ง `users/{userId}/mail/welcome-v1` ตรวจแค่ `from`, `claimed`, และค่าใน `reward` (`coins == 15000`, `tickets == 50`) — **ไม่ได้ตรวจข้อความ `body`** ⇒ แก้คำในจดหมายไม่ทำให้สร้างจดหมายต้อนรับพัง
 > คอมเมนต์ในโค้ดที่มีคำ "กาชา" (`utils/dailyQuest.js:4`, `utils/expedition.js:50`, `utils/gachaMerge.js:1`, `utils/mailbox.js:16`) **ไม่ต้องแก้** — ผู้ใช้ไม่เห็น
+> คำ "กาชา" ใน `src/data/guide.js` (บรรทัด 11 และ 68) **ผู้ใช้เห็นผ่าน HelpModal แต่ไม่แก้ใน task นี้** — ไปแก้ใน Task 5 ที่แก้ไฟล์นั้นอยู่แล้ว (กันสอง task แย่งไฟล์เดียวกัน)
 
 - [ ] **Step 4: ตรวจงาน**
 
@@ -652,7 +653,12 @@ git commit -m "Copy: ล็อกศัพท์ทีมต่อสู้/ต�
   },
 ```
 
-- [ ] **Step 2: ใส่ปุ่ม ℹ️ ใน 4 view ที่ยังไม่มี**
+- [ ] **Step 2: แก้คำ "กาชา" ที่เหลืออยู่ใน `guide.js` (ผู้ใช้เห็นผ่าน HelpModal)**
+
+- บรรทัด 11 (ในหัวข้อ `play`) — `คลังเพ็ท ร้านค้าเพ็ท (กาชา/ห้องทดลอง) ปีนหอคอย` → `คลังเพ็ท ร้านค้าเพ็ท (อัญเชิญ/ห้องทดลอง) ปีนหอคอย`
+- บรรทัด 68 (title ของหัวข้อ `shop`) — `title: 'ร้านค้า · กาชา'` → `title: 'ร้านค้า · อัญเชิญ'`
+
+- [ ] **Step 3: ใส่ปุ่ม ℹ️ ใน 4 view ที่ยังไม่มี**
 
 รูปแบบที่โปรเจกต์ใช้ (ดู `src/views/TowerView.vue:6`): `<HelpButton topic="..." />` วางในหัวข้อของหน้า พร้อม `import HelpButton from '../components/help/HelpButton.vue'`
 
@@ -663,7 +669,7 @@ git commit -m "Copy: ล็อกศัพท์ทีมต่อสู้/ต�
 
 อ่านหัวของแต่ละไฟล์ก่อนวาง แล้ววางให้เข้ากับโครงหัวข้อเดิมของหน้านั้น (บางหน้าใช้ `style="margin-left:auto"` เพื่อดันไปขวา — ดู `PetsView.vue:6`)
 
-- [ ] **Step 3: แก้เอกสารที่เพี้ยนจากโค้ด**
+- [ ] **Step 4: แก้เอกสารที่เพี้ยนจากโค้ด**
 
 ใน `CLAUDE.md` บรรทัด 77 ลบการอ้าง `data/potential.js` ที่ถูกลบไปแล้ว — แก้จาก
 
@@ -677,7 +683,7 @@ git commit -m "Copy: ล็อกศัพท์ทีมต่อสู้/ต�
 - ฟาร์ม `data/crops.js` (ปลดล็อกตามเลเวลบ้าน) · อัญเชิญเพ็ท `data/shop.js` (ระบบศักยภาพถอดออกแล้ว — pet build depth ไปที่ passive)
 ```
 
-- [ ] **Step 4: ตรวจงาน**
+- [ ] **Step 5: ตรวจงาน**
 
 Run: `npm run build`
 Expected: build ผ่าน
@@ -688,7 +694,10 @@ Expected: `15` (เดิม 9 + ใหม่ 6)
 Run: `grep -rn "potential.js" CLAUDE.md`
 Expected: ไม่มีผลลัพธ์
 
-- [ ] **Step 5: Commit**
+Run: `grep -rn "กาชา" src/data/guide.js`
+Expected: ไม่มีผลลัพธ์
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add src/data/guide.js src/views/ArenaView.vue src/views/ExpeditionView.vue src/views/PetHubView.vue src/views/CapsuleRushView.vue CLAUDE.md
