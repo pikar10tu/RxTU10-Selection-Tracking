@@ -81,3 +81,12 @@ test('examSets: เรียงตามชื่อ (th)', () => {
   const m = buildMeta([q({ examSets: ['ข'] }), q({ examSets: ['ก'] })])
   assert.deepEqual(m.examSets.map(s => s.name), ['ก', 'ข'])
 })
+
+test('categories ของ meta รวมทุกค่าจากข้อที่มีหลายหมวด', () => {
+  const m = buildMeta([
+    { isPublished: true, categories: ['เบาหวาน', 'ไต'] },
+    { isPublished: true, category: 'ไต' },
+    { isPublished: false, categories: ['ไม่นับ'] },
+  ])
+  assert.deepEqual(m.categories, ['เบาหวาน', 'ไต'].sort((a, b) => a.localeCompare(b, 'th')))
+})

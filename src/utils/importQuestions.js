@@ -9,6 +9,7 @@
 // ════════════════════════════════════════════════════════════
 import { cleanText, LIMITS } from './text.js'
 import { isDomainKey } from '../data/domains.js'
+import { normalizeCategories } from './questionCategories.js'
 
 function isPlainObject(v) {
   return v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -35,11 +36,16 @@ function rowFromItem(item) {
     : (item.examSet != null ? [item.examSet] : [])
   const examSets = rawSets.map(s => cleanText(s, LIMITS.category)).filter(Boolean)
 
+  // หมวด/กลุ่มโรค: รับ categories (array) หรือ category (string เดี่ยว) — normalize + จำกัดจำนวน
+  const categories = normalizeCategories(
+    Array.isArray(item.categories) ? item.categories : (item.category != null ? [item.category] : [])
+  )
+
   return {
     question,
     choices,
     answer,
-    category: cleanText(item.category, LIMITS.category) || null,
+    categories,
     explanation: cleanText(item.explanation, LIMITS.explanation) || null,
     domain: isDomainKey(item.domain) ? item.domain : null,
     examSets,

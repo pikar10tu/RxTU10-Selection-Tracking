@@ -17,7 +17,7 @@ test('นำเข้าข้อที่ถูกต้อง 1 ข้อ → 
   assert.equal(r.rows.length, 1)
   assert.deepEqual(r.rows[0], {
     question: 'ยาใดเป็น first-line', choices: ['A', 'B', 'C', 'D'], answer: 2,
-    category: 'ยาปฏิชีวนะ', explanation: 'เพราะ X', domain: null, isPublished: false, examSets: [],
+    categories: ['ยาปฏิชีวนะ'], explanation: 'เพราะ X', domain: null, isPublished: false, examSets: [],
   })
 })
 
@@ -68,7 +68,7 @@ test('choices ไม่ใช่ array → ข้าม', () => {
 
 test('category/explanation ไม่ส่งมา → เป็น null', () => {
   const r = parseImport(one({ question: 'Q', choices: ['a', 'b'], answer: 0 }))
-  assert.equal(r.rows[0].category, null)
+  assert.deepEqual(r.rows[0].categories, [])
   assert.equal(r.rows[0].explanation, null)
 })
 
@@ -143,4 +143,16 @@ test('examSet เดี่ยว (string) → กลายเป็น array 1 �
 test('ไม่ส่ง examSets/examSet → []', () => {
   const r = parseImport(one({ question: 'Q', choices: ['a', 'b'], answer: 0 }))
   assert.deepEqual(r.rows[0].examSets, [])
+})
+
+test('นำเข้ารับ categories (array) ได้ และตัดค่าว่าง/ซ้ำ', () => {
+  const r = parseImport(one({
+    question: 'Q', choices: ['a', 'b'], answer: 0, categories: ['ไต', '', 'ไต', 'ตับ'],
+  }))
+  assert.deepEqual(r.rows[0].categories, ['ไต', 'ตับ'])
+})
+
+test('นำเข้ารับ category (string เดี่ยว) แบบเดิมได้ → ห่อเป็น array', () => {
+  const r = parseImport(one({ question: 'Q', choices: ['a', 'b'], answer: 0, category: 'ไต' }))
+  assert.deepEqual(r.rows[0].categories, ['ไต'])
 })

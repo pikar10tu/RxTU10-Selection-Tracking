@@ -2,6 +2,7 @@
 //  questionReport — pure helpers ฟีเจอร์ "แจ้งข้อสอบผิด" (Phase 5)
 //  ไม่ import Firestore: caller เป็นคนเติม serverTimestamp() เอง → เทสได้ตรง
 // ════════════════════════════════════════════════════════════
+import { getCategories } from './questionCategories.js'
 
 // deterministic doc id → 1 report ต่อ (ข้อ, ผู้ใช้); re-report = ทับ doc เดิม
 export function reportDocId(questionId, uid) {
@@ -15,7 +16,7 @@ export function buildSnapshot(q) {
   const answer = typeof q?.answer === 'number' ? q.answer : -1
   return {
     question: q?.question || '',
-    category: q?.category || '',
+    category: getCategories(q).join(', '),
     choices,
     answerText: choices[answer] ?? '',
     explanation: q?.explanation || '',
