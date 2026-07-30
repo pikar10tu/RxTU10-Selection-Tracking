@@ -200,8 +200,15 @@ service cloud.firestore {
              == resource.data.get('reviewPass', 0) + resource.data.get('reviewFail', 0) + 1
           && existsAfter(/databases/$(database)/documents/questions/$(qid)/reviews/$(request.auth.uid));
       }
-      // แก้ผลตรวจของตัวเอง: ไม่เพิ่มคนตรวจ (reviewedBy เท่าเดิม) + เสียงรวมเท่าเดิม
-      // (ย้ายเสียงข้ามฝั่ง pass↔fail) + ต้องเขียน reviews/{uid} ของตัวเองในทรานแซกชันเดียวกัน
+      // แก้ผลตรวจของตัวเอง: rule บังคับแค่ (1) ผู้เรียกต้องเป็นผู้ตรวจที่ขึ้นทะเบียนใน reviewedBy
+      // อยู่แล้ว (2) reviewedBy เท่าเดิมเป๊ะ ห้ามเพิ่ม/ลบคนตรวจ (3) ผลรวม pass+fail เท่าเดิม
+      // (4) ต้องมี reviews/{uid} ของตัวเองอยู่จริง — existsAfter ข้อ (4) เป็นแค่ assertion ว่า
+      // เอกสารมีอยู่ ไม่ได้บังคับว่าต้องเขียนคู่กับ questions/{qid} ในทรานแซกชันเดียว (client
+      // ตั้งใจส่งคู่กันเอง แต่ rules ไม่ได้ผูกสองการเขียนนี้เข้าด้วยกัน)
+      // ⚠️ ไม่ได้ล็อกว่าเป็นการ "ย้ายแค่ 1 เสียงของตัวเอง" — ตราบใดผลรวม pass+fail เท่าเดิม
+      // ผู้ตรวจเขียนสัดส่วนใหม่ทั้งก้อนได้ (เช่น 3-0 → 0-3) ซ้ำได้เรื่อยๆ — ยอมรับได้ตามโมเดล
+      // trust-based ของไฟล์นี้ (คนกลุ่มนี้ลบข้อสอบได้อยู่แล้ว) · "เพิ่งตรวจไปหมาดๆ" เป็นกฎฝั่ง
+      // client เท่านั้น (จำกัดเวลาแก้ได้) — rules ไม่มีขอบเขตเวลานี้
       function isReviewAmend(qid) {
         return request.resource.data.diff(resource.data).affectedKeys().hasOnly(reviewSubmitKeys())
           && (request.auth.uid in resource.data.get('reviewedBy', []))
@@ -237,7 +244,9 @@ service cloud.firestore {
       //  read:   canEditQuestions (วิชาการ+อาจารย์+แอดมิน) — นักศึกษาเข้าไม่ถึง
       //  create: ต้องเป็นเจ้าของจริง (id == uid และ field reviewerUid == uid)
       //  update: เจ้าของแก้ผลตรวจตัวเองได้ (verdict/reason/ref) — ห้ามเปลี่ยน reviewerUid
-      //          (กันสวมชื่อคนอื่น) · ตัวนับบน doc ถูกย้ายพร้อมกันผ่าน isReviewAmend
+      //          (กันสวมชื่อคนอื่น) · ฝั่ง questions/{id} มี isReviewAmend คอยกันไม่ให้ reviewedBy/
+      //          ผลรวม pass+fail เพี้ยน แต่ rules ไม่ได้ผูกสองการเขียนนี้เข้าด้วยกัน (ไม่มี atomic
+      //          coupling) — ขึ้นกับ client ส่งคู่กันในทรานแซกชันเดียวเอง
       //  delete: admin (แล้วใช้ปุ่ม "ล้างผลตรวจ" ใน Questions ให้ aggregate กลับเข้าคิว)
       match /reviews/{reviewerUid} {
         allow read:   if canEditQuestions();
