@@ -6,7 +6,10 @@
   <div class="tab-content">
     <div class="page-title ar-head">
       <span><Emoji char="⚔️" /> สนามประลอง</span>
-      <RouterLink to="/play/pets" class="ar-back">‹ กลับ</RouterLink>
+      <span class="ar-head-r">
+        <HelpButton topic="arena" />
+        <RouterLink to="/play/pets" class="ar-back">‹ กลับ</RouterLink>
+      </span>
     </div>
 
     <template v-if="authStore.isLoggedIn">
@@ -59,6 +62,7 @@ import { resolveBattleTeam } from '../utils/petTeam.js'
 import TeamPicker from '../components/battle/TeamPicker.vue'
 import BattleReplay from '../components/battle/BattleReplay.vue'
 import PetThumb from '../components/shared/PetThumb.vue'
+import HelpButton from '../components/help/HelpButton.vue'
 
 const authStore = useAuthStore()
 const members = useMembersStore()
@@ -91,6 +95,7 @@ onMounted(() => { members.loadFbUsers() })
 
 <style scoped>
 .ar-head { display: flex; align-items: center; justify-content: space-between; }
+.ar-head-r { display: flex; align-items: center; gap: 8px; }
 .ar-back { font-size: .8rem; color: var(--muted); text-decoration: none; }
 .ar-card { background: #fff; border: 2px solid var(--ink); border-radius: 16px; box-shadow: var(--pop); padding: 14px 16px; margin-bottom: 12px; }
 .ar-rating { font-size: 1rem; font-weight: 700; }

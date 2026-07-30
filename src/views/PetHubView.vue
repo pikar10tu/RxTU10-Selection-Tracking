@@ -3,7 +3,7 @@
     <div class="page-title ph-head">
       <RouterLink to="/play" class="ph-back" aria-label="กลับ">‹</RouterLink>
       <span><Emoji char="🐾" /> โหมดเพ็ท</span>
-      <span class="ph-spacer"></span>
+      <HelpButton topic="pets" />
     </div>
 
     <div class="play-grid">
@@ -49,6 +49,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import Emoji from '../components/shared/Emoji.vue'
 import SoonCard from '../components/shared/SoonCard.vue'
+import HelpButton from '../components/help/HelpButton.vue'
 import { useAuthStore } from '../stores/auth.js'
 import { useAppConfig } from '../composables/useAppConfig.js'
 import { useExpedition } from '../composables/useExpedition.js'
@@ -70,7 +71,6 @@ const expState = computed(() => expeditionState(exp.value, now.value))
 <style scoped>
 .ph-head { display: flex; align-items: center; gap: 8px; }
 .ph-back { text-decoration: none; color: var(--ink); font-size: 1.6rem; font-weight: 800; line-height: 1; width: 24px; }
-.ph-spacer { width: 24px; }
 
 /* การ์ดเกม (ยกจาก PlayView เดิม) */
 .play-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

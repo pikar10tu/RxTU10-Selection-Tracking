@@ -6,7 +6,10 @@
   <div class="tab-content">
     <div class="page-title ex-head">
       <span><Emoji char="🗺️" /> ส่งผจญภัย</span>
-      <RouterLink to="/play/pets" class="ex-back">‹ กลับ</RouterLink>
+      <span class="ex-head-r">
+        <HelpButton topic="expedition" />
+        <RouterLink to="/play/pets" class="ex-back">‹ กลับ</RouterLink>
+      </span>
     </div>
 
     <template v-if="authStore.isLoggedIn">
@@ -100,6 +103,7 @@ import { expeditionState } from '../utils/expedition.js'
 import { MISSIONS, DURATIONS, REWARD_TYPES, EXPEDITION_PARTY_SIZE } from '../data/expeditions.js'
 import { ELEMENTS, getPetDef } from '../data/index.js'
 import PetThumb from '../components/shared/PetThumb.vue'
+import HelpButton from '../components/help/HelpButton.vue'
 
 const authStore = useAuthStore()
 const { exp, eligiblePets, mission, send, claim } = useExpedition()
@@ -177,6 +181,7 @@ async function onClaim() {
 
 <style scoped>
 .ex-head { display: flex; align-items: center; justify-content: space-between; }
+.ex-head-r { display: flex; align-items: center; gap: 8px; }
 .ex-back { font-size: .8rem; color: var(--muted); text-decoration: none; }
 .ex-sec { font-size: .82rem; font-weight: 800; margin: 14px 0 8px; }
 .ex-sec-note { font-size: .64rem; font-weight: 600; color: rgba(0,0,0,.45); }

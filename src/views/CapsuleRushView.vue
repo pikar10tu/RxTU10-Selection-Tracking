@@ -2,7 +2,7 @@
   <MinigameShell game-key="capsuleRush" :best="best">
     <!-- pet picker ก่อนเริ่ม -->
     <div v-if="phase === 'pick'" class="cr-pick">
-      <div class="cr-pick-title">เลือกเพ็ทที่จะบิน</div>
+      <div class="cr-pick-title">เลือกเพ็ทที่จะบิน <HelpButton topic="minigames" /></div>
       <div class="cr-pick-grid">
         <button v-for="p in petChoices" :key="p.id" class="cr-pet" :class="{ sel: p.emoji === chosen }"
                 @click="chosen = p.emoji">
@@ -43,6 +43,7 @@ import { ref, computed, onBeforeUnmount } from 'vue'
 import { increment } from 'firebase/firestore'
 import MinigameShell from '../components/minigame/MinigameShell.vue'
 import Emoji from '../components/shared/Emoji.vue'
+import HelpButton from '../components/help/HelpButton.vue'
 import { useCapsuleRush } from '../composables/useCapsuleRush.js'
 import { getMinigame } from '../data/minigames.js'
 import { grantCoins } from '../utils/minigameCore.js'
@@ -121,7 +122,7 @@ onBeforeUnmount(() => { stop(); dispose() })
 
 <style scoped>
 .cr-pick { text-align: center; padding: 16px 0; }
-.cr-pick-title { font-weight: 700; margin-bottom: 12px; }
+.cr-pick-title { font-weight: 700; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 6px; }
 .cr-pick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
 .cr-pet { all: unset; cursor: pointer; font-size: 1.8rem; padding: 10px; border: 2px solid transparent;
   border-radius: 14px; background: rgba(0,0,0,.03); text-align: center; min-height: 44px; }
