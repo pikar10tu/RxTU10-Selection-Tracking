@@ -340,7 +340,7 @@
 import Emoji from '../components/shared/Emoji.vue'
 import QuestionComments from '../components/questions/QuestionComments.vue'
 import { ref, computed, watch, onMounted } from 'vue'
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs, query, where, orderBy, limit, serverTimestamp, writeBatch, setDoc, deleteField, arrayUnion } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs, query, where, orderBy, limit, serverTimestamp, writeBatch, setDoc, deleteField, arrayUnion, increment } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useUsageStore } from '../stores/usage.js'
@@ -560,7 +560,7 @@ const FORMAT_EXAMPLE = `[
     "question": "ยาใดเป็น first-line ของ ...",
     "choices": ["ก", "ข", "ค", "ง"],
     "answer": 2,
-    "category": "ยาปฏิชีวนะ",
+    "categories": ["ยาปฏิชีวนะ", "การติดเชื้อ"],
     "explanation": "เพราะ ..."
   }
 ]`
@@ -634,6 +634,15 @@ async function runImport() {
         batch.update(doc(db, 'questions', t.id), { examSets: arrayUnion(...t.addSets), updatedAt: serverTimestamp() })
       }
       await batch.commit()
+    }
+    // เติม progress.pending ตามจำนวนข้อใหม่ที่เขียนจริง (fresh เท่านั้น — tagUpdates คือข้อเดิม
+    // ที่แค่แปะชุดเพิ่ม ไม่ใช่ pending ใหม่) กัน reviewMeta drift จาก bulk import · พลาดตรงนี้
+    // ต้องไม่ทำให้ import ล้มเหลว แหล่ง drift ที่เหลือปล่อย self-heal ตอนแอดมินกดซิงก์
+    if (fresh.length > 0) {
+      try {
+        await setDoc(doc(db, 'reviewMeta', 'main'), { progress: { pending: increment(fresh.length) } }, { merge: true })
+        usage.track(0, 1)
+      } catch (e) { console.error('[reviewMeta progress bump]', e) }
     }
     if (skipped.length) console.warn('[questions import] ข้ามข้อ:', skipped)
     const parts = [`นำเข้าใหม่ ${fresh.length} ข้อ`]
@@ -761,6 +770,13 @@ async function save() {
         createdByName: authStore.userData?.nickname || authStore.userData?.name || null,
         createdAt: serverTimestamp(),
       })
+      // เติม progress.pending ทันที (ข้อใหม่ = pending เสมอ) กัน reviewMeta drift จากการ
+      // สร้างข้อ — แหล่ง drift ที่เหลือ (แก้เนื้อหารีเซ็ต, ล้างผลตรวจ, retire, ลบ) ปล่อย
+      // self-heal ตอนแอดมินกดซิงก์ระบบตรวจ · พลาดตรงนี้ต้องไม่ทำให้การเพิ่มข้อล้มเหลว
+      try {
+        await setDoc(doc(db, 'reviewMeta', 'main'), { progress: { pending: increment(1) } }, { merge: true })
+        usage.track(0, 1)
+      } catch (e) { console.error('[reviewMeta progress bump]', e) }
       toast(payload.isPublished && payload.examSets.length ? 'เพิ่มข้อสอบแล้ว · กด 🔄 คำนวณ meta ใหม่ ให้ชุดขึ้นในควิซ' : 'เพิ่มข้อสอบแล้ว', 'success')
     }
     resetDraft()
