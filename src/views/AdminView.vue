@@ -387,6 +387,8 @@ const { confirm } = useConfirm()
 // ซิงก์ระบบตรวจข้อสอบ: เติม reviewStatus ให้ข้อเก่า (ก่อนมีระบบตรวจ — query หน้า /review
 // มองไม่เห็นข้อที่ไม่มี field นี้) + ซ่อมสถานะที่ drift (รวมข้อค้าง 1 เสียง pending → half)
 // + ล้าง reviewVerdicts โครงเก่า + เติม categories ให้ข้อเก่าที่มีแค่ category เดี่ยว
+// + เติม rand ให้ข้อที่ยังไม่มี (ข้อที่ไม่มี field นี้จะไม่ถูก orderBy('rand') ที่ /review ใช้
+//   เลือกคิว pending คืนมาเลย — มองไม่เห็นถาวรถ้าไม่ซ่อม · ไม่ re-roll ข้อที่มี rand เป็นตัวเลขอยู่แล้ว)
 // + rebuild ตัวนับ leaderboard และตัวนับ progress จาก reviewedBy/สถานะทั้งคลัง · idempotent กดซ้ำได้
 const reviewSyncBusy = ref(false)
 async function syncReviewSystem() {
@@ -400,7 +402,8 @@ async function syncReviewSystem() {
     const stale = all.filter(q =>
       (q.reviewStatus || null) !== computeStatus(q)
       || q.reviewVerdicts !== undefined
-      || (!Array.isArray(q.categories) && !!q.category))
+      || (!Array.isArray(q.categories) && !!q.category)
+      || typeof q.rand !== 'number')
     for (let i = 0; i < stale.length; i += 500) {
       const batch = writeBatch(db)
       for (const q of stale.slice(i, i + 500)) {
@@ -411,6 +414,7 @@ async function syncReviewSystem() {
           reviewVerdicts: deleteField(),
         }
         if (!Array.isArray(q.categories) && q.category) patch.categories = getCategories(q)
+        if (typeof q.rand !== 'number') patch.rand = Math.random()
         batch.update(doc(db, 'questions', q.id), patch)
       }
       await batch.commit()
