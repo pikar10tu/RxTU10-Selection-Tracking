@@ -359,7 +359,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { doc, updateDoc, setDoc, collection, getDocs, getDoc, query, orderBy, limit, addDoc, deleteDoc, serverTimestamp, writeBatch, deleteField } from 'firebase/firestore'
+import { doc, updateDoc, setDoc, collection, getDocs, query, orderBy, limit, addDoc, deleteDoc, serverTimestamp, writeBatch, deleteField, runTransaction } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useMembersStore } from '../stores/members.js'
@@ -422,12 +422,19 @@ async function syncReviewSystem() {
       const key = reviewStatusKey(q)
       if (key in progress) progress[key]++
     }
+    // ทรานแซกชัน: อ่าน+เขียน reviewMeta/main แบบอะตอมมิก กันชนกับ ReviewView ที่ merge
+    // ชื่อผู้ตรวจ (names) เข้า doc เดียวกันตอน submit — ไม่งั้น setDoc ทับทั้งก้อนช่วงกลาง
+    // ทับชื่อที่เพิ่ง merge เข้ามาหาย (rules ไม่ได้กันช่องนี้ให้ ต้องอะตอมมิกเอง)
+    // หมายเหตุ: counts/progress คำนวณจาก snapshot ตอนเริ่มฟังก์ชัน — เสียงที่ submit
+    // ระหว่างซิงก์กำลังรันจะยังไม่ถูกนับ (self-heals เมื่อกดซิงก์รอบถัดไป, ยอมรับได้)
     const metaRef = doc(db, 'reviewMeta', 'main')
-    const cur = await getDoc(metaRef)
-    await setDoc(metaRef, {
-      counts: tallyReviewCounts(all),
-      names: cur.exists() ? (cur.data().names || {}) : {},
-      progress,
+    await runTransaction(db, async (tx) => {
+      const cur = await tx.get(metaRef)
+      tx.set(metaRef, {
+        counts: tallyReviewCounts(all),
+        names: cur.exists() ? (cur.data().names || {}) : {},
+        progress,
+      })
     })
     usage.track(snap.size + 1, stale.length + 1)
     toast(`ซิงก์แล้ว — อัปเดต ${stale.length} ข้อ · ความคืบหน้าตั้งต้นใหม่แล้ว`, 'success')
