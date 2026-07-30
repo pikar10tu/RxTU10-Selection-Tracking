@@ -36,6 +36,14 @@
       ]
     },
     {
+      "collectionGroup": "questions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "reviewStatus", "order": "ASCENDING" },
+        { "fieldPath": "rand", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "questionReports",
       "queryScope": "COLLECTION",
       "fields": [

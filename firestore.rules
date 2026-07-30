@@ -182,9 +182,11 @@ service cloud.firestore {
       function reviewUntouched() {
         return !request.resource.data.diff(resource.data).affectedKeys().hasAny(reviewKeys());
       }
-      // ชุด key ที่ยอมให้แตะตอน "ส่งผลตรวจ" = review keys + category (ติดแท็กหมวดระหว่างตรวจ)
+      // ชุด key ที่ยอมให้แตะตอน "ส่งผลตรวจ" = review keys + หมวด + หมายเหตุผู้ตรวจ
+      // (ผู้ตรวจติดแท็กหมวดและเขียนหมายเหตุไปพร้อมกับการส่งผลได้ในทรานแซกชันเดียว)
       function reviewSubmitKeys() {
-        return ['reviewedBy', 'reviewPass', 'reviewFail', 'reviewStatus', 'reviewVerdicts', 'category'].toSet();
+        return ['reviewedBy', 'reviewPass', 'reviewFail', 'reviewStatus', 'reviewVerdicts',
+                'category', 'categories', 'reviewNote'].toSet();
       }
       // ส่งผลตรวจจริง: แตะเฉพาะ review fields + ไม่เคยตรวจ + ไม่ใช่ข้อตัวเอง (ยกเว้น import)
       // + เสียงรวม +1 พอดี + transaction เดียวกันต้องเขียน reviews/{uid} ของตัวเองด้วย
@@ -198,6 +200,16 @@ service cloud.firestore {
              == resource.data.get('reviewPass', 0) + resource.data.get('reviewFail', 0) + 1
           && existsAfter(/databases/$(database)/documents/questions/$(qid)/reviews/$(request.auth.uid));
       }
+      // แก้ผลตรวจของตัวเอง: ไม่เพิ่มคนตรวจ (reviewedBy เท่าเดิม) + เสียงรวมเท่าเดิม
+      // (ย้ายเสียงข้ามฝั่ง pass↔fail) + ต้องเขียน reviews/{uid} ของตัวเองในทรานแซกชันเดียวกัน
+      function isReviewAmend(qid) {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(reviewSubmitKeys())
+          && (request.auth.uid in resource.data.get('reviewedBy', []))
+          && request.resource.data.get('reviewedBy', []) == resource.data.get('reviewedBy', [])
+          && request.resource.data.get('reviewPass', 0) + request.resource.data.get('reviewFail', 0)
+             == resource.data.get('reviewPass', 0) + resource.data.get('reviewFail', 0)
+          && existsAfter(/databases/$(database)/documents/questions/$(qid)/reviews/$(request.auth.uid));
+      }
       // ล้างผลตรวจกลับค่าเริ่มต้นเป๊ะ (ตอนแก้เนื้อหาข้อ → กลับเข้าคิวตรวจใหม่)
       function isReviewReset() {
         return request.resource.data.get('reviewedBy', ['x']).size() == 0
@@ -208,7 +220,7 @@ service cloud.firestore {
       allow read:  if request.auth != null && (resource.data.get('isPublished', false) == true || canEditQuestions());
       allow create, delete: if canEditQuestions();
       allow update: if canEditQuestions()
-        && (isAdmin() || reviewUntouched() || isReviewSubmit(id) || isReviewReset());
+        && (isAdmin() || reviewUntouched() || isReviewSubmit(id) || isReviewAmend(id) || isReviewReset());
 
       // ── Comments (SP1) — thread วิชาการ↔อาจารย์ ต่อข้อ (นักศึกษาเข้าไม่ถึง) ──
       match /comments/{commentId} {
@@ -224,8 +236,8 @@ service cloud.firestore {
       //  doc id = uid ของผู้ตรวจ → กันตรวจซ้ำ + กันปลอมเป็นคนอื่น
       //  read:   canEditQuestions (วิชาการ+อาจารย์+แอดมิน) — นักศึกษาเข้าไม่ถึง
       //  create: ต้องเป็นเจ้าของจริง (id == uid และ field reviewerUid == uid)
-      //  update: เจ้าของแก้ reason/ref ได้ (ห้ามเปลี่ยน verdict/reviewerUid — กัน desync
-      //          กับตัวนับบน doc และกันสวมชื่อคนอื่น) · admin เต็มสิทธิ์
+      //  update: เจ้าของแก้ผลตรวจตัวเองได้ (verdict/reason/ref) — ห้ามเปลี่ยน reviewerUid
+      //          (กันสวมชื่อคนอื่น) · ตัวนับบน doc ถูกย้ายพร้อมกันผ่าน isReviewAmend
       //  delete: admin (แล้วใช้ปุ่ม "ล้างผลตรวจ" ใน Questions ให้ aggregate กลับเข้าคิว)
       match /reviews/{reviewerUid} {
         allow read:   if canEditQuestions();
@@ -235,8 +247,7 @@ service cloud.firestore {
         allow update: if isAdmin()
           || (canEditQuestions()
               && reviewerUid == request.auth.uid
-              && request.resource.data.get('reviewerUid', '') == resource.data.get('reviewerUid', '')
-              && request.resource.data.get('verdict', '') == resource.data.get('verdict', ''));
+              && request.resource.data.get('reviewerUid', '') == resource.data.get('reviewerUid', ''));
         allow delete: if isAdmin();
       }
     }
