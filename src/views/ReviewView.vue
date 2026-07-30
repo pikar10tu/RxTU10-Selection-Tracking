@@ -102,14 +102,15 @@
 <script setup>
 import Emoji from '../components/shared/Emoji.vue'
 import { ref, computed, watch, onMounted } from 'vue'
-import { collection, getDocs, getDoc, doc, runTransaction, arrayUnion, increment, deleteField, serverTimestamp, query, where } from 'firebase/firestore'
+import { collection, getDocs, getDoc, doc, runTransaction, arrayUnion, increment, deleteField, serverTimestamp, query, where, orderBy, startAt, limit } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useUsageStore } from '../stores/usage.js'
 import { useToast } from '../composables/useToast.js'
 import { cleanText, LIMITS } from '../utils/text.js'
 import { domainLabel } from '../data/domains.js'
-import { computeStatus, nextReviewQueue, buildLeaderboard, VERDICT_LABEL } from '../utils/questionReview.js'
+import { computeStatus, nextReviewQueue, buildLeaderboard, VERDICT_LABEL, pickWeighted } from '../utils/questionReview.js'
+import { quizSample } from '../utils/quizSample.js'
 import TopicSelect from '../components/questions/TopicSelect.vue'
 import { useConfirm } from '../composables/useConfirm.js'
 
@@ -136,10 +137,21 @@ const topic = ref(null)   // แท็กหมวดของข้อปัจ
 
 const myUid = computed(() => authStore.currentUser?.uid || null)
 
+const HALF_LIMIT = 200      // ข้อค้าง 1 เสียง + ขัดแย้ง — ดึงมาให้ครบ (ปกติมีไม่เยอะ)
+const PENDING_WINDOW = 40   // ข้อที่ยังไม่มีใครตรวจ — สุ่มหน้าต่างเล็กพอ ต้นทุนคงที่
+
+const currentId = ref(null)
 // คิวข้อที่ต้องให้ฉันตรวจ ลบข้อที่กด "ข้าม" ในเซสชันนี้
 const queue = computed(() =>
   nextReviewQueue(list.value, myUid.value).filter(q => !skippedIds.value.has(q.id)))
-const current = computed(() => queue.value[0] || null)
+// ข้อปัจจุบัน = ข้อที่สุ่มไว้ (ตรึงไว้จนกว่าจะส่ง/ข้าม — ห้ามผูกกับ queue[0] ไม่งั้นข้อจะเด้งเอง)
+const current = computed(() => queue.value.find(q => q.id === currentId.value) || null)
+
+// สุ่มข้อถัดไปตามน้ำหนัก: ขัดแย้ง ×8 · ค้าง 1 เสียง ×4 · ยังไม่มีใครตรวจ ×1
+function pickNext() {
+  const q = pickWeighted(queue.value)
+  currentId.value = q ? q.id : null
+}
 const currentStatus = computed(() => current.value ? computeStatus(current.value) : null)
 
 const summary = computed(() => ({
@@ -160,19 +172,34 @@ onMounted(() => {
   load()
 })
 
+// โหลดคิว 2 ก้อนแยกกัน — ต้นทุน read คงที่ไม่โตตามขนาดคลัง
+//  ก้อน A: ข้อค้าง 1 เสียง + ขัดแย้ง → ดึงมาให้ครบ (นี่คือข้อที่เราอยากเร่งให้จบ)
+//  ก้อน B: ข้อที่ยังไม่มีใครตรวจ → สุ่มหน้าต่างด้วย field rand (pattern เดียวกับ QuizView)
+//  ข้อเก่าก่อนระบบตรวจไม่มี field reviewStatus จะไม่ติด query —
+//  แอดมินต้องกด "🔄 ซิงก์ระบบตรวจ" ในหน้า Admin หนึ่งครั้งก่อนเริ่มใช้
 async function load() {
   loading.value = true
   try {
-    // อ่านเฉพาะข้อที่ยังมีงานตรวจ — ข้อเก่าก่อนระบบตรวจไม่มี field reviewStatus จะไม่ติด query
-    // แอดมินต้องกด "ซิงก์ระบบตรวจ" ในหน้า Admin ครั้งเดียวก่อนเริ่มใช้
-    const [snap, metaSnap] = await Promise.all([
-      getDocs(query(collection(db, 'questions'), where('reviewStatus', 'in', ['pending', 'conflict']))),
+    const col = collection(db, 'questions')
+    const R = Math.random()
+    const [halfSnap, firstSnap, metaSnap] = await Promise.all([
+      getDocs(query(col, where('reviewStatus', 'in', ['half', 'conflict']), limit(HALF_LIMIT))),
+      getDocs(query(col, where('reviewStatus', '==', 'pending'), orderBy('rand'), startAt(R), limit(PENDING_WINDOW))),
       getDoc(doc(db, 'reviewMeta', 'main')),
     ])
-    usage.track(snap.size + 1)
-    list.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+    let reads = halfSnap.size + firstSnap.size + 1
+    // สุ่มไปชนปลายลิสต์ → วนอ่านต้นลิสต์เติมให้เต็มหน้าต่าง
+    let wrap = []
+    if (firstSnap.size < PENDING_WINDOW) {
+      const wrapSnap = await getDocs(query(col, where('reviewStatus', '==', 'pending'), orderBy('rand'), limit(PENDING_WINDOW)))
+      wrap = wrapSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      reads += wrapSnap.size
+    }
+    usage.track(reads)
+    const pending = quizSample(firstSnap.docs.map(d => ({ id: d.id, ...d.data() })), wrap, PENDING_WINDOW)
+    list.value = [...halfSnap.docs.map(d => ({ id: d.id, ...d.data() })), ...pending]
     if (metaSnap.exists()) meta.value = metaSnap.data()
+    pickNext()
   } catch (e) { console.error('[review load]', e); toast('โหลดข้อสอบไม่สำเร็จ', 'error') }
   finally { loading.value = false }
 }
@@ -198,8 +225,9 @@ function skip() {
   const next = new Set(skippedIds.value)
   next.add(current.value.id)
   skippedIds.value = next   // Set ใหม่ → computed queue เลื่อนไปข้อถัดไป
+  pickNext()
 }
-function unskipAll() { skippedIds.value = new Set() }
+function unskipAll() { skippedIds.value = new Set(); pickNext() }
 
 async function submit() {
   if (!canSubmit.value || submitting.value || !current.value || !myUid.value) return
@@ -260,6 +288,7 @@ async function submit() {
       const patch = already ? {} : { reviewPass: newPass, reviewFail: newFail, reviewStatus: newStatus, ...(topic.value ? { category: topic.value } : {}) }
       list.value[idx] = { ...q, reviewedBy: [...(q.reviewedBy || []), uid], ...patch }
     }
+    pickNext()
     if (!already) {
       meta.value = {
         counts: { ...(meta.value.counts || {}), [uid]: ((meta.value.counts || {})[uid] || 0) + 1 },
