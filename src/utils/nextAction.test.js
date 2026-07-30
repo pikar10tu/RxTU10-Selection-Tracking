@@ -87,7 +87,8 @@ test('กฎ 7: array สั้นกว่า plotsUnlocked = ช่องท�
 
 test('กฎ 7: แปลงที่ยังไม่ปลดล็อก ไม่นับว่าว่าง', () => {
   const u = { ...allDone(), farm: { plotsUnlocked: 1, plots: [{ seedId: 's' }, null, null] } }
-  assert.notEqual(nextAction(u, ctx).key, 'farm-empty')
+  // ?. เพราะฐาน allDone() ผ่านทุกกฎ ⇒ ผลลัพธ์ที่ถูกคือ null · เจตนาของเทสคือ "ต้องไม่ใช่ farm-empty"
+  assert.notEqual(nextAction(u, ctx)?.key, 'farm-empty')
 })
 
 test('กฎ 8: ไม่มีสายผจญภัยอยู่ → expedition', () => {
