@@ -16,6 +16,8 @@
     <template v-if="authStore.isLoggedIn">
       <!-- นับถอยหลังสู่วันสอบ (ย้ายมาจาก Study — ข้อมูลสรุปรายวัน เห็นทันทีเปิดแอป) -->
       <ExamCountdown />
+      <!-- งานถัดไปที่ควรทำ — โชว์ทีละอย่าง ซ่อนตัวเองเมื่อไม่มีอะไรค้าง -->
+      <NextActionCard @sheet="onCardSheet" />
       <!-- ที่อยู่อาศัย (residence) — แกน prestige/coin-sink (ขยับขึ้นใต้ countdown) -->
       <ResidenceCard />
 
@@ -55,6 +57,7 @@ import DailyCard from '../components/home/DailyCard.vue'
 import ExpeditionCard from '../components/home/ExpeditionCard.vue'
 import DailyQuestCard from '../components/home/DailyQuestCard.vue'
 import MailboxCard from '../components/home/MailboxCard.vue'
+import NextActionCard from '../components/home/NextActionCard.vue'
 import ExamCountdown from '../components/study/ExamCountdown.vue'
 import BottomSheet from '../components/shared/BottomSheet.vue'
 import HeaderIconButton from '../components/home/HeaderIconButton.vue'
@@ -72,6 +75,9 @@ const questPending = computed(() =>
 
 // โหลดจดหมายตั้งแต่เข้า Home เพื่อให้จุดแดงโชว์ได้โดยไม่ต้องเปิดแผงก่อน
 onMounted(() => { if (authStore.isLoggedIn) mailbox.load() })
+
+// การ์ดงานถัดไปสั่งเปิด bottom-sheet ได้ (เควสไม่มีหน้าแยก)
+function onCardSheet(name) { if (name === 'quest') showQuest.value = true }
 </script>
 
 <style scoped>
