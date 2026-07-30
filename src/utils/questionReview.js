@@ -1,7 +1,7 @@
 // ════════════════════════════════════════════════════════════
 //  Peer-review ข้อสอบ — ตรรกะล้วน (ไม่แตะ Firestore/Vue)
 //  verdict: 'correct' (ผ่าน) | 'fix' | 'wrong' (ทั้งคู่นับเป็น fail)
-//  reviewStatus: pending | passed | conflict | failed
+//  reviewStatus: pending | half | passed | conflict | failed
 //  คุมคิว pull-model + leaderboard "ใครตรวจกี่ข้อ"
 //
 //  aggregate บนเอกสารข้อสอบเก็บแค่ตัวนับ reviewPass/reviewFail —
