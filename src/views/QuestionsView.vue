@@ -304,12 +304,19 @@
             <div class="qz-audit">
               <div class="qz-audit-row"><b>เพิ่มโดย:</b> {{ q.createdByName || 'ไม่ระบุ' }}<span v-if="q.source === 'import'"> · นำเข้า</span> · {{ fmtTime(q.createdAt) || '—' }}</div>
               <div class="qz-audit-row"><b>สถานะตรวจ:</b> {{ REVIEW_STATUS_LABEL[reviewStatusKey(q)] }}</div>
+              <div class="qz-audit-row">
+                <b>ตรวจโดย:</b>
+                <span v-if="q.reviewedBy?.length">{{ reviewerListOf(q).join(', ') }}</span>
+                <span v-else>ยังไม่มีใครตรวจ</span>
+              </div>
               <div v-if="detailReviewsLoading" class="qz-audit-row">กำลังโหลดผลตรวจ…</div>
               <template v-else-if="detailReviews.length">
                 <div class="qz-audit-head">ผลตรวจรอบปัจจุบัน ({{ detailReviews.length }})</div>
                 <div v-for="r in detailReviews" :key="r.id" class="qz-audit-rev">
                   <b>{{ r.reviewerName || 'ไม่ระบุ' }}</b> — {{ VERDICT_LABEL[r.verdict] || r.verdict }}
-                  <span v-if="r.reason" class="qz-audit-reason">· {{ r.reason }}</span>
+                  <span class="qz-audit-time">· {{ fmtTime(r.ts) || '—' }}</span>
+                  <div v-if="r.reason" class="qz-audit-reason">{{ r.reason }}</div>
+                  <div v-if="r.ref" class="qz-audit-ref">เรฟ: {{ r.ref }}</div>
                 </div>
               </template>
             </div>
@@ -333,7 +340,7 @@
 import Emoji from '../components/shared/Emoji.vue'
 import QuestionComments from '../components/questions/QuestionComments.vue'
 import { ref, computed, watch, onMounted } from 'vue'
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, orderBy, limit, serverTimestamp, writeBatch, setDoc, deleteField, arrayUnion } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs, query, where, orderBy, limit, serverTimestamp, writeBatch, setDoc, deleteField, arrayUnion } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useUsageStore } from '../stores/usage.js'
@@ -384,6 +391,11 @@ const batchSets = ref([])   // ชุดที่จะ tag ให้ข้อ�
 const expandedId = ref(null)
 const detailReviews = ref([])          // reviews ของข้อที่กางอยู่ (รอบปัจจุบัน)
 const detailReviewsLoading = ref(false)
+const reviewerNames = ref({})   // uid → ชื่อจริง (จาก reviewMeta) — ใช้โชว์ "ตรวจโดย" โดยไม่ต้องอ่าน subcollection
+// ชื่อคนที่ตรวจข้อนี้ — อ่านจาก reviewedBy บน doc (มีอยู่แล้ว ไม่เปลือง read) + แผนที่ชื่อจาก reviewMeta
+function reviewerListOf(q) {
+  return (q.reviewedBy || []).map(uid => reviewerNames.value[uid] || 'ไม่ระบุ')
+}
 async function toggleExpand(id) {
   if (expandedId.value === id) { expandedId.value = null; return }
   expandedId.value = id
@@ -702,6 +714,12 @@ async function load() {
     list.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
   } catch (e) { console.error('[questions load]', e); toast('โหลดข้อสอบไม่สำเร็จ', 'error') }
   finally { loading.value = false }
+  // แผนที่ uid → ชื่อผู้ตรวจ (สำหรับบรรทัด "ตรวจโดย") — ไม่ critical ถ้าพลาด ปล่อยหน้าใช้งานต่อได้
+  try {
+    const metaSnap = await getDoc(doc(db, 'reviewMeta', 'main'))
+    usage.track(1)
+    if (metaSnap.exists()) reviewerNames.value = metaSnap.data().names || {}
+  } catch (e) { console.error('[reviewMeta names]', e) }
 }
 
 async function save() {
@@ -1081,5 +1099,7 @@ async function resolveReports(g, verdict) {
 .qz-audit-row b { color: rgba(0,0,0,.75); font-weight: 800; }
 .qz-audit-head { font-weight: 800; color: #c2410c; margin-top: 5px; }
 .qz-audit-rev { margin-top: 2px; }
-.qz-audit-reason { color: rgba(0,0,0,.5); }
+.qz-audit-reason { display: block; font-size: .72rem; color: rgba(0,0,0,.65); line-height: 1.4; margin-top: 2px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.qz-audit-time { color: rgba(0,0,0,.4); font-size: .66rem; }
+.qz-audit-ref { color: rgba(0,0,0,.45); font-size: .68rem; margin-top: 2px; overflow-wrap: anywhere; }
 </style>
