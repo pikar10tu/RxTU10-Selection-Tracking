@@ -7,10 +7,10 @@
         </div>
         <div class="sc-sub">
           <template v-if="mode === 'fusion'">เลือกแล้ว {{ total }}/{{ required }}</template>
-          <template v-else>เลือก {{ total }} copies · ได้ <b>{{ coinValue.toLocaleString() }}</b> <Emoji char="🪙" /></template>
+          <template v-else>เลือก {{ total }} ตัวซ้ำ · ได้ <b>{{ coinValue.toLocaleString() }}</b> <Emoji char="🪙" /></template>
         </div>
 
-        <div v-if="!candidates.length" class="sc-empty">ไม่มี copies ระดับนี้</div>
+        <div v-if="!candidates.length" class="sc-empty">ไม่มีตัวซ้ำระดับนี้</div>
         <div v-else class="sc-list">
           <div v-for="p in candidates" :key="p.id" class="sc-row">
             <span class="sc-emoji"><Emoji :char="p.emoji" /></span>
@@ -24,7 +24,7 @@
           </div>
         </div>
 
-        <div v-if="mode === 'fusion' && available < required" class="sc-warn">copies ไม่พอ ({{ available }}/{{ required }})</div>
+        <div v-if="mode === 'fusion' && available < required" class="sc-warn">ตัวซ้ำไม่พอ ({{ available }}/{{ required }})</div>
 
         <div class="sc-actions">
           <button v-if="mode === 'fusion'" class="sc-auto" @click="auto">auto เติม</button>

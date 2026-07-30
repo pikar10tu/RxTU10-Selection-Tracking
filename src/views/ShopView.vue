@@ -62,7 +62,7 @@
           </button>
         </div>
       </div>
-      <div class="shop-note">สุ่ม 10 ได้ 11 ตัว · ตัวซ้ำ → +1 copy (ใช้วิวัฒน์หรือหลอม)</div>
+      <div class="shop-note">สุ่ม 10 ได้ 11 ตัว · ได้ตัวเดิมซ้ำ → +1 ตัวซ้ำ (ใช้วิวัฒน์หรือหลอม)</div>
       </template>
     </template>
     <div v-else class="shop-login">เข้าสู่ระบบเพื่อช้อป</div>

@@ -13,7 +13,7 @@
       <div class="lab-card-h"><Emoji char="🧪" /> หลอมไต่ระดับ</div>
       <div v-for="src in FUSE_SRC" :key="src" class="lab-fuse">
         <span class="lab-fuse-txt">{{ RARITY[src]?.label }} → {{ RARITY[nextRarity(src)]?.label }}</span>
-        <span class="lab-fuse-cost">{{ FUSION_COST[src] }} copies</span>
+        <span class="lab-fuse-cost">{{ FUSION_COST[src] }} ตัวซ้ำ</span>
         <button class="lab-btn" :class="{ ok: copyTotal(src) >= FUSION_COST[src] }"
           :disabled="busy || copyTotal(src) < FUSION_COST[src]"
           @click="openFusion(src)">หลอม</button>
@@ -25,7 +25,7 @@
       <div class="lab-card-h"><Emoji char="🪙" /> แลกเป็นเหรียญ</div>
       <div v-for="r in RARITIES" :key="r" class="lab-fuse">
         <span class="lab-fuse-txt">{{ RARITY[r]?.label }}</span>
-        <span class="lab-fuse-cost">{{ REDEEM_COIN[r].toLocaleString() }}/copy</span>
+        <span class="lab-fuse-cost">{{ REDEEM_COIN[r].toLocaleString() }}/ตัวซ้ำ</span>
         <button class="lab-btn" :class="{ ok: copyTotal(r) > 0 }"
           :disabled="busy || copyTotal(r) === 0"
           @click="openRedeem(r)">แลก</button>
@@ -46,7 +46,7 @@
             <div class="rv-emoji"><Emoji :char="reveal.emoji" /></div>
           </div>
           <div class="rv-nm">{{ reveal.name }}</div>
-          <div class="rv-badge" :style="{ background: rarityColor(reveal.rarity) }">{{ reveal.isNew ? 'ใหม่!' : '+1 copy' }}</div>
+          <div class="rv-badge" :style="{ background: rarityColor(reveal.rarity) }">{{ reveal.isNew ? 'ใหม่!' : '+1 ตัวซ้ำ' }}</div>
           <button class="rv-ok" @click="reveal = null">เยี่ยม!</button>
         </div>
       </div>

@@ -42,7 +42,7 @@
         </div>
         <!-- FIX (fable): คงข้อมูล cost/copies เดิมไว้ (spec Part 3 สั่งคง progress copies) -->
         <div v-if="gradeNow < MAX_GRADE && upCost" class="pd-axis-cost">
-          ใช้ {{ upCost.copies }} copies + {{ upCost.coins.toLocaleString() }} เหรียญ · มี {{ pet.copies || 0 }} copies
+          ใช้ {{ upCost.copies }} ตัวซ้ำ + {{ upCost.coins.toLocaleString() }} เหรียญ · มี {{ pet.copies || 0 }} ตัวซ้ำ
         </div>
       </div>
 
@@ -144,8 +144,8 @@ async function commit(newPets, coinDelta = 0) {
 async function evolve() {
   if (busy.value || !pet.value || !upCost.value) return
   const p = pet.value
-  if (!canUp.value) { toast('copies หรือเหรียญของคุณไม่พอ', 'info'); return }
-  if (!(await confirm(`วิวัฒน์ ${p.name || 'เพ็ท'} เป็นเกรด ${GRADE_LABELS[(p.grade || 0) + 1]}?\nใช้ ${upCost.value.copies} copies + ${upCost.value.coins.toLocaleString()} เหรียญ`))) return
+  if (!canUp.value) { toast('ตัวซ้ำหรือเหรียญของคุณไม่พอ', 'info'); return }
+  if (!(await confirm(`วิวัฒน์ ${p.name || 'เพ็ท'} เป็นเกรด ${GRADE_LABELS[(p.grade || 0) + 1]}?\nใช้ ${upCost.value.copies} ตัวซ้ำ + ${upCost.value.coins.toLocaleString()} เหรียญ`))) return
   const newPets = pets.value.map(x => x.id === p.id
     ? { ...x, grade: (x.grade || 0) + 1, copies: (x.copies || 0) - upCost.value.copies } : x)
   busy.value = true
