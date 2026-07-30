@@ -146,7 +146,8 @@ test('กฎ 7: array สั้นกว่า plotsUnlocked = ช่องท�
 
 test('กฎ 7: แปลงที่ยังไม่ปลดล็อก ไม่นับว่าว่าง', () => {
   const u = { ...allDone(), farm: { plotsUnlocked: 1, plots: [{ seedId: 's' }, null, null] } }
-  assert.notEqual(nextAction(u, ctx).key, 'farm-empty')
+  // ?. เพราะฐาน allDone() ผ่านทุกกฎ ⇒ ผลลัพธ์ที่ถูกคือ null · เจตนาของเทสคือ "ต้องไม่ใช่ farm-empty"
+  assert.notEqual(nextAction(u, ctx)?.key, 'farm-empty')
 })
 
 test('กฎ 8: ไม่มีสายผจญภัยอยู่ → expedition', () => {
@@ -191,7 +192,7 @@ Expected: FAIL — `Cannot find module './nextAction.js'`
 //  การเรียนมาก่อนเกมทุกข้อ (user เคาะ 30 ก.ค.) — แอพนี้คือแอพเตรียมสอบ เกมเป็นรางวัล
 //  ห้ามอ่าน Firestore ที่นี่: รับ userData ที่โหลดมาแล้วเท่านั้น (การ์ดนี้ต้องไม่มีต้นทุน read)
 // ════════════════════════════════════════════════════════════
-import { questNotClaimed } from './dailyQuest.js'
+import { questNotClaimed, questClaimable } from './dailyQuest.js'
 
 export const BATTLE_TEAM_SIZE = 3
 
@@ -240,11 +241,17 @@ export function nextAction(userData, ctx = {}) {
     }
   }
   // 4) เควสวันนี้ยังไม่ได้กดรับรางวัล — เปิด bottom-sheet บน Home ไม่ใช่เปลี่ยนหน้า
+  //    แยกข้อความ 2 สถานะ: ทำครบแล้วรอกดรับ vs ยังทำไม่ครบ (questNotClaimed จริงทั้งสองแบบ)
   if (today && questNotClaimed(userData.dailyQuest, today)) {
-    return {
-      key: 'quest', icon: '🎯', title: 'เควสประจำวันยังไม่ครบ',
-      sub: 'ทำครบรับรายได้ ×1.5 กับตั๋วอัญเชิญฟรี', cta: 'ดูเควส', sheet: 'quest',
-    }
+    return questClaimable(userData.dailyQuest, today)
+      ? {
+          key: 'quest', icon: '🎯', title: 'เควสวันนี้ครบแล้ว — ยังไม่ได้กดรับรางวัล',
+          sub: 'กดรับเลยจะได้รายได้ ×1.5 กับตั๋วอัญเชิญฟรี', cta: 'ไปกดรับ', sheet: 'quest',
+        }
+      : {
+          key: 'quest', icon: '🎯', title: 'เควสประจำวันยังไม่ครบ',
+          sub: 'ทำครบรับรายได้ ×1.5 กับตั๋วอัญเชิญฟรี', cta: 'ดูเควส', sheet: 'quest',
+        }
   }
   // 5) ยังไม่มีเพ็ท
   const pets = userData.pets || []
