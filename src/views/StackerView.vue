@@ -51,7 +51,9 @@ const earned = ref(0)
 const saveState = ref('idle')
 const best = computed(() => auth.userData?.minigames?.stacker?.best || 0)
 const score = computed(() => state.value.rows.length - 1)   // ฐานไม่นับเป็นคะแนน
-const visibleRows = computed(() => state.value.rows.slice(-VISIBLE_ROWS).reverse())
+const visibleRows = computed(() => state.value.rows.slice(-VISIBLE_ROWS))
+// ห้ามใส่ .reverse() — .s-grid เป็น column-reverse อยู่แล้ว (ลำดับ chronological
+// ทำให้แถวใหม่สุดอยู่ใต้บล็อกที่กำลังวิ่งพอดี ใส่ reverse ซ้ำจะกลับหัวกอง)
 
 function blkStyle(r) {
   return { left: (r.x / COLS * 100) + '%', width: (r.w / COLS * 100) + '%' }
@@ -59,6 +61,9 @@ function blkStyle(r) {
 
 let raf = 0
 let last = 0
+// ลูปยัง reschedule ตัวเองต่อไปแม้จบเกม (ไม่ทำอะไรเพราะเช็ค over.value ข้างใน) —
+// ตั้งใจให้เป็นแบบนี้ เพื่อให้ reset() สั่งเล่นต่อได้ทันทีโดยไม่ต้อง re-arm rAF ใหม่
+// (ห้าม "ปรับให้ดีขึ้น" โดยหยุด reschedule ตอน over — จะทำให้ reset() ไม่ขยับอีกเลย)
 function loop(ts) {
   if (!last) last = ts
   const dt = Math.min(0.05, (ts - last) / 1000)   // หนีบ dt กันกระโดดตอนสลับแท็บ

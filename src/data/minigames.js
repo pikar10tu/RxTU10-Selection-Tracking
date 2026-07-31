@@ -34,7 +34,8 @@ export const MINIGAMES = [
     emoji: '🧱',
     route: '/play/games/stacker',
     coinPerPoint: 20,       // ชั้นเป็นหน่วยหยาบ (เล่นดี ~15–25 ชั้น) จึงให้ต่อชั้นสูง
-    maxPlausibleScore: 60,
+    maxPlausibleScore: 200, // ตัวจับโกง ไม่ใช่เพดานรางวัล — ความเร็วตันที่ราวชั้น 23 แล้วไม่ยากขึ้นอีก
+                            // คนเก่งจึงไปได้ไกลกว่า 60 ชั้น · เกิน 200 ค่อยถือว่าผิดปกติ
     scoreLabel: 'ชั้น',
     tagline: 'วางบล็อกให้ตรง ซ้อนให้สูงที่สุด',
     status: 'live',
