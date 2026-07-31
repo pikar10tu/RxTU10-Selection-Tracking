@@ -17,6 +17,17 @@ export const MINIGAMES = [
     status: 'live',
   },
   {
+    key: 'g2048',
+    name: '2048',
+    emoji: '🔢',
+    route: '/play/games/2048',
+    coinPerPoint: 1,          // คะแนน 2048 เป็นหลักพัน-หมื่น จึงให้ 1:1
+    maxPlausibleScore: 20000, // เล่นถึงไทล์ 1024–2048 ได้หลักหมื่นตามปกติ — ตั้งต่ำกว่านี้จะ flag คนเก่งว่าโกง
+    scoreLabel: 'คะแนน',
+    tagline: 'เลื่อนรวมเลขให้ถึง 2048',
+    status: 'live',
+  },
+  {
     key: 'pillCrush',
     name: 'Pill Crush',
     emoji: '🍬',
