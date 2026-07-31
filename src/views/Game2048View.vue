@@ -79,7 +79,7 @@ function onTouchEnd(e) {
 }
 
 async function saveResult() {
-  if (score.value <= 0) { saveState.value = 'saved'; return }
+  if (score.value <= 0) { saveState.value = 'saved'; earned.value = 0; return }
   saveState.value = 'saving'
   const { coins, flagged } = grantCoins(score.value, GAME)
   earned.value = coins
