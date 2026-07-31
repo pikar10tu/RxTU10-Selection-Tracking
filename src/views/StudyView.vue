@@ -244,7 +244,10 @@ function openCoach() {
 // จบ/ข้ามจอสอน — ประทับ flag ครั้งเดียว แล้วไปต่อตามเส้นทางที่มา
 async function finishCoach() {
   const wasFirstRun = coachThenStart.value
-  if (wasFirstRun) startSession()
+  if (wasFirstRun) {
+    startSession()
+    if (mode.value === 'coach') mode.value = 'home'   // คิวว่างระหว่างเปิดจอสอน → อย่าค้างบนจอสอน
+  }
   else mode.value = 'home'
   if (!authStore.userData?.seenStudyCoach) {
     await authStore.patchUser({ seenStudyCoach: true }, { seenStudyCoach: true })
@@ -476,11 +479,12 @@ async function sendReport() {
 .sv-recall { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .sv-recall-lead { font-size: .68rem; color: rgba(0,0,0,.45); }
 .sv-recall-items { font-size: .8rem; font-weight: 800; color: var(--primary); line-height: 1.4; }
-.sv-grades { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; margin-top: 16px; }
+.sv-grades { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; }
 .sv-grade { border: 2px solid var(--ink); border-radius: 12px; padding: 12px 4px; font-family: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; color: #fff; box-shadow: var(--pop); transition: transform .1s, box-shadow .1s; }
 .sv-grade:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .sv-grade b { font-size: .82rem; }
 .sv-grade small { font-size: .56rem; opacity: .9; }
+.sv-grade-wrap { margin-top: 16px; }
 .sv-grade-note { font-size: .68rem; color: rgba(0,0,0,.5); text-align: center; margin-bottom: 7px; line-height: 1.4; }
 .sv-grade i { font-style: normal; font-size: .58rem; opacity: .85; line-height: 1.25; }
 .sv-grade.again { background: #ef4444; }
