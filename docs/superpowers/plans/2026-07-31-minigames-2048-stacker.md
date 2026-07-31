@@ -598,7 +598,8 @@ git commit -m "Minigame: ตรรกะ Stacker เป็น pure function (เ
     emoji: '🧱',
     route: '/play/games/stacker',
     coinPerPoint: 20,       // ชั้นเป็นหน่วยหยาบ (เล่นดี ~15–25 ชั้น) จึงให้ต่อชั้นสูง
-    maxPlausibleScore: 60,
+    maxPlausibleScore: 200, // ตัวจับโกง ไม่ใช่เพดานรางวัล — ความเร็วตันราวชั้น 23 แล้วไม่ยากขึ้นอีก
+                            // คนเก่งไปได้เกิน 60 ชั้น · เกิน 200 ค่อยถือว่าผิดปกติ
     scoreLabel: 'ชั้น',
     tagline: 'วางบล็อกให้ตรง ซ้อนให้สูงที่สุด',
     status: 'live',
@@ -669,7 +670,9 @@ const earned = ref(0)
 const saveState = ref('idle')
 const best = computed(() => auth.userData?.minigames?.stacker?.best || 0)
 const score = computed(() => state.value.rows.length - 1)   // ฐานไม่นับเป็นคะแนน
-const visibleRows = computed(() => state.value.rows.slice(-VISIBLE_ROWS).reverse())
+// เรียงตามเวลา (เก่า→ใหม่) แล้วปล่อยให้ .s-grid flex-direction:column-reverse กลับด้านให้เอง
+//  ห้ามใส่ .reverse() ที่นี่ — กลับสองครั้ง = หอคอยกลับหัว
+const visibleRows = computed(() => state.value.rows.slice(-VISIBLE_ROWS))
 
 function blkStyle(r) {
   return { left: (r.x / COLS * 100) + '%', width: (r.w / COLS * 100) + '%' }
