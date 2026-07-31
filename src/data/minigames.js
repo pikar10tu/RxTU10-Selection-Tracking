@@ -29,6 +29,17 @@ export const MINIGAMES = [
     status: 'live',
   },
   {
+    key: 'stacker',
+    name: 'Stacker',
+    emoji: '🧱',
+    route: '/play/games/stacker',
+    coinPerPoint: 20,       // ชั้นเป็นหน่วยหยาบ (เล่นดี ~15–25 ชั้น) จึงให้ต่อชั้นสูง
+    maxPlausibleScore: 60,
+    scoreLabel: 'ชั้น',
+    tagline: 'วางบล็อกให้ตรง ซ้อนให้สูงที่สุด',
+    status: 'live',
+  },
+  {
     key: 'pillCrush',
     name: 'Pill Crush',
     emoji: '🍬',

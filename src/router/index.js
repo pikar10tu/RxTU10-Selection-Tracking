@@ -21,6 +21,7 @@ const routes = [
     { path: '/play/pets',  name: 'play-pets',  component: () => import('../views/PetHubView.vue')  },
     { path: '/play/games/capsule-rush', name: 'capsule-rush', component: () => import('../views/CapsuleRushView.vue') },
     { path: '/play/games/2048', name: 'g2048', component: () => import('../views/Game2048View.vue') },
+    { path: '/play/games/stacker', name: 'stacker', component: () => import('../views/StackerView.vue') },
 ]
 
 export const router = createRouter({
