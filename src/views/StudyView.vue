@@ -407,7 +407,7 @@ async function sendReport() {
 .sv-grade b { font-size: .82rem; }
 .sv-grade small { font-size: .56rem; opacity: .9; }
 .sv-grade-note { font-size: .68rem; color: rgba(0,0,0,.5); text-align: center; margin-bottom: 7px; line-height: 1.4; }
-.sv-grade i { font-style: normal; font-size: .58rem; color: rgba(0,0,0,.5); line-height: 1.25; }
+.sv-grade i { font-style: normal; font-size: .58rem; opacity: .85; line-height: 1.25; }
 .sv-grade.again { background: #ef4444; }
 .sv-grade.hard  { background: #f59e0b; }
 .sv-grade.good  { background: #22c55e; }
