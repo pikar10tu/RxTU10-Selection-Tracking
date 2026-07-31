@@ -36,13 +36,14 @@
         <div class="sv-progress-txt">เรียนไปแล้ว {{ seenCount }}/{{ DECK.length }} ตัว</div>
       </div>
 
-      <button class="sv-start" :disabled="!queueSize" @click="startSession()">
+      <button class="sv-start" :disabled="!queueSize" @click="beginReview()">
         {{ queueSize ? `เริ่มทบทวน ${queueSize} ใบ` : '🎉 วันนี้ทบทวนครบแล้ว!' }}
       </button>
       <div v-if="!queueSize" class="sv-allclear">กลับมาใหม่พรุ่งนี้ หรือกดด้านล่างเพื่อฝึกแบบสุ่ม</div>
       <button v-if="!queueSize" class="sv-freebtn" @click="startSession(true)">ฝึกอิสระ (สุ่มทั้งเด็ค · นับความคืบหน้าตามปกติ) <Emoji char="🎲" /></button>
 
       <div class="sv-caphint">ทบทวนได้เหรียญ +{{ COIN_PER_CARD }}/ใบ (สูงสุด {{ STUDY_DAILY_CAP }}<Emoji char="🪙" />/วัน)</div>
+      <button class="sv-howto" @click="openCoach()"><Emoji char="💡" /> ดูวิธีใช้แฟลชการ์ดอีกครั้ง</button>
 
       <!-- ทางเข้าจัดการคลังข้อสอบ — เฉพาะทีมวิชาการ -->
       <RouterLink v-if="authStore.isQuestionEditor" to="/questions" class="sv-quizlink sv-acadlink">
@@ -62,6 +63,38 @@
         </span>
         <span class="sv-quizlink-go">›</span>
       </RouterLink>
+    </template>
+
+    <!-- ── COACH: วิธีใช้แฟลชการ์ด (โหมดในหน้า ไม่ใช่ overlay — StudyView อยู่ใต้ RouterView ดู CLAUDE.md ข้อ 6) ── -->
+    <template v-else-if="mode === 'coach'">
+      <div class="sv-coach">
+        <div class="sv-coach-dots">
+          <span v-for="n in 3" :key="n" class="sv-coach-dot" :class="{ on: n === coachStep }"></span>
+        </div>
+
+        <template v-if="coachStep === 1">
+          <div class="sv-coach-ico"><Emoji char="🤔" /></div>
+          <div class="sv-coach-title">พยายามนึกก่อน</div>
+          <p class="sv-coach-body">เห็นชื่อยาแล้วอย่าเพิ่งเปิดเฉลย — ลองนึกให้ได้ก่อน การพยายามนึกคือสิ่งที่ทำให้จำได้จริง ไม่ใช่การอ่านซ้ำ</p>
+        </template>
+
+        <template v-else-if="coachStep === 2">
+          <div class="sv-coach-ico"><Emoji char="🔍" /></div>
+          <div class="sv-coach-title">เปิดแล้วเทียบ</div>
+          <p class="sv-coach-body">พลิกการ์ดแล้วดูว่านึกได้ครบไหม — กลุ่มยา · ข้อบ่งใช้ · ขนาดผู้ใหญ่</p>
+        </template>
+
+        <template v-else>
+          <div class="sv-coach-ico"><Emoji char="🎯" /></div>
+          <div class="sv-coach-title">ตอบตามจริง</div>
+          <p class="sv-coach-body">ปุ่มที่กดเป็นตัวกำหนดว่าการ์ดใบนี้จะกลับมาให้ทบทวนเมื่อไหร่ · ตอบเกินจริงตอนนี้ = ไปลืมเอาตอนสอบ</p>
+        </template>
+
+        <button class="sv-start" @click="coachStep < 3 ? coachStep++ : finishCoach()">
+          {{ coachStep < 3 ? 'ต่อไป →' : (coachThenStart ? 'เริ่มทบทวนเลย' : 'เข้าใจแล้ว') }}
+        </button>
+        <button class="sv-coach-skip" @click="finishCoach()">ข้ามไปก่อน</button>
+      </div>
     </template>
 
     <!-- ── REVIEW ── -->
@@ -179,13 +212,44 @@ const masteredCount = computed(() =>
 const queueSize = computed(() => dueCount.value + Math.min(newCount.value, NEW_PER_SESSION))
 
 // ── session state ──
-const mode = ref('home')          // home | review | done
+const mode = ref('home')          // home | coach | review | done
 const queue = ref([])             // array of drug names left to review
 const flipped = ref(false)
 const sessionTotal = ref(0)
 const sessionCorrect = ref(0)
 const sessionCoins = ref(0)
 const rewarded = ref(new Set())   // card ids already rewarded this session
+
+const coachStep = ref(1)          // 1..3
+const coachThenStart = ref(false) // จบจอสอนแล้วเข้าเซสชันต่อไหม (ครั้งแรกเท่านั้น · เปิดดูซ้ำ = กลับหน้าหลัก)
+
+// เข้าเซสชันปกติ — คนที่ยังไม่เคยเห็นวิธีใช้ ให้ดูจอสอนก่อนแล้วค่อยเข้าเซสชันต่อ
+function beginReview() {
+  if (!authStore.userData?.seenStudyCoach) {
+    coachStep.value = 1
+    coachThenStart.value = true
+    mode.value = 'coach'
+    return
+  }
+  startSession()
+}
+
+// เปิดดูวิธีใช้ซ้ำจากหน้าหลัก — จบแล้วกลับหน้าหลัก ไม่เข้าเซสชัน
+function openCoach() {
+  coachStep.value = 1
+  coachThenStart.value = false
+  mode.value = 'coach'
+}
+
+// จบ/ข้ามจอสอน — ประทับ flag ครั้งเดียว แล้วไปต่อตามเส้นทางที่มา
+async function finishCoach() {
+  const wasFirstRun = coachThenStart.value
+  if (wasFirstRun) startSession()
+  else mode.value = 'home'
+  if (!authStore.userData?.seenStudyCoach) {
+    await authStore.patchUser({ seenStudyCoach: true }, { seenStudyCoach: true })
+  }
+}
 
 const current = computed(() => DECK.find(d => d.n === queue.value[0]) || null)
 const doneInSession = computed(() => sessionTotal.value - queue.value.length)
@@ -366,6 +430,7 @@ async function sendReport() {
 .sv-allclear { text-align: center; font-size: .68rem; color: rgba(0,0,0,.45); margin-top: 12px; }
 .sv-freebtn { width: 100%; margin-top: 8px; border: 1px solid rgba(0,0,0,.12); background: #fff; border-radius: 12px; padding: 11px; font-family: inherit; font-size: .8rem; font-weight: 700; color: #475569; cursor: pointer; }
 .sv-caphint { text-align: center; font-size: .62rem; color: rgba(0,0,0,.4); margin-top: 10px; }
+.sv-howto { display: block; margin: 10px auto 0; background: none; border: none; font-family: inherit; font-size: .74rem; color: var(--primary); text-decoration: underline; cursor: pointer; padding: 6px; }
 .sv-quizlink { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 14px; border-radius: 16px; background: var(--primary-light); border: 2px solid var(--ink); box-shadow: var(--pop); text-decoration: none; transition: transform .12s, box-shadow .12s; }
 .sv-quizlink:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .sv-quizlink-emoji { font-size: 1.6rem; }
@@ -378,6 +443,16 @@ async function sendReport() {
 .sv-acadlink .sv-quizlink-text b { color: #9a3412; }
 .sv-acadlink .sv-quizlink-text small,
 .sv-acadlink .sv-quizlink-go { color: #c2680c; }
+
+/* coach */
+.sv-coach { background: #fff; border: 2px solid var(--ink); border-radius: 18px; box-shadow: var(--pop); padding: 22px 18px; text-align: center; margin-top: 10px; }
+.sv-coach-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 14px; }
+.sv-coach-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(0,0,0,.15); }
+.sv-coach-dot.on { background: var(--primary); }
+.sv-coach-ico { font-size: 2.4rem; margin-bottom: 6px; }
+.sv-coach-title { font-family: var(--font-display); font-weight: 400; font-size: 1.25rem; color: var(--ink); margin-bottom: 8px; }
+.sv-coach-body { font-size: .84rem; color: rgba(0,0,0,.65); line-height: 1.6; margin: 0 0 16px; }
+.sv-coach-skip { background: none; border: none; color: var(--muted); font-size: .76rem; margin-top: 10px; padding: 8px; cursor: pointer; font-family: inherit; }
 
 /* review */
 .sv-rev-top { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }

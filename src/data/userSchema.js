@@ -68,6 +68,7 @@ export const USER_DEFAULTS = {
   minigames: {},   // { [key]: { best, plays } } — คะแนนมินิเกม (ดู data/minigames.js)
   petsMigratedV2: false,                      // one-time: เพ็ทเก่า → species-based model ใหม่ (เกรด I-V)
   seenIntro: false,                           // one-time: เคยดูทัวร์แนะนำแอพแล้ว
+  seenStudyCoach: false,                      // one-time: เคยดูวิธีใช้แฟลชการ์ดแล้ว
   // ── onboarding / identity (first-run) ──
   consent: { accepted: false, version: null, at: null },  // PDPA
   onboarded: false,        // ผ่าน wizard ผูกตัวตนแล้ว
