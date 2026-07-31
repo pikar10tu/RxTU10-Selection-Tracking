@@ -115,7 +115,7 @@ test('spawn ลงเฉพาะช่องว่าง และเป็น 
 test('spawn: rng ต่ำ = 2 · rng สูง = 4 (4 ออก 10%)', () => {
   const board = new Array(16).fill(0)
   assert.equal(spawn(board, () => 0)[0], 2)
-  assert.equal(spawn(board, () => 0.99)[0], 4)
+  assert.equal(spawn(board, () => 0.99)[15], 4)   // rng .99 → Math.floor(.99*16)=15 → ช่องสุดท้าย
 })
 
 test('newBoard เริ่มด้วยไทล์ 2 ตัว', () => {
