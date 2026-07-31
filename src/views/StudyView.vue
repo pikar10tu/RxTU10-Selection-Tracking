@@ -36,11 +36,11 @@
         <div class="sv-progress-txt">เรียนไปแล้ว {{ seenCount }}/{{ DECK.length }} ตัว</div>
       </div>
 
-      <button class="sv-start" :disabled="!queueSize" @click="startSession">
+      <button class="sv-start" :disabled="!queueSize" @click="startSession()">
         {{ queueSize ? `เริ่มทบทวน ${queueSize} ใบ` : '🎉 วันนี้ทบทวนครบแล้ว!' }}
       </button>
       <div v-if="!queueSize" class="sv-allclear">กลับมาใหม่พรุ่งนี้ หรือกดด้านล่างเพื่อฝึกแบบสุ่ม</div>
-      <button v-if="!queueSize" class="sv-freebtn" @click="startSession(true)">ฝึกอิสระ (ไม่บันทึกความคืบหน้า) <Emoji char="🎲" /></button>
+      <button v-if="!queueSize" class="sv-freebtn" @click="startSession(true)">ฝึกอิสระ (สุ่มทั้งเด็ค · นับความคืบหน้าตามปกติ) <Emoji char="🎲" /></button>
 
       <div class="sv-caphint">ทบทวนได้เหรียญ +{{ COIN_PER_CARD }}/ใบ (สูงสุด {{ STUDY_DAILY_CAP }}<Emoji char="🪙" />/วัน)</div>
 
@@ -73,7 +73,7 @@
       </div>
 
       <div class="sv-card" :class="{ flipped }" @click="!flipped && (flipped = true)">
-        <div class="sv-card-tag">{{ flipped ? 'กลุ่ม / กลไก' : 'ตัวยา' }}</div>
+        <div class="sv-card-tag">{{ flipped ? 'เฉลย' : 'ตัวยา' }}</div>
         <div class="sv-card-front">{{ current?.n }}</div>
         <template v-if="flipped">
           <div class="sv-card-divider"></div>
@@ -84,16 +84,23 @@
           </div>
           <button class="sv-report" @click.stop="openReport(current)"><Emoji char="🚩" /> แจ้งข้อมูลผิด</button>
         </template>
-        <div v-else class="sv-card-hint">แตะเพื่อดูเฉลย</div>
+        <div v-else class="sv-recall">
+          <div class="sv-recall-lead">ลองนึกให้ได้ก่อนเปิด</div>
+          <div class="sv-recall-items">กลุ่มยา · ข้อบ่งใช้ · ขนาดผู้ใหญ่</div>
+          <div class="sv-card-hint">แตะเพื่อดูเฉลย</div>
+        </div>
       </div>
 
-      <div v-if="flipped" class="sv-grades">
-        <button class="sv-grade again" @click="grade(1)"><b>ลืม</b><small>&lt; 1 วัน</small></button>
-        <button class="sv-grade hard"  @click="grade(3)"><b>ยาก</b><small>{{ preview(3) }}</small></button>
-        <button class="sv-grade good"  @click="grade(4)"><b>จำได้</b><small>{{ preview(4) }}</small></button>
-        <button class="sv-grade easy"  @click="grade(5)"><b>ง่าย</b><small>{{ preview(5) }}</small></button>
+      <div v-if="flipped" class="sv-grade-wrap">
+        <div class="sv-grade-note">ตอบตามจริง — ปุ่มที่เลือกกำหนดว่าการ์ดนี้จะกลับมาเมื่อไหร่</div>
+        <div class="sv-grades">
+          <button class="sv-grade again" @click="grade(1)"><b>ลืม</b><i>นึกไม่ออก</i><small>&lt; 1 วัน</small></button>
+          <button class="sv-grade hard"  @click="grade(3)"><b>ยาก</b><i>ต้องคิดนาน</i><small>{{ preview(3) }}</small></button>
+          <button class="sv-grade good"  @click="grade(4)"><b>จำได้</b><i>นึกออกปกติ</i><small>{{ preview(4) }}</small></button>
+          <button class="sv-grade easy"  @click="grade(5)"><b>ง่าย</b><i>ตอบได้ทันที</i><small>{{ preview(5) }}</small></button>
+        </div>
       </div>
-      <div v-else class="sv-flip-spacer">เลือกระดับความจำหลังเปิดเฉลย</div>
+      <div v-else class="sv-flip-spacer">เปิดเฉลยก่อน แล้วค่อยเลือกว่านึกได้แค่ไหน</div>
     </template>
 
     <!-- ── DONE ── -->
@@ -391,11 +398,16 @@ async function sendReport() {
 .sv-report { margin-top: 4px; border: none; background: none; color: #ef4444; font-family: inherit; font-size: .64rem; font-weight: 600; cursor: pointer; padding: 4px; }
 .sv-report:active { opacity: .6; }
 .sv-card-hint { font-size: .68rem; color: rgba(0,0,0,.35); margin-top: 4px; }
+.sv-recall { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.sv-recall-lead { font-size: .68rem; color: rgba(0,0,0,.45); }
+.sv-recall-items { font-size: .8rem; font-weight: 800; color: var(--primary); line-height: 1.4; }
 .sv-grades { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; margin-top: 16px; }
 .sv-grade { border: 2px solid var(--ink); border-radius: 12px; padding: 12px 4px; font-family: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; color: #fff; box-shadow: var(--pop); transition: transform .1s, box-shadow .1s; }
 .sv-grade:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .sv-grade b { font-size: .82rem; }
 .sv-grade small { font-size: .56rem; opacity: .9; }
+.sv-grade-note { font-size: .68rem; color: rgba(0,0,0,.5); text-align: center; margin-bottom: 7px; line-height: 1.4; }
+.sv-grade i { font-style: normal; font-size: .58rem; color: rgba(0,0,0,.5); line-height: 1.25; }
 .sv-grade.again { background: #ef4444; }
 .sv-grade.hard  { background: #f59e0b; }
 .sv-grade.good  { background: #22c55e; }
