@@ -127,7 +127,9 @@
 
 ```css
 .sv-grade-note { font-size: .68rem; color: rgba(0,0,0,.5); text-align: center; margin-bottom: 7px; line-height: 1.4; }
-.sv-grade i { font-style: normal; font-size: .58rem; color: rgba(0,0,0,.5); line-height: 1.25; }
+/* ปุ่มพื้นสีจัด + .sv-grade ตั้ง color:#fff อยู่แล้ว ⇒ ลดน้ำหนักด้วย opacity เหมือน .sv-grade small
+   ห้ามใส่ color เทาเข้ม จะอ่านไม่ออกบนพื้นแดง/เขียว/น้ำเงิน */
+.sv-grade i { font-style: normal; font-size: .58rem; opacity: .85; line-height: 1.25; }
 ```
 
 > ถ้ากฎเดิมจัดวางลูกของ `.sv-grades` ด้วย flex column อยู่แล้ว บรรทัดที่สามจะไหลตามเอง — อ่านกฎ `.sv-grade` เดิมก่อนแล้วเพิ่มเฉพาะที่ขาด อย่ารื้อของเดิม
