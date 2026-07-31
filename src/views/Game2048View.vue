@@ -12,13 +12,16 @@
       </div>
     </div>
 
-    <div class="g-hint">ปัดนิ้ว 4 ทิศ (หรือใช้ปุ่มลูกศร)</div>
+    <div class="g-hint">ปัดนิ้ว 4 ทิศ · บนคอมแตะกระดานก่อน แล้วใช้ปุ่มลูกศร</div>
 
     <template #gameover>
-      <div v-if="over" class="g-over">
+      <div v-if="over" ref="overEl" class="g-over">
         <div class="g-over-score">จบเกม! ได้ <b>{{ score.toLocaleString() }}</b> คะแนน</div>
-        <div v-if="earned" class="g-over-coin">+{{ earned.toLocaleString() }} <Emoji char="🪙" /></div>
-        <div v-if="saveState === 'failed'" class="g-fail">บันทึกไม่สำเร็จ — ลองใหม่อีกครั้งได้เลย</div>
+        <div v-if="saveState === 'saved'" class="g-over-coin">+{{ earned.toLocaleString() }} <Emoji char="🪙" /></div>
+        <div v-else-if="saveState === 'saving'" class="g-over-coin">กำลังบันทึก…</div>
+        <button v-else-if="saveState === 'failed'" class="g-retry" @click="saveResult">
+          บันทึกไม่สำเร็จ — กดลองอีกครั้ง
+        </button>
         <button class="g-btn" @click="reset">เล่นอีกครั้ง</button>
       </div>
     </template>
@@ -28,7 +31,7 @@
 <script setup>
 import Emoji from '../components/shared/Emoji.vue'
 import MinigameShell from '../components/minigame/MinigameShell.vue'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { increment } from 'firebase/firestore'
 import { useAuthStore } from '../stores/auth.js'
 import { newBoard, move, spawn, isGameOver } from '../utils/game2048.js'
@@ -39,12 +42,21 @@ import { reportCheat } from '../composables/useGuard.js'
 const auth = useAuthStore()
 const GAME = getMinigame('g2048')
 
+// เพดานรางวัลแยกจากเพดานจับโกง — maxPlausibleScore (100k) ใช้จับคะแนนที่เป็นไปไม่ได้
+// ส่วนเหรียญจริงหนีบไว้ให้อยู่ระดับเดียวกับเกมอื่น (Capsule Rush 2.5k · Stacker 4k)
+const REWARD_CAP = 3000
+
 const board = ref(newBoard())
 const score = ref(0)
 const over = ref(false)
 const earned = ref(0)
 const saveState = ref('idle')   // idle | saving | saved | failed
+const overEl = ref(null)
 const best = computed(() => auth.userData?.minigames?.g2048?.best || 0)
+
+watch(over, v => {
+  if (v) nextTick(() => overEl.value?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
+})
 
 function reset() {
   board.value = newBoard()
@@ -81,9 +93,10 @@ function onTouchEnd(e) {
 async function saveResult() {
   if (score.value <= 0) { saveState.value = 'saved'; earned.value = 0; return }
   saveState.value = 'saving'
-  const { coins, flagged } = grantCoins(score.value, GAME)
+  const { coins: rawCoins, flagged } = grantCoins(score.value, GAME)
+  const coins = Math.min(rawCoins, REWARD_CAP)
   earned.value = coins
-  if (flagged) reportCheat('minigame_score_impossible', `g2048: ${score.value}`)
+  if (flagged) reportCheat('minigame_score_impossible:g2048', `g2048: ${score.value}`)
   const cur = auth.userData?.minigames?.g2048 || { best: 0, plays: 0 }
   const newBest = Math.max(cur.best, score.value)
   const ok = await auth.patchUser(
@@ -107,7 +120,8 @@ onMounted(() => reset())
 .g-score { text-align: center; font-size: .95rem; margin-bottom: 10px; }
 .g-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 360px;
   margin: 0 auto; padding: 8px; background: rgba(0,0,0,.08); border: 2px solid var(--ink);
-  border-radius: 14px; touch-action: none; outline: none; }
+  border-radius: 14px; touch-action: none; }
+.g-board:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .g-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
   border-radius: 10px; background: rgba(0,0,0,.05); font-weight: 900; font-size: 1.25rem; color: var(--ink); }
 .g-cell.v2 { background: #eee4da; } .g-cell.v4 { background: #ede0c8; }
@@ -119,7 +133,7 @@ onMounted(() => reset())
 .g-over { text-align: center; padding: 16px 0; }
 .g-over-score { font-size: 1.15rem; font-weight: 800; }
 .g-over-coin { font-size: 1.05rem; font-weight: 800; color: #b45309; margin: 6px 0 12px; }
-.g-fail { font-size: .78rem; color: #dc2626; margin-bottom: 10px; }
+.g-retry { all: unset; cursor: pointer; color: #dc2626; font-weight: 700; margin: 6px 0 12px; display: block; }
 .g-btn { all: unset; cursor: pointer; background: var(--primary); color: #fff; font-weight: 800;
   padding: 12px 28px; border-radius: 14px; }
 </style>

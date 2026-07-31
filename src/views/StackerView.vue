@@ -19,10 +19,13 @@
     <div class="s-hint">แตะเพื่อวางบล็อก</div>
 
     <template #gameover>
-      <div v-if="over" class="s-over">
+      <div v-if="over" ref="overEl" class="s-over">
         <div class="s-over-score">จบเกม! ซ้อนได้ <b>{{ score }}</b> ชั้น</div>
-        <div v-if="earned" class="s-over-coin">+{{ earned.toLocaleString() }} <Emoji char="🪙" /></div>
-        <div v-if="saveState === 'failed'" class="s-fail">บันทึกไม่สำเร็จ — ลองใหม่อีกครั้งได้เลย</div>
+        <div v-if="saveState === 'saved'" class="s-over-coin">+{{ earned.toLocaleString() }} <Emoji char="🪙" /></div>
+        <div v-else-if="saveState === 'saving'" class="s-over-coin">กำลังบันทึก…</div>
+        <button v-else-if="saveState === 'failed'" class="s-retry" @click="saveResult">
+          บันทึกไม่สำเร็จ — กดลองอีกครั้ง
+        </button>
         <button class="s-btn" @click="reset">เล่นอีกครั้ง</button>
       </div>
     </template>
@@ -32,7 +35,7 @@
 <script setup>
 import Emoji from '../components/shared/Emoji.vue'
 import MinigameShell from '../components/minigame/MinigameShell.vue'
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { increment } from 'firebase/firestore'
 import { useAuthStore } from '../stores/auth.js'
 import { COLS, newStack, stepBlock, dropBlock } from '../utils/stacker.js'
@@ -49,9 +52,14 @@ const state = ref(newStack())
 const over = ref(false)
 const earned = ref(0)
 const saveState = ref('idle')
+const overEl = ref(null)
 const best = computed(() => auth.userData?.minigames?.stacker?.best || 0)
 const score = computed(() => state.value.rows.length - 1)   // ฐานไม่นับเป็นคะแนน
 const visibleRows = computed(() => state.value.rows.slice(-VISIBLE_ROWS))
+
+watch(over, v => {
+  if (v) nextTick(() => overEl.value?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
+})
 // ห้ามใส่ .reverse() — .s-grid เป็น column-reverse อยู่แล้ว (ลำดับ chronological
 // ทำให้แถวใหม่สุดอยู่ใต้บล็อกที่กำลังวิ่งพอดี ใส่ reverse ซ้ำจะกลับหัวกอง)
 
@@ -93,7 +101,7 @@ async function saveResult() {
   saveState.value = 'saving'
   const { coins, flagged } = grantCoins(s, GAME)
   earned.value = coins
-  if (flagged) reportCheat('minigame_score_impossible', `stacker: ${s}`)
+  if (flagged) reportCheat('minigame_score_impossible:stacker', `stacker: ${s}`)
   const cur = auth.userData?.minigames?.stacker || { best: 0, plays: 0 }
   const newBest = Math.max(cur.best, s)
   const ok = await auth.patchUser(
@@ -127,7 +135,7 @@ onBeforeUnmount(() => cancelAnimationFrame(raf))    // กันลูปรั�
 .s-over { text-align: center; padding: 16px 0; }
 .s-over-score { font-size: 1.15rem; font-weight: 800; }
 .s-over-coin { font-size: 1.05rem; font-weight: 800; color: #b45309; margin: 6px 0 12px; }
-.s-fail { font-size: .78rem; color: #dc2626; margin-bottom: 10px; }
+.s-retry { all: unset; cursor: pointer; color: #dc2626; font-weight: 700; margin: 6px 0 12px; display: block; }
 .s-btn { all: unset; cursor: pointer; background: var(--primary); color: #fff; font-weight: 800;
   padding: 12px 28px; border-radius: 14px; }
 </style>
