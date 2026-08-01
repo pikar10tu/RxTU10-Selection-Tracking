@@ -105,7 +105,7 @@ async function flush() {
   pendingDone = 0
   pendingCorrect = 0
   const cur = auth.userData?.minigames?.crcl || { best: 0, correct: 0 }
-  await auth.patchUser(
+  const ok = await auth.patchUser(
     {
       minigames: {
         ...auth.userData?.minigames,
@@ -116,6 +116,8 @@ async function flush() {
     },
     { 'minigames.crcl.best': increment(d), 'minigames.crcl.correct': increment(c) },
   )
+  // เขียนไม่สำเร็จ → คืนยอดกลับเข้า pending ให้ flush รอบหน้า (หรือตอนออกจากหน้า) ลองใหม่
+  if (!ok) { pendingDone += d; pendingCorrect += c }
 }
 
 onMounted(() => inputEl.value?.focus())
