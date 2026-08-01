@@ -11,8 +11,9 @@
       {{ showFormula ? 'ซ่อนสูตร' : 'ดูสูตร' }}
     </button>
     <div v-if="showFormula" class="cr-formula">
-      <div class="cr-formula-main">CrCl = (140 − อายุ) × น้ำหนัก(kg) ÷ (72 × Scr)</div>
+      <div class="cr-formula-main">CrCl = (140 − อายุ) × น้ำหนัก(kg) ÷ (72 × Scr(mg/dL))</div>
       <div class="cr-formula-note">ถ้าเป็นผู้หญิง คูณ 0.85 · ผลลัพธ์หน่วย mL/min</div>
+      <div class="cr-formula-note">โจทย์ชุดนี้ฝึกสูตรล้วน ใช้น้ำหนักที่โจทย์ให้ — ของจริงคนอ้วนต้องพิจารณา IBW/AdjBW ด้วย</div>
     </div>
 
     <div class="cr-card">
@@ -25,19 +26,23 @@
     <div class="cr-answer">
       <input
         ref="inputEl" v-model="input" class="cr-input" inputmode="decimal"
-        placeholder="CrCl (mL/min)" :readonly="checked" @keyup.enter="onEnter"
+        placeholder="CrCl (mL/min)" aria-label="คำตอบ CrCl หน่วย mL/min"
+        :readonly="checked" @keyup.enter="onEnter"
       />
       <button v-if="!checked" class="cr-btn" :disabled="!input.trim()" @click="check">ตรวจคำตอบ</button>
       <button v-else class="cr-btn" @click="next">ข้อถัดไป →</button>
     </div>
 
-    <div v-if="checked" class="cr-result" :class="{ ok: lastOk }">
-      <div class="cr-result-head">{{ lastOk ? '✅ ถูกต้อง' : '❌ ยังไม่ถูก' }}</div>
+    <div v-if="checked" class="cr-result" :class="{ ok: lastOk }" aria-live="polite">
+      <div class="cr-result-head">
+        <Emoji :char="lastOk ? '✅' : '❌'" /> {{ lastOk ? 'ถูกต้อง' : 'ยังไม่ถูก' }}
+      </div>
       <div class="cr-result-ans">เฉลย <b>{{ expected.toFixed(1) }}</b> mL/min</div>
       <div class="cr-result-work">
         ({{ 140 - p.age }} × {{ p.weightKg }}) ÷ (72 × {{ p.scr.toFixed(1) }}){{ p.female ? ' × 0.85' : '' }}
       </div>
     </div>
+    <div v-else-if="badInput" class="cr-hint" aria-live="polite">พิมพ์เป็นตัวเลขนะ เช่น 50 หรือ 50.5</div>
 
     <div class="cr-session">รอบนี้ทำไปแล้ว <b>{{ sDone }}</b> ข้อ · ถูก <b>{{ sCorrect }}</b></div>
   </div>
@@ -45,7 +50,7 @@
 
 <script setup>
 import Emoji from '../components/shared/Emoji.vue'
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, onBeforeUnmount, nextTick, watch } from 'vue'
 import { increment } from 'firebase/firestore'
 import { useAuthStore } from '../stores/auth.js'
 import { cockcroftGault, makeProblem, isClose } from '../utils/crcl.js'
@@ -60,6 +65,7 @@ const p = ref(makeProblem())
 const input = ref('')
 const checked = ref(false)
 const lastOk = ref(false)
+const badInput = ref(false)   // พิมพ์ไม่ใช่ตัวเลข — เตือนเฉยๆ ไม่นับเป็นข้อ ไม่กินยอดสะสม
 const showFormula = ref(localStorage.getItem(LS_KEY) === '1')
 
 // ตัวนับ "เฉพาะรอบนี้" — ยอดสะสมไม่แสดงบนจอเด็ดขาด (ตามที่สั่ง)
@@ -67,6 +73,9 @@ const sDone = ref(0)
 const sCorrect = ref(0)
 
 const expected = computed(() => cockcroftGault(p.value))
+
+// พิมพ์แก้ใหม่แล้วซ่อนคำเตือนเดิม ไม่ต้องรอกดตรวจซ้ำ
+watch(input, () => { badInput.value = false })
 
 // ยอดที่ยังไม่ได้เขียนลงฐาน — flush ทุก FLUSH_EVERY ข้อ และตอนออกจากหน้า
 let pendingDone = 0
@@ -80,6 +89,9 @@ function toggleFormula() {
 function check() {
   if (checked.value) return
   const ans = parseFloat(input.value.replace(',', '.'))
+  // พิมพ์ไม่ใช่ตัวเลข (เช่น "ห้าสิบ" หรือ "~50") — ไม่ตัดสิน ไม่กินยอด ปล่อยให้แก้
+  if (!Number.isFinite(ans)) { badInput.value = true; return }
+  badInput.value = false
   lastOk.value = isClose(ans, expected.value)
   checked.value = true
   sDone.value += 1
@@ -92,6 +104,7 @@ function next() {
   p.value = makeProblem()
   input.value = ''
   checked.value = false
+  badInput.value = false
   nextTick(() => inputEl.value?.focus())
 }
 
@@ -120,7 +133,8 @@ async function flush() {
   if (!ok) { pendingDone += d; pendingCorrect += c }
 }
 
-onMounted(() => inputEl.value?.focus())
+// ไม่โฟกัส input ตอน mount — ปล่อยให้นักศึกษาอ่านโจทย์ก่อน คีย์บอร์ดมือถือจะได้ไม่ผุดมาบัง
+// (โฟกัสหลังกด "ข้อถัดไป" ใน next() ยังอยู่ตามเดิม ให้คนพิมพ์เร็วพิมพ์ต่อได้เลย)
 onBeforeUnmount(() => { flush() })   // fire-and-forget: ออกจากหน้าแล้วยอดที่ค้างต้องไม่หาย
 </script>
 
@@ -152,5 +166,6 @@ onBeforeUnmount(() => { flush() })   // fire-and-forget: ออกจากห�
 .cr-result-head { font-weight: 800; font-size: .92rem; }
 .cr-result-ans { font-size: .88rem; margin-top: 4px; }
 .cr-result-work { font-size: .76rem; color: rgba(0,0,0,.55); margin-top: 4px; overflow-wrap: anywhere; }
+.cr-hint { margin-top: 10px; font-size: .76rem; color: #b45309; text-align: center; }
 .cr-session { text-align: center; font-size: .76rem; color: rgba(0,0,0,.45); margin-top: 16px; }
 </style>

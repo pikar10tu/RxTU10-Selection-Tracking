@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { cockcroftGault, makeProblem, isClose, TOLERANCE_MIN } from './crcl.js'
+import { cockcroftGault, makeProblem, isClose, TOLERANCE_MIN, PLAUSIBLE_MIN, PLAUSIBLE_MAX } from './crcl.js'
 
 test('Cockcroft-Gault ผู้ชาย: (140-40)×70 / (72×1.0) = 97.22', () => {
   const v = cockcroftGault({ age: 40, weightKg: 70, scr: 1.0, female: false })
@@ -61,5 +61,16 @@ test('makeProblem: Scr มีทศนิยมไม่เกิน 1 ตำแ
   for (let i = 0; i < 50; i++) {
     const { scr } = makeProblem()
     assert.equal(Math.round(scr * 10) / 10, scr, `scr ${scr} มีทศนิยมเกิน 1 ตำแหน่ง`)
+  }
+})
+
+test(`makeProblem: CrCl ที่ได้ต้องอยู่ในช่วง [${PLAUSIBLE_MIN}, ${PLAUSIBLE_MAX}] เสมอ (คนไข้ต้องสมจริง)`, () => {
+  for (let i = 0; i < 200; i++) {
+    const p = makeProblem()
+    const v = cockcroftGault(p)
+    assert.ok(
+      v >= PLAUSIBLE_MIN && v <= PLAUSIBLE_MAX,
+      `CrCl ${v} หลุดช่วง จาก problem ${JSON.stringify(p)}`,
+    )
   }
 })
