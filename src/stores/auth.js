@@ -19,6 +19,7 @@ import { PETS, getPetDef } from '../data/index.js'
 import { matchRoster } from '../utils/onboarding.js'
 import { useMembersStore } from './members.js'
 import { cleanText, LIMITS } from '../utils/text.js'
+import { isPopupClosedCode, shouldWarnPopupClosed } from '../utils/authError.js'
 
 export const useAuthStore = defineStore('auth', () => {
     // ── State ──
@@ -58,11 +59,20 @@ export const useAuthStore = defineStore('auth', () => {
     async function login() {
         const { toast } = useToast()
         provider.setCustomParameters({ prompt: 'select_account' })
+        const t0 = Date.now()
         try {
             await signInWithPopup(auth, provider)
         } catch (e) {
-            // ผู้ใช้ปิด popup เอง → เงียบไว้ ไม่ต้อง fallback (จะงงว่าทำไมเด้งออก)
-            if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return
+            // popup ปิดโดยไม่ได้ล็อกอิน — Firebase ให้ code เดียวกันทั้งกรณีผู้ใช้กดปิดเอง
+            // และกรณี popup ตายเอง (เช่น handler เช็คโดเมนไม่ผ่าน) แยกด้วยเวลา ดู utils/authError.js
+            if (isPopupClosedCode(e.code)) {
+                // ผู้ใช้กดปิดเอง → เงียบไว้ ไม่ต้อง fallback (จะงงว่าทำไมเด้งออก)
+                if (shouldWarnPopupClosed(e.code, Date.now() - t0)) {
+                    console.error('[login popup ปิดเร็วผิดปกติ]', e.code, e)
+                    toast('เปิดหน้าล็อกอินไม่สำเร็จ — ลองใหม่อีกครั้ง ถ้ายังไม่ได้ รบกวนแจ้งแอดมิน', 'error', 6000)
+                }
+                return
+            }
             // popup เปิดไม่ได้จริง (โดนบล็อก/อยู่ใน webview ที่ไม่รองรับ) → ลอง redirect แทน
             if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
                 try { await signInWithRedirect(auth, provider); return }
