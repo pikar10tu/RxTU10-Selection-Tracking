@@ -44,13 +44,25 @@ export function fluentFile(emoji) {
 // emoji ดิบ (base pictographic + VS16/ZWJ/skin-tone) — เดียวกับ scripts/fetch-fluent
 const EMOJI_RE = /\p{Extended_Pictographic}(️|‍\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}])*/gu
 
+// escape ก่อนประกอบ HTML — ผลลัพธ์ของ emojifyHtml ไปเข้า v-html โดยตรง
+// (ConfirmModal.vue) และข้อความที่ส่งเข้ามามีทั้งชื่อเล่นที่ผู้ใช้ตั้งเอง (AdminView)
+// และโจทย์ข้อสอบที่ import เข้ามา (QuestionsView) — ไม่ escape = XSS ในเบราว์เซอร์
+// แอดมิน ซึ่งเขียน role ได้ทุก doc ตาม rules · cleanText() ไม่ได้ escape ให้ (จงใจ —
+// ดูคอมเมนต์ utils/text.js ที่อ้างว่า {{ }} escape ให้แล้ว ซึ่งไม่จริงในเส้นทาง v-html)
+function escapeHtml(s) {
+  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+}
+
 /**
  * แปลง emoji ดิบในสตริง → <img> Fluent (เหมือนกันทุกเครื่อง) สำหรับใช้กับ v-html
  * เช่น ข้อความใน ConfirmModal ที่ประกอบเป็น string ไว้ก่อน (ฝัง <Emoji> ไม่ได้)
  * `base` = import.meta.env.BASE_URL · emoji ที่ไม่มีไฟล์จะคงตัวเดิม (fallback เครื่อง)
+ * ⚠️ ข้อความถูก escape ก่อนเสมอ — เอาต์พุตปลอดภัยพอที่จะใส่ v-html ได้
  */
 export function emojifyHtml(text, base = '') {
-  return String(text).replace(EMOJI_RE, (m) => {
+  // escape ก่อน แล้วค่อยหา emoji — การ escape ไม่แตะ codepoint ของ emoji
+  // (& < > " ไม่ใช่ Extended_Pictographic) จึงไม่กระทบผลการ match
+  return escapeHtml(String(text)).replace(EMOJI_RE, (m) => {
     const f = fluentFile(m)
     if (!f) return m
     return `<img src="${base}${f}" alt="${m}" aria-hidden="true" `
