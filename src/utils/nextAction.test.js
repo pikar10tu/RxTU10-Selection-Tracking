@@ -93,9 +93,10 @@ test('กฎ 5: แปลงที่ยังไม่ปลดล็อก ไ
   assert.equal(nextAction(u, ctx), null)
 })
 
-test('กฎ 6: ไม่มีสายผจญภัยอยู่ → expedition', () => {
+test('กฎ 6: ไม่มีสายผจญภัยอยู่ + ฟีเจอร์เปิด → expedition', () => {
+  // ต้องส่ง expeditionOpen ตั้งแต่ 21 ส.ค. — ปิดอยู่ = ข้ามกฎนี้ทั้งข้อ (ดูเทสท้ายไฟล์)
   const u = { ...allDone(), expedition: null }
-  assert.equal(nextAction(u, ctx).key, 'expedition')
+  assert.equal(nextAction(u, { ...ctx, expeditionOpen: true }).key, 'expedition')
 })
 
 test('ลำดับ: ควิซชนะการเรียนแฟลชการ์ด (เข้าหลายกฎพร้อมกัน)', () => {
@@ -140,4 +141,26 @@ test('ไม่แนะนำแฟลชการ์ดอีกแล้ว (
   }
   const result = nextAction(u, ctx)
   assert.equal(result, null, 'ต้องได้ null เมื่อทุกกฎหลักเป็นจริง (ไม่ได้ study-new/study-due)')
+})
+
+// ── ปิด Expedition แล้วต้องไม่เสนอให้ส่งผจญภัย (21 ส.ค.) ──
+// allDone() คืน user ที่ expedition: { missionId: 'm1' } อยู่แล้ว จึงต้อง override เป็น null
+// ให้ตกมาถึงกฎข้อ 6 (ส่งผจญภัย) ซึ่งเป็นกฎสุดท้าย
+function readyForExpedition() {
+  return { ...allDone(), expedition: null }
+}
+
+test('ctx ไม่ได้เปิด expedition → ไม่เสนอส่งผจญภัย', () => {
+  assert.equal(nextAction(readyForExpedition(), ctx), null)
+})
+
+test('ctx.expeditionOpen = true → เสนอส่งผจญภัยเหมือนเดิม', () => {
+  const a = nextAction(readyForExpedition(), { ...ctx, expeditionOpen: true })
+  assert.equal(a?.key, 'expedition')
+  assert.equal(a?.to, '/play/pets')
+})
+
+test('expeditionOpen ต้องเป็น boolean true เท่านั้น', () => {
+  assert.equal(nextAction(readyForExpedition(), { ...ctx, expeditionOpen: 'true' }), null)
+  assert.equal(nextAction(readyForExpedition(), { ...ctx, expeditionOpen: 1 }), null)
 })

@@ -72,7 +72,8 @@ export function nextAction(userData, ctx = {}) {
     }
   }
   // 6) ส่งผจญภัยได้ — มาถึงบรรทัดนี้ได้แปลว่าทีมครบ 3 แล้ว (กฎ 3 คืนค่าไปก่อนถ้าไม่ครบ)
-  if (!userData.expedition) {
+  //    ข้ามทั้งข้อเมื่อฟีเจอร์ปิดอยู่ — ไม่งั้นการ์ดจะชวนไปหน้าที่ทางเข้าถูกซ่อนไปแล้ว
+  if (ctx.expeditionOpen === true && !userData.expedition) {
     return {
       key: 'expedition', icon: '🧭', title: 'ส่งเพ็ทไปผจญภัย',
       sub: 'ส่งทิ้งไว้ตามเวลา กลับมารับของรางวัล', cta: 'ไปส่ง', to: '/play/pets',
