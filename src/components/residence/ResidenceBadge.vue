@@ -15,7 +15,7 @@ const tier = computed(() => getTier(lvl.value))
 
 <style scoped>
 .res-badge {
-  font-size: .58rem; font-weight: 800; padding: 2px 7px;
+  font-size: .7rem; font-weight: 800; padding: 2px 7px;
   border-radius: 999px; white-space: nowrap;
 }
 </style>

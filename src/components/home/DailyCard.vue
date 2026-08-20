@@ -72,7 +72,7 @@ const fmtRemain = computed(() => {
 .dc-bar { height: 8px; background: rgba(0,0,0,.08); border-radius: 999px; overflow: hidden; }
 .dc-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width .8s linear; }
 .dc-fill.full { background: linear-gradient(90deg, var(--gold), var(--accent)); }
-.dc-pool-sub { display: flex; justify-content: space-between; font-size: .62rem; color: rgba(0,0,0,.45); margin-top: 4px; }
+.dc-pool-sub { display: flex; justify-content: space-between; font-size: .7rem; color: rgba(0,0,0,.45); margin-top: 4px; }
 .dc-claim {
   width: 100%; border: 2px solid var(--ink); border-radius: 12px; padding: 11px;
   font-family: inherit; font-size: .86rem; font-weight: 800; color: #fff;

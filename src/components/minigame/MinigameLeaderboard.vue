@@ -39,5 +39,5 @@ const medal = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `
 .mlb-nick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mlb-you { color: #4f46e5; font-size: .72rem; }
 .mlb-best { font-weight: 800; color: #4f46e5; }
-.mlb-foot { text-align: center; font-size: .62rem; color: rgba(0,0,0,.4); padding-top: 8px; }
+.mlb-foot { text-align: center; font-size: .7rem; color: rgba(0,0,0,.4); padding-top: 8px; }
 </style>

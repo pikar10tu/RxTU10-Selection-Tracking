@@ -28,7 +28,7 @@ const stat = computed(() => {
 </script>
 
 <style scoped>
-.psl { display: inline-flex; align-items: center; gap: 5px; font-size: .56rem; font-weight: 800; line-height: 1; }
+.psl { display: inline-flex; align-items: center; gap: 5px; font-size: .7rem; font-weight: 800; line-height: 1; }
 .psl-g { background: #1e293b; color: #fff; padding: 1px 5px; border-radius: 999px; }
 .psl-atk, .psl-hp { display: inline-flex; align-items: center; gap: 1px; }
 .psl-atk { color: #d97706; }

@@ -121,14 +121,14 @@ const trackLabel = (t) => TRACK[t] || 'สมาชิก'
 .ow-box { background:#fff; width:100%; max-width:400px; border:2px solid var(--ink); border-radius:20px; box-shadow:var(--pop-lg); padding:22px; max-height:92vh; overflow-y:auto; }
 .ow-email { font-size:.74rem; color:rgba(0,0,0,.6); background:#f1f5f9; border-radius:12px; padding:10px 12px; margin-bottom:16px; }
 .ow-email b { color:var(--ink); word-break:break-all; }
-.ow-email-warn { font-size:.68rem; margin-top:4px; color:rgba(0,0,0,.5); }
+.ow-email-warn { font-size: .7rem; margin-top:4px; color:rgba(0,0,0,.5); }
 .ow-email-warn a { color:#b45309; }
 .ow-title { font-family:var(--font-display); font-weight:400; font-size:1.3rem; color:var(--ink); margin-bottom:14px; }
 .ow-choice { display:flex; gap:12px; align-items:center; width:100%; text-align:left; background:#fff; border:2px solid var(--ink); border-radius:14px; padding:14px; margin-bottom:12px; box-shadow:var(--pop); cursor:pointer; transition:transform .12s,box-shadow .12s; }
 .ow-choice:active { transform:translate(2px,2px); box-shadow:0 0 0 var(--ink); }
 .ow-choice-ico { font-size:1.6rem; }
 .ow-choice b { display:block; font-size:.88rem; color:var(--ink); }
-.ow-choice small { font-size:.68rem; color:var(--muted); }
+.ow-choice small { font-size: .7rem; color:var(--muted); }
 .ow-back { background:none; border:none; color:var(--muted); font-size:.8rem; cursor:pointer; margin-bottom:8px; padding:0; }
 .ow-input { width:100%; border:2px solid var(--ink); border-radius:12px; padding:12px; font-family:inherit; font-size:.9rem; margin-bottom:10px; box-sizing:border-box; }
 .ow-ta { resize:vertical; }

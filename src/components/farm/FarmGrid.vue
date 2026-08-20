@@ -130,7 +130,7 @@ const invList = computed(() =>
 .farm { background: #fff; border: 1px solid rgba(0,0,0,.08); border-radius: 16px; padding: 14px; }
 .farm-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
 .farm-title { font-weight: 800; font-size: 1rem; }
-.farm-sub { font-size: .64rem; color: rgba(0,0,0,.45); }
+.farm-sub { font-size: .7rem; color: rgba(0,0,0,.45); }
 .farm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .plot { position: relative; overflow: hidden; border-radius: 12px; background: linear-gradient(160deg, rgba(150,110,70,.12), rgba(110,80,45,.08)); border: 1px solid rgba(120,90,50,.2); box-shadow: inset 0 -6px 10px -6px rgba(80,55,25,.25); min-height: 110px; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; transition: background .25s, border-color .25s, box-shadow .25s; }
 .plot.empty { background: rgba(120,90,50,.04); border-style: dashed; box-shadow: none; }
@@ -138,22 +138,22 @@ const invList = computed(() =>
 .plot-empty { all: unset; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 94px; color: rgba(0,0,0,.35); transition: color .2s, transform .2s; }
 .plot-empty:hover { color: rgba(34,150,80,.75); transform: scale(1.04); }
 .plot-plus { font-size: 1.6rem; }
-.plot-hint { font-size: .62rem; }
-.plot-ready-tag { position: absolute; top: 6px; right: 6px; background: linear-gradient(135deg,#22c55e,#16a34a); color: #fff; font-weight: 800; font-size: .54rem; padding: 2px 7px; border-radius: 999px; box-shadow: 0 2px 5px rgba(22,163,74,.45); }
+.plot-hint { font-size: .7rem; }
+.plot-ready-tag { position: absolute; top: 6px; right: 6px; background: linear-gradient(135deg,#22c55e,#16a34a); color: #fff; font-weight: 800; font-size: .7rem; padding: 2px 7px; border-radius: 999px; box-shadow: 0 2px 5px rgba(22,163,74,.45); }
 .plot-emoji { font-size: 1.8rem; line-height: 1; transform-origin: center bottom; transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
 .plot-emoji.ripe { animation: ripeBob 1.4s ease-in-out infinite; }
-.plot-name { font-size: .64rem; color: rgba(0,0,0,.55); font-weight: 700; }
+.plot-name { font-size: .7rem; color: rgba(0,0,0,.55); font-weight: 700; }
 .plot-bar { width: 100%; height: 6px; background: rgba(0,0,0,.1); border-radius: 999px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.12); }
 .plot-fill { height: 100%; background: linear-gradient(90deg,#84cc16,#22c55e); border-radius: 999px; transition: width .8s linear; }
-.plot-time { font-size: .58rem; color: rgba(0,0,0,.5); }
+.plot-time { font-size: .7rem; color: rgba(0,0,0,.5); }
 .plot-actions { display: flex; gap: 4px; }
 .plot-mini { border: none; background: rgba(0,0,0,.06); border-radius: 7px; padding: 3px 6px; font-size: .72rem; cursor: pointer; display: flex; align-items: center; gap: 1px; }
 .plot-mini:disabled { opacity: .35; }
-.plot-fertcost { font-size: .5rem; color: #b45309; }
-.plot-btn.harvest { border: none; background: linear-gradient(135deg,#22c55e,#16a34a); color: #fff; font-weight: 800; font-size: .68rem; padding: 5px 8px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+.plot-fertcost { font-size: .7rem; color: #b45309; }
+.plot-btn.harvest { border: none; background: linear-gradient(135deg,#22c55e,#16a34a); color: #fff; font-weight: 800; font-size: .7rem; padding: 5px 8px; border-radius: 8px; cursor: pointer; font-family: inherit; }
 .inv { margin-top: 14px; border-top: 1px dashed rgba(0,0,0,.12); padding-top: 12px; }
 .inv-head { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: .82rem; margin-bottom: 8px; }
-.inv-sellall { border: none; background: linear-gradient(135deg,#f59e0b,#d97706); color: #fff; font-weight: 700; font-size: .68rem; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+.inv-sellall { border: none; background: linear-gradient(135deg,#f59e0b,#d97706); color: #fff; font-weight: 700; font-size: .7rem; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-family: inherit; }
 .inv-empty { font-size: .7rem; color: rgba(0,0,0,.4); text-align: center; padding: 8px 0; }
 .inv-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .inv-item { display: flex; align-items: center; gap: 5px; border: 1px solid rgba(180,83,9,.18); border-radius: 10px; padding: 6px 9px; background: linear-gradient(160deg,#fff,rgba(245,158,11,.07)); cursor: pointer; font-family: inherit; transition: transform .15s, box-shadow .15s; }
@@ -161,7 +161,7 @@ const invList = computed(() =>
 .inv-item:active { transform: scale(.97); }
 .inv-emoji { font-size: 1.1rem; }
 .inv-qty { font-weight: 800; font-size: .74rem; }
-.inv-sell { font-size: .64rem; color: #b45309; font-weight: 700; }
+.inv-sell { font-size: .7rem; color: #b45309; font-weight: 700; }
 
 @keyframes plotGlow {
   0%, 100% { box-shadow: 0 0 0 1px rgba(34,197,94,.25), 0 4px 14px -4px rgba(34,197,94,.45); }

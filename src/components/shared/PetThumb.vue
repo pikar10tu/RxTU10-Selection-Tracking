@@ -37,9 +37,9 @@ const stat = computed(() => {
 .ptc { position: relative; width: 100%; aspect-ratio: 1; border-radius: 12px; background: rgba(0,0,0,.04); display: flex; align-items: center; justify-content: center; }
 .ptc.bordered { border: 2px solid #cbd5e1; }
 .ptc-face { font-size: 1.7rem; line-height: 1; }
-.ptc-el { position: absolute; top: 2px; left: 3px; font-size: .68rem; line-height: 1; }
-.ptc-gr { position: absolute; top: -5px; right: -5px; background: #1e293b; color: #fff; font-size: .5rem; font-weight: 800; padding: 0 4px; border-radius: 999px; border: 1.5px solid #fff; line-height: 1.5; }
-.ptc-atk, .ptc-hp { position: absolute; bottom: 1px; font-size: .55rem; font-weight: 800; color: #fff; min-width: 13px; text-align: center; padding: 1px 3px; border-radius: 999px; line-height: 1.25; }
+.ptc-el { position: absolute; top: 2px; left: 3px; font-size: .7rem; line-height: 1; }
+.ptc-gr { position: absolute; top: -5px; right: -5px; background: #1e293b; color: #fff; font-size: .7rem; font-weight: 800; padding: 0 4px; border-radius: 999px; border: 1.5px solid #fff; line-height: 1.5; }
+.ptc-atk, .ptc-hp { position: absolute; bottom: 1px; font-size: .7rem; font-weight: 800; color: #fff; min-width: 13px; text-align: center; padding: 1px 3px; border-radius: 999px; line-height: 1.25; }
 .ptc-atk { left: 1px; background: #f59e0b; }   /* ATK ↙ = amber */
 .ptc-hp { right: 1px; background: #dc2626; }    /* HP ↘ = red */
 </style>

@@ -82,8 +82,8 @@ const emptyCount = computed(() => farm.plots.value.filter(p => !p).length)
 .hero-card.farm { background: linear-gradient(160deg,#dcfce7,#bbf7d0); }
 .hero-emoji { font-size: 2.4rem; }
 .hero-name { font-size: 1rem; font-weight: 800; }
-.hero-sub { font-size: .6rem; color: rgba(0,0,0,.5); font-weight: 600; line-height: 1.3; }
-.hero-badge { font-size: .62rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.hero-sub { font-size: .7rem; color: rgba(0,0,0,.5); font-weight: 600; line-height: 1.3; }
+.hero-badge { font-size: .7rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
 .hero-badge.ready { color: #15803d; background: rgba(34,197,94,.2); }
 .hero-badge.plant { color: #b45309; background: rgba(251,191,36,.22); }
 
@@ -95,7 +95,7 @@ const emptyCount = computed(() => farm.plots.value.filter(p => !p).length)
 .mg-card:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .mg-emoji { font-size: 2rem; }
 .mg-name { font-weight: 800; font-size: .9rem; }
-.mg-best { font-size: .62rem; color: rgba(0,0,0,.5); font-weight: 600; }
+.mg-best { font-size: .7rem; color: rgba(0,0,0,.5); font-weight: 600; }
 
 .play-login { text-align: center; color: rgba(0,0,0,.4); padding: 30px 0; font-size: .85rem; }
 </style>

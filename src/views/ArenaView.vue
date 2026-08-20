@@ -108,7 +108,7 @@ onMounted(() => { members.loadFbUsers() })
 .ar-opp { display: flex; align-items: center; gap: 8px; background: #fff; border: 2px solid var(--ink); border-radius: 14px; box-shadow: var(--pop); padding: 8px 10px; }
 .ar-opp-info { display: flex; flex-direction: column; gap: 2px; min-width: 84px; }
 .ar-opp-name { font-size: .78rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
-.ar-opp-rt { font-size: .6rem; color: rgba(0,0,0,.5); }
+.ar-opp-rt { font-size: .7rem; color: rgba(0,0,0,.5); }
 .ar-opp-team { display: flex; gap: 3px; flex: 1; justify-content: center; }
 .ar-opp-team :deep(.pet-thumb), .ar-opp-team > * { width: 34px; }
 .ar-fight { border: 2px solid var(--ink); border-radius: 11px; padding: 9px 12px; font-family: inherit; font-weight: 800; font-size: .76rem; color: #fff; background: var(--primary); box-shadow: var(--pop); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }

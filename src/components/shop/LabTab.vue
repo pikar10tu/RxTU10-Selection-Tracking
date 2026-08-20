@@ -133,13 +133,13 @@ async function onConfirm(allocation) {
 .lab-bal { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .lab-bal-cell { display: flex; flex-direction: column; align-items: center; border: 2px solid; border-radius: 11px; padding: 8px 2px; background: #fff; }
 .lab-bal-n { font-size: 1.2rem; font-weight: 800; }
-.lab-bal-l { font-size: .52rem; font-weight: 700; color: rgba(0,0,0,.5); }
+.lab-bal-l { font-size: .7rem; font-weight: 700; color: rgba(0,0,0,.5); }
 .lab-card { background: #fff; border: 2px solid var(--ink); border-radius: 16px; padding: 12px; box-shadow: var(--pop); }
 .lab-card-h { font-weight: 800; font-size: .9rem; margin-bottom: 10px; }
 .lab-fuse { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid rgba(0,0,0,.06); }
 .lab-fuse:first-of-type { border-top: none; }
 .lab-fuse-txt { flex: 1; font-size: .78rem; font-weight: 700; }
-.lab-fuse-cost { font-size: .64rem; color: rgba(0,0,0,.5); font-weight: 700; }
+.lab-fuse-cost { font-size: .7rem; color: rgba(0,0,0,.5); font-weight: 700; }
 .lab-btn { border: 2px solid var(--ink); border-radius: 10px; padding: 7px 14px; font-family: inherit; font-weight: 800; font-size: .76rem; color: #fff; background: #c9c2d4; cursor: pointer; }
 .lab-btn.ok { background: var(--primary); box-shadow: var(--pop); }
 .lab-btn:disabled { opacity: .55; cursor: default; box-shadow: none; }
@@ -153,7 +153,7 @@ async function onConfirm(allocation) {
   opacity: .5; filter: blur(1px); animation: fa-spin 1.1s linear infinite, fa-fade 1.6s ease-out both; }
 .rv-emoji { position: relative; z-index: 1; font-size: 4rem; filter: drop-shadow(0 0 12px var(--rc)); animation: emoji-pop .5s cubic-bezier(.2,1.45,.4,1) both; }
 .rv-nm { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; }
-.rv-badge { display: inline-block; color: #fff; font-size: .6rem; font-weight: 800; padding: 3px 12px; border-radius: 999px; margin-top: 8px; }
+.rv-badge { display: inline-block; color: #fff; font-size: .7rem; font-weight: 800; padding: 3px 12px; border-radius: 999px; margin-top: 8px; }
 .rv-ok { display: block; width: 100%; margin-top: 16px; border: 2px solid var(--ink); border-radius: 12px; padding: 11px; font-family: inherit; font-weight: 800; color: #fff; background: var(--primary); box-shadow: var(--pop); cursor: pointer; }
 
 /* redeem coin-burst */

@@ -496,10 +496,10 @@ onUnmounted(() => {
 .br-sum-row.dead { opacity: .45; }
 .br-sum-row.mvp.win { border-color: #fbbf24; background: rgba(251,191,36,.12); }
 .br-sum-row.mvp:not(.win) { border-color: #c084fc; background: rgba(192,132,252,.12); }
-.br-mvp { position: absolute; top: -8px; left: 8px; font-size: .54rem; font-weight: 900; color: #1e293b; background: #fbbf24; padding: 1px 5px; border-radius: 999px; }
+.br-mvp { position: absolute; top: -8px; left: 8px; font-size: .7rem; font-weight: 900; color: #1e293b; background: #fbbf24; padding: 1px 5px; border-radius: 999px; }
 .br-sum-row.mvp:not(.win) .br-mvp { background: #c084fc; color: #fff; }
 .br-sum-face { font-size: 1.3rem; }
-.br-sum-dmg { font-size: .68rem; font-weight: 800; color: #fde68a; display: inline-flex; align-items: center; gap: 2px; }
+.br-sum-dmg { font-size: .7rem; font-weight: 800; color: #fde68a; display: inline-flex; align-items: center; gap: 2px; }
 .br-sum-dmg.taken { color: #fca5a5; margin-left: auto; }
 
 /* modal สรุปผล — ทับสนามที่มืดลง เลื่อนในตัวเองได้ ไม่โดน bottom-nav/safe-area บัง */
@@ -527,7 +527,7 @@ onUnmounted(() => {
 .brfx-pop.crit { color: #fbbf24; font-size: 2rem; }
 .brfx-pop.super { color: #fca5a5; }
 .brfx-pop.weak { color: #cbd5e1; font-size: 1.1rem; }
-.brfx-call { font-weight: 800; font-size: .6rem; white-space: nowrap; padding: 2px 6px; border-radius: 7px; }
+.brfx-call { font-weight: 800; font-size: .7rem; white-space: nowrap; padding: 2px 6px; border-radius: 7px; }
 .brfx-call.super { background: #ef4444; color: #fff; }
 .brfx-call.weak { background: rgba(203,213,225,.95); color: #334155; }
 .brfx-puff { width: 1.2rem; height: 1.2rem; }

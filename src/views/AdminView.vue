@@ -840,7 +840,7 @@ async function saveEcon(m) {
 .bc-form { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .bc-body { width: 100%; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 10px; padding: 9px 11px; font-family: inherit; font-size: .82rem; resize: vertical; }
 .bc-row { display: flex; gap: 8px; }
-.bc-field { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: .68rem; font-weight: 700; color: #64748b; }
+.bc-field { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: .7rem; font-weight: 700; color: #64748b; }
 .bc-coins, .bc-target { box-sizing: border-box; border: 2px solid var(--ink); border-radius: 10px; padding: 8px 10px; font-family: inherit; font-size: .82rem; font-weight: 700; background: #fff; color: var(--ink); width: 100%; }
 .bc-send { width: 100%; }
 .admin-card {
@@ -864,7 +864,7 @@ async function saveEcon(m) {
 .maint-state.on  { color: #15803d; }
 .maint-state.off { color: #b45309; }
 .admin-hint {
-  font-size: .68rem;
+  font-size: .7rem;
   color: rgba(0, 0, 0, .45);
   margin-bottom: 10px;
 }
@@ -920,11 +920,11 @@ async function saveEcon(m) {
 .role-top { display: flex; align-items: center; gap: 8px; }
 .tag-editor { display: flex; flex-wrap: wrap; gap: 5px; padding-top: 2px; }
 .econ-editor { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; padding-top: 4px; }
-.econ-field { display: flex; flex-direction: column; gap: 3px; font-size: .64rem; font-weight: 700; color: rgba(0,0,0,.55); }
+.econ-field { display: flex; flex-direction: column; gap: 3px; font-size: .7rem; font-weight: 700; color: rgba(0,0,0,.55); }
 .econ-field input { box-sizing: border-box; width: 130px; border: 2px solid var(--ink); border-radius: 8px; padding: 6px 8px; font-family: inherit; font-size: .82rem; font-weight: 700; background: #fff; color: var(--ink); }
 .tag-toggle {
   border: 1px solid rgba(0,0,0,.15); background: #fff; color: rgba(0,0,0,.55);
-  border-radius: 999px; padding: 4px 9px; font-family: inherit; font-size: .64rem;
+  border-radius: 999px; padding: 4px 9px; font-family: inherit; font-size: .7rem;
   font-weight: 700; cursor: pointer;
 }
 .tag-toggle.on { color: #fff; }
@@ -937,10 +937,10 @@ async function saveEcon(m) {
   text-overflow: ellipsis;
 }
 .role-real { font-weight: 400; color: rgba(0, 0, 0, .45); }
-.role-sub { font-size: .64rem; color: rgba(0, 0, 0, .4); }
+.role-sub { font-size: .7rem; color: rgba(0, 0, 0, .4); }
 .gq-reason { font-size: .72rem; color: rgba(0, 0, 0, .55); margin-top: 4px; }
 .role-badge {
-  font-size: .6rem;
+  font-size: .7rem;
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 999px;
@@ -968,14 +968,14 @@ async function saveEcon(m) {
 .log-row { padding: 8px 10px; border-radius: 10px; background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.18); }
 .log-main { font-size: .8rem; }
 .log-reason { color: #dc2626; font-weight: 700; font-size: .72rem; }
-.log-detail { font-size: .66rem; color: rgba(0,0,0,.5); }
-.log-ts { font-size: .58rem; color: rgba(0,0,0,.35); margin-top: 2px; }
+.log-detail { font-size: .7rem; color: rgba(0,0,0,.5); }
+.log-ts { font-size: .7rem; color: rgba(0,0,0,.35); margin-top: 2px; }
 .rep-row { padding: 9px 11px; border-radius: 10px; background: rgba(99,102,241,.05); border: 1px solid rgba(99,102,241,.15); }
 .rep-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .82rem; }
-.rep-done { border: none; background: rgba(34,197,94,.15); color: #15803d; border-radius: 8px; padding: 3px 9px; font-family: inherit; font-size: .64rem; font-weight: 700; cursor: pointer; flex-shrink: 0; }
-.rep-cur { font-size: .66rem; color: rgba(0,0,0,.5); margin-top: 2px; }
+.rep-done { border: none; background: rgba(34,197,94,.15); color: #15803d; border-radius: 8px; padding: 3px 9px; font-family: inherit; font-size: .7rem; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+.rep-cur { font-size: .7rem; color: rgba(0,0,0,.5); margin-top: 2px; }
 .rep-note { font-size: .76rem; color: #1e293b; margin-top: 4px; line-height: 1.4; word-break: break-word; }
-.fb-cat { font-size: .68rem; font-weight: 700; color: #4f46e5; }
+.fb-cat { font-size: .7rem; font-weight: 700; color: #4f46e5; }
 .news-form { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; }
 .news-icon-in { width: 42px; text-align: center; padding: 8px 0; border: 1px solid rgba(0,0,0,.12); border-radius: 10px; font-family: inherit; font-size: 1rem; }
 .news-admin-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }

@@ -60,7 +60,7 @@ const { level, currentTier, next, isMax, coins, canAfford, upgrade } = useReside
 }
 .res-meta { flex: 1; min-width: 0; }
 .res-name { font-size: 1rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-.res-lv { color: #fff; font-size: .62rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
+.res-lv { color: #fff; font-size: .7rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
 .res-income { font-size: .76rem; color: rgba(0,0,0,.55); margin-top: 2px; }
 .res-income b { color: #b45309; }
 .res-next { font-size: .72rem; color: rgba(0,0,0,.55); margin: 12px 0 8px; }
@@ -75,6 +75,6 @@ const { level, currentTier, next, isMax, coins, canAfford, upgrade } = useReside
 .res-upgrade.ok { box-shadow: var(--pop); }
 .res-upgrade.ok:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--ink); }
 .res-upgrade:not(.ok) { opacity: .55; cursor: not-allowed; }
-.res-need { text-align: center; font-size: .66rem; color: #ef4444; margin-top: 6px; }
+.res-need { text-align: center; font-size: .7rem; color: #ef4444; margin-top: 6px; }
 .res-max { text-align: center; font-weight: 800; color: #f59e0b; padding: 12px 0 4px; }
 </style>

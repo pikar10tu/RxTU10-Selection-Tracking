@@ -95,7 +95,7 @@ async function dismiss() {
 .mw-item { display: flex; gap: 10px; align-items: flex-start; }
 .mw-emoji { font-size: 1.5rem; flex-shrink: 0; }
 .mw-item b { font-size: .84rem; }
-.mw-note { font-size: .68rem; color: rgba(0,0,0,.5); line-height: 1.45; margin-top: 2px; }
+.mw-note { font-size: .7rem; color: rgba(0,0,0,.5); line-height: 1.45; margin-top: 2px; }
 .mw-btn {
   width: 100%; border: 2px solid var(--ink); border-radius: 12px; padding: 12px;
   font-family: inherit; font-size: .88rem; font-weight: 800; cursor: pointer;

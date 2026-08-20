@@ -53,15 +53,15 @@ const income = computed(() => props.pet ? petDailyCoins(props.pet) : 0)
 .ps-emoji { font-size: 3rem; }
 .ps-name { font-size: 1.1rem; font-weight: 800; }
 .ps-tags { display: flex; gap: 5px; justify-content: center; margin-top: 6px; }
-.ps-tag { background: rgba(255,255,255,.25); font-size: .58rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
+.ps-tag { background: rgba(255,255,255,.25); font-size: .7rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
 .ps-stats { display: flex; }
 .ps-stat { flex: 1; text-align: center; padding: 13px 4px; border-right: 1px solid rgba(0,0,0,.06); }
 .ps-stat:last-child { border-right: none; }
 .ps-stat b { display: block; font-size: 1.1rem; font-weight: 800; }
-.ps-stat small { font-size: .58rem; color: rgba(0,0,0,.45); }
-.ps-substats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 6px 14px; font-size: .62rem; color: rgba(0,0,0,.55); font-weight: 600; }
+.ps-stat small { font-size: .7rem; color: rgba(0,0,0,.45); }
+.ps-substats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 6px 14px; font-size: .7rem; color: rgba(0,0,0,.55); font-weight: 600; }
 .ps-pot { padding: 10px 16px 16px; border-top: 1px solid rgba(0,0,0,.06); }
 .ps-pot-head { font-weight: 800; font-size: .76rem; margin-bottom: 6px; }
 .ps-pot-list { display: flex; flex-wrap: wrap; gap: 5px; }
-.ps-aff { background: #f4edff; color: #7c3aed; font-size: .64rem; font-weight: 800; padding: 3px 8px; border-radius: 8px; }
+.ps-aff { background: #f4edff; color: #7c3aed; font-size: .7rem; font-weight: 800; padding: 3px 8px; border-radius: 8px; }
 </style>

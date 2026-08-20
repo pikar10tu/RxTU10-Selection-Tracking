@@ -54,7 +54,7 @@ defineEmits(['pick', 'close'])
 .sp-emoji { font-size: 1.6rem; }
 .sp-info { flex: 1; min-width: 0; }
 .sp-name { font-weight: 700; font-size: .86rem; }
-.sp-meta { font-size: .64rem; color: rgba(0,0,0,.5); }
+.sp-meta { font-size: .7rem; color: rgba(0,0,0,.5); }
 .sp-cost { font-weight: 800; font-size: .8rem; color: #b45309; white-space: nowrap; }
 .sp-cost.no { color: #ef4444; }
 </style>

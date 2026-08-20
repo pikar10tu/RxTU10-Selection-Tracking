@@ -520,29 +520,29 @@ async function submitAmend() {
 
 .rv-card { background: #fff; border: 2px solid var(--ink); border-radius: 16px; box-shadow: var(--pop); padding: 14px; margin-bottom: 16px; }
 .rv-card-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 9px; }
-.rv-cat { font-size: .62rem; color: #4f46e5; font-weight: 700; }
+.rv-cat { font-size: .7rem; color: #4f46e5; font-weight: 700; }
 .rv-cat-sub { color: rgba(0,0,0,.45); }
-.rv-draft { font-size: .58rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,.07); color: rgba(0,0,0,.5); }
-.rv-conflict-badge { font-size: .62rem; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: #fff7ed; color: #c2410c; }
+.rv-draft { font-size: .7rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,.07); color: rgba(0,0,0,.5); }
+.rv-conflict-badge { font-size: .7rem; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: #fff7ed; color: #c2410c; }
 .rv-q { font-size: .92rem; font-weight: 700; color: var(--ink); line-height: 1.5; margin-bottom: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .rv-choices { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-direction: column; gap: 5px; }
 .rv-choices li { font-size: .8rem; color: rgba(0,0,0,.65); display: flex; gap: 8px; align-items: baseline; padding: 7px 10px; border-radius: 9px; background: #f8fafc; }
 .rv-choices li.correct { background: rgba(34,197,94,.12); color: #15803d; font-weight: 700; }
 .rv-c-letter { font-weight: 800; flex-shrink: 0; }
 .rv-c-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.rv-c-mark { flex-shrink: 0; font-size: .62rem; font-weight: 800; color: #15803d; }
+.rv-c-mark { flex-shrink: 0; font-size: .7rem; font-weight: 800; color: #15803d; }
 .rv-exp { margin-top: 9px; font-size: .74rem; color: #b45309; background: #fffbeb; border-radius: 8px; padding: 8px 10px; line-height: 1.45; }
 
 .rv-priors { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 11px; }
 .rv-priors-head { font-size: .7rem; font-weight: 800; color: #c2410c; margin-bottom: 7px; }
 .rv-prior { background: #fffdf7; border: 1px solid rgba(0,0,0,.08); border-radius: 10px; padding: 9px 11px; margin-bottom: 7px; }
 .rv-prior-top { display: flex; align-items: center; gap: 8px; font-size: .78rem; margin-bottom: 4px; }
-.rv-prior-verdict { font-size: .6rem; font-weight: 800; padding: 1px 7px; border-radius: 999px; }
+.rv-prior-verdict { font-size: .7rem; font-weight: 800; padding: 1px 7px; border-radius: 999px; }
 .rv-prior-verdict.correct { background: rgba(34,197,94,.15); color: #15803d; }
 .rv-prior-verdict.fix { background: rgba(245,158,11,.16); color: #b45309; }
 .rv-prior-verdict.wrong { background: rgba(239,68,68,.12); color: #dc2626; }
 .rv-prior-reason { font-size: .76rem; color: rgba(0,0,0,.7); line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
-.rv-prior-ref { font-size: .68rem; color: rgba(0,0,0,.45); margin-top: 3px; overflow-wrap: anywhere; }
+.rv-prior-ref { font-size: .7rem; color: rgba(0,0,0,.45); margin-top: 3px; overflow-wrap: anywhere; }
 
 .rv-form { margin-top: 13px; border-top: 1px dashed var(--border); padding-top: 12px; }
 .rv-verdicts { display: flex; gap: 7px; margin-bottom: 11px; }
@@ -551,8 +551,8 @@ async function submitAmend() {
 .rv-vbtn.correct.on { background: #22c55e; border-color: #22c55e; color: #fff; }
 .rv-vbtn.fix.on { background: #f59e0b; border-color: #f59e0b; color: #fff; }
 .rv-vbtn.wrong.on { background: #ef4444; border-color: #ef4444; color: #fff; }
-.rv-label { display: block; font-size: .68rem; font-weight: 700; color: #64748b; margin: 9px 0 5px; }
-.rv-note-hint { display: block; font-weight: 700; color: #b45309; font-size: .64rem; margin-top: 2px; }
+.rv-label { display: block; font-size: .7rem; font-weight: 700; color: #64748b; margin: 9px 0 5px; }
+.rv-note-hint { display: block; font-weight: 700; color: #b45309; font-size: .7rem; margin-top: 2px; }
 .rv-input { width: 100%; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 10px; padding: 9px 11px; font-family: inherit; font-size: .82rem; resize: vertical; }
 .rv-input:focus { outline: none; box-shadow: var(--pop); }
 .rv-actions { display: flex; gap: 8px; margin-top: 13px; }

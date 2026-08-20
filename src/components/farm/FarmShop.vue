@@ -42,7 +42,7 @@ const coins = computed(() => auth.userData?.coins || 0)
 .fs-buy { border: none; background: linear-gradient(135deg,#84cc16,#16a34a); color: #fff; font-weight: 800; font-size: .84rem; padding: 10px 14px; border-radius: 10px; cursor: pointer; font-family: inherit; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
 .fs-buy:disabled { opacity: .45; cursor: not-allowed; }
 .fs-buy:not(:disabled):active { transform: translateY(1px); }
-.fs-warn { font-size: .66rem; color: #dc2626; margin-top: 6px; text-align: center; }
+.fs-warn { font-size: .7rem; color: #dc2626; margin-top: 6px; text-align: center; }
 .fs-msg { font-size: .74rem; color: rgba(0,0,0,.55); background: rgba(0,0,0,.04); border-radius: 10px; padding: 10px 12px; text-align: center; }
 .fs-msg.done { color: #15803d; background: rgba(34,197,94,.12); font-weight: 700; }
 </style>

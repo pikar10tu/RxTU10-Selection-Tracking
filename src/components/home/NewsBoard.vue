@@ -68,5 +68,5 @@ function fmt(ts) {
 .news-icon { font-size: 1.2rem; flex-shrink: 0; }
 .news-body { flex: 1; min-width: 0; }
 .news-msg { font-size: .8rem; color: rgba(0,0,0,.75); line-height: 1.4; word-break: break-word; }
-.news-time { font-size: .6rem; color: rgba(0,0,0,.4); margin-top: 2px; }
+.news-time { font-size: .7rem; color: rgba(0,0,0,.4); margin-top: 2px; }
 </style>

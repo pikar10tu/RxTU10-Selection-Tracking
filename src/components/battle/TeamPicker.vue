@@ -100,7 +100,7 @@ function toggle(id) {
 .tp-slot.filled { border: none; background: none; cursor: pointer; }
 .tp-slot:disabled { opacity: 1; cursor: default; }  /* ช่องว่าง = placeholder ไม่ใช่ปุ่มที่ถูกปิด */
 .tp-empty { color: rgba(0,0,0,.25); font-size: 1.6rem; }
-.tp-hint { font-size: .68rem; color: rgba(0,0,0,.45); text-align: center; margin-bottom: 12px; }
+.tp-hint { font-size: .7rem; color: rgba(0,0,0,.45); text-align: center; margin-bottom: 12px; }
 
 .tp-pool { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .tp-pet { position: relative; border: 2px solid #ddd; border-radius: 12px; background: #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 14px 2px 6px; font-family: inherit; transition: transform .1s; }
@@ -108,7 +108,7 @@ function toggle(id) {
 .tp-pet.active { background: #eef2ff; box-shadow: inset 0 0 0 2px var(--primary); }
 .tp-pet:disabled { opacity: .4; cursor: not-allowed; }
 .tp-emoji { font-size: 1.7rem; line-height: 1; }
-.tp-name { font-size: .54rem; font-weight: 700; color: rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tp-name { font-size: .7rem; font-weight: 700; color: rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .tp-pet.away { opacity: .45; }
 .tp-away { position: absolute; top: 2px; right: 3px; font-size: .7rem; line-height: 1; }
 .tp-el { position: absolute; top: 2px; left: 3px; font-size: .72rem; line-height: 1; }

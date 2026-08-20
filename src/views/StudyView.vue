@@ -419,7 +419,7 @@ async function sendReport() {
 .sv-head { margin-bottom: 14px; }
 .sv-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sv-title { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; color: var(--ink); line-height: 1.1; }
-.sv-sub { font-size: .68rem; color: rgba(0,0,0,.45); margin-top: 2px; }
+.sv-sub { font-size: .7rem; color: rgba(0,0,0,.45); margin-top: 2px; }
 .sv-empty { text-align: center; color: rgba(0,0,0,.4); padding: 36px 0; font-size: .85rem; }
 
 /* home */
@@ -428,27 +428,27 @@ async function sendReport() {
 .sv-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
 .sv-stat { background: #fff; border: 2px solid var(--ink); border-radius: 16px; box-shadow: var(--pop); padding: 14px 6px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .sv-stat-n { font-size: 1.5rem; font-weight: 800; line-height: 1; }
-.sv-stat-l { font-size: .6rem; color: rgba(0,0,0,.5); font-weight: 600; }
+.sv-stat-l { font-size: .7rem; color: rgba(0,0,0,.5); font-weight: 600; }
 .sv-stat.due  .sv-stat-n { color: #d97706; }
 .sv-stat.new  .sv-stat-n { color: #2563eb; }
 .sv-stat.mast .sv-stat-n { color: #16a34a; }
 .sv-progress { margin-bottom: 18px; }
 .sv-progress-bar { height: 8px; background: rgba(0,0,0,.08); border-radius: 999px; overflow: hidden; }
 .sv-progress-fill { height: 100%; background: linear-gradient(90deg,#84cc16,#16a34a); transition: width .4s; }
-.sv-progress-txt { font-size: .64rem; color: rgba(0,0,0,.5); margin-top: 5px; text-align: center; }
+.sv-progress-txt { font-size: .7rem; color: rgba(0,0,0,.5); margin-top: 5px; text-align: center; }
 .sv-start { width: 100%; border: 2px solid var(--ink); border-radius: 14px; padding: 16px; font-family: inherit; font-size: .95rem; font-weight: 800; color: #fff; background: var(--primary); box-shadow: var(--pop); cursor: pointer; transition: transform .12s, box-shadow .12s; }
 .sv-start:active:not(:disabled) { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .sv-start:disabled { background: #cbd5e1; cursor: default; color: #fff; box-shadow: none; }
-.sv-allclear { text-align: center; font-size: .68rem; color: rgba(0,0,0,.45); margin-top: 12px; }
+.sv-allclear { text-align: center; font-size: .7rem; color: rgba(0,0,0,.45); margin-top: 12px; }
 .sv-freebtn { width: 100%; margin-top: 8px; border: 1px solid rgba(0,0,0,.12); background: #fff; border-radius: 12px; padding: 11px; font-family: inherit; font-size: .8rem; font-weight: 700; color: #475569; cursor: pointer; }
-.sv-caphint { text-align: center; font-size: .62rem; color: rgba(0,0,0,.4); margin-top: 10px; }
+.sv-caphint { text-align: center; font-size: .7rem; color: rgba(0,0,0,.4); margin-top: 10px; }
 .sv-howto { display: block; margin: 10px auto 0; background: none; border: none; font-family: inherit; font-size: .74rem; color: var(--primary); text-decoration: underline; cursor: pointer; padding: 6px; }
 .sv-quizlink { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 14px; border-radius: 16px; background: var(--primary-light); border: 2px solid var(--ink); box-shadow: var(--pop); text-decoration: none; transition: transform .12s, box-shadow .12s; }
 .sv-quizlink:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .sv-quizlink-emoji { font-size: 1.6rem; }
 .sv-quizlink-text { flex: 1; display: flex; flex-direction: column; }
 .sv-quizlink-text b { font-size: .88rem; color: #3730a3; }
-.sv-quizlink-text small { font-size: .66rem; color: #6366f1; }
+.sv-quizlink-text small { font-size: .7rem; color: #6366f1; }
 .sv-quizlink-go { font-size: 1.4rem; color: #6366f1; }
 /* ทางเข้าทีมวิชาการ — โทนอำพัน แยกจากปุ่มทำข้อสอบของนักศึกษา */
 .sv-acadlink { background: #fff7ed; border-color: #b45309; margin-top: 10px; }
@@ -471,31 +471,31 @@ async function sendReport() {
 .sv-quit { border: none; background: rgba(0,0,0,.06); border-radius: 8px; width: 30px; height: 30px; cursor: pointer; flex-shrink: 0; font-size: .85rem; }
 .sv-rev-bar { flex: 1; height: 7px; background: rgba(0,0,0,.08); border-radius: 999px; overflow: hidden; }
 .sv-rev-fill { height: 100%; background: linear-gradient(90deg,#4f46e5,#6366f1); transition: width .3s; }
-.sv-rev-count { font-size: .68rem; font-weight: 700; color: rgba(0,0,0,.5); flex-shrink: 0; }
+.sv-rev-count { font-size: .7rem; font-weight: 700; color: rgba(0,0,0,.5); flex-shrink: 0; }
 .sv-card { background: #fff; border: 2px solid var(--ink); border-radius: 20px; box-shadow: var(--pop-lg); min-height: 240px; padding: 26px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; cursor: pointer; }
 .sv-card.flipped { cursor: default; }
-.sv-card-tag { font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6366f1; background: #eef2ff; padding: 3px 10px; border-radius: 999px; }
+.sv-card-tag { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6366f1; background: #eef2ff; padding: 3px 10px; border-radius: 999px; }
 .sv-card-front { font-size: 1.5rem; font-weight: 800; color: #1e293b; }
 .sv-card-divider { width: 40px; height: 2px; background: rgba(0,0,0,.1); border-radius: 2px; }
 .sv-card-back { font-size: 1.05rem; font-weight: 600; color: #4338ca; }
 .sv-card-detail { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .sv-detail-row { display: flex; flex-direction: column; gap: 2px; background: #f8fafc; border: 1px solid rgba(0,0,0,.05); border-radius: 10px; padding: 8px 11px; text-align: left; }
-.sv-detail-k { font-size: .58rem; font-weight: 700; color: #64748b; }
+.sv-detail-k { font-size: .7rem; font-weight: 700; color: #64748b; }
 .sv-detail-v { font-size: .78rem; color: #1e293b; line-height: 1.35; }
-.sv-report { margin-top: 4px; border: none; background: none; color: #ef4444; font-family: inherit; font-size: .64rem; font-weight: 600; cursor: pointer; padding: 4px; }
+.sv-report { margin-top: 4px; border: none; background: none; color: #ef4444; font-family: inherit; font-size: .7rem; font-weight: 600; cursor: pointer; padding: 4px; }
 .sv-report:active { opacity: .6; }
-.sv-card-hint { font-size: .68rem; color: rgba(0,0,0,.35); margin-top: 4px; }
+.sv-card-hint { font-size: .7rem; color: rgba(0,0,0,.35); margin-top: 4px; }
 .sv-recall { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.sv-recall-lead { font-size: .68rem; color: rgba(0,0,0,.45); }
+.sv-recall-lead { font-size: .7rem; color: rgba(0,0,0,.45); }
 .sv-recall-items { font-size: .8rem; font-weight: 800; color: var(--primary); line-height: 1.4; }
 .sv-grades { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; }
 .sv-grade { border: 2px solid var(--ink); border-radius: 12px; padding: 12px 4px; font-family: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; color: #fff; box-shadow: var(--pop); transition: transform .1s, box-shadow .1s; }
 .sv-grade:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .sv-grade b { font-size: .82rem; }
-.sv-grade small { font-size: .56rem; opacity: .9; }
+.sv-grade small { font-size: .7rem; opacity: .9; }
 .sv-grade-wrap { margin-top: 16px; }
-.sv-grade-note { font-size: .68rem; color: rgba(0,0,0,.5); text-align: center; margin-bottom: 7px; line-height: 1.4; }
-.sv-grade i { font-style: normal; font-size: .58rem; opacity: .85; line-height: 1.25; }
+.sv-grade-note { font-size: .7rem; color: rgba(0,0,0,.5); text-align: center; margin-bottom: 7px; line-height: 1.4; }
+.sv-grade i { font-style: normal; font-size: .7rem; opacity: .85; line-height: 1.25; }
 .sv-grade.again { background: #ef4444; }
 .sv-grade.hard  { background: #f59e0b; }
 .sv-grade.good  { background: #22c55e; }

@@ -27,7 +27,7 @@ defineProps({ emoji: String, label: String })
 .soon-emoji { font-size: 1.6rem; }
 .soon-name { font-size: .8rem; font-weight: 700; }
 .soon-tag {
-  font-size: .56rem;
+  font-size: .7rem;
   color: #b45309;
   background: rgba(251,191,36,.18);
   padding: 2px 7px;

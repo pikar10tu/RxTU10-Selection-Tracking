@@ -99,7 +99,7 @@ function onCardSheet(name) { if (name === 'quest') showQuest.value = true }
   font-size: 1.85rem; line-height: 1; color: var(--ink); margin: 0;
   letter-spacing: .5px;
 }
-.home-head-sub { font-size: .68rem; color: var(--muted); margin: 4px 0 0; font-weight: 600; }
+.home-head-sub { font-size: .7rem; color: var(--muted); margin: 4px 0 0; font-weight: 600; }
 
 /* ── ปุ่มเครื่องมือผู้ดูแล (แอดมินเท่านั้น) — โทนเทา ไม่แย่งความสนใจ ── */
 .home-admin-btn {

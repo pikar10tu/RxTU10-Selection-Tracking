@@ -54,6 +54,10 @@ gates: `auth.isAdmin`, `auth.isAcademic` (admin ⊃ academic) · user แก้ 
 
 **ข้อความจากผู้ใช้ทุกช่อง:** ผ่าน `cleanText(str, LIMITS.xxx)` จาก utils/text.js ก่อนเขียนเสมอ
 
+**ฟอนต์ขั้นต่ำ `.7rem`** — ห้ามมี `font-size` ต่ำกว่านี้ในไฟล์ `.vue`/`.css` ใดๆ
+ภาษาไทยมีสระบน-ล่างและวรรณยุกต์ ต่ำกว่า ~11px อ่านไม่ออกบนมือถือจริง (เคยหลุดไป 190 จุด เล็กสุด `.46rem` ≈ 7px)
+ตรวจเร็ว: `grep -rnE "font-size:\s*\.[0-6][0-9]?rem" src/` ต้องไม่เจออะไร
+
 **สไตล์:** คอมเมนต์/commit เป็นไทยปนอังกฤษ · commit รูปแบบ `Area: อะไร (ทำไม)` · โทนข้อความผู้ใช้: ยึด docs/voice-guide.md (เป็นกันเอง อธิบายฟังก์ชันชัด ไม่ใช้คำหวือหวา) ·
 single-file component + scoped style · สีธีมหลัก indigo (#4f46e5) ใน style.css
 

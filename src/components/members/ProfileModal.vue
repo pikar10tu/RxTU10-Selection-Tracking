@@ -105,7 +105,7 @@ const hasContact = computed(() => {
 }
 .pf-name { font-size: .82rem; font-weight: 600; opacity: .85; margin-top: 1px; }
 .pf-chips { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 10px; }
-.pf-chip { font-size: .58rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; color: #fff; }
+.pf-chip { font-size: .7rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; color: #fff; }
 .pf-chip.founder { background: rgba(0,0,0,.3); }
 .pf-residence {
   font-size: .72rem; font-weight: 700; margin-top: 6px; opacity: .95; padding: 0 14px;
@@ -117,8 +117,8 @@ const hasContact = computed(() => {
 .pf-stat:last-child { border-right: none; }
 .pf-stat span { font-size: 1rem; }
 .pf-stat b { display: block; font-size: 1.1rem; font-weight: 800; }
-.pf-stat small { font-size: .6rem; color: rgba(0,0,0,.45); }
-.pf-team-label { font-size: .66rem; font-weight: 800; color: var(--muted, #9b8fb0); text-align: center; padding: 12px 0 0; border-top: 1px solid rgba(0,0,0,.06); }
+.pf-stat small { font-size: .7rem; color: rgba(0,0,0,.45); }
+.pf-team-label { font-size: .7rem; font-weight: 800; color: var(--muted, #9b8fb0); text-align: center; padding: 12px 0 0; border-top: 1px solid rgba(0,0,0,.06); }
 .pf-team-empty { text-align: center; font-size: .7rem; color: rgba(0,0,0,.35); padding: 8px 0 14px; }
 .pf-showcase { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 10px 12px 12px; max-height: 180px; overflow-y: auto; }
 .pf-pet { width: 58px; padding: 0; border: none; background: none; cursor: pointer; font-family: inherit; }

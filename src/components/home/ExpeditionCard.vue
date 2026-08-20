@@ -38,6 +38,6 @@ const remainText = computed(() => {
 .exc-emoji { font-size: 1.4rem; }
 .exc-txt { display: flex; flex-direction: column; min-width: 0; }
 .exc-txt b { font-size: .85rem; }
-.exc-sub { font-size: .66rem; color: rgba(0,0,0,.55); }
+.exc-sub { font-size: .7rem; color: rgba(0,0,0,.55); }
 .exc-go { margin-left: auto; font-size: 1.2rem; color: rgba(0,0,0,.3); }
 </style>

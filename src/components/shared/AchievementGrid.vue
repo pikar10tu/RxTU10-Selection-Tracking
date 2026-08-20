@@ -53,11 +53,11 @@ watch(() => props.uid, load, { immediate: true })
 <style scoped>
 .ach-grid-wrap { margin-top: 14px; }
 .ach-grid-head { font-size: .8rem; font-weight: 800; color: var(--ink); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-.ach-count { font-size: .62rem; background: var(--primary); color: #fff; border-radius: 999px; padding: 1px 7px; }
+.ach-count { font-size: .7rem; background: var(--primary); color: #fff; border-radius: 999px; padding: 1px 7px; }
 .ach-empty { font-size: .72rem; color: rgba(0,0,0,.4); }
 .ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
 .ach-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; border: 2px solid var(--ink); border-radius: 12px; background: #fff; box-shadow: var(--pop); text-align: center; font-family: inherit; cursor: pointer; transition: transform .1s, box-shadow .1s; }
 .ach-item:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .ach-item-icon { font-size: 1.5rem; }
-.ach-item-title { font-size: .56rem; font-weight: 700; color: var(--ink); line-height: 1.2; }
+.ach-item-title { font-size: .7rem; font-weight: 700; color: var(--ink); line-height: 1.2; }
 </style>

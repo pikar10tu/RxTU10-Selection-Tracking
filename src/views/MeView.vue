@@ -216,7 +216,7 @@ async function save() {
 .me-stat:last-child { border-right: none; }
 .me-stat span { font-size: 1.1rem; }
 .me-stat b { display: block; font-size: 1rem; font-weight: 800; }
-.me-stat small { font-size: .6rem; color: var(--muted, #9b8fb0); }
+.me-stat small { font-size: .7rem; color: var(--muted, #9b8fb0); }
 .me-tags { display: flex; justify-content: center; margin-top: 12px; }
 .me-link { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border: 2px solid var(--ink); border-radius: 14px; background: #fff; box-shadow: var(--pop); font-weight: 700; font-size: .85rem; color: var(--ink); text-decoration: none; margin-top: 12px; }
 .me-link:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }

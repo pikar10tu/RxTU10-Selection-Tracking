@@ -96,7 +96,7 @@ onMounted(load)
 .qc { margin-top: 8px; border-top: 1px dashed var(--border); padding-top: 8px; }
 .qc-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin: 0 0 8px; padding: 0; }
 .qc-item { background: rgba(0,0,0,.03); border-radius: 10px; padding: 7px 9px; }
-.qc-meta { display: flex; align-items: center; gap: 6px; font-size: .62rem; color: var(--muted); }
+.qc-meta { display: flex; align-items: center; gap: 6px; font-size: .7rem; color: var(--muted); }
 .qc-author { font-weight: 800; color: var(--ink); }
 .qc-time { margin-left: auto; }
 .qc-del { border: none; background: none; cursor: pointer; color: var(--muted); font-size: .72rem; padding: 0 2px; }

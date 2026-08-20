@@ -22,5 +22,5 @@ const tags = computed(() => props.list || effectiveTags(props.member))
 
 <style scoped>
 .tags { display: inline-flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
-.tag { font-size: .56rem; font-weight: 800; color: #fff; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+.tag { font-size: .7rem; font-weight: 800; color: #fff; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
 </style>

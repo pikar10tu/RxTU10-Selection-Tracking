@@ -127,7 +127,7 @@ const avatarOf = (m) => m.customPhoto || m.googlePhoto || letterAvatar(m.nicknam
 .mv-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
 .mv-title { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; color: var(--ink); line-height: 1.1; }
 .mv-head-r { display: flex; align-items: center; gap: 8px; }
-.mv-count { font-size: .66rem; color: rgba(0,0,0,.45); font-weight: 600; }
+.mv-count { font-size: .7rem; color: rgba(0,0,0,.45); font-weight: 600; }
 .mv-refresh {
   border: 2px solid var(--ink); background: #fff; border-radius: 999px;
   width: 28px; height: 28px; font-size: .9rem; line-height: 1; color: var(--ink);
@@ -173,7 +173,7 @@ const avatarOf = (m) => m.customPhoto || m.googlePhoto || letterAvatar(m.nicknam
 .mv-lv {
   position: absolute; right: -3px; bottom: -3px;
   min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px;
-  color: #fff; font-size: .6rem; font-weight: 800;
+  color: #fff; font-size: .7rem; font-weight: 800;
   display: flex; align-items: center; justify-content: center;
   border: 2px solid #fff;
 }
@@ -181,8 +181,8 @@ const avatarOf = (m) => m.customPhoto || m.googlePhoto || letterAvatar(m.nicknam
   font-size: .8rem; font-weight: 700; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis; max-width: 100%;
 }
-.mv-you { font-size: .55rem; font-weight: 800; color: #fff; background: var(--primary); border-radius: 999px; padding: 1px 7px; }
-.mv-track { font-size: .62rem; font-weight: 700; }
-.mv-sid { font-size: .62rem; color: rgba(0,0,0,.5); font-variant-numeric: tabular-nums; }
-.mv-off-tag { font-size: .56rem; color: rgba(0,0,0,.35); }
+.mv-you { font-size: .7rem; font-weight: 800; color: #fff; background: var(--primary); border-radius: 999px; padding: 1px 7px; }
+.mv-track { font-size: .7rem; font-weight: 700; }
+.mv-sid { font-size: .7rem; color: rgba(0,0,0,.5); font-variant-numeric: tabular-nums; }
+.mv-off-tag { font-size: .7rem; color: rgba(0,0,0,.35); }
 </style>

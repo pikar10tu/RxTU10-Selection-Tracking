@@ -214,7 +214,7 @@ async function onFight() {
 .tw-climb-best { font-size: .72rem; font-weight: 700; color: var(--muted); }
 
 .tw-track-wrap { position: relative; padding-top: 14px; }
-.tw-pin { position: absolute; top: 0; transform: translateX(-50%); font-size: .66rem; line-height: 1; }
+.tw-pin { position: absolute; top: 0; transform: translateX(-50%); font-size: .7rem; line-height: 1; }
 .tw-track {
   height: 14px; border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; position: relative;
   background: linear-gradient(90deg,
@@ -236,20 +236,20 @@ async function onFight() {
     #5b21b6 69%, #5b21b6 100%);
 }
 .tw-track-crown { position: absolute; top: 0; right: -2px; font-size: .7rem; line-height: 1; }
-.tw-me { position: absolute; top: 100%; margin-top: 2px; transform: translateX(-50%); font-size: .55rem; line-height: 1; color: var(--ink); }
-.tw-track-scale { position: relative; height: 12px; margin-top: 13px; font-size: .62rem; font-weight: 700; color: var(--muted); }
+.tw-me { position: absolute; top: 100%; margin-top: 2px; transform: translateX(-50%); font-size: .7rem; line-height: 1; color: var(--ink); }
+.tw-track-scale { position: relative; height: 14px; margin-top: 13px; font-size: .7rem; font-weight: 700; color: var(--muted); }
 .tw-scale-1 { position: absolute; left: 0; }
 .tw-scale-70 { position: absolute; left: 70%; transform: translateX(-50%); color: #b45309; }
 .tw-scale-100 { position: absolute; right: 0; }
 
 .tw-climb-row { display: flex; gap: 6px; margin-top: 8px; }
 .tw-chip { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 2px; border-radius: 10px; background: #f1f5f9; font-size: .9rem; position: relative; }
-.tw-chip-n { font-size: .64rem; font-weight: 800; color: var(--muted); }
+.tw-chip-n { font-size: .7rem; font-weight: 800; color: var(--muted); }
 .tw-chip.cleared { background: #dcfce7; }
 .tw-chip.current { background: var(--gold); box-shadow: 0 0 0 2px var(--ink); }
 .tw-chip.locked { opacity: .55; }
 .tw-chip.milestone { outline: 2px dashed var(--gold); outline-offset: -2px; }
-.tw-chip-coin { position: absolute; top: -7px; right: -3px; font-size: .6rem; }
+.tw-chip-coin { position: absolute; top: -7px; right: -3px; font-size: .7rem; }
 
 .tw-card { background: #fff; border: 2px solid var(--ink); border-radius: 18px; box-shadow: var(--pop); overflow: hidden; }
 .tw-zone { display: flex; align-items: center; gap: 12px; padding: 14px 16px; color: #fff; }
@@ -266,7 +266,7 @@ async function onFight() {
 .tw-bonus { font-size: .76rem; color: #b45309; font-weight: 700; padding: 10px 16px 0; }
 .tw-bonus-cap { font-weight: 600; color: var(--muted); }
 .tw-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px; }
-.tw-label { font-size: .68rem; color: var(--muted); width: 48px; flex-shrink: 0; }
+.tw-label { font-size: .7rem; color: var(--muted); width: 48px; flex-shrink: 0; }
 .tw-team { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
 .tw-mon { border: none; background: none; padding: 0; cursor: pointer; width: 54px; }
 .tw-mon:active { transform: scale(.92); }
@@ -290,7 +290,7 @@ async function onFight() {
 .tw-rival-row.tw-rival-me { background: var(--primary-light); outline: 1.5px solid var(--primary); }
 .tw-rival-medal { font-size: 1rem; flex-shrink: 0; }
 .tw-rival-name { font-size: .84rem; font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
-.tw-rival-badge { display: inline-block; font-size: .6rem; font-weight: 800; color: #fff; background: var(--primary); padding: 1px 6px; border-radius: 999px; margin-left: 5px; vertical-align: middle; }
+.tw-rival-badge { display: inline-block; font-size: .7rem; font-weight: 800; color: #fff; background: var(--primary); padding: 1px 6px; border-radius: 999px; margin-left: 5px; vertical-align: middle; }
 .tw-rival-floor { font-size: .8rem; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; flex-shrink: 0; }
 .tw-rival-chase { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #ffeef1; border: 1.5px solid var(--accent); font-size: .76rem; font-weight: 700; color: var(--ink); }
 

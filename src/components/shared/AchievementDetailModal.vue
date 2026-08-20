@@ -43,6 +43,6 @@ function fmtDate(ts) {
 .ad-flavor { font-size: .8rem; color: #6366f1; font-style: italic; margin-top: 6px; line-height: 1.4; }
 .ad-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; text-align: left; }
 .ad-row { background: #f8fafc; border: 1px solid rgba(0,0,0,.05); border-radius: 10px; padding: 8px 11px; }
-.ad-row-k { display: block; font-size: .58rem; font-weight: 700; color: #64748b; }
+.ad-row-k { display: block; font-size: .7rem; font-weight: 700; color: #64748b; }
 .ad-row-v { font-size: .82rem; color: #1e293b; line-height: 1.35; }
 </style>

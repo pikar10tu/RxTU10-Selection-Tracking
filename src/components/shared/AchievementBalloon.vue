@@ -33,7 +33,7 @@ watch(current, (c) => {
   box-shadow: var(--pop); padding: 10px 16px; max-width: 92vw; cursor: pointer;
 }
 .ach-balloon-icon { font-size: 1.8rem; }
-.ach-balloon-head { font-size: .62rem; font-weight: 800; color: rgba(0,0,0,.55); }
+.ach-balloon-head { font-size: .7rem; font-weight: 800; color: rgba(0,0,0,.55); }
 .ach-balloon-title { font-size: .95rem; font-weight: 800; color: var(--ink); }
 .balloon-enter-active, .balloon-leave-active { transition: transform .3s ease, opacity .3s ease; }
 .balloon-enter-from, .balloon-leave-to { transform: translate(-50%, -120%); opacity: 0; }

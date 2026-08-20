@@ -9,7 +9,7 @@
         <div class="pd-name">{{ pet.name }}</div>
         <div class="pd-tags">
           <span class="pd-tag"><Emoji :char="ELEMENTS[elDef]?.emoji || '✊'" /> {{ EL_NAME[elDef] || elDef }}</span>
-          <HelpButton topic="element" style="width:18px;height:18px;font-size:.6rem" />
+          <HelpButton topic="element" style="width:18px;height:18px;font-size: .7rem" />
           <span class="pd-tag">ตัวซ้ำ {{ pet.copies || 0 }}</span>
         </div>
       </div>
@@ -34,7 +34,7 @@
           <span class="pd-axis-v pd-rarity" :style="{ background: RARITY[pet.rarity]?.color }">{{ RARITY[pet.rarity]?.label }}</span>
         </div>
         <div class="pd-axis">
-          <span class="pd-axis-k pd-axis-k-help">เกรด<HelpButton topic="grade" style="width:18px;height:18px;font-size:.6rem" /></span>
+          <span class="pd-axis-k pd-axis-k-help">เกรด<HelpButton topic="grade" style="width:18px;height:18px;font-size: .7rem" /></span>
           <span class="pd-axis-v">
             <b class="pd-grade-badge">{{ GRADE_LABELS[gradeNow] || '0' }}</b>
             <button v-if="gradeNow < MAX_GRADE" class="pd-btn" :class="{ ok: canUp }" :disabled="!canUp || busy" @click="evolve">วิวัฒน์ → {{ GRADE_LABELS[gradeNow + 1] }}</button>
@@ -165,7 +165,7 @@ async function evolve() {
 .pd-emoji { font-size: 3.4rem; }
 .pd-name { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; margin-top: 2px; }
 .pd-tags { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
-.pd-tag { background: rgba(255,255,255,.25); font-size: .58rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
+.pd-tag { background: rgba(255,255,255,.25); font-size: .7rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
 .pd-active { display: block; width: calc(100% - 28px); margin: 12px 14px 0; border: 2px solid var(--ink); border-radius: 11px; padding: 9px; font-family: inherit; font-size: .78rem; font-weight: 800; cursor: pointer; background: #fff; color: var(--ink); box-shadow: var(--pop); transition: transform .12s, box-shadow .12s; }
 .pd-active.on { background: var(--gold); color: #fff; }
 .pd-active:active:not(:disabled) { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
@@ -175,13 +175,13 @@ async function evolve() {
 .pd-stat:last-child { border-right: none; }
 .pd-stat span { font-size: 1.1rem; }
 .pd-stat b { display: block; font-size: 1.15rem; font-weight: 800; }
-.pd-stat small { font-size: .6rem; color: rgba(0,0,0,.45); }
-.pd-substats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 8px 14px 0; font-size: .64rem; color: rgba(0,0,0,.55); font-weight: 600; }
+.pd-stat small { font-size: .7rem; color: rgba(0,0,0,.45); }
+.pd-substats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 8px 14px 0; font-size: .7rem; color: rgba(0,0,0,.55); font-weight: 600; }
 .pd-section { padding: 14px 16px; border-top: 1px solid rgba(0,0,0,.06); margin-top: 8px; }
 .pd-sec-head { font-weight: 800; font-size: .82rem; margin-bottom: 8px; }
-.pd-note { font-size: .68rem; color: rgba(0,0,0,.5); margin-bottom: 8px; }
-.pd-note.small { font-size: .58rem; margin: 6px 0 0; }
-.pd-soon { font-size: .54rem; font-weight: 700; color: #b45309; background: rgba(251,191,36,.18); padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+.pd-note { font-size: .7rem; color: rgba(0,0,0,.5); margin-bottom: 8px; }
+.pd-note.small { font-size: .7rem; margin: 6px 0 0; }
+.pd-soon { font-size: .7rem; font-weight: 700; color: #b45309; background: rgba(251,191,36,.18); padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
 .pd-btn { width: 100%; border: 2px solid var(--ink); border-radius: 11px; padding: 10px; font-family: inherit; font-size: .82rem; font-weight: 800; color: #fff; background: #c9c2d4; cursor: pointer; transition: transform .12s, box-shadow .12s; }
 .pd-btn.ok { background: var(--primary); box-shadow: var(--pop); }
 .pd-btn:disabled { opacity: .5; cursor: default; box-shadow: none; }
@@ -194,5 +194,5 @@ async function evolve() {
 .pd-rarity { color: #fff; padding: 2px 12px; border-radius: 999px; font-size: .74rem; }
 .pd-grade-badge { background: #1e293b; color: #fff; min-width: 26px; text-align: center; padding: 2px 8px; border-radius: 8px; }
 .pd-max { font-size: .72rem; color: #15803d; font-weight: 800; }
-.pd-axis-cost { font-size: .68rem; color: rgba(0,0,0,.55); text-align: right; margin: -4px 4px 0; }
+.pd-axis-cost { font-size: .7rem; color: rgba(0,0,0,.55); text-align: right; margin: -4px 4px 0; }
 </style>

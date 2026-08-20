@@ -184,27 +184,27 @@ async function onClaim() {
 .ex-head-r { display: flex; align-items: center; gap: 8px; }
 .ex-back { font-size: .8rem; color: var(--muted); text-decoration: none; }
 .ex-sec { font-size: .82rem; font-weight: 800; margin: 14px 0 8px; }
-.ex-sec-note { font-size: .64rem; font-weight: 600; color: rgba(0,0,0,.45); }
+.ex-sec-note { font-size: .7rem; font-weight: 600; color: rgba(0,0,0,.45); }
 /* มิชชัน grid 3 ช่อง */
 .ex-missions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 .ex-mis { all: unset; cursor: pointer; box-sizing: border-box; text-align: center; background: #fff; border: 2px solid var(--ink); border-radius: 14px; box-shadow: var(--pop); padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .ex-mis.on { background: #eef2ff; box-shadow: inset 0 0 0 2px var(--primary), var(--pop); }
 .ex-mis-emoji { font-size: 1.5rem; }
-.ex-mis-name { font-size: .66rem; font-weight: 800; }
-.ex-mis-el { font-size: .58rem; color: rgba(0,0,0,.5); }
+.ex-mis-name { font-size: .7rem; font-weight: 800; }
+.ex-mis-el { font-size: .7rem; color: rgba(0,0,0,.5); }
 /* pool เพ็ท grid 4 ช่อง */
 .ex-pool { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .ex-pet { position: relative; all: unset; cursor: pointer; box-sizing: border-box; border: 2px solid #ddd; border-radius: 12px; background: #fff; display: flex; justify-content: center; padding: 8px 2px; }
 .ex-pet.on { background: #eef2ff; box-shadow: inset 0 0 0 2px var(--primary); }
 .ex-pet.match { border-color: var(--gold); }
 .ex-pet:disabled { opacity: .4; cursor: not-allowed; }
-.ex-pet-bonus { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: var(--gold); color: #1f2937; font-size: .5rem; font-weight: 800; padding: 1px 6px; border-radius: 999px; border: 1.5px solid var(--ink); }
+.ex-pet-bonus { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: var(--gold); color: #1f2937; font-size: .7rem; font-weight: 800; padding: 1px 6px; border-radius: 999px; border: 1.5px solid var(--ink); }
 .ex-none { grid-column: 1 / -1; text-align: center; font-size: .76rem; color: rgba(0,0,0,.45); padding: 18px 0; }
 /* ระยะเวลา grid 3 ช่อง */
 .ex-durs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 .ex-dur { all: unset; cursor: pointer; box-sizing: border-box; text-align: center; background: #fff; border: 2px solid var(--ink); border-radius: 12px; box-shadow: var(--pop); padding: 10px 4px; display: flex; flex-direction: column; gap: 2px; }
 .ex-dur.on { background: #eef2ff; box-shadow: inset 0 0 0 2px var(--primary), var(--pop); }
-.ex-dur b { font-size: .8rem; } .ex-dur span { font-size: .62rem; color: rgba(0,0,0,.5); }
+.ex-dur b { font-size: .8rem; } .ex-dur span { font-size: .7rem; color: rgba(0,0,0,.5); }
 /* ปุ่มหลัก */
 .ex-go { display: block; width: 100%; margin-top: 16px; border: 2px solid var(--ink); border-radius: 13px; padding: 13px; font-family: inherit; font-weight: 800; color: #fff; background: var(--primary); box-shadow: var(--pop); cursor: pointer; }
 .ex-go:disabled { background: #cbd5e1; box-shadow: none; cursor: default; }

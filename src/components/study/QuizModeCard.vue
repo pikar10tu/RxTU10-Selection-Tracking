@@ -29,9 +29,9 @@ defineProps({
 .qmc-emoji { font-size: 1.6rem; flex-shrink: 0; }
 .qmc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .qmc-text b { font-size: .9rem; color: #3730a3; }
-.qmc-text small { font-size: .66rem; color: #6366f1; }
+.qmc-text small { font-size: .7rem; color: #6366f1; }
 .qmc.soon .qmc-text b { color: #475569; }
 .qmc.soon .qmc-text small { color: #64748b; }
 .qmc-go { font-size: 1.4rem; color: #6366f1; flex-shrink: 0; }
-.qmc-soon { font-size: .6rem; font-weight: 800; color: #fff; background: #94a3b8; padding: 2px 8px; border-radius: 999px; flex-shrink: 0; }
+.qmc-soon { font-size: .7rem; font-weight: 800; color: #fff; background: #94a3b8; padding: 2px 8px; border-radius: 999px; flex-shrink: 0; }
 </style>

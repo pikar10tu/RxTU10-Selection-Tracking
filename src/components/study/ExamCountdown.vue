@@ -51,9 +51,9 @@ function fmtRange(e) {
 .ec-emoji { font-size: 1.6rem; flex-shrink: 0; }
 .ec-body { flex: 1; min-width: 0; }
 .ec-label { font-weight: 800; font-size: .9rem; }
-.ec-date { font-size: .66rem; opacity: .85; margin-top: 2px; }
+.ec-date { font-size: .7rem; opacity: .85; margin-top: 2px; }
 .ec-count { text-align: center; flex-shrink: 0; line-height: 1; min-width: 52px; }
 .ec-count b { font-size: 1.8rem; font-weight: 800; font-family: var(--font-display); font-variant-numeric: tabular-nums; }
-.ec-count small { display: block; font-size: .58rem; opacity: .85; margin-top: 3px; }
+.ec-count small { display: block; font-size: .7rem; opacity: .85; margin-top: 3px; }
 .ec-today { font-size: 1.15rem; }
 </style>

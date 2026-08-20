@@ -100,7 +100,7 @@ function confirm() {
 .sc-max { min-height: 40px; padding: 0 12px; border: 2px solid var(--ink); border-radius: 8px; background: #fff; font-family: inherit; font-weight: 800; font-size: .72rem; cursor: pointer; }
 .sc-max:disabled { opacity: .35; cursor: default; }
 .sc-n { min-width: 18px; text-align: center; font-weight: 800; }
-.sc-warn { font-size: .66rem; color: #dc2626; text-align: center; margin-top: 8px; }
+.sc-warn { font-size: .7rem; color: #dc2626; text-align: center; margin-top: 8px; }
 .sc-actions { display: flex; gap: 8px; margin-top: 14px; }
 .sc-auto { border: 2px solid var(--ink); border-radius: 10px; padding: 9px 10px; font-family: inherit; font-weight: 800; font-size: .72rem; background: #fff; cursor: pointer; }
 .sc-cancel { flex: 1; border: 2px solid var(--ink); border-radius: 10px; padding: 9px; font-family: inherit; font-weight: 800; background: #fff; cursor: pointer; }

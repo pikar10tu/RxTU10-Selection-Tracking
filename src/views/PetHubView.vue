@@ -78,7 +78,7 @@ const expState = computed(() => expeditionState(exp.value, now.value))
 .game-card:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .gc-emoji { font-size: 1.6rem; }
 .gc-name { font-size: .8rem; font-weight: 800; }
-.gc-badge { font-size: .58rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.gc-badge { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
 .gc-badge.ready { color: #15803d; background: rgba(34,197,94,.16); }
 .gc-badge.plant { color: #b45309; background: rgba(251,191,36,.18); }
 .gc-badge.grow  { color: rgba(0,0,0,.45); background: rgba(0,0,0,.05); }
