@@ -46,6 +46,7 @@ import BottomSheet from '../shared/BottomSheet.vue'
 import PetDetailModal from '../pets/PetDetailModal.vue'
 import PetStatLine from '../shared/PetStatLine.vue'
 import PetThumb from '../shared/PetThumb.vue'
+import { useRosterSync } from '../../composables/useRosterSync.js'
 import { computed, ref } from 'vue'
 import { useAuthStore } from '../../stores/auth.js'
 import { getPetDef, RARITY, ELEMENTS } from '../../data/index.js'
@@ -55,6 +56,7 @@ defineProps({ open: { type: Boolean, default: false } })
 defineEmits(['update:open'])
 
 const auth = useAuthStore()
+const { syncRosterRow } = useRosterSync()
 const detailId = ref(null)
 const owned = computed(() => auth.userData?.pets || [])
 // เพ็ทที่กำลังออกผจญภัย — เอาเข้าทีมไม่ได้จนกว่าจะกลับ
@@ -83,7 +85,10 @@ const sortedOwned = computed(() => owned.value.slice().sort((a, b) => {
   return (RANK[da.rarity] - RANK[db.rarity]) || ((b.grade || 0) - (a.grade || 0)) || (da.name || '').localeCompare(db.name || '')
 }))
 
-async function save(next) { await auth.patchUser({ activePets: next }, { activePets: next }) }
+async function save(next) {
+  await auth.patchUser({ activePets: next }, { activePets: next })
+  syncRosterRow()   // ทีมเปลี่ยน → คู่ต่อสู้ใน Arena ต้องเห็นทีมใหม่
+}
 function toggle(id) {
   if (expeditionIds.value.has(id)) return
   const cur = activeIds.value.slice()

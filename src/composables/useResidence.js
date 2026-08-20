@@ -2,6 +2,7 @@ import { computed } from 'vue'
 import { increment, serverTimestamp } from 'firebase/firestore'
 import { useAuthStore } from '../stores/auth.js'
 import { useToast } from './useToast.js'
+import { useRosterSync } from './useRosterSync.js'
 import { useConfirm } from './useConfirm.js'
 import {
   getTier, nextTier as nextTierOf, upgradeCostFrom, isMaxResidence,
@@ -15,6 +16,7 @@ import {
 export function useResidence() {
   const auth = useAuthStore()
   const { toast } = useToast()
+  const { syncRosterRow } = useRosterSync()
   const { confirm } = useConfirm()
 
   const level       = computed(() => auth.userData?.residence?.level || 1)
@@ -54,6 +56,7 @@ export function useResidence() {
         'residence.upgradedAt': serverTimestamp(),
       },
     )
+    if (saved) syncRosterRow()   // เลเวลบ้านโชว์ในหน้าเพื่อน → อัปแถวตัวเอง
     toast(saved ? `อัปเกรดเป็น ${target.art} ${target.tierName} แล้ว!` : 'อัปเกรดไม่สำเร็จ', saved ? 'success' : 'error')
   }
 

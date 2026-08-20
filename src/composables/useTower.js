@@ -1,6 +1,7 @@
 import { computed } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
 import { useToast } from './useToast.js'
+import { useRosterSync } from './useRosterSync.js'
 import { simulateBattle } from '../utils/battleEngine.js'
 import { getFloorTeam, getTowerBonus, TOWER_MAX } from '../data/towerFloors.js'
 import { resolveBattleTeam } from '../utils/petTeam.js'
@@ -12,6 +13,7 @@ import { useUsageStore } from '../stores/usage.js'
 export function useTower() {
   const auth = useAuthStore()
   const { toast } = useToast()
+  const { syncRosterRow } = useRosterSync()
 
   const floor = computed(() => auth.userData?.towerFloor || 1)
   const best  = computed(() => auth.userData?.towerBest || 0)
@@ -53,6 +55,7 @@ export function useTower() {
         { towerFloor: nextFloor, towerBest: nextBest },
         { towerFloor: nextFloor, towerBest: nextBest },
       )
+      syncRosterRow()   // อัปแถวตัวเองในบอร์ด (เขียนเฉพาะตอนค่าเปลี่ยนจริง)
     }
     return { result, botTeam: botTeam.value, playerTeam: team.value, won, cleared }
   }

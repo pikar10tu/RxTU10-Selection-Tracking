@@ -66,6 +66,7 @@
 import Emoji from '../components/shared/Emoji.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useMembersStore } from '../stores/members.js'
+import { useRosterSync } from '../composables/useRosterSync.js'
 import { useAuthStore } from '../stores/auth.js'
 import { getTier } from '../data/residence.js'
 import { letterAvatar, fallbackAvatar } from '../utils/avatar.js'
@@ -73,6 +74,7 @@ import { sortMembers } from '../utils/sortMembers.js'
 import ProfileModal from '../components/members/ProfileModal.vue'
 
 const members = useMembersStore()
+const { syncRosterRow } = useRosterSync()
 const auth = useAuthStore()
 const myUid = computed(() => auth.currentUser?.uid)
 const search = ref('')
@@ -80,7 +82,9 @@ const track = ref('all')
 const selected = ref(null)
 const sortKey = ref('studentId')
 
-onMounted(() => members.loadRoster())
+// โหลด roster แล้วซ่อมแถวตัวเองถ้ายังไม่มี/เพี้ยน — ปิดช่องว่างของคนที่เพิ่งผูกตัวตนเสร็จ
+// (syncRosterRow เขียนเฉพาะตอนค่าต่างจริง จึงไม่ใช่ write เพิ่มในกรณีปกติ)
+onMounted(async () => { await members.loadRoster(); syncRosterRow() })
 // ↻ บังคับโหลดสด (roster อาจ stale ถ้าเพื่อนเพิ่งทำคะแนน) — ยังเป็น 1 read
 const refresh = () => members.loadRoster({ force: true })
 

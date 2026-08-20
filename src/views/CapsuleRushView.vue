@@ -47,12 +47,14 @@ import HelpButton from '../components/help/HelpButton.vue'
 import { useCapsuleRush } from '../composables/useCapsuleRush.js'
 import { getMinigame } from '../data/minigames.js'
 import { grantCoins } from '../utils/minigameCore.js'
+import { useRosterSync } from '../composables/useRosterSync.js'
 import { fluentFile } from '../utils/emoji.js'
 import { useAuthStore } from '../stores/auth.js'
 import { reportCheat } from '../composables/useGuard.js'
 
 const GAME = getMinigame('capsuleRush')
 const auth = useAuthStore()
+const { syncRosterRow } = useRosterSync()
 const canvasEl = ref(null)
 const phase = ref('pick') // 'pick' | 'play' | 'over'
 const lastScore = ref(0)
@@ -115,6 +117,7 @@ async function saveResult() {
     },
   )
   saveState.value = ok ? 'saved' : 'failed'
+  if (ok) syncRosterRow()   // best ใหม่ → อัปแถวตัวเองในบอร์ด (เขียนเฉพาะตอนค่าเปลี่ยนจริง)
 }
 
 onBeforeUnmount(() => { stop(); dispose() })

@@ -36,10 +36,12 @@ import { increment } from 'firebase/firestore'
 import { useAuthStore } from '../stores/auth.js'
 import { newBoard, move, spawn, isGameOver } from '../utils/game2048.js'
 import { grantCoins } from '../utils/minigameCore.js'
+import { useRosterSync } from '../composables/useRosterSync.js'
 import { getMinigame } from '../data/minigames.js'
 import { reportCheat } from '../composables/useGuard.js'
 
 const auth = useAuthStore()
+const { syncRosterRow } = useRosterSync()
 const GAME = getMinigame('g2048')
 
 // เพดานรางวัลแยกจากเพดานจับโกง — maxPlausibleScore (100k) ใช้จับคะแนนที่เป็นไปไม่ได้
@@ -111,6 +113,7 @@ async function saveResult() {
     },
   )
   saveState.value = ok ? 'saved' : 'failed'
+  if (ok) syncRosterRow()   // best ใหม่ → อัปแถวตัวเองในบอร์ด (เขียนเฉพาะตอนค่าเปลี่ยนจริง)
 }
 
 onMounted(() => reset())

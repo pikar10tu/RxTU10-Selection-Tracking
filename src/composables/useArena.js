@@ -8,6 +8,7 @@ import { useToast } from './useToast.js'
 import { simulateBattle } from '../utils/battleEngine.js'
 import { resolveBattleTeam } from '../utils/petTeam.js'
 import { rosterOpponents } from '../utils/roster.js'
+import { useRosterSync } from './useRosterSync.js'
 import {
   nextRating, BOT_RATING_MULT, PVP_DAILY_ATTACKS, PVP_WIN_COIN, PVP_BOT_COIN,
 } from '../utils/pvpRating.js'
@@ -22,6 +23,7 @@ export function useArena() {
   const auth = useAuthStore()
   const members = useMembersStore()
   const { toast } = useToast()
+  const { syncRosterRow } = useRosterSync()
 
   // เรต/สถิติ "ตามซีซั่นปัจจุบัน" — preview soft-reset ก่อนเขียนจริง (เผื่อข้ามเดือน)
   const seasonPvp = computed(() => applySeasonReset(auth.userData?.pvp, currentSeasonId()))
@@ -82,6 +84,7 @@ export function useArena() {
     )
     // patchUser คืน false เมื่อเขียน Firestore ล้มเหลว (+rollback optimistic แล้ว)
     // → คืน ok=false ให้ fight() ไม่โชว์ replay ลวง
+    syncRosterRow()   // เรตเปลี่ยน → อัปแถวตัวเองในบอร์ด
     return { ok, newRating, delta: newRating - base.rating, coin }
   }
 

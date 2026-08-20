@@ -40,12 +40,14 @@ import { increment } from 'firebase/firestore'
 import { useAuthStore } from '../stores/auth.js'
 import { COLS, newStack, stepBlock, dropBlock } from '../utils/stacker.js'
 import { grantCoins } from '../utils/minigameCore.js'
+import { useRosterSync } from '../composables/useRosterSync.js'
 import { getMinigame } from '../data/minigames.js'
 import { reportCheat } from '../composables/useGuard.js'
 
 const VISIBLE_ROWS = 10        // โชว์แถวล่าสุดเท่านี้ (กองสูงกว่านี้เลื่อนขึ้นไป)
 
 const auth = useAuthStore()
+const { syncRosterRow } = useRosterSync()
 const GAME = getMinigame('stacker')
 
 const state = ref(newStack())
@@ -116,6 +118,7 @@ async function saveResult() {
     },
   )
   saveState.value = ok ? 'saved' : 'failed'
+  if (ok) syncRosterRow()   // best ใหม่ → อัปแถวตัวเองในบอร์ด (เขียนเฉพาะตอนค่าเปลี่ยนจริง)
 }
 
 onMounted(() => { raf = requestAnimationFrame(loop) })

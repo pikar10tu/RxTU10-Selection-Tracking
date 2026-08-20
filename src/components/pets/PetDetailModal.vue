@@ -71,6 +71,7 @@ import { buildCombatant } from '../../data/battle.js'
 import { petDailyCoins } from '../../utils/petUtils.js'
 import { BATTLE_SLOTS } from '../../data/residence.js'
 import { gradeUpCost, canUpgrade, MAX_GRADE } from '../../utils/petGrade.js'
+import { useRosterSync } from '../../composables/useRosterSync.js'
 import { useEscapeKey } from '../../composables/useEscapeKey.js'
 
 const props = defineProps({ petId: { type: String, default: null } })
@@ -78,6 +79,7 @@ const emit = defineEmits(['close'])
 useEscapeKey(() => !!props.petId, () => emit('close'))
 
 const auth = useAuthStore()
+const { syncRosterRow } = useRosterSync()
 const { toast } = useToast()
 const { confirm } = useConfirm()
 const busy = ref(false)
@@ -105,6 +107,7 @@ async function toggleActive() {
   busy.value = true
   const ok = await auth.patchUser({ activePets: next })
   if (!ok) toast('ตั้งทีมไม่สำเร็จ', 'error')
+  else syncRosterRow()   // ทีมเปลี่ยน → คู่ต่อสู้ใน Arena ต้องเห็นทีมใหม่
   busy.value = false
 }
 const pet = computed(() => pets.value.find(p => p.id === props.petId) || null)
@@ -143,6 +146,7 @@ async function commit(newPets, coinDelta = 0) {
   if (coinDelta) patch.coins = increment(coinDelta)
   // throw on failure so the calling action's try/catch shows its error toast
   if (!(await auth.patchUser(optimistic, patch))) throw new Error('user patch failed')
+  syncRosterRow()   // เกรด/ทีมเพ็ทเปลี่ยน → อัปแถวตัวเอง (เขียนเฉพาะตอนค่าเปลี่ยนจริง)
 }
 
 async function evolve() {
