@@ -46,6 +46,44 @@
         </div>
       </section>
 
+      <!-- ───── โฟกัสเกม: ซ่อน/เปิด ฟีเจอร์รอง ───── -->
+      <section class="admin-card">
+        <div class="admin-card-head"><span><Emoji char="🎯" /> โฟกัสเกม</span></div>
+        <div class="admin-hint">
+          ปิดไว้ = นักศึกษาไม่เห็นทางเข้า (แอดมินยังเข้าได้ไว้เทส) · ของเก่าไม่หาย เปิดกลับมาอยู่ครบ ·
+          มีผลทันที ไม่ต้อง deploy · <b>คนที่กำลังส่งผจญภัยอยู่ยังเข้าไปเก็บของได้เสมอ</b>
+        </div>
+
+        <div class="maint-toggle">
+          <span class="maint-state" :class="expeditionOpen ? 'on' : 'off'">
+            {{ expeditionOpen ? '🟢 ส่งผจญภัย: เปิดให้เล่นแล้ว' : '🔒 ส่งผจญภัย: ซ่อนจากนักศึกษา' }}
+          </span>
+          <button
+            class="btn-mini" :class="expeditionOpen ? 'btn-gray' : 'btn-gold'"
+            :disabled="savingFocus" @click="toggleFocus('expeditionOpen')"
+          >
+            {{ savingFocus ? '...' : (expeditionOpen ? 'ซ่อน' : 'เปิด 🗺️') }}
+          </button>
+        </div>
+
+        <div class="maint-toggle" style="margin-top:8px">
+          <span class="maint-state" :class="arcadeOpen ? 'on' : 'off'">
+            {{ arcadeOpen ? '🟢 มินิเกม: เปิดให้เล่นแล้ว' : '🔒 มินิเกม: ซ่อนจากนักศึกษา' }}
+          </span>
+          <button
+            class="btn-mini" :class="arcadeOpen ? 'btn-gray' : 'btn-gold'"
+            :disabled="savingFocus" @click="toggleFocus('arcadeOpen')"
+          >
+            {{ savingFocus ? '...' : (arcadeOpen ? 'ซ่อน' : 'เปิด 🎮') }}
+          </button>
+        </div>
+
+        <div class="admin-hint" style="margin-top:8px">
+          ⚠️ มินิเกมที่ปิดคือ 2048 / Stacker / Capsule Rush เท่านั้น —
+          <b>ตัวฝึกคำนวณ CrCl ในหน้าเตรียมสอบไม่ได้ถูกปิดด้วย</b>
+        </div>
+      </section>
+
       <!-- ───── ตรวจข้อสอบ (วิชาการ) ───── -->
       <section class="admin-card">
         <div class="admin-card-head"><span><Emoji char="🔍" /> ตรวจข้อสอบ (วิชาการ)</span></div>
@@ -395,7 +433,7 @@ import { getCategories } from '../utils/questionCategories.js'
 const authStore = useAuthStore()
 const members   = useMembersStore()
 const usage     = useUsageStore()
-const { maintenance, pvpOpen } = useAppConfig()
+const { maintenance, pvpOpen, expeditionOpen, arcadeOpen } = useAppConfig()
 const { toast } = useToast()
 const { confirm } = useConfirm()
 
@@ -641,6 +679,25 @@ async function togglePvp() {
     toast('เปลี่ยนสถานะไม่สำเร็จ', 'error')
   } finally {
     savingPvp.value = false
+  }
+}
+
+// ── เปิด/ซ่อน ฟีเจอร์รอง (config/app.expeditionOpen / arcadeOpen) ──
+const savingFocus = ref(false)
+const FOCUS_LABEL = { expeditionOpen: 'ส่งผจญภัย', arcadeOpen: 'มินิเกม' }
+async function toggleFocus(key) {
+  const current = key === 'expeditionOpen' ? expeditionOpen.value : arcadeOpen.value
+  const next = !current
+  savingFocus.value = true
+  try {
+    // merge → ไม่ทับ maintenance/pvpOpen ที่อยู่ใน doc เดียวกัน
+    await setDoc(doc(db, 'config', 'app'), { [key]: next }, { merge: true })
+    toast(`${next ? 'เปิด' : 'ซ่อน'}${FOCUS_LABEL[key]}แล้ว`, 'success')
+  } catch (e) {
+    console.error('[admin focus]', key, e)
+    toast('เปลี่ยนสถานะไม่สำเร็จ', 'error')
+  } finally {
+    savingFocus.value = false
   }
 }
 
