@@ -33,13 +33,35 @@ test('buildRosterRow เก็บ m เฉพาะเกมที่ best > 0',
   assert.deepEqual(buildRosterRow(user({ minigames: {} })).m, {})
 })
 
-test('buildRosterRow tm = [id, grade] ข้าม slot ว่าง และ cap ที่ 3', () => {
-  assert.deepEqual(buildRosterRow(user()).tm, [['fox', 3], ['owl', 0]])
+test('buildRosterRow tm = [{i,g}] ข้าม slot ว่าง และ cap ที่ 3', () => {
+  // ⚠️ ต้องเป็น array ของ object ไม่ใช่ array ซ้อน array — Firestore ไม่รับ nested array
+  assert.deepEqual(buildRosterRow(user()).tm, [{ i: 'fox', g: 3 }, { i: 'owl', g: 0 }])
   const four = user({
     activePets: ['a', 'b', 'c', 'd'],
     pets: [{ id: 'a', grade: 1 }, { id: 'b', grade: 2 }, { id: 'c', grade: 3 }, { id: 'd', grade: 4 }],
   })
   assert.equal(buildRosterRow(four).tm.length, 3, 'cap ที่ BATTLE_SLOTS')
+})
+
+// Firestore ไม่รองรับ array ซ้อน array — setDoc จะ throw ทั้ง doc
+// เจอจริงตอนกดปุ่มสร้าง roster ครั้งแรก (tm เคยเป็น [[id, grade]])
+// เช็คทั้งแถวแบบ recursive เพื่อกันฟิลด์ใหม่ในอนาคตพลาดซ้ำ
+function assertNoNestedArrays(v, path = 'row') {
+  if (Array.isArray(v)) {
+    for (const [i, el] of v.entries()) {
+      assert.equal(Array.isArray(el), false, `${path}[${i}] เป็น array ซ้อน array — Firestore รับไม่ได้`)
+      assertNoNestedArrays(el, `${path}[${i}]`)
+    }
+    return
+  }
+  if (v && typeof v === 'object') {
+    for (const [k, val] of Object.entries(v)) assertNoNestedArrays(val, `${path}.${k}`)
+  }
+}
+
+test('ทั้งแถวต้องไม่มี array ซ้อน array (Firestore setDoc จะ throw ทั้ง doc)', () => {
+  assertNoNestedArrays(buildRosterRow(user()))
+  assertNoNestedArrays(buildRosterFromUsers([{ uid: 'u1', data: user() }]))
 })
 
 test('buildRosterRow ทน field หาย → ค่าตั้งต้นที่ปลอดภัย', () => {

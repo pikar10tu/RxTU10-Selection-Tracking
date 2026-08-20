@@ -45,7 +45,7 @@
       tb: 43,                        // towerBest
       r:  1120,                      // pvp.rating
       m:  { g2048: 8192 },           // minigames.<key>.best — เก็บเฉพาะที่ > 0
-      tm: [["fox",3],["cat",1]],     // ทีมสู้: [petId, grade] สูงสุด 3 ตัว
+      tm: [{i:"fox",g:3},{i:"cat",g:1}],  // ทีมสู้: [{petId, grade}] สูงสุด 3 ตัว
     }
   },
   updatedAt: <serverTimestamp>
@@ -59,8 +59,17 @@
 `ArenaView` ไม่ได้ใช้แค่เรต — มันต้อง**สู้กับทีมเพ็ทจริงของคู่ต่อสู้** (`opp.pets`, `opp.activePets`)
 แต่ `resolveBattleTeam(ids, pets)` (`utils/petTeam.js:7`) ใช้จาก instance แค่ **`grade`** —
 `rarity`/`element` ดึงจาก catalog ผ่าน `getPetDef(id)` อยู่แล้ว
-→ เก็บแค่ `[id, grade]` 3 คู่ (~50 B) ก็สร้างทีมคู่ต่อสู้ได้ครบ **ไม่ต้องอ่าน doc ใครเลย**
+→ เก็บแค่ `{i: id, g: grade}` 3 ตัว (~60 B) ก็สร้างทีมคู่ต่อสู้ได้ครบ **ไม่ต้องอ่าน doc ใครเลย**
 → `hasTeam` เดิม (`activePets.some(Boolean)`) กลายเป็น `row.tm?.length > 0`
+
+### ⚠️ กับดัก: Firestore ไม่รองรับ array ซ้อน array
+
+`tm` ร่างแรกเป็น `[[petId, grade]]` ซึ่งกระชับกว่า แต่ `setDoc` throw ทันที:
+`Function setDoc() called with invalid data. Nested arrays are not supported`
+**ทั้ง doc เขียนไม่ผ่าน** ไม่ใช่แค่ฟิลด์นั้น
+
+เจอตอนกดปุ่มสร้าง roster ครั้งแรกจริง — เทส pure function ไม่จับให้ เพราะ JS รับ array ซ้อนได้ปกติ
+→ เปลี่ยนเป็น `[{i, g}]` (map ใน array ใช้ได้) + เพิ่มเทสเดินทั้งแถวแบบ recursive กันฟิลด์ใหม่พลาดซ้ำ
 
 ### ไม่เก็บอะไร และเพราะอะไร
 - **`customPhoto`** — เป็น data URL ก้อนใหญ่ · แคชเดิม `slimForCache` (`membersCache.js:11`) ก็ drop ทิ้งอยู่แล้ว
@@ -164,7 +173,7 @@ store จึงมี **สอง** เส้นทางแยกกัน ไ�
 
 1. `buildRosterRow` map ฟิลด์ครบและตัด `customPhoto` ทิ้ง
 2. `buildRosterRow` เก็บ `m` เฉพาะเกมที่ best > 0 (ไม่มีเกมไหนเลย → `m` เป็น `{}`)
-3. `buildRosterRow` `tm` = `[id, grade]` สูงสุด 3 คู่ · ข้าม slot ที่เป็น null
+3. `buildRosterRow` `tm` = `[{i,g}]` สูงสุด 3 ตัว · ข้าม slot ที่เป็น null · **ห้ามเป็น array ซ้อน array**
 4. `rosterRowChanged` ค่าเท่าเดิม → `false` (ไม่เขียน)
 5. `rosterRowChanged` best มินิเกมขยับ → `true`
 6. `rosterRowChanged` เหรียญเปลี่ยนแต่ฟิลด์บอร์ดเท่าเดิม → `false`

@@ -27,14 +27,16 @@ export function buildRosterRow(u) {
     if (best > 0) m[g.key] = best
   }
 
-  // ทีมสู้: [petId, grade] — rarity/element ดึงจาก catalog ตอนอ่าน จึงไม่ต้องเก็บ
+  // ทีมสู้: [{i: petId, g: grade}] — rarity/element ดึงจาก catalog ตอนอ่าน จึงไม่ต้องเก็บ
+  // ⚠️ ต้องเป็น array ของ "object" ไม่ใช่ [[id, grade]] — Firestore ไม่รองรับ array ซ้อน array
+  //    (setDoc throw "Nested arrays are not supported") · map ใน array ใช้ได้ปกติ
   const pets = Array.isArray(d.pets) ? d.pets : []
   const tm = (Array.isArray(d.activePets) ? d.activePets : [])
     .filter(Boolean)
     .slice(0, BATTLE_SLOTS)
     .map((id) => {
       const inst = pets.find(p => (p?.id || p?.species) === id) || {}
-      return [id, num(inst.grade, 0)]
+      return { i: id, g: num(inst.grade, 0) }
     })
 
   return {
@@ -99,15 +101,16 @@ export function rosterToMembers(rows) {
   return { byStudentId, guests }
 }
 
-/** [id,grade] → รูปเดียวกับ resolveBattleTeam (utils/petTeam.js) */
+/** [{i,g}] → รูปเดียวกับ resolveBattleTeam (utils/petTeam.js) */
 export function rosterTeam(row) {
-  return (row?.tm || []).map(([id, grade]) => {
+  return (row?.tm || []).map((slot) => {
+    const id = slot?.i
     const def = getPetDef(id) || {}
     return {
       id,
       rarity:  def.rarity  || 'common',
       element: def.element || 'scissors',
-      grade:   num(grade, 0),
+      grade:   num(slot?.g, 0),
     }
   })
 }
