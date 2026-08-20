@@ -49,9 +49,12 @@ service cloud.firestore {
     match /users/{userId} {
       allow read:   if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == userId;
+      //  ⚠️ ลำดับสำคัญ: เอา ownership ไว้หน้า isAdmin() เพราะ `||` short-circuit —
+      //  isAdmin() เรียก get() ซึ่งคิดเป็น 1 read ทุกครั้ง ถ้าอยู่หน้าสุดจะเสีย 1 read
+      //  ต่อ "ทุกการเขียน user doc" ของทุกคน (patchUser ยิงแทบทุกการกระทำในเกม)
+      //  สลับแล้วเจ้าของเขียน doc ตัวเอง = 0 get · แอดมินเขียน doc คนอื่นยังผ่านเหมือนเดิม
       allow update: if request.auth != null && (
-        isAdmin()
-        || (
+        (
           request.auth.uid == userId
           && request.resource.data.get('role', 'student') == resource.data.get('role', 'student')
           && request.resource.data.get('tags', []) == resource.data.get('tags', [])
@@ -69,6 +72,7 @@ service cloud.firestore {
             || request.resource.data.get('guestStatus', null) == 'pending'
           )
         )
+        || isAdmin()
       );
       allow delete: if isAdmin();
 
@@ -165,11 +169,12 @@ service cloud.firestore {
     //    achievement-unlock announcements only (field+length guarded) ──
     match /news/{newsId} {
       allow read:   if request.auth != null;
-      allow create: if isAdmin()
-        || (request.auth != null
+      //  ทางแอชชีฟเมนต์มาก่อน isAdmin() — เงื่อนไขล้วน ไม่มี get() (ดูเหตุผลที่ users/{userId})
+      allow create: if (request.auth != null
             && request.resource.data.type == 'achievement'
             && request.resource.data.msg is string && request.resource.data.msg.size() <= 140
-            && request.resource.data.keys().hasOnly(['msg','icon','type','uid','ts']));
+            && request.resource.data.keys().hasOnly(['msg','icon','type','uid','ts']))
+        || isAdmin();
       allow update: if false;
       allow delete: if isAdmin();
     }
@@ -235,8 +240,8 @@ service cloud.firestore {
         // create: ต้องเป็นคนเขียนจริง (กันปลอม authorUid เป็นคนอื่นผ่าน DevTools)
         allow create: if canEditQuestions()
           && request.resource.data.get('authorUid', '') == request.auth.uid;
-        allow update, delete: if isAdmin()
-          || (request.auth != null && request.auth.uid == resource.data.get('authorUid', ''));
+        allow update, delete: if (request.auth != null && request.auth.uid == resource.data.get('authorUid', ''))
+          || isAdmin();
       }
 
       // ── Reviews (Peer-review วิชาการ) — ผลตรวจรายผู้ตรวจต่อข้อ ──
