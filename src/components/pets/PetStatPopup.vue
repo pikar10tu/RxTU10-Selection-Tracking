@@ -29,9 +29,11 @@ import Emoji from '../shared/Emoji.vue'
 import { RARITY, GRADE_LABELS, getPetDef } from '../../data/index.js'
 import { buildCombatant } from '../../data/battle.js'
 import { petDailyCoins } from '../../utils/petUtils.js'
+import { useEscapeKey } from '../../composables/useEscapeKey.js'
 
 const props = defineProps({ pet: { type: Object, default: null } })
-defineEmits(['close'])
+const emit = defineEmits(['close'])
+useEscapeKey(() => !!props.pet, () => emit('close'))
 
 const rc = computed(() => RARITY[props.pet?.rarity]?.color || '#94a3b8')
 const rarityLabel = computed(() => RARITY[props.pet?.rarity]?.label || props.pet?.rarity)

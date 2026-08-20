@@ -65,6 +65,7 @@
 </template>
 
 <script setup>
+import { useEscapeKey } from '../../composables/useEscapeKey.js'
 import { ref, computed } from 'vue'
 import Emoji from '../shared/Emoji.vue'
 import { increment } from 'firebase/firestore'
@@ -86,6 +87,7 @@ const rarityColor = (r) => RARITY[r]?.color || '#94a3b8'
 
 const pending = ref(null) // { mode, rarity, required }
 const reveal = ref(null)  // summary entry
+useEscapeKey(reveal, () => { reveal.value = null })
 const coinBurst = ref(null) // จำนวนเหรียญที่เพิ่งแลก (trigger animation)
 const busy = ref(false)
 let cbTimer = null

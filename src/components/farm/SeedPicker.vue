@@ -33,12 +33,14 @@
 <script setup>
 import Emoji from '../shared/Emoji.vue'
 import { growLabel } from '../../data/crops.js'
-defineProps({
+import { useEscapeKey } from '../../composables/useEscapeKey.js'
+const props = defineProps({
   open: Boolean,
   choices: { type: Array, default: () => [] },
   coins: { type: Number, default: 0 },
 })
-defineEmits(['pick', 'close'])
+const emit = defineEmits(['pick', 'close'])
+useEscapeKey(() => props.open, () => emit('close'))
 </script>
 
 <style scoped>

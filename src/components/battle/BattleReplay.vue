@@ -111,6 +111,7 @@
 </template>
 
 <script setup>
+import { useEscapeKey } from '../../composables/useEscapeKey.js'
 import Emoji from '../shared/Emoji.vue'
 import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import { getPetDef, atkStyleOf, projectileOf, passiveOf, ELEMENTS, EL_NAME, GRADE_LABELS } from '../../data/index.js'
@@ -145,7 +146,8 @@ const speed = ref(1)
 const hp = ref({})
 const inspectUid = ref(null)
 const introPhase = ref(null)   // 'ready' | 'go' | null (null = เริ่มเล่น log แล้ว)
-const resultOpen = ref(false)    // modal สรุปโชว์อยู่
+const resultOpen = ref(false)
+useEscapeKey(resultOpen, () => { resultOpen.value = false })    // modal สรุปโชว์อยู่
 const resultReady = ref(false)   // จบไฟต์+ผ่านจังหวะรอแล้ว — ใช้โชว์ปุ่มลอย "ดูสรุป" ตอน peek
 let resultTimer = null
 let introTimer = null

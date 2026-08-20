@@ -73,6 +73,7 @@
 </template>
 
 <script setup>
+import { useEscapeKey } from '../composables/useEscapeKey.js'
 import Emoji from '../components/shared/Emoji.vue'
 import { ref, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -114,6 +115,7 @@ const FB_CATS = [
   { key: 'other', label: '📝 อื่นๆ' },
 ]
 const fbOpen = ref(false)
+useEscapeKey(fbOpen, () => { fbOpen.value = false })
 const fbCat = ref('idea')
 const fbText = ref('')
 const fbBusy = ref(false)

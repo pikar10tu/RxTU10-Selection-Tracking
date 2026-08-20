@@ -93,6 +93,7 @@
 </template>
 
 <script setup>
+import { useEscapeKey } from '../composables/useEscapeKey.js'
 import Emoji from '../components/shared/Emoji.vue'
 import { RouterLink } from 'vue-router'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
@@ -125,6 +126,7 @@ const durationId = ref(DURATIONS[0]?.id || null)
 const picked = ref([])
 const busy = ref(false)
 const result = ref(null)
+useEscapeKey(result, () => { result.value = null })
 
 // มิชชันที่เลือกตอน idle
 const curMission = computed(() => mission(missionId.value))

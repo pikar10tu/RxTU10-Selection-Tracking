@@ -57,9 +57,11 @@ import TagChips from '../shared/TagChips.vue'
 import AchievementGrid from '../shared/AchievementGrid.vue'
 import PetStatPopup from '../pets/PetStatPopup.vue'
 import PetThumb from '../shared/PetThumb.vue'
+import { useEscapeKey } from '../../composables/useEscapeKey.js'
 
 const props = defineProps({ member: { type: Object, default: null } })
-defineEmits(['close'])
+const emit = defineEmits(['close'])
+useEscapeKey(() => !!props.member, () => emit('close'))
 
 const petPopup = ref(null)
 

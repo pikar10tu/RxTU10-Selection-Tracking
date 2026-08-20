@@ -175,6 +175,7 @@
 </template>
 
 <script setup>
+import { useEscapeKey } from '../composables/useEscapeKey.js'
 import Emoji from '../components/shared/Emoji.vue'
 import SectionTitle from '../components/shared/SectionTitle.vue'
 import HelpButton from '../components/help/HelpButton.vue'
@@ -377,6 +378,7 @@ async function commit(newCards, reward, today, dailyTotal, reviewedInc = 0) {
 
 // ── report wrong drug data → Firestore `drugReports` (admin reviews later) ──
 const reportOpen = ref(false)
+useEscapeKey(reportOpen, () => { reportOpen.value = false })
 const reportTarget = ref(null)
 const reportText = ref('')
 const reportBusy = ref(false)

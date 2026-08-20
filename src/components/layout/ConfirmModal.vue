@@ -1,6 +1,6 @@
 <template>
   <div class="modal-ov" :class="{ active: visible }" style="overscroll-behavior:contain"
-    @click.self="cancel" @keydown.esc="cancel">
+    @click.self="cancel">
     <div class="modal-box" style="max-width:300px;text-align:center"
       role="dialog" aria-modal="true" aria-label="ยืนยันการทำรายการ">
       <div style="font-size:1.3rem;margin-bottom:8px" aria-hidden="true"><Emoji char="🤔" /></div>
@@ -18,7 +18,9 @@ import Emoji from '../shared/Emoji.vue'
 import { computed, ref, watch, nextTick } from 'vue'
 import { useConfirm } from '../../composables/useConfirm.js'
 import { emojifyHtml } from '../../utils/emoji.js'
+import { useEscapeKey } from '../../composables/useEscapeKey.js'
 const { visible, message, ok, cancel } = useConfirm()
+useEscapeKey(visible, cancel)   // เดิมใช้ @keydown.esc ซึ่งทำงานเฉพาะตอนมีโฟกัสในกล่อง
 
 // focus management: ย้าย focus เข้าปุ่มยืนยันตอนเปิด, คืน focus ให้ element เดิมตอนปิด
 const okBtn = ref(null)

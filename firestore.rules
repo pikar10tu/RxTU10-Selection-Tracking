@@ -173,7 +173,9 @@ service cloud.firestore {
       allow create: if (request.auth != null
             && request.resource.data.type == 'achievement'
             && request.resource.data.msg is string && request.resource.data.msg.size() <= 140
-            && request.resource.data.keys().hasOnly(['msg','icon','type','uid','ts']))
+            && request.resource.data.keys().hasOnly(['msg','icon','type','uid','ts'])
+            // ต้องเป็นชื่อตัวเอง — เดิมไม่บังคับ ใครก็โพสต์แอชชีฟเมนต์ในนามคนอื่นได้ผ่าน DevTools
+            && request.resource.data.get('uid', '') == request.auth.uid)
         || isAdmin();
       allow update: if false;
       allow delete: if isAdmin();

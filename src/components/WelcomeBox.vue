@@ -21,6 +21,7 @@ import { computed } from 'vue'
 import Emoji from './shared/Emoji.vue'
 import { useAuthStore } from '../stores/auth.js'
 import { WELCOME_GIFT_COINS, WELCOME_GIFT_TICKETS } from '../data/userSchema.js'
+import { useEscapeKey } from '../composables/useEscapeKey.js'
 
 const auth = useAuthStore()
 const show = computed(() => !!auth.userData?.welcomeGiftV1 && !auth.userData?.welcomeBoxSeen)
@@ -28,6 +29,7 @@ const show = computed(() => !!auth.userData?.welcomeGiftV1 && !auth.userData?.we
 async function close() {
   await auth.patchUser({ welcomeBoxSeen: true }, { welcomeBoxSeen: true })
 }
+useEscapeKey(show, close)
 </script>
 
 <style scoped>

@@ -290,6 +290,12 @@ export const useAuthStore = defineStore('auth', () => {
                 _unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
                     if (_blockSnapshot) { _pendingSnapshot = snap.data() ?? null; return }
                     applySnapshot(snap.data())
+                }, (err) => {
+                    // listener ตาย (rules ปฏิเสธ / เน็ตมหาลัยบล็อก) — เดิมเงียบสนิท
+                    // แอปจะค้างข้อมูลเก่าโดยไม่มีสัญญาณอะไรเลย
+                    console.error('[user snapshot]', err.code, err)
+                    const { toast } = useToast()
+                    toast('การเชื่อมต่อข้อมูลหลุด — ลองรีเฟรชหน้า', 'error', 6000)
                 })
             } else {
                 if (_unsub) { _unsub(); _unsub = null }

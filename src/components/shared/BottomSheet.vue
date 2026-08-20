@@ -28,14 +28,16 @@
 
 <script setup>
 import Emoji from './Emoji.vue'
+import { useEscapeKey } from '../../composables/useEscapeKey.js'
 
-defineProps({
+const props = defineProps({
   open: { type: Boolean, default: false },
   icon: { type: String, default: '' },
   title: { type: String, default: '' },
 })
 const emit = defineEmits(['update:open'])
 function close() { emit('update:open', false) }
+useEscapeKey(() => props.open, close)
 </script>
 
 <style scoped>

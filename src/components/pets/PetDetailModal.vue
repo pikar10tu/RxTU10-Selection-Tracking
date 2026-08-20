@@ -71,9 +71,11 @@ import { buildCombatant } from '../../data/battle.js'
 import { petDailyCoins } from '../../utils/petUtils.js'
 import { BATTLE_SLOTS } from '../../data/residence.js'
 import { gradeUpCost, canUpgrade, MAX_GRADE } from '../../utils/petGrade.js'
+import { useEscapeKey } from '../../composables/useEscapeKey.js'
 
 const props = defineProps({ petId: { type: String, default: null } })
-defineEmits(['close'])
+const emit = defineEmits(['close'])
+useEscapeKey(() => !!props.petId, () => emit('close'))
 
 const auth = useAuthStore()
 const { toast } = useToast()

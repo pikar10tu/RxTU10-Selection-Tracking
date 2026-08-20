@@ -134,6 +134,7 @@
 </template>
 
 <script setup>
+import { useEscapeKey } from '../composables/useEscapeKey.js'
 import { computed, ref } from 'vue'
 import Emoji from '../components/shared/Emoji.vue'
 import HelpButton from '../components/help/HelpButton.vue'
@@ -169,7 +170,9 @@ const pay10 = computed(() => resolvePullPayment(10, tickets.value))
 
 const reveal = ref(null)       // { summary, multi }
 const pickerOpen = ref(false)
-const infoPet = ref(null)      // legendary ที่กดดู flavor ใน picker
+useEscapeKey(pickerOpen, () => { pickerOpen.value = false })
+const infoPet = ref(null)
+useEscapeKey(infoPet, () => { infoPet.value = null })      // legendary ที่กดดู flavor ใน picker
 const buying = ref(false)
 
 const rarityColor = (r) => RARITY[r]?.color || '#94a3b8'

@@ -42,6 +42,7 @@ import Emoji from '../shared/Emoji.vue'
 import { useAuthStore } from '../../stores/auth.js'
 import { RARITY } from '../../data/index.js'
 import { REDEEM_COIN } from '../../utils/lab.js'
+import { useEscapeKey } from '../../composables/useEscapeKey.js'
 
 const props = defineProps({
   rarity: { type: String, required: true },
@@ -49,6 +50,7 @@ const props = defineProps({
   required: { type: Number, default: 0 },
 })
 const emit = defineEmits(['confirm', 'cancel'])
+useEscapeKey(() => true, () => emit('cancel'))   // component นี้ mount เฉพาะตอนเปิด
 const auth = useAuthStore()
 
 const candidates = computed(() => (auth.userData?.pets || []).filter((p) => p.rarity === props.rarity && (p.copies || 0) > 0))
