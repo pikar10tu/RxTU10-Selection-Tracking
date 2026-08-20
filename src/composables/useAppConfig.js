@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
+import { isFeatureOpen } from '../utils/featureFlags.js'
 
 // ════════════════════════════════════════════════════════════
 //  Launch gate via Firestore — `config/app { maintenance: bool }`
@@ -17,6 +18,9 @@ import { db } from '../firebase/config.js'
 
 const maintenance  = ref(true)
 const pvpOpen      = ref(false)   // สนามประลองเปิดให้ทุกคนบุกหรือยัง (admin toggle)
+const expeditionOpen = ref(false)  // ส่งผจญภัย — ปิดไว้ก่อน (โฟกัสเพ็ท+ฟาร์ม 21 ส.ค.)
+const arcadeOpen     = ref(false)  // มินิเกม 3 ตัว — ไม่คุมตัวฝึก CrCl ที่ใช้โครงเดียวกัน
+const rawConfig      = ref(null)   // ข้อมูลดิบ ให้ router guard เช็คพร้อม isAdmin เองได้
 const configLoaded = ref(false)
 let _started = false
 
@@ -27,9 +31,13 @@ export function initAppConfig() {
     doc(db, 'config', 'app'),
     (snap) => {
       const d = snap.data()
+      rawConfig.value = d || null
       // missing doc → stay locked (safe default)
       maintenance.value = d ? d.maintenance !== false : true
-      pvpOpen.value = d?.pvpOpen === true   // default ปิด จนกว่า admin เปิด
+      // ทุก flag ผ่านกฎเดียวกันใน utils/featureFlags.js — default ปิด จนกว่า admin เปิด
+      pvpOpen.value        = isFeatureOpen(d, 'pvpOpen')
+      expeditionOpen.value = isFeatureOpen(d, 'expeditionOpen')
+      arcadeOpen.value     = isFeatureOpen(d, 'arcadeOpen')
       configLoaded.value = true
     },
     (e) => { console.error('[appConfig]', e); configLoaded.value = true },
@@ -37,5 +45,5 @@ export function initAppConfig() {
 }
 
 export function useAppConfig() {
-  return { maintenance, configLoaded, pvpOpen }
+  return { maintenance, configLoaded, pvpOpen, expeditionOpen, arcadeOpen, rawConfig }
 }
