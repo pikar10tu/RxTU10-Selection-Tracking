@@ -7,23 +7,23 @@
       <div class="pf-hero" :style="heroStyle">
         <button class="pf-x" @click="$emit('close')">✕</button>
         <div class="pf-hero-art"><Emoji :char="tier.art" /></div>
-        <img class="pf-avatar" :src="avatar" :alt="member.nickname" @error="(e) => fallbackAvatar(e, member?.nickname)" />
-        <div v-if="member.realName" class="pf-real">{{ member.realName }}</div>
-        <div class="pf-name">{{ member.nickname }}</div>
+        <img class="pf-avatar" :src="avatar" :alt="view.nickname" @error="(e) => fallbackAvatar(e, view?.nickname)" />
+        <div v-if="view.realName" class="pf-real">{{ view.realName }}</div>
+        <div class="pf-name">{{ view.nickname }}</div>
         <div class="pf-residence"><Emoji :char="tier.art" /> {{ tier.tierName }} · Lv.{{ lvl }}</div>
         <div class="pf-chips">
           <span class="pf-chip" :style="{ background: trackColor }">{{ trackLabel }}</span>
         </div>
-        <div class="pf-chips" style="margin-top:5px"><TagChips :member="member" /></div>
+        <div class="pf-chips" style="margin-top:5px"><TagChips :member="view" /></div>
       </div>
 
-      <div class="pf-ach"><AchievementGrid :uid="member?.uid" /></div>
+      <div class="pf-ach"><AchievementGrid :uid="view?.uid" /></div>
 
       <!-- Tier 2: stat strip (max 3, no coins) -->
       <div class="pf-stats">
-        <div class="pf-stat"><span><Emoji char="⚔️" /></span><b>{{ member.pvpVictories || 0 }}</b><small>PvP ชนะ</small></div>
-        <div class="pf-stat"><span><Emoji char="🏯" /></span><b>{{ member.towerBest || 0 }}</b><small>หอคอย</small></div>
-        <div class="pf-stat"><span><Emoji char="🐾" /></span><b>{{ (member.pets || []).length }}</b><small>สัตว์เลี้ยง</small></div>
+        <div class="pf-stat"><span><Emoji char="⚔️" /></span><b>{{ view.pvpVictories || 0 }}</b><small>PvP ชนะ</small></div>
+        <div class="pf-stat"><span><Emoji char="🏯" /></span><b>{{ view.towerBest || 0 }}</b><small>หอคอย</small></div>
+        <div class="pf-stat"><span><Emoji char="🐾" /></span><b>{{ (view.pets || []).length }}</b><small>สัตว์เลี้ยง</small></div>
       </div>
 
       <!-- Tier 3: active team (tap to see stats) -->
@@ -39,9 +39,9 @@
 
       <!-- Tier 4: contact (only filled rows) -->
       <div v-if="hasContact" class="pf-contact">
-        <div v-if="member.contact?.phone"><span><Emoji char="📞" /></span>{{ member.contact.phone }}</div>
-        <div v-if="member.contact?.ig"><span><Emoji char="📷" /></span>{{ member.contact.ig }}</div>
-        <div v-if="member.contact?.line"><span><Emoji char="💬" /></span>{{ member.contact.line }}</div>
+        <div v-if="view.contact?.phone"><span><Emoji char="📞" /></span>{{ view.contact.phone }}</div>
+        <div v-if="view.contact?.ig"><span><Emoji char="📷" /></span>{{ view.contact.ig }}</div>
+        <div v-if="view.contact?.line"><span><Emoji char="💬" /></span>{{ view.contact.line }}</div>
       </div>
     </div>
   </div>
@@ -49,7 +49,8 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useMembersStore } from '../../stores/members.js'
 import Emoji from '../shared/Emoji.vue'
 import { getTier } from '../../data/residence.js'
 import { letterAvatar, fallbackAvatar } from '../../utils/avatar.js'
@@ -63,32 +64,45 @@ const props = defineProps({ member: { type: Object, default: null } })
 const emit = defineEmits(['close'])
 useEscapeKey(() => !!props.member, () => emit('close'))
 
+// roster เก็บแค่แถวย่อ (ชื่อ/รูป/เลเวล/สถิติบอร์ด) — ของหนัก (pets/contact/realName ฯลฯ)
+// โหลด doc คนนั้นตอนเปิดโปรไฟล์เท่านั้น 1 read/คน แล้ว store จำไว้ในเซสชัน กดซ้ำไม่เสีย read
+const members = useMembersStore()
+const full = ref(null)
+watch(() => props.member?.uid, async (uid) => {
+  full.value = null
+  if (!uid || String(uid).startsWith('static_')) return   // คนที่ยังไม่เข้าระบบ ไม่มี doc ให้อ่าน
+  full.value = await members.loadProfile(uid)
+}, { immediate: true })
+
+// ระหว่างรอ doc เต็ม ใช้แถวย่อไปก่อน (ชื่อ/รูป/เลเวลมีครบแล้ว) — จอไม่กระพริบ
+const view = computed(() => ({ ...(props.member || {}), ...(full.value || {}) }))
+
 const petPopup = ref(null)
 
-const lvl  = computed(() => props.member?.residence?.level || 1)
+const lvl  = computed(() => view.value?.residence?.level || 1)
 const tier = computed(() => getTier(lvl.value))
 
 const avatar = computed(() =>
-  props.member?.customPhoto || props.member?.googlePhoto ||
-  letterAvatar(props.member?.nickname)
+  view.value?.customPhoto || view.value?.googlePhoto ||
+  letterAvatar(view.value?.nickname)
 )
 const heroStyle = computed(() => ({
   background: `linear-gradient(135deg, ${tier.value.frameColor}, ${tier.value.frameColor}99)`,
 }))
 
 const TRACK = { sci: ['Sci', '#22c55e'], care: ['Care', '#3b82f6'], guest: ['Guest', '#9ca3af'] }
-const isGuest = computed(() => props.member?.accountType === 'guest' || props.member?.track === 'guest')
-const trackLabel = computed(() => (isGuest.value ? 'ผู้เยี่ยมชม' : (TRACK[props.member?.track]?.[0]) || 'สมาชิก'))
-const trackColor = computed(() => (isGuest.value ? (TRACK.guest[1]) : (TRACK[props.member?.track]?.[1]) || '#6366f1'))
+const isGuest = computed(() => view.value?.accountType === 'guest' || view.value?.track === 'guest')
+const trackLabel = computed(() => (isGuest.value ? 'ผู้เยี่ยมชม' : (TRACK[view.value?.track]?.[0]) || 'สมาชิก'))
+const trackColor = computed(() => (isGuest.value ? (TRACK.guest[1]) : (TRACK[view.value?.track]?.[1]) || '#6366f1'))
 
 // active team only: resolve activePets (species id, with instId fallback for not-yet-migrated members)
 const showcase = computed(() => {
-  const pets = props.member?.pets || []
-  const ids = (props.member?.activePets || []).map(x => (typeof x === 'string' ? x : x?.instId)).filter(Boolean)
+  const pets = view.value?.pets || []
+  const ids = (view.value?.activePets || []).map(x => (typeof x === 'string' ? x : x?.instId)).filter(Boolean)
   return ids.map(id => pets.find(p => p.id === id || p.instId === id)).filter(Boolean)
 })
 const hasContact = computed(() => {
-  const c = props.member?.contact || {}
+  const c = view.value?.contact || {}
   return !!(c.phone || c.ig || c.line)
 })
 </script>

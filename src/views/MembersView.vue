@@ -4,8 +4,12 @@
       <div class="mv-title"><Emoji char="👥" /> สมาชิก</div>
       <div class="mv-head-r">
         <span class="mv-count">{{ registeredCount }}/{{ roster.length }} เข้าระบบแล้ว</span>
-        <button class="mv-refresh" :disabled="members.loading" title="โหลดข้อมูลล่าสุด" @click="refresh">↻</button>
+        <button class="mv-refresh" :disabled="members.rosterLoading" title="โหลดข้อมูลล่าสุด" @click="refresh">↻</button>
       </div>
+    </div>
+
+    <div v-if="members.rosterMissing" class="mv-empty-roster">
+      ยังไม่มีข้อมูลรายชื่อ — ให้แอดมินกด "🔄 สร้าง roster ใหม่" ในหน้า Admin หนึ่งครั้ง
     </div>
 
     <input v-model="search" class="mv-search" type="text" placeholder="🔍 ค้นหาชื่อเล่น / ชื่อจริง / รหัส…" />
@@ -76,16 +80,17 @@ const track = ref('all')
 const selected = ref(null)
 const sortKey = ref('studentId')
 
-onMounted(() => members.loadFbUsers())
-// ↻ บังคับโหลดสด (ข้าม cache) — coins/อันดับอาจ stale ได้ถึง 8 ชม.
-const refresh = () => members.loadFbUsers({ force: true })
+onMounted(() => members.loadRoster())
+// ↻ บังคับโหลดสด (roster อาจ stale ถ้าเพื่อนเพิ่งทำคะแนน) — ยังเป็น 1 read
+const refresh = () => members.loadRoster({ force: true })
 
 // merge the full static roster (83) with logged-in user data (by studentId)
 const roster = computed(() => {
-  const fb = members.fbUsers || {}
+  const fb = members.rosterUsers || {}
   return (members.students || []).map(s => {
     const u = fb[s.id]
-    if (u) return { ...u, registered: true }
+    // realName มาจากรายชื่อ static เสมอ (ไม่ได้เก็บใน roster — ประหยัดและไม่มีวันเพี้ยน)
+    if (u) return { ...u, realName: s.realName, registered: true }
     return {
       uid: 'static_' + s.id, studentId: s.id,
       nickname: s.nickname, realName: s.realName, track: s.track,
@@ -96,7 +101,7 @@ const roster = computed(() => {
 
 // guest ที่อนุมัติแล้วเท่านั้น (pending/rejected ไม่โชว์ให้สมาชิก)
 const approvedGuests = computed(() =>
-  (members.guestUsers || []).filter(g => g.guestStatus === 'approved').map(g => ({ ...g, registered: true })))
+  (members.rosterGuests || []).filter(g => g.guestStatus === 'approved').map(g => ({ ...g, registered: true })))
 
 const showGuests = ref(false)
 
@@ -135,6 +140,8 @@ const avatarOf = (m) => m.customPhoto || m.googlePhoto || letterAvatar(m.nicknam
 }
 .mv-refresh:active { transform: translate(1px,1px); }
 .mv-refresh:disabled { opacity: .4; cursor: default; }
+.mv-empty-roster { font-size: .78rem; line-height: 1.5; color: #92400e; background: #fffbeb;
+  border: 1px solid #fde68a; border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
 .mv-search {
   width: 100%; box-sizing: border-box; padding: 10px 14px;
   border: 2px solid var(--ink); border-radius: 12px;

@@ -58,7 +58,6 @@ import { useAuthStore } from '../stores/auth.js'
 import { useMembersStore } from '../stores/members.js'
 import { useAppConfig } from '../composables/useAppConfig.js'
 import { useArena } from '../composables/useArena.js'
-import { resolveBattleTeam } from '../utils/petTeam.js'
 import TeamPicker from '../components/battle/TeamPicker.vue'
 import BattleReplay from '../components/battle/BattleReplay.vue'
 import PetThumb from '../components/shared/PetThumb.vue'
@@ -81,7 +80,7 @@ const router = useRouter()
 onMounted(() => { if (!canFight.value) router.replace('/play') })
 watch(canFight, (ok) => { if (!ok) router.replace('/play') })   // admin ปิดสนามระหว่างมีคนอยู่ในหน้า
 
-const oppPreview = (opp) => opp.isBot ? opp.team : resolveBattleTeam(opp.activePets, opp.pets)
+const oppPreview = (opp) => opp.team   // roster/บอท ให้ทีมมาพร้อมแล้ว
 
 async function onFight(opp) {
   if (busy.value) return
@@ -90,7 +89,7 @@ async function onFight(opp) {
   finally { busy.value = false }
 }
 
-onMounted(() => { members.loadFbUsers() })
+onMounted(() => { members.loadRoster() })
 </script>
 
 <style scoped>

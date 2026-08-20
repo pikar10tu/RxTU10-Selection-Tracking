@@ -152,11 +152,11 @@ const membersStore = useMembersStore()
 const { floor, best, team, botTeam, bonus, fight, TOWER_MAX } = useTower()
 const defOf = (id) => getPetDef(id) || { emoji: '❓', name: '?' }
 
-onMounted(() => { membersStore.loadFbUsers().catch(() => {}) })  // best-effort, ใช้ cache ถ้ามี
+onMounted(() => { membersStore.loadRoster().catch(() => {}) })  // best-effort, 1 read
 
 // แถบเทียบเพื่อน — best-effort ทั้งชุด: ไม่มีข้อมูล/total 0 → คืน null (การ์ดซ่อนทั้งใบ)
 const rivals = computed(() => {
-  const others = Object.values(membersStore.fbUsers || {})
+  const others = Object.values(membersStore.rosterUsers || {})
     .map(u => ({ uid: u.uid, nickname: u.nickname, towerBest: u.towerBest || 0 }))
   if (!others.length) return null
   const u = authStore.userData || {}

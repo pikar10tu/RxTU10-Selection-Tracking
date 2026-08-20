@@ -4,12 +4,12 @@ import { useMembersStore } from '../stores/members.js'
 import { useAuthStore } from '../stores/auth.js'
 import { buildMinigameBoard } from '../utils/minigameCore.js'
 
-// Leaderboard ต่อเกม — จาก members store (โหลด lazy, ใช้ cache) + overlay "ฉัน" ด้วย best สด
+// Leaderboard ต่อเกม — จาก roster (1 read) + overlay "ฉัน" ด้วย best สดจาก user doc
 // guestUsers ไม่รวมในอันดับ (Phase นี้) — เป็นผู้เยี่ยมชม ไม่ใช่ผู้เล่นประจำ
 export function useMinigameBoard(key) {
   const members = useMembersStore()
   const auth = useAuthStore()
-  const { fbUsers, loading } = storeToRefs(members)
+  const { rosterUsers, rosterLoading } = storeToRefs(members)
 
   const rows = computed(() => {
     const u = auth.userData
@@ -20,8 +20,8 @@ export function useMinigameBoard(key) {
           best: u.minigames?.[key]?.best || 0,
         }
       : null
-    return buildMinigameBoard(fbUsers.value, me, key)
+    return buildMinigameBoard(rosterUsers.value, me, key)
   })
 
-  return { rows, loading, load: () => members.loadFbUsers() }
+  return { rows, loading: rosterLoading, load: () => members.loadRoster() }
 }

@@ -7,12 +7,12 @@ import { useMembersStore } from '../stores/members.js'
 import { useToast } from './useToast.js'
 import { simulateBattle } from '../utils/battleEngine.js'
 import { resolveBattleTeam } from '../utils/petTeam.js'
+import { rosterOpponents } from '../utils/roster.js'
 import {
   nextRating, BOT_RATING_MULT, PVP_DAILY_ATTACKS, PVP_WIN_COIN, PVP_BOT_COIN,
 } from '../utils/pvpRating.js'
 import { currentSeasonId, applySeasonReset } from '../utils/pvpSeason.js'
 import { getPvpBot } from '../utils/pvpBot.js'
-import { pickHumanOpponents } from '../utils/pvpMatch.js'
 
 // คีย์วันที่รายวัน (UTC) — ใช้ toISOString ให้ตรงกับ daily-reset อื่นของแอป
 // (quizCoinDate/studyCoinDate/dailyQuest ใช้ UTC เหมือนกันหมด → คงไว้เพื่อความสอดคล้อง)
@@ -43,9 +43,11 @@ export function useArena() {
 
   // พูลคู่ต่อสู้ = คนจริงเรตใกล้ 4 คน + บอท 1 ตัว
   // seed รายชั่วโมง → บอทเปลี่ยนทุก 1 ชม. ไม่สุ่มใหม่ทุก render
+  // roster ให้ทีมมาพร้อมสู้แล้ว (เหมือนบอท) จึงไม่ต้องอ่าน doc คู่ต่อสู้เลย
   const opponents = computed(() => {
-    const flat = [...Object.values(members.fbUsers || {}), ...(members.guestUsers || [])]
-    const humans = pickHumanOpponents(auth.currentUser?.uid, rating.value, flat, 4)
+    const humans = rosterOpponents(members.rosterRows || {}, auth.currentUser?.uid)
+      .sort((a, b) => Math.abs(a.rating - rating.value) - Math.abs(b.rating - rating.value))
+      .slice(0, 4)
     const bot = getPvpBot(rating.value, Math.floor(Date.now() / 3600000))
     return [...humans, bot]
   })
@@ -93,10 +95,8 @@ export function useArena() {
       toast('จัดทีมก่อนนะ (อย่างน้อย 1 ตัว)', 'info')
       return null
     }
-    // บอทมีทีมในตัว; คนจริงต้อง resolve จาก activePets+pets
-    const oppTeam = opp.isBot
-      ? opp.team
-      : resolveBattleTeam(opp.activePets, opp.pets)
+    // ทั้งบอทและคนจริงมี team resolve มาให้แล้ว (คนจริงมาจาก roster row tm)
+    const oppTeam = opp.team
     if (!oppTeam?.length) {
       toast('คู่ต่อสู้ยังไม่ได้จัดทีม', 'info')
       return null
