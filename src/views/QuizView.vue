@@ -57,11 +57,12 @@
     <template v-else-if="mode === 'quiz'">
       <div class="qv-bar-row">
         <button class="qv-quit" aria-label="ออกจากการทำข้อสอบ" @click="quit">✕</button>
-        <div v-if="variant === 'normal'" class="qv-bar"><div class="qv-fill" :style="{ width: progress + '%' }"></div></div>
-        <div v-else class="qv-zen-tag"><Emoji char="♾️" /> Zen</div>
+        <div v-if="variant === 'zen'" class="qv-zen-tag"><Emoji char="♾️" /> Zen</div>
+        <div v-else class="qv-bar"><div class="qv-fill" :style="{ width: progress + '%' }"></div></div>
         <span class="qv-count">{{ variant === 'zen' ? `ข้อที่ ${idx + 1}` : `${idx + 1}/${quiz.length}` }}</span>
       </div>
       <div class="qv-running">คะแนน {{ correct }}/{{ answered }}</div>
+      <div v-if="variant === 'redo'" class="qv-redo-tag"><Emoji char="🔁" /> ทบทวนข้อที่เคยผิด</div>
 
       <div class="qv-q">{{ current.question }}</div>
       <div class="qv-choices">
@@ -206,8 +207,15 @@ onMounted(() => {
   load()
   loadExamSets()
   if (route.query.mode === 'zen') startZen()
+  else if (route.query.mode === 'redo') whenUserDataReady(startRedo)
   else if (route.query.view === 'history') openHistory()
 })
+
+// userData มาทาง onSnapshot — ตอน mount อาจยังเป็น null
+function whenUserDataReady(fn) {
+  if (authStore.userData) { fn(); return }
+  const stop = watch(() => authStore.userData, (v) => { if (v) { stop(); fn() } })
+}
 
 const dom = ref('__all')
 const examSet = ref(null)                       // ชื่อชุดที่เลือก (null = ไม่เลือก) — สลับกับ dom
@@ -398,6 +406,64 @@ async function loadMoreZen() {
     if (more.length) quiz.value = [...quiz.value, ...shuffle(more).map(shuffleChoices)]
   } catch (e) { console.error('[zen more]', e) }
 }
+// ── โหมด redo: ทบทวนข้อที่เคยตอบผิด ──
+// โหลดโจทย์ตาม id (in จำกัด 30 ต่อ query) — 20 ข้อ = 1 query
+async function fetchQuestionsByIds(ids) {
+  const col = collection(db, 'questions')
+  const out = []
+  for (let i = 0; i < ids.length; i += 30) {
+    const snap = await getDocs(query(col, where(documentId(), 'in', ids.slice(i, i + 30))))
+    usage.track(snap.size)
+    for (const d of snap.docs) out.push({ id: d.id, ...d.data() })
+  }
+  return out
+}
+
+// ล้างข้อที่หายจากคลังออกจากกอง (ใช้ตอนไม่มีรอบให้ทำ จึงไม่มี patch อื่นให้เกาะ)
+async function flushMissingQIds() {
+  if (!missingQIds.value.length || !authStore.currentUser) return
+  const { set, remove } = applyQuizResults({
+    qcards: authStore.userData?.study?.qcards, answers: [],
+    variant: 'redo', now: Date.now(), missingIds: missingQIds.value,
+  })
+  if (!remove.length) { missingQIds.value = []; return }
+  const { optimisticStudy, server } = buildQcardsPatch({
+    study: authStore.userData?.study, set, remove, deleteSentinel: deleteField(),
+  })
+  const ok = await authStore.patchUser({ study: optimisticStudy }, server)
+  if (ok) missingQIds.value = []
+}
+
+async function startRedo() {
+  if (starting.value) return
+  starting.value = true
+  variant.value = 'redo'
+  missingQIds.value = []
+  try {
+    const ids = dueQuestionIds(authStore.userData?.study?.qcards, Date.now(), REDO_BATCH)
+    if (!ids.length) {
+      toast('ยังไม่มีข้อที่ต้องทบทวน — ตอบผิดเมื่อไหร่จะเก็บมาที่นี่', 'info')
+      mode.value = 'home'
+      return
+    }
+    const rows = await fetchQuestionsByIds(ids)
+    const usable = rows.filter(q => q.isPublished && Array.isArray(q.choices) && q.choices.length >= 2)
+    const okIds = new Set(usable.map(q => q.id))
+    missingQIds.value = ids.filter(id => !okIds.has(id))   // หาย/ถูกถอนเผยแพร่ → ลบตอน finish()
+    if (!usable.length) {
+      await flushMissingQIds()
+      toast('ข้อที่ค้างถูกนำออกจากคลังแล้ว — ล้างกองให้เรียบร้อย', 'info')
+      mode.value = 'home'
+      return
+    }
+    quiz.value = shuffle(usable).map(shuffleChoices)
+    idx.value = 0; resetRound()
+    mode.value = 'quiz'
+  } catch (e) {
+    console.error('[redo start]', e); toast('เริ่มทบทวนไม่สำเร็จ', 'error'); mode.value = 'home'
+  } finally { starting.value = false }
+}
+
 // รีเซ็ต state รอบใหม่
 function resetRound() {
   picked.value = null; correct.value = 0; answered.value = 0; coinsEarned.value = 0
@@ -536,6 +602,8 @@ async function finish() {
 .qv-info { font-size: .9rem; color: #334155; margin-bottom: 14px; }
 .qv-notice { display: flex; gap: 8px; align-items: flex-start; font-size: .78rem; line-height: 1.45; font-weight: 600;
   color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
+.qv-redo-tag { display: inline-flex; align-items: center; gap: 6px; font-size: .72rem; font-weight: 800;
+  color: #92400e; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 999px; padding: 4px 12px; margin-bottom: 10px; }
 .qv-label { font-size: .68rem; font-weight: 700; color: #64748b; margin: 12px 0 6px; }
 .qv-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .qv-chip { border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 7px 14px; font-family: inherit; font-size: .76rem; font-weight: 700; color: var(--ink); cursor: pointer; }
