@@ -1,4 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { useAppConfig } from '../composables/useAppConfig.js'
+import { useAuthStore } from '../stores/auth.js'
+import { isFeatureOpen } from '../utils/featureFlags.js'
 
 // Lazy-loaded views → each becomes its own chunk (smaller initial bundle,
 // faster first paint, and one failing route can't block the whole app).
@@ -31,6 +34,36 @@ export const router = createRouter({
     history: createWebHashHistory(),
     routes,
     scrollBehavior: () => ({ top: 0 }),
+})
+
+// ── กันเข้าฟีเจอร์ที่ปิดอยู่ผ่านลิงก์ตรง/bookmark เก่า ──
+// ซ่อนการ์ดใน UI อย่างเดียวไม่พอ — URL เก่ายังพาเข้าได้
+// (เรียก useAuthStore() ใน guard ได้ เพราะ main.js ทำ app.use(pinia) ก่อน app.use(router))
+// ⚠️ Expedition: ปิด = "ส่งใหม่ไม่ได้" แต่คนที่ส่งเพ็ทไปแล้วต้องเข้ามากดเก็บของได้เสมอ
+const GATED = {
+    expedition:     'expeditionOpen',
+    'capsule-rush': 'arcadeOpen',
+    g2048:          'arcadeOpen',
+    stacker:        'arcadeOpen',
+}
+
+router.beforeEach((to) => {
+    const key = GATED[to.name]
+    if (!key) return true
+
+    const auth = useAuthStore()
+    const { rawConfig, configLoaded } = useAppConfig()
+
+    // config ยังไม่โหลด → ปล่อยผ่าน แล้วให้ UI จัดการ
+    // (เด้งตอนนี้จะเด้งผิดทุกครั้งที่ refresh ค้างอยู่บนหน้านั้น)
+    if (!configLoaded.value) return true
+
+    if (isFeatureOpen(rawConfig.value, key, { isAdmin: auth.isAdmin })) return true
+
+    // มีสายผจญภัยค้างอยู่ → เข้าไปกดเก็บของได้ แม้ฟีเจอร์ปิดแล้ว
+    if (key === 'expeditionOpen' && auth.userData?.expedition) return true
+
+    return { path: '/play' }
 })
 
 // A failed dynamic import is usually a stale chunk after a new deploy — hard
