@@ -24,18 +24,20 @@
         </RouterLink>
       </div>
 
-      <!-- ── มินิเกม (จาก registry data/minigames.js) ── -->
-      <SectionTitle><Emoji char="🎮" /> มินิเกม</SectionTitle>
-      <div class="soon-grid">
-        <template v-for="g in games" :key="g.key">
-          <RouterLink v-if="g.status === 'live'" :to="g.route" class="mg-card">
-            <span class="mg-emoji"><Emoji :char="g.emoji" /></span>
-            <span class="mg-name">{{ g.name }}</span>
-            <span class="mg-best">สถิติ {{ bestOf(g.key).toLocaleString() }}</span>
-          </RouterLink>
-          <SoonCard v-else :emoji="g.emoji" :label="g.name" />
-        </template>
-      </div>
+      <!-- ── มินิเกม (จาก registry data/minigames.js) — ซ่อนเมื่อ arcadeOpen ปิด ── -->
+      <template v-if="arcadeOpen || authStore.isAdmin">
+        <SectionTitle><Emoji char="🎮" /> มินิเกม</SectionTitle>
+        <div class="soon-grid">
+          <template v-for="g in games" :key="g.key">
+            <RouterLink v-if="g.status === 'live'" :to="g.route" class="mg-card">
+              <span class="mg-emoji"><Emoji :char="g.emoji" /></span>
+              <span class="mg-name">{{ g.name }}</span>
+              <span class="mg-best">สถิติ {{ bestOf(g.key).toLocaleString() }}</span>
+            </RouterLink>
+            <SoonCard v-else :emoji="g.emoji" :label="g.name" />
+          </template>
+        </div>
+      </template>
     </template>
     <div v-else class="play-login">เข้าสู่ระบบเพื่อเล่น</div>
   </div>
@@ -53,8 +55,10 @@ import NewsBoard from '../components/home/NewsBoard.vue'
 import SectionTitle from '../components/shared/SectionTitle.vue'
 import SoonCard from '../components/shared/SoonCard.vue'
 import { MINIGAMES } from '../data/minigames.js'
+import { useAppConfig } from '../composables/useAppConfig.js'
 
 const authStore = useAuthStore()
+const { arcadeOpen } = useAppConfig()   // แอดมินเห็นเสมอ — ไว้เทสก่อนเปิดให้ทั้งรุ่น
 const farm = useFarm()
 const { exp } = useExpedition()
 

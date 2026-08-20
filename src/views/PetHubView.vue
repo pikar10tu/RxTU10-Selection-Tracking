@@ -32,7 +32,7 @@
       </RouterLink>
       <SoonCard v-else emoji="⚔️" label="สนามประลอง" />
 
-      <RouterLink to="/expedition" class="game-card">
+      <RouterLink v-if="expeditionOpen || authStore.isAdmin" to="/expedition" class="game-card">
         <span class="gc-emoji"><Emoji char="🗺️" /></span>
         <span class="gc-name">ส่งผจญภัย</span>
         <span v-if="expState === 'ready'" class="gc-badge ready"><Emoji char="🎉" /> กลับมาแล้ว!</span>
@@ -56,7 +56,7 @@ import { useExpedition } from '../composables/useExpedition.js'
 import { expeditionState } from '../utils/expedition.js'
 
 const authStore = useAuthStore()
-const { pvpOpen } = useAppConfig()
+const { pvpOpen, expeditionOpen } = useAppConfig()
 const { exp } = useExpedition()
 
 // coarse tick (5s) ให้ badge ส่งผจญภัยสด
