@@ -1,18 +1,28 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
 import { R_SCI, R_CARE, RN } from '../data/students.js'
 import { normalizeUserData } from '../data/userSchema.js'
 import { readCache, slimForCache, MEMBERS_CACHE_KEY, MEMBERS_CACHE_TTL } from '../utils/membersCache.js'
 import { useUsageStore } from './usage.js'
 import { stripTrailingEmoji } from '../utils/text.js'
+import { rosterToMembers } from '../utils/roster.js'
 
 export const useMembersStore = defineStore('members', () => {
     const fbUsers    = ref({})   // { studentId: userObject }
     const students   = ref([])   // all students from static data
     const guestUsers = ref([])
     const loading    = ref(false)
+
+    // ── เส้นทาง roster (ทุกจอของนักศึกษา) — 1 read ต่อเซสชัน ──
+    // แยกจาก fbUsers/loadFbUsers ที่เป็นของ AdminView เท่านั้น (ต้องการ doc เต็ม)
+    const rosterRows    = ref({})   // { uid: row } — ดิบ ใช้โดย Arena/sync
+    const rosterUsers   = ref({})   // { studentId: member }
+    const rosterGuests  = ref([])
+    const rosterReady   = ref(false)
+    const rosterMissing = ref(false) // doc ยังไม่ถูกสร้าง → ให้ UI บอกแอดมินกดสร้าง
+    const rosterLoading = ref(false)
 
     // Build student list from static data (runs once)
     function initStudents() {
@@ -46,6 +56,53 @@ export const useMembersStore = defineStore('members', () => {
         } catch { /* localStorage เต็ม/ปิด — ไม่เป็นไร รอบหน้าค่อยยิง Firestore */ }
     }
 
+    async function loadRoster({ force = false } = {}) {
+        if (rosterLoading.value) return
+        if (!force && rosterReady.value) return
+        rosterLoading.value = true
+        try {
+            const snap = await getDoc(doc(db, 'roster', 'current'))
+            useUsageStore().track(1)
+            if (!snap.exists()) {
+                // ⚠️ ห้าม fallback ไป getDocs ทั้ง collection — นั่นคือปัญหาที่กำลังแก้อยู่
+                rosterMissing.value = true
+                return
+            }
+            rosterMissing.value = false
+            const rows = snap.data()?.rows || {}
+            rosterRows.value = rows
+            const { byStudentId, guests } = rosterToMembers(rows)
+            rosterUsers.value  = byStudentId
+            rosterGuests.value = guests
+            rosterReady.value  = true
+        } catch (e) {
+            console.error('[roster]', e)
+        } finally {
+            rosterLoading.value = false
+        }
+    }
+
+    // ── โปรไฟล์รายคน (ของหนัก: pets/contact) — อ่านตอนกดดูเท่านั้น + จำในเซสชัน ──
+    const profiles = ref({})
+    async function loadProfile(uid) {
+        if (!uid) return null
+        if (profiles.value[uid]) return profiles.value[uid]
+        try {
+            const snap = await getDoc(doc(db, 'users', uid))
+            useUsageStore().track(1)
+            if (!snap.exists()) return null
+            const full = normalizeUserData(snap.data())
+            profiles.value = { ...profiles.value, [uid]: { ...full, uid } }
+            return profiles.value[uid]
+        } catch (e) {
+            console.error('[profile]', e)
+            return null
+        }
+    }
+
+    // ⚠️ อ่าน users ทั้ง collection = N reads — **เฉพาะ AdminView เท่านั้น**
+    //    (triage guest / econ editor ต้องเห็น doc เต็ม) · จอของนักศึกษาใช้ loadRoster()
+    //    ถ้าเผลอเรียกจากจอนักศึกษา ต้นทุนจะกลับไปเป็น O(N²) เหมือนเดิม
     // { force } = true → ข้าม cache ยิง Firestore สดเสมอ (ปุ่ม ↻ / Admin triage)
     async function loadFbUsers({ force = false } = {}) {
         if (loading.value) return
@@ -107,5 +164,9 @@ export const useMembersStore = defineStore('members', () => {
         }
     }
 
-    return { fbUsers, students, guestUsers, loading, initStudents, loadFbUsers }
+    return {
+        fbUsers, students, guestUsers, loading, initStudents, loadFbUsers,   // ← AdminView เท่านั้น
+        rosterRows, rosterUsers, rosterGuests, rosterReady, rosterMissing, rosterLoading, loadRoster,
+        profiles, loadProfile,
+    }
 })
