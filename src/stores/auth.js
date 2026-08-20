@@ -103,10 +103,34 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     // Block snapshot guard (matches existing app's __blockSnapshot pattern)
+    // กัน onSnapshot ที่ยังตามหลังการเขียนไม่ทัน มาเขียนทับ optimistic state ~1.5s
+    //
+    // ⚠️ เดิมทิ้ง snapshot ที่มาระหว่างบล็อกไปเลย → อัปเดตที่ "ไม่ได้มาจากเรา"
+    // (แอดมินเติมเหรียญ / เปิดอีกแท็บ / จดหมายเข้า) ที่บังเอิญมาในช่วงนั้นหายถาวร
+    // จนกว่าจะมีการเปลี่ยนแปลงครั้งถัดไป · ตอนนี้พักไว้แล้ว apply ตอนปลดบล็อกแทน
     let _blockSnapshot = false
+    let _pendingSnapshot = null    // snapshot ล่าสุดที่มาระหว่างบล็อก (เก็บแค่ตัวใหม่สุดพอ)
+    let _blockTimer = null
+
     function blockSnapshot(ms = SNAPSHOT_DELAY) {
         _blockSnapshot = true
-        setTimeout(() => { _blockSnapshot = false }, ms)
+        if (_blockTimer) clearTimeout(_blockTimer)
+        _blockTimer = setTimeout(unblockSnapshot, ms)
+    }
+
+    /** ปลดบล็อก แล้ว apply snapshot ที่พักไว้ (ถ้ามี) — ตอนนี้ของจริงรวมการเขียนของเราแล้ว */
+    function unblockSnapshot() {
+        _blockSnapshot = false
+        if (_blockTimer) { clearTimeout(_blockTimer); _blockTimer = null }
+        const raw = _pendingSnapshot
+        _pendingSnapshot = null
+        if (raw !== null) applySnapshot(raw)
+    }
+
+    function applySnapshot(raw) {
+        userData.value = normalizeUserData(raw)
+        runPetMigrationIfNeeded()
+        runWelcomeGiftIfNeeded()
     }
 
     // Optimistic update — write local state immediately, Firestore confirms async
@@ -138,7 +162,10 @@ export const useAuthStore = defineStore('auth', () => {
             console.error('[patchUser]', e)
             // เขียนล้มเหลว → คืน state เดิม (กัน UI โชว์ผลลวงจน snapshot รอบหน้าค่อยแก้)
             userData.value = prev
-            _blockSnapshot = false   // ปลดบล็อกทันที ให้ snapshot ของจริงไหลกลับมาได้เลย
+            // ปลดบล็อกทันที ให้ snapshot ของจริงไหลกลับมาได้เลย · ทิ้งตัวที่พักไว้เพราะ
+            // rollback คืนค่าก่อนเขียนให้แล้ว (เท่ากับสถานะเซิร์ฟเวอร์ที่ไม่เคยรับการเขียนนี้)
+            _pendingSnapshot = null
+            unblockSnapshot()
             return false
         }
     }
@@ -261,13 +288,14 @@ export const useAuthStore = defineStore('auth', () => {
                 catch (e) { console.error('[ensureDoc]', e) }
                 if (_unsub) _unsub()
                 _unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
-                    if (_blockSnapshot) return
-                    userData.value = normalizeUserData(snap.data())
-                    runPetMigrationIfNeeded()
-                    runWelcomeGiftIfNeeded()
+                    if (_blockSnapshot) { _pendingSnapshot = snap.data() ?? null; return }
+                    applySnapshot(snap.data())
                 })
             } else {
                 if (_unsub) { _unsub(); _unsub = null }
+                _pendingSnapshot = null           // กันข้อมูลบัญชีก่อนหน้าหลุดมาตอนปลดบล็อก
+                if (_blockTimer) { clearTimeout(_blockTimer); _blockTimer = null }
+                _blockSnapshot = false
                 userData.value = null
             }
             loading.value = false
