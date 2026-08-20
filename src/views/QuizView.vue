@@ -153,9 +153,9 @@
 <script setup>
 import Emoji from '../components/shared/Emoji.vue'
 import HelpButton from '../components/help/HelpButton.vue'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { collection, getDocs, getDoc, query, where, orderBy, startAt, limit, doc, addDoc, setDoc, increment, serverTimestamp, writeBatch } from 'firebase/firestore'
+import { collection, getDocs, getDoc, query, where, orderBy, startAt, limit, doc, addDoc, setDoc, increment, serverTimestamp, writeBatch, deleteField, documentId } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useUsageStore } from '../stores/usage.js'
@@ -169,6 +169,7 @@ import { aggregateExamStats } from '../utils/examStats.js'
 import { bumpDailyQuest } from '../utils/dailyQuest.js'
 import { tallyAnswers } from '../utils/questionStats.js'
 import { QUIZ_COIN_PER_CORRECT } from '../data/index.js'
+import { applyQuizResults, buildQcardsPatch, dueQuestionIds } from '../utils/srsQuestions.js'
 
 const authStore = useAuthStore()
 const usage = useUsageStore()
@@ -335,6 +336,10 @@ function shuffleChoices(q) {
 
 const starting = ref(false)
 
+// ── SRS ข้อที่เคยผิด (study.qcards) — spec 2026-08-20-quiz-srs-wiring ──
+const REDO_BATCH = 20
+const missingQIds = ref([])   // id ในกองที่หาย/ถูกถอนเผยแพร่ → ลบทิ้งตอน finish()
+
 // ดึงข้อสุ่ม n ข้อ (windowed orderBy rand + wrap) — ใช้ร่วมทั้งโหมดทั่วไปและ Zen
 async function fetchQuestions(n) {
   const R = Math.random()
@@ -480,23 +485,43 @@ async function finish() {
     }
   } catch (e) { console.error('[questionStats]', e) }
 
-  // 2) update the user doc: coins + best score + daily cap
+  // 2) update the user doc: coins + best score + daily cap + กองข้อที่เคยผิด
   const newHigh = Math.max(authStore.userData?.quizHigh || 0, correct.value)
   const dq = bumpDailyQuest(authStore.userData?.dailyQuest, 'quiz', today, answered.value)
-  await authStore.patchUser(
+
+  // SRS: ผิด = เข้ากอง · ถูกในควิซปกติไม่แตะ · ใน redo ถูกติดกัน 3 ครั้งหลุดกอง
+  // เติมลง patch ก้อนนี้เลย = ไม่มีการเขียน Firestore เพิ่ม
+  const { set: qcSet, remove: qcRemove } = applyQuizResults({
+    qcards: authStore.userData?.study?.qcards,
+    answers: answers.value,
+    variant: variant.value,
+    now: Date.now(),
+    missingIds: missingQIds.value,
+  })
+  const { optimisticStudy, server: qcServer } = buildQcardsPatch({
+    study: authStore.userData?.study,
+    set: qcSet, remove: qcRemove, deleteSentinel: deleteField(),
+  })
+  const touchedQcards = Object.keys(qcServer).length > 0
+
+  const ok = await authStore.patchUser(
     {
       coins: (authStore.userData?.coins || 0) + grant,
       quizHigh: newHigh,
       quizDoneTotal: (authStore.userData?.quizDoneTotal || 0) + answered.value,
       dailyQuest: dq,
+      ...(touchedQcards ? { study: optimisticStudy } : {}),
     },
     {
       ...(grant ? { coins: increment(grant) } : {}),
       quizHigh: newHigh,
       quizDoneTotal: increment(answered.value),
       dailyQuest: dq,
+      ...qcServer,   // dot-notation เท่านั้น — ห้ามส่ง study ทั้งก้อน ไม่งั้นทับ study.cards
     },
   )
+  if (ok) missingQIds.value = []
+  else toast('บันทึกผลไม่สำเร็จ — ลองใหม่อีกครั้ง', 'error')
   if (grant) toast(`ได้ ${grant}🪙 จากการทำข้อสอบ`, 'success')
 }
 </script>
