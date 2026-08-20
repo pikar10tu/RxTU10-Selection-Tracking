@@ -49,7 +49,7 @@ arcadeOpen:     false   // มินิเกม 3 ตัว (2048 / Stacker / C
 
 | ที่ | เดิม | หลังปิด |
 |---|---|---|
-| `HomeView.vue:27` | `<ExpeditionCard />` | ซ่อน → Home เหลือ 5 การ์ด |
+| `HomeView.vue:27` | `<ExpeditionCard />` | **ไม่แตะ** — ดู §2.1 |
 | `nextAction.js:75` | เสนอ "ส่งเพ็ทไปผจญภัย" เป็นข้อ 6 | ข้ามข้อนี้เมื่อปิด |
 | `PlayView.vue:26–37` | 2 การ์ดใหญ่ + **section มินิเกม** | เหลือ **2 การ์ดใหญ่ล้วน — เพ็ท / ฟาร์ม** |
 | `PetHubView.vue:35` | เพ็ท · ร้าน · หอคอย · Arena · **Expedition** | เหลือ 4 |
@@ -58,6 +58,20 @@ arcadeOpen:     false   // มินิเกม 3 ตัว (2048 / Stacker / C
 **หน้า Play เหลือคำถามเดียว: "วันนี้จะเลี้ยงเพ็ท หรือทำฟาร์ม"**
 
 Route guard สำคัญเท่าการซ่อนการ์ด — ไม่งั้นลิงก์เก่าที่นักศึกษา bookmark ไว้ยังพาเข้าได้
+
+### 2.1 คนที่กำลังส่งเพ็ทไปอยู่ตอนปิด ต้องเก็บรางวัลได้
+
+ปิดฟีเจอร์ตอนมีคนส่งเพ็ทไปแล้ว = รางวัลที่ส่งไปหายเปล่า (เพ็ทไม่ได้ถูกล็อกจากการต่อสู้ —
+ตรวจแล้วไม่มีที่ไหนอ่าน `expedition` มากันทีม — แต่ของที่รออยู่จะเก็บไม่ได้)
+
+**กฎ:** ปิด = **ส่งใหม่ไม่ได้ แต่เก็บของที่ส่งไปแล้วได้เสมอ**
+
+- `ExpeditionCard` (Home) **ไม่ต้องแก้เลย** — มันมี `v-if="state !== 'idle'"` อยู่แล้ว
+  จึงโผล่เฉพาะคนที่มีสายค้าง และหายเองถาวรหลังเก็บของ (เพราะทางเข้า "ส่งใหม่" ถูกซ่อนหมดแล้ว)
+- **Route guard ปล่อยผ่าน** ถ้า `userData.expedition` ไม่ว่าง (เข้าไปกดเก็บได้) · ว่างเมื่อไหร่ค่อยเด้ง
+- ทางเข้า "ส่งใหม่" ใน `PetHubView` ถูกซ่อน → ไม่มีใครเริ่มสายใหม่ได้
+
+ผลลัพธ์: หน้าจอสะอาดสำหรับทุกคนที่ไม่มีสายค้าง และไม่มีใครเสียของ
 
 ## 3. หอคอย/Arena อยู่ต่อ ไม่ย้าย
 
@@ -98,7 +112,6 @@ isFeatureOpen(configData, key, { isAdmin = false } = {}) => boolean
 | `src/utils/featureFlags.test.js` **ใหม่** | `node --test` |
 | `src/composables/useAppConfig.js` | เพิ่ม ref `expeditionOpen` / `arcadeOpen` ผ่าน `isFeatureOpen` |
 | `src/router/index.js` | guard เด้ง `/expedition` และ `/play/games/*` กลับ `/play` เมื่อปิด |
-| `src/views/HomeView.vue` | `v-if` รอบ `<ExpeditionCard />` |
 | `src/components/home/NextActionCard.vue` | ส่ง `expeditionOpen` เข้า `ctx` |
 | `src/utils/nextAction.js` | ข้ามกฎข้อ 6 เมื่อ `ctx.expeditionOpen !== true` |
 | `src/views/PlayView.vue` | `v-if` รอบ section มินิเกม |
@@ -124,6 +137,7 @@ isFeatureOpen(configData, key, { isAdmin = false } = {}) => boolean
 |---|---|
 | **CrCl พังเพราะไปแตะโครงมินิเกม** | `arcadeOpen` คุมเฉพาะ route/UI ของ 3 เกม · ห้ามแตะ `minigameCore`/`useMinigameBoard`/ฟิลด์ `minigames.*` · เช็คด้วยการเข้า `/study/crcl` ตอนปิด arcade |
 | ลิงก์เก่าที่ bookmark ไว้ยังเข้าได้ | route guard เด้งกลับ `/play` |
+| **ปิดตอนมีคนส่งเพ็ทไปอยู่ → ของหาย** | guard ปล่อยผ่านถ้ามี `userData.expedition` · การ์ด Home โผล่เองอยู่แล้วเมื่อ state ไม่ใช่ idle (§2.1) |
 | `roster` row ยังมีฟิลด์ `m` (best มินิเกม) | ปล่อยไว้ — ไม่มีใครแสดงตอนปิด และเปิดกลับมาใช้ได้ทันที ไม่ต้อง migrate |
 | แอดมินเปิดโดยไม่ตั้งใจจากค่าที่พิมพ์ผิด | `isFeatureOpen` รับ boolean `true` เท่านั้น |
 | หน้า Play ว่างเกินไปหลังตัด section | เหลือ 2 การ์ดใหญ่ซึ่งเป็นสิ่งที่ตั้งใจ — ถ้าจอโล่งเกินค่อยว่ากันหลังเห็นจอจริง |
