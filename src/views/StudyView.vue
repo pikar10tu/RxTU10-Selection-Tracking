@@ -20,6 +20,7 @@
         <QuizModeCard emoji="🗓️" title="ข้อสอบประจำวัน" subtitle="ชุดเดียวกันทั้งรุ่น 3 ข้อ แข่งเก็บคะแนน" coming-soon />
         <QuizModeCard emoji="📝" title="ทั่วไป" subtitle="เลือกหมวด + จำนวนข้อ (5/10/15/20) ได้เหรียญ" to="/quiz" />
         <QuizModeCard emoji="♾️" title="Zen" subtitle="ทำเรื่อยๆ ไม่จำกัด ฝึกจนพอใจ" to="/quiz?mode=zen" />
+        <QuizModeCard emoji="🔁" title="ข้อที่เคยผิด" :subtitle="redoSubtitle" to="/quiz?mode=redo" />
         <QuizModeCard emoji="⏱️" title="Time Attack" subtitle="แข่งกับเวลา 4 / 15 นาที" coming-soon />
         <QuizModeCard emoji="🧮" title="ฝึกคำนวณ CrCl" subtitle="ฝึกสูตร Cockcroft-Gault · ทำกี่ข้อก็ได้" to="/study/crcl" />
       </div>
@@ -185,6 +186,7 @@ import { useAuthStore } from '../stores/auth.js'
 import { useToast } from '../composables/useToast.js'
 import { DRUGS } from '../data/index.js'
 import { sm2Update, newSrsCard } from '../utils/sm2.js'
+import { dueCount as qcardsDueCount } from '../utils/srsQuestions.js'   // ชนกับ dueCount ของแฟลชการ์ดตัวยาด้านล่าง
 import { cleanText, LIMITS } from '../utils/text.js'
 
 const authStore = useAuthStore()
@@ -199,6 +201,12 @@ const STUDY_DAILY_CAP = 150   // เพดานเหรียญจากก�
 // ── persistent SRS state: userData.study.cards keyed by drug name ──
 const study = computed(() => authStore.userData?.study || { cards: {} })
 const cards = computed(() => study.value.cards || {})
+
+// ── กองข้อสอบที่เคยตอบผิด (คนละกองกับแฟลชการ์ดตัวยา) — นับจาก user doc ที่โหลดอยู่แล้ว = 0 reads ──
+const redoDue = computed(() => qcardsDueCount(study.value.qcards, Date.now()))
+const redoSubtitle = computed(() => redoDue.value
+  ? `ครบกำหนดทบทวน ${redoDue.value} ข้อ · ตอบใหม่จนถูก 3 ครั้งติดแล้วหลุดกอง`
+  : 'ยังไม่มีข้อค้าง — ตอบผิดเมื่อไหร่จะเก็บมาที่นี่')
 
 const isDue = (c) => (c?.nextReviewDate || 0) <= Date.now()
 const dueList   = computed(() => DECK.filter(d => cards.value[d.n] && isDue(cards.value[d.n])))
