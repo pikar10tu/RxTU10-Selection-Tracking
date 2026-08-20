@@ -1,10 +1,10 @@
-# `config/roster` — เลิกอ่านทั้ง collection — Implementation Plan
+# `roster/current` — เลิกอ่านทั้ง collection — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** ทุกจอของนักศึกษาอ่าน `config/roster` 1 read แทนการ `getDocs` ทั้ง collection `users` (N reads/คน → N²/รอบ)
+**Goal:** ทุกจอของนักศึกษาอ่าน `roster/current` 1 read แทนการ `getDocs` ทั้ง collection `users` (N reads/คน → N²/รอบ)
 
-**Architecture:** doc เดียว `config/roster` เก็บแถวย่อของทุกคน key ด้วย uid · ตรรกะ map/เทียบทั้งหมดเป็น pure function ใน `src/utils/roster.js` (เทส `node --test`) · แต่ละคนเขียนแถวตัวเองผ่าน dot-notation `rows.<uid>` เมื่อสถิติที่ขึ้นบอร์ดเปลี่ยนจริง · rules กันเขียนทับกันด้วย `affectedKeys().hasOnly([uid])` · `AdminView` ยังใช้เส้นทางอ่าน doc เต็มเหมือนเดิม ไม่แตะ
+**Architecture:** doc เดียว `roster/current` เก็บแถวย่อของทุกคน key ด้วย uid · ตรรกะ map/เทียบทั้งหมดเป็น pure function ใน `src/utils/roster.js` (เทส `node --test`) · แต่ละคนเขียนแถวตัวเองผ่าน dot-notation `rows.<uid>` เมื่อสถิติที่ขึ้นบอร์ดเปลี่ยนจริง · rules กันเขียนทับกันด้วย `affectedKeys().hasOnly([uid])` · `AdminView` ยังใช้เส้นทางอ่าน doc เต็มเหมือนเดิม ไม่แตะ
 
 **Tech Stack:** Vue 3 (script setup) · Pinia · Firebase Firestore v9 modular · `node --test`
 
@@ -186,7 +186,7 @@ Expected: FAIL — `Cannot find module './roster.js'`
 
 ```js
 /**
- * `config/roster` — doc สรุปรวมของทั้งรุ่น เพื่อให้ทุกจออ่าน 1 read
+ * `roster/current` — doc สรุปรวมของทั้งรุ่น เพื่อให้ทุกจออ่าน 1 read
  * แทนการ getDocs(collection(db,'users')) ซึ่งเป็น N reads ต่อคน → N² ต่อรอบ
  *
  * โครง: { rows: { [uid]: row }, updatedAt }
@@ -321,7 +321,7 @@ Expected: PASS ทั้ง 13 เทส (`# pass 13` / `# fail 0`)
 ```bash
 git add src/utils/roster.js src/utils/roster.test.js
 git commit -F - <<'MSG'
-Members: ตรรกะ config/roster เป็น pure function (แถวย่อ + map กลับให้ view)
+Members: ตรรกะ roster/current เป็น pure function (แถวย่อ + map กลับให้ view)
 
 เตรียมเลิกอ่าน users ทั้ง collection (N reads/คน → N²/รอบ, 170 คนทะลุโควตา)
 แถวเก็บคีย์ย่อ {s,n,t,l,p,g,tb,r,m,tm} เพราะ doc นี้ทุกคนอ่านทุกเซสชัน
@@ -343,13 +343,13 @@ MSG
 ต้องมาก่อน Task 3/4 เพราะจอต่างๆ ต้องมี doc ให้อ่าน
 
 **Files:**
-- Modify: `firestore.rules` (เพิ่มบล็อก `match /config/roster`)
+- Modify: `firestore.rules` (เพิ่มบล็อก `match /roster/current`)
 - Modify: `src/views/AdminView.vue` (ปุ่ม + ฟังก์ชัน)
 - Test: `npm run build` + `firebase deploy --only firestore:rules`
 
 **Interfaces:**
 - Consumes: `buildRosterFromUsers(docs)` จาก `../utils/roster.js` (Task 1) · `collection, getDocs, doc, setDoc, serverTimestamp` จาก `firebase/firestore` (AdminView import ครบอยู่แล้ว) · `usage.track(reads, writes)` · `toast`
-- Produces: doc `config/roster` มีข้อมูลจริง — Task 3 อ่านจากที่นี่
+- Produces: doc `roster/current` มีข้อมูลจริง — Task 3 อ่านจากที่นี่
 
 - [ ] **Step 1: เพิ่ม rules**
 
@@ -360,7 +360,7 @@ MSG
     //    (ออดิต 13 ส.ค. ข้อ 1: N reads/คน → N²/รอบ · 170 คนทะลุโควตาฟรี)
     //    เขียน: แต่ละคนแก้ได้เฉพาะแถวของตัวเอง — affectedKeys กันเขียนทับกัน
     //    สร้าง/ลบทั้งก้อน: admin เท่านั้น (ปุ่ม "สร้าง roster ใหม่" ใน AdminView)
-    match /config/roster {
+    match /roster/current {
       allow read:   if request.auth != null;
       allow update: if request.auth != null
         && request.resource.data.rows.diff(resource.data.rows)
@@ -370,7 +370,7 @@ MSG
 ```
 
 ⚠️ `config/{docId}` อาจมี match กว้างอยู่แล้วในไฟล์ — ตรวจด้วย `grep -n "match /config" firestore.rules`
-ถ้ามี ให้วางบล็อก `config/roster` **ก่อน** ตัวกว้าง (Firestore ใช้ทุก match ที่ตรง แบบ OR — บล็อกเฉพาะเจาะจงจึงต้องมีเพื่อ "เพิ่มสิทธิ์" ไม่ใช่เพื่อ "จำกัด")
+ถ้ามี ให้วางบล็อก `roster/current` **ก่อน** ตัวกว้าง (Firestore ใช้ทุก match ที่ตรง แบบ OR — บล็อกเฉพาะเจาะจงจึงต้องมีเพื่อ "เพิ่มสิทธิ์" ไม่ใช่เพื่อ "จำกัด")
 
 - [ ] **Step 2: เพิ่มปุ่มใน AdminView**
 
@@ -387,7 +387,7 @@ MSG
 ```js
 import { buildRosterFromUsers } from '../utils/roster.js'
 
-// อ่าน users ทั้ง collection ครั้งเดียว (แอดมินคนเดียว = ถูก) → เขียน config/roster
+// อ่าน users ทั้ง collection ครั้งเดียว (แอดมินคนเดียว = ถูก) → เขียน roster/current
 // ให้ทุกจอของนักศึกษาอ่าน 1 read แทน · แพทเทิร์นเดียวกับปุ่ม "คำนวณ meta ใหม่" ของคลังข้อสอบ
 const rebuildingRoster = ref(false)
 async function rebuildRoster() {
@@ -397,7 +397,7 @@ async function rebuildRoster() {
     const snap = await getDocs(collection(db, 'users'))
     usage.track(snap.size)
     const rows = buildRosterFromUsers(snap.docs.map(d => ({ uid: d.id, data: d.data() })))
-    await setDoc(doc(db, 'config', 'roster'), { rows, updatedAt: serverTimestamp() })
+    await setDoc(doc(db, 'roster', 'current'), { rows, updatedAt: serverTimestamp() })
     usage.track(0, 1)
     toast(`สร้าง roster แล้ว ${Object.keys(rows).length} คน`, 'success')
   } catch (e) {
@@ -417,14 +417,14 @@ Run: `firebase deploy --only firestore:rules`
 Expected: `rules file firestore.rules compiled successfully` + `released rules`
 
 จากนั้นเปิดแอป → Admin → กด **"🔄 สร้าง roster ใหม่"** → ต้องขึ้น toast บอกจำนวนคน
-ตรวจใน Firebase console ว่า `config/roster` มี `rows` ครบทุกคน และ **ไม่มี data URL** อยู่ในนั้น
+ตรวจใน Firebase console ว่า `roster/current` มี `rows` ครบทุกคน และ **ไม่มี data URL** อยู่ในนั้น
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add firestore.rules src/views/AdminView.vue
 git commit -F - <<'MSG'
-Admin: ปุ่มสร้าง config/roster + rules กันเขียนทับแถวกัน
+Admin: ปุ่มสร้าง roster/current + rules กันเขียนทับแถวกัน
 
 roster เป็น doc รวมที่ทุกจอจะอ่าน 1 read แทน getDocs ทั้ง users
 สร้างทั้งก้อนจากปุ่มแอดมิน (อ่านทั้ง collection ครั้งเดียว = ถูก เพราะแอดมิน
@@ -449,7 +449,7 @@ MSG
 - Test: `npm run build`
 
 **Interfaces:**
-- Consumes: `rosterToMembers(rows)`, `rosterOpponents(rows, meUid)` จาก `../utils/roster.js` (Task 1) · doc `config/roster` (Task 2) · `doc, getDoc` จาก `firebase/firestore` · `normalizeUserData` จาก `../data/userSchema.js`
+- Consumes: `rosterToMembers(rows)`, `rosterOpponents(rows, meUid)` จาก `../utils/roster.js` (Task 1) · doc `roster/current` (Task 2) · `doc, getDoc` จาก `firebase/firestore` · `normalizeUserData` จาก `../data/userSchema.js`
 - Produces (ให้ Task 4/5 ใช้):
   - `rosterRows` (ref, `{[uid]: row}`) · `rosterUsers` (ref, `{[studentId]: member}`) · `rosterGuests` (ref, `member[]`) · `rosterReady` (ref bool) · `rosterMissing` (ref bool — doc ไม่มี ต้องให้แอดมินกดสร้าง)
   - `loadRoster({ force }) => Promise<void>`
@@ -484,7 +484,7 @@ import { rosterToMembers } from '../utils/roster.js'
         if (!force && rosterReady.value) return
         rosterLoading.value = true
         try {
-            const snap = await getDoc(doc(db, 'config', 'roster'))
+            const snap = await getDoc(doc(db, 'roster', 'current'))
             useUsageStore().track(1)
             if (!snap.exists()) {
                 // ⚠️ ห้าม fallback ไป getDocs ทั้ง collection — นั่นคือปัญหาที่กำลังแก้อยู่
@@ -805,7 +805,7 @@ import { useUsageStore } from '../stores/usage.js'
 import { buildRosterRow, rosterRowChanged } from '../utils/roster.js'
 
 /**
- * เขียนแถวของตัวเองลง `config/roster` — **จุดเดียว**ที่ฝั่งนักศึกษาเขียน doc นี้
+ * เขียนแถวของตัวเองลง `roster/current` — **จุดเดียว**ที่ฝั่งนักศึกษาเขียน doc นี้
  *
  * เรียกหลังกิจกรรมที่ทำให้สถิติบนบอร์ดเปลี่ยน (จบมินิเกม/หอคอย/PvP/อัปบ้าน/
  * เปลี่ยนชื่อ-รูป-ทีมเพ็ท) — ภายในเทียบกับแถวเดิมก่อน **ไม่เปลี่ยน = ไม่ยิง Firestore**
@@ -832,7 +832,7 @@ export function useRosterSync() {
     if (!rosterRowChanged(members.rosterRows?.[uid], next)) return
 
     try {
-      await updateDoc(doc(db, 'config', 'roster'), {
+      await updateDoc(doc(db, 'roster', 'current'), {
         [`rows.${uid}`]: next,
         updatedAt: serverTimestamp(),
       })
@@ -887,14 +887,14 @@ Expected: สำเร็จไม่มี error
 - [ ] **Step 4: ทดลองจริงใน dev**
 
 Run: `npm run dev`
-1. เล่น 2048 ทำคะแนน**สูงกว่าเดิม** → จบเกม → เปิด Firebase console ดู `config/roster` แถวตัวเอง `m.g2048` ต้องอัปเดต
+1. เล่น 2048 ทำคะแนน**สูงกว่าเดิม** → จบเกม → เปิด Firebase console ดู `roster/current` แถวตัวเอง `m.g2048` ต้องอัปเดต
 2. เล่นอีกรอบได้คะแนน**ต่ำกว่าเดิม** → จบเกม → เปิด DevTools Network **ต้องไม่มี write ไป roster** (เพราะ best ไม่เปลี่ยน)
 3. เปลี่ยนชื่อเล่นในหน้า Me → roster แถวตัวเอง `n` เปลี่ยน
 4. เปิดบัญชีอื่น (หรือ incognito) → บอร์ดมินิเกมต้องเห็นคะแนนใหม่ของบัญชีแรก
 5. ลองยิงเขียนแถวคนอื่นจาก DevTools console — ต้องโดน rules ปฏิเสธ:
 ```js
 // ควรได้ permission-denied
-firebase.firestore().doc('config/roster').update({ 'rows.someoneElseUid': { tb: 999 } })
+firebase.firestore().doc('roster/current').update({ 'rows.someoneElseUid': { tb: 999 } })
 ```
 
 - [ ] **Step 5: Commit**
@@ -904,7 +904,7 @@ git add src/composables/useRosterSync.js src/views/Game2048View.vue src/views/St
 git commit -F - <<'MSG'
 Roster: เขียนแถวตัวเองเมื่อสถิติที่ขึ้นบอร์ดเปลี่ยนจริง
 
-useRosterSync เป็นจุดเดียวที่ฝั่งนักศึกษาเขียน config/roster · เทียบกับแถวเดิม
+useRosterSync เป็นจุดเดียวที่ฝั่งนักศึกษาเขียน roster/current · เทียบกับแถวเดิม
 ก่อนเสมอ ค่าไม่เปลี่ยนไม่ยิง Firestore (ทำมินิเกมได้คะแนนต่ำกว่า best เดิม =
 เงียบ) ซึ่งเป็นตัวคุม write contention หลัก เพราะ doc เดียวรับได้ ~1 เขียน/วินาที
 
@@ -924,7 +924,7 @@ MSG
 - [ ] เทสทั้งโปรเจกต์ยังผ่าน: `for f in src/utils/*.test.js; do node --test "$f" || echo "FAIL $f"; done`
 - [ ] `npm run build` สำเร็จ
 - [ ] `grep -rn "loadFbUsers" src/ --include=*.vue --include=*.js | grep -v "stores/members.js"` → **เหลือเฉพาะ AdminView**
-- [ ] `config/roster` ใน console ไม่มี data URL (`customPhoto`) ปนอยู่
+- [ ] `roster/current` ใน console ไม่มี data URL (`customPhoto`) ปนอยู่
 - [ ] เขียนแถวคนอื่นจาก DevTools → `permission-denied`
 - [ ] rules deploy แล้ว (`firebase deploy --only firestore:rules`)
 - [ ] **หลัง deploy ขึ้น Pages ต้องกด "🔄 สร้าง roster ใหม่" ใน Admin 1 ครั้ง** ไม่งั้นหน้าเพื่อนจะว่าง

@@ -1,4 +1,4 @@
-# `config/roster` — เลิกอ่านทั้ง collection (แก้ Firestore O(N²)) — Design
+# `roster/current` — เลิกอ่านทั้ง collection (แก้ Firestore O(N²)) — Design
 
 วันที่ 20 ส.ค. 2026 · สถานะ: อนุมัติแล้ว (user 20 ส.ค.) · HEAD ตอนออกแบบ `f69db89`
 
@@ -14,14 +14,23 @@
 
 ## ทางที่เลือกและทางที่ไม่เลือก
 
-**เลือก: doc สรุปรวม `config/roster`** — ทุกจออ่าน 1 read ไม่ว่ากี่คน
+**เลือก: doc สรุปรวม `roster/current`** — ทุกจออ่าน 1 read ไม่ว่ากี่คน
 
 **ไม่เลือก: ให้แต่ละบอร์ดยิง `orderBy().limit(N)`** — ต้นทุนคงที่จริง แต่แก้ได้แค่ครึ่งเดียว:
 - `TowerView` ต้องการ **"อันดับ 12 จาก 40 คน" + คนที่ตามหลังอยู่** — top-N query ให้ไม่ได้
 - `MembersView` เป็นไดเรกทอรีทั้งรุ่น = N โดยธรรมชาติ ซึ่งเป็น**ตัวกินโควตาหลัก** — query ช่วยไม่ได้เลย
 - สุดท้ายต้องมาทำ roster ทับอยู่ดี
 
-## 1. โครงสร้าง `config/roster`
+## 0. ทำไมไม่ใช่ `config/roster`
+
+`firestore.rules:122` มี `match /config/{doc} { allow read: if true }` = **อ่านได้โดยไม่ต้องล็อกอิน**
+และ rules ของ Firestore รวมกันแบบ **OR** — match ที่แคบกว่า**เพิ่ม**สิทธิ์ได้ ลดไม่ได้
+→ วาง roster ใต้ `config/` = เปิดรายชื่อ + รหัสนักศึกษา + รูป + แท็บเรียนของทั้งรุ่นให้คนนอกอ่าน
+
+ของเดิมใต้ `config/` (maintenance flag, topics, examSets, questionsMeta) ไม่มีข้อมูลส่วนบุคคล จึงไม่เป็นไร
+**roster มี** → ต้องอยู่ collection ของตัวเองที่บังคับ `request.auth != null` ได้จริง
+
+## 1. โครงสร้าง `roster/current`
 
 ```js
 {
@@ -81,7 +90,7 @@ rosterRowChanged(oldRow, newRow) => boolean   // deep-equal เฉพาะฟ�
 ### rules
 
 ```
-match /config/roster {
+match /roster/current {
   allow read:   if request.auth != null;
   allow update: if request.auth != null
     && request.resource.data.rows.diff(resource.data.rows)
@@ -126,11 +135,11 @@ store จึงมี **สอง** เส้นทางแยกกัน ไ�
 ## 4. ตอนเปิดใช้ + คนที่ยังไม่เคยเขียนแถว
 
 ปุ่มแอดมิน **"🔄 สร้าง roster ใหม่"** ใน `AdminView` — อ่าน `users` ทั้ง collection ครั้งเดียว
-(แอดมินคนเดียว = ถูก) แล้ว `setDoc('config/roster')` ทั้งก้อน
+(แอดมินคนเดียว = ถูก) แล้ว `setDoc('roster/current')` ทั้งก้อน
 
 แพทเทิร์นเดียวกับ `config/questionsMeta` + ปุ่ม "🔄 คำนวณ meta ใหม่" ที่มีอยู่แล้ว (`QuestionsView.vue:702`)
 
-**ถ้า `config/roster` ไม่มี → แสดงสถานะว่างพร้อมข้อความให้แอดมินกดสร้าง
+**ถ้า `roster/current` ไม่มี → แสดงสถานะว่างพร้อมข้อความให้แอดมินกดสร้าง
 ห้าม fallback ไปอ่านทั้ง collection เงียบๆ** — fallback แบบนั้นคือสิ่งที่เผาโควตาโดยไม่มีใครรู้ตัว
 ซึ่งเป็นปัญหาเดิมที่กำลังแก้อยู่พอดี
 
@@ -143,8 +152,8 @@ store จึงมี **สอง** เส้นทางแยกกัน ไ�
 | `src/utils/roster.js` **ใหม่** | pure: `buildRosterRow` `rosterRowChanged` `buildRosterFromUsers` `rosterToMembers` `rosterToBoardUsers` `rosterTeam` |
 | `src/utils/roster.test.js` **ใหม่** | `node --test` |
 | `src/composables/useRosterSync.js` **ใหม่** | จุดเดียวที่เขียนแถว (เทียบก่อนเขียน + เงียบเมื่อล้มเหลว) |
-| `src/stores/members.js` | อ่าน `config/roster` แทน `getDocs(collection)` + เพิ่ม `loadProfile(uid)` |
-| `firestore.rules` | บล็อก `config/roster` |
+| `src/stores/members.js` | อ่าน `roster/current` แทน `getDocs(collection)` + เพิ่ม `loadProfile(uid)` |
+| `firestore.rules` | บล็อก `roster/current` |
 | `src/views/AdminView.vue` | ปุ่ม "🔄 สร้าง roster ใหม่" |
 | จุดเรียก sync | `Game2048View` `StackerView` `CapsuleRushView` `TowerView` `ArenaView` `MeView` `PetsView` |
 

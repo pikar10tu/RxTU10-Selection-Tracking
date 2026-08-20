@@ -145,6 +145,21 @@ service cloud.firestore {
       allow write: if canEditQuestions();
     }
 
+    // ── Roster — doc สรุปรวมของทั้งรุ่น ให้ทุกจออ่าน 1 read แทน getDocs ทั้ง users
+    //    (ออดิต 13 ส.ค. ข้อ 1: N reads/คน → N²/รอบ · 170 คนทะลุโควตาฟรี)
+    //    ⚠️ อยู่นอก config/ โดยตั้งใจ — match /config/{doc} เป็น `read: if true`
+    //    และ rules รวมกันแบบ OR (match แคบกว่าเพิ่มสิทธิ์ได้ ลดไม่ได้) ถ้าวางใต้ config
+    //    รายชื่อ+รหัสนักศึกษา+รูปทั้งรุ่นจะเปิดให้คนนอกอ่าน
+    //    เขียน: แต่ละคนแก้ได้เฉพาะแถวของตัวเอง — affectedKeys กันเขียนทับกัน
+    //    สร้าง/ลบทั้งก้อน: admin เท่านั้น (ปุ่ม "สร้าง roster ใหม่" ใน AdminView)
+    match /roster/{docId} {
+      allow read:   if request.auth != null;
+      allow update: if request.auth != null
+        && request.resource.data.rows.diff(resource.data.rows)
+             .affectedKeys().hasOnly([request.auth.uid]);
+      allow create, delete: if isAdmin();
+    }
+
     // ── Cheat logs — anyone may log themselves; only admin reads ──
     match /cheatLogs/{id} {
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;

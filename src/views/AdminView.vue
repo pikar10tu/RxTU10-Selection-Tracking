@@ -64,6 +64,20 @@
         </button>
       </section>
 
+      <!-- ───── Roster (doc สรุปรวมทั้งรุ่น) ───── -->
+      <section class="admin-card">
+        <div class="admin-card-head"><span><Emoji char="🗂️" /> Roster ทั้งรุ่น</span></div>
+        <div class="admin-hint">
+          doc รวมที่ทุกจอของนักศึกษาอ่าน <b>1 read</b> แทนการอ่าน user ทุกคน
+          (เดิมเสีย N reads ต่อคน — 170 คนจะทะลุโควตาฟรี) ·
+          <b>ต้องกดครั้งแรกหนึ่งครั้ง</b> ไม่งั้นหน้าเพื่อน/บอร์ดจะว่าง ·
+          หลังจากนั้นแต่ละคนอัปเดตแถวตัวเองอัตโนมัติ · กดซ้ำได้ ปลอดภัย (สร้างใหม่จากของจริง)
+        </div>
+        <button class="btn-mini" :disabled="rebuildingRoster" @click="rebuildRoster">
+          {{ rebuildingRoster ? 'กำลังสร้าง…' : '🔄 สร้าง roster ใหม่' }}
+        </button>
+      </section>
+
       <!-- ───── การใช้ Firestore (ประมาณการ) ───── -->
       <section class="admin-card">
         <div class="admin-card-head">
@@ -360,6 +374,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { doc, updateDoc, setDoc, collection, getDocs, query, orderBy, limit, addDoc, deleteDoc, serverTimestamp, writeBatch, deleteField, runTransaction } from 'firebase/firestore'
+import { buildRosterFromUsers } from '../utils/roster.js'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useMembersStore } from '../stores/members.js'
@@ -566,6 +581,24 @@ async function cleanupNicknames() {
 // ── usage gauge (ประมาณการในแอป) ──
 const READ_LIMIT = DAILY_READ_LIMIT
 const WRITE_LIMIT = DAILY_WRITE_LIMIT
+// ── Roster: อ่าน users ทั้ง collection ครั้งเดียว (แอดมินคนเดียวกด = ถูก) → เขียน roster/current
+//    ให้ทุกจอของนักศึกษาอ่าน 1 read แทน · แพทเทิร์นเดียวกับ "คำนวณ meta ใหม่" ของคลังข้อสอบ
+const rebuildingRoster = ref(false)
+async function rebuildRoster() {
+  if (rebuildingRoster.value) return
+  rebuildingRoster.value = true
+  try {
+    const snap = await getDocs(collection(db, 'users'))
+    usage.track(snap.size)
+    const rows = buildRosterFromUsers(snap.docs.map(d => ({ uid: d.id, data: d.data() })))
+    await setDoc(doc(db, 'roster', 'current'), { rows, updatedAt: serverTimestamp() })
+    usage.track(0, 1)
+    toast(`สร้าง roster แล้ว ${Object.keys(rows).length} คน`, 'success')
+  } catch (e) {
+    console.error('[rebuild roster]', e); toast('สร้าง roster ไม่สำเร็จ', 'error')
+  } finally { rebuildingRoster.value = false }
+}
+
 const usageLevel = computed(() => usageStatus(usage.today?.reads || 0, usage.today?.writes || 0))
 const usageBanner = computed(() => {
   if (!usage.today) return ''
