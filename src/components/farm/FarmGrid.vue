@@ -79,7 +79,10 @@ onMounted(() => {
   // preload รูประยะการโต — <Emoji> เป็น lazy img ไม่งั้นตอนสลับระยะครั้งแรกภาพจะวูบ
   // (แพทเทิร์นเดียวกับ preload projectile ของ battle commit b6a996c)
   const chars = new Set(DEFAULT_STAGES)
-  for (const c of seedChoices.value) for (const s of (c.stages || [])) chars.add(s)
+  for (const c of seedChoices.value) {
+    chars.add(c.emoji)
+    for (const s of (c.stages || [])) chars.add(s)
+  }
   for (const ch of chars) {
     const f = fluentFile(ch)
     if (f) { const img = new Image(); img.src = import.meta.env.BASE_URL + f }
