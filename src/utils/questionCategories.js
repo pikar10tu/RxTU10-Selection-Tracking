@@ -23,3 +23,22 @@ export function normalizeCategories(arr) {
     .filter(Boolean)
   return [...new Set(clean)].slice(0, MAX_CATEGORIES)
 }
+
+// ชื่อหมวดที่ยังไม่อยู่ใน "ทะเบียนกลาง" (config/topics.list ที่ dropdown อ่าน)
+//  ทะเบียนกลางเคยโตทางเดียว = ต้องมีคนกด "➕ เพิ่มหัวข้อใหม่" เท่านั้น
+//  หมวดที่มากับ bulk import / ข้อเก่าที่มีแค่ category เดี่ยว จึงติดอยู่บนข้อ
+//  แต่ไม่เคยขึ้น dropdown ให้คนตรวจข้ออื่นเลือกตาม (เช่น "โรคอ้วนและการควบคุมน้ำหนัก")
+//  → ทุกทางที่เขียนหมวดลงข้อ ให้ส่งชื่อผ่านนี่แล้ว arrayUnion เข้าทะเบียนด้วย
+//  ไม่ตัดที่ MAX_CATEGORIES — เพดานนั้นคือ "กี่หมวดต่อ 1 ข้อ" ไม่ใช่ขนาดทะเบียน
+export function unregisteredTopics(registry, incoming) {
+  const known = new Set((Array.isArray(registry) ? registry : [])
+    .map(t => (t || '').trim()).filter(Boolean))
+  const out = []
+  for (const name of (Array.isArray(incoming) ? incoming : [])) {
+    const clean = cleanText(name, LIMITS.category)
+    if (!clean || known.has(clean)) continue
+    known.add(clean)      // กันซ้ำภายในชุดที่ส่งเข้ามาเอง
+    out.push(clean)
+  }
+  return out
+}

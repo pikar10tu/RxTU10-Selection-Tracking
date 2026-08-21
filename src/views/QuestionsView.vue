@@ -125,6 +125,65 @@
           </div>
         </div>
       </details>
+
+      <!-- ── จัดการหมวด / กลุ่มโรค: รวมหมวดซ้ำ · เปลี่ยนชื่อ · ลบหมวดร้าง ── -->
+      <details class="qz-reports" @toggle="topicPanelOpen = $event.target.open">
+        <summary class="qz-reports-sum"><Emoji char="🏷️" /> จัดการหมวด / กลุ่มโรค<span v-if="topicPanelOpen"> ({{ topicList.length }} หมวด)</span></summary>
+        <div class="qz-reports-body">
+          <p class="qz-dup-note">
+            รวมหมวดที่ซ้ำซ้อนกันให้เหลืออันเดียว หรือเปลี่ยนชื่อหมวดทั้งคลังพร้อมกัน —
+            ผลตรวจของข้อไม่ถูกล้าง ข้อไม่เด้งกลับเข้าคิวตรวจ
+          </p>
+          <div v-if="!list.length" class="qz-empty">ยังไม่ได้โหลดข้อสอบ — กด ↻ โหลด ก่อน</div>
+          <template v-else>
+            <ul class="qz-tm-list">
+              <li v-for="t in topicList" :key="t.name" class="qz-tm-row" :class="{ sel: mergeSources.has(t.name) }">
+                <label class="qz-tm-pick">
+                  <input type="checkbox" :checked="mergeSources.has(t.name)" @change="toggleMergeSource(t.name)" />
+                  <span class="qz-tm-name">{{ t.name }}</span>
+                </label>
+                <span v-if="!t.registered" class="qz-tm-flag">ตกทะเบียน</span>
+                <span class="qz-tm-count">{{ t.count }} ข้อ</span>
+                <button v-if="!t.count" class="qz-mini qz-danger" :disabled="topicBusy" @click="deleteTopic(t.name)">ลบ</button>
+              </li>
+            </ul>
+
+            <div v-if="mergeSources.size" class="qz-tm-merge">
+              <div class="qz-tm-sel">เลือกไว้ {{ mergeSources.size }} หมวด → รวมเข้าเป็น</div>
+              <select v-model="mergeTarget" class="qz-tm-input">
+                <option value="">— เลือกหมวดปลายทาง —</option>
+                <option v-for="name in mergeTargetOptions" :key="name" :value="name">{{ name }}</option>
+                <option value="__new">➕ ตั้งชื่อใหม่…</option>
+              </select>
+              <input
+                v-if="mergeTarget === '__new'"
+                v-model="mergeNewName" :maxlength="LIMITS.category"
+                class="qz-tm-input" placeholder="ชื่อหมวดใหม่ เช่น โรคระบบทางเดินอาหาร"
+              />
+
+              <div v-if="mergePlan.target && !mergePlan.affected" class="qz-tm-preview">
+                ไม่มีข้อไหนต้องแก้ — จะแค่ถอนชื่อที่เลือกออกจาก dropdown
+              </div>
+              <div v-else-if="mergePlan.affected" class="qz-tm-preview">
+                <b>จะแก้ข้อสอบ {{ mergePlan.affected }} ข้อ</b> ให้ไปอยู่ใต้ “{{ mergePlan.target }}”
+                <ul class="qz-tm-sample">
+                  <li v-for="s in mergePlan.sample" :key="s.id">{{ truncate60(s.question) }}</li>
+                  <li v-if="mergePlan.affected > mergePlan.sample.length" class="qz-tm-more">
+                    …และอีก {{ mergePlan.affected - mergePlan.sample.length }} ข้อ
+                  </li>
+                </ul>
+              </div>
+
+              <div class="qz-tm-acts">
+                <button class="qz-mini" :disabled="topicBusy" @click="clearMergePick">ยกเลิก</button>
+                <button class="qz-mini qz-go" :disabled="topicBusy || !mergePlan.sources.length" @click="runMerge">
+                  {{ topicBusy ? 'กำลังรวม…' : 'รวมหมวด' }}
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </details>
       </template>
 
       <!-- ── ✍️ แท็บ เพิ่ม/แก้ : ฟอร์มข้อสอบ ── -->
@@ -353,9 +412,11 @@ import { qhash, groupDuplicates } from '../utils/qhash.js'
 import { planImportWrites, stampFileSets } from '../utils/importTagging.js'
 import { keepKnownSets } from '../utils/examSets.js'
 import { useExamSets } from '../composables/useExamSets.js'
+import { useTopics } from '../composables/useTopics.js'
 import { buildMeta } from '../utils/questionsMeta.js'
 import { filterQuestions, distinctCategories } from '../utils/questionsFilter.js'
 import { getCategories, normalizeCategories } from '../utils/questionCategories.js'
+import { topicRows, mergeTopicsPlan } from '../utils/topicMerge.js'
 import { groupReports, resolvePayload } from '../utils/questionReport.js'
 import { buildReportRewardMail } from '../utils/mailbox.js'
 import { pctCorrect, isProblem } from '../utils/questionStats.js'
@@ -551,6 +612,7 @@ onMounted(() => {
   load()
   loadStats()
   loadExamSets()
+  loadTopics()   // ทะเบียนหมวด — กล่อง "จัดการหมวด" ต้องรู้ว่าชื่อไหนอยู่ในทะเบียนแล้วบ้าง
   if (authStore.isAcademic) loadReports()
 })
 
@@ -568,6 +630,12 @@ const importText = ref('')
 const importing = ref(false)
 const fileEl = ref(null)
 const { sets: examSetOptions, loadExamSets } = useExamSets()
+const { topics: topicRegistry, loadTopics, addTopics, removeTopics } = useTopics()
+// ลงทะเบียนหมวดเข้าทะเบียนกลาง — ล้มแล้วต้องไม่ล้มงานหลัก (แค่ dropdown ตามไม่ทัน)
+async function registerTopics(names, ctx) {
+  try { return await addTopics(names) }
+  catch (e) { console.error(`[topics register ${ctx}]`, e); return [] }
+}
 const fileSets = ref([])   // ชุดที่จะ stamp ทั้งไฟล์
 
 // เลือกไฟล์ .json จากเครื่อง → เทเนื้อหาลง textarea (parse/preview เหมือนวางเอง)
@@ -644,8 +712,12 @@ async function runImport() {
         usage.track(0, 1)
       } catch (e) { console.error('[reviewMeta progress bump]', e) }
     }
+    // หมวดที่มากับไฟล์ต้องขึ้นทะเบียนกลางด้วย ไม่งั้นติดอยู่บนข้อแต่ไม่โผล่ใน dropdown
+    // ให้คนตรวจข้ออื่นเลือกตาม (บั๊กเดิม: "โรคอ้วนและการควบคุมน้ำหนัก" หายจากหน้าตรวจ)
+    const addedTopics = await registerTopics(rows.flatMap(r => r.categories || []), 'import')
     if (skipped.length) console.warn('[questions import] ข้ามข้อ:', skipped)
     const parts = [`นำเข้าใหม่ ${fresh.length} ข้อ`]
+    if (addedTopics.length) parts.push(`หมวดใหม่ ${addedTopics.length} หมวด`)
     if (tagUpdates.length) parts.push(`เพิ่มแท็กข้อเดิม ${tagUpdates.length} ข้อ`)
     if (skipped.length) parts.push(`ผิดรูปแบบ ${skipped.length} ข้อ`)
     toast(parts.join(' · '), 'success')
@@ -698,6 +770,88 @@ async function backfillRand() {
 const dupOpen = ref(false)
 const duplicateGroups = computed(() => groupDuplicates(list.value))
 
+// ── จัดการหมวด/กลุ่มโรค: รวมหมวดซ้ำ · เปลี่ยนชื่อ · ลบหมวดร้าง ──
+//  ใช้ list.value ที่โหลดคลังทั้งก้อนอยู่แล้ว + ทะเบียนกลาง → ไม่มี read เพิ่ม
+const topicPanelOpen = ref(false)
+const topicBusy = ref(false)
+const mergeSources = ref(new Set())   // หมวดต้นทางที่ติ๊กไว้
+const mergeTarget = ref('')           // ชื่อหมวดปลายทาง ('__new' = พิมพ์ชื่อใหม่)
+const mergeNewName = ref('')
+
+const topicList = computed(() => topicRows(list.value, topicRegistry.value))
+// ปลายทางต้องไม่ใช่หมวดที่ติ๊กเป็นต้นทางอยู่ (รวมตัวเองไม่มีความหมาย)
+const mergeTargetOptions = computed(() =>
+  topicList.value.map(t => t.name).filter(name => !mergeSources.value.has(name)))
+const resolvedTarget = computed(() =>
+  mergeTarget.value === '__new' ? mergeNewName.value : mergeTarget.value)
+const mergePlan = computed(() =>
+  mergeTopicsPlan(list.value, [...mergeSources.value], resolvedTarget.value))
+
+// ตัดโจทย์ให้สั้นไว้โชว์ในพรีวิว — เติม … เฉพาะตอนตัดจริง
+function truncate60(text) {
+  const t = text || ''
+  return t.length > 60 ? t.slice(0, 60) + '…' : t
+}
+function toggleMergeSource(name) {
+  if (mergeSources.value.has(name)) mergeSources.value.delete(name)
+  else mergeSources.value.add(name)
+  // ปลายทางถูกติ๊กเป็นต้นทางไปแล้ว — ล้างทิ้ง ไม่ให้ค้างเป็นค่าที่ใช้ไม่ได้
+  if (mergeTarget.value !== '__new' && mergeSources.value.has(mergeTarget.value)) mergeTarget.value = ''
+}
+function clearMergePick() {
+  mergeSources.value.clear()
+  mergeTarget.value = ''
+  mergeNewName.value = ''
+}
+
+// รวม/เปลี่ยนชื่อหมวด: เขียนข้อก่อน → ค่อยแก้ทะเบียน
+//  ถ้าทะเบียนพังกลางทาง อาการหนักสุดคือชื่อเก่าค้างใน dropdown แบบ 0 ข้อ
+//  ซึ่งปุ่ม "คำนวณ meta ใหม่" เก็บกวาดให้เอง — ไม่มีเคสที่ข้อถูกเขียนครึ่งๆ แล้วหมวดหาย
+async function runMerge() {
+  const plan = mergePlan.value
+  if (topicBusy.value || !plan.sources.length || !plan.target) return
+  const head = plan.sources.length === 1 && !plan.affected
+    ? `ถอน “${plan.sources[0]}” ออกจาก dropdown?`
+    : `รวม ${plan.sources.length} หมวดเข้าเป็น “${plan.target}”
+จะแก้ข้อสอบ ${plan.affected} ข้อ`
+  if (!(await confirm(`${head}
+ย้อนกลับเองไม่ได้ — ต้องรวมกลับด้วยมือ`))) return
+  topicBusy.value = true
+  try {
+    if (plan.updates.length) {
+      // แตะแค่ categories + updatedAt → ผ่าน reviewUntouched() ใน rules = ผลตรวจไม่ถูกล้าง
+      const byId = new Map(plan.updates.map(u => [u.id, u.categories]))
+      await commitInChunks([...byId.keys()],
+        (b, ref) => b.update(ref, { categories: byId.get(ref.id), updatedAt: serverTimestamp() }))
+    }
+    try {
+      await addTopics([plan.target])
+      await removeTopics(plan.sources)
+    } catch (e) {
+      console.error('[topic merge registry]', e)
+      toast('แก้ข้อสำเร็จ แต่ทะเบียนหมวดยังไม่อัปเดต — กด 🔄 คำนวณ meta ใหม่ อีกที', 'info')
+    }
+    clearMergePick()
+    await afterBatch(`รวมหมวดแล้ว — ${plan.affected} ข้ออยู่ใต้ “${plan.target}”`)
+  } catch (e) { console.error('[topic merge]', e); toast('รวมหมวดไม่สำเร็จ', 'error') }
+  finally { topicBusy.value = false }
+}
+
+// ลบหมวดร้างออกจาก dropdown — ไม่แตะข้อสอบ (ปุ่มโผล่เฉพาะหมวดที่ 0 ข้อ)
+async function deleteTopic(name) {
+  const row = topicList.value.find(t => t.name === name)
+  if (topicBusy.value || !row || row.count) return
+  if (!(await confirm(`ลบหมวด “${name}” ออกจาก dropdown?
+ไม่มีข้อไหนใช้หมวดนี้อยู่ — ข้อสอบไม่ถูกแตะ`))) return
+  topicBusy.value = true
+  try {
+    await removeTopics([name])
+    mergeSources.value.delete(name)
+    toast(`ลบหมวด “${name}” แล้ว`, 'success')
+  } catch (e) { console.error('[topic delete]', e); toast('ลบหมวดไม่สำเร็จ', 'error') }
+  finally { topicBusy.value = false }
+}
+
 const recomputingMeta = ref(false)
 // อ่านทั้งคลังครั้งเดียว (admin เท่านั้น = ถูก) → เขียน config/questionsMeta
 // ให้หน้า quiz home ใช้แทนการ getDocs ทั้งคลัง
@@ -707,9 +861,14 @@ async function recomputeMeta() {
   try {
     const snap = await getDocs(collection(db, 'questions'))
     usage.track(snap.size)
-    const meta = buildMeta(snap.docs.map(d => d.data()))
+    const all = snap.docs.map(d => d.data())
+    const meta = buildMeta(all)
     await setDoc(doc(db, 'config', 'questionsMeta'), { ...meta, updatedAt: serverTimestamp() })
-    toast(`อัปเดต meta: เผยแพร่ ${meta.publishedTotal} ข้อ, ${meta.categories.length} หมวด`, 'success')
+    // ปุ่มนี้อ่านทั้งคลังอยู่แล้ว → ถือโอกาสซ่อมทะเบียนหมวดกลางให้ครบ (รวมข้อร่างที่ยังไม่เผยแพร่)
+    // หมวดที่มากับ import รอบก่อนๆ จึงกลับขึ้น dropdown หน้าตรวจข้อสอบ
+    const addedTopics = await registerTopics(distinctCategories(all), 'recompute')
+    const tail = addedTopics.length ? ` · เก็บหมวดตกทะเบียนเข้า dropdown ${addedTopics.length} หมวด` : ''
+    toast(`อัปเดต meta: เผยแพร่ ${meta.publishedTotal} ข้อ, ${meta.categories.length} หมวด${tail}`, 'success')
   } catch (e) {
     console.error('[recompute meta]', e); toast('อัปเดต meta ไม่สำเร็จ', 'error')
   } finally { recomputingMeta.value = false }
@@ -779,6 +938,8 @@ async function save() {
       } catch (e) { console.error('[reviewMeta progress bump]', e) }
       toast(payload.isPublished && payload.examSets.length ? 'เพิ่มข้อสอบแล้ว · กด 🔄 คำนวณ meta ใหม่ ให้ชุดขึ้นในควิซ' : 'เพิ่มข้อสอบแล้ว', 'success')
     }
+    // ข้อเก่าที่ถูกแก้อาจพก category เดิมที่ไม่เคยขึ้นทะเบียนมาด้วย — เก็บเข้าทะเบียนตอนนี้
+    await registerTopics(payload.categories, 'save')
     resetDraft()
     await load()
   } catch (e) { console.error('[questions save]', e); toast('บันทึกไม่สำเร็จ', 'error') }
@@ -1019,6 +1180,24 @@ async function resolveReports(g, verdict) {
 .qz-list-head { display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: .85rem; margin-bottom: 8px; }
 .qz-mini { border: none; border-radius: 8px; padding: 5px 10px; font-family: inherit; font-size: .7rem; font-weight: 700; cursor: pointer; background: rgba(0,0,0,.06); color: rgba(0,0,0,.6); }
 .qz-mini.qz-danger { background: rgba(239,68,68,.12); color: #dc2626; }
+.qz-mini.qz-go { background: var(--primary); color: #fff; }
+.qz-mini:disabled { opacity: .5; cursor: default; }
+/* จัดการหมวด/กลุ่มโรค */
+.qz-tm-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+.qz-tm-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 9px; background: rgba(0,0,0,.03); }
+.qz-tm-row.sel { background: var(--primary-light, #eef2ff); }
+.qz-tm-pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.qz-tm-name { font-size: .78rem; font-weight: 700; overflow-wrap: anywhere; }
+.qz-tm-flag { flex-shrink: 0; font-size: .7rem; font-weight: 700; color: #b45309; background: rgba(245,158,11,.15); border-radius: 999px; padding: 2px 7px; }
+.qz-tm-count { flex-shrink: 0; font-size: .72rem; color: rgba(0,0,0,.55); }
+.qz-tm-merge { border-top: 2px dashed rgba(0,0,0,.12); padding-top: 10px; display: flex; flex-direction: column; gap: 7px; }
+.qz-tm-sel { font-size: .76rem; font-weight: 800; }
+.qz-tm-input { width: 100%; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 10px; padding: 8px 10px; font-family: inherit; font-size: .8rem; background: #fff; }
+.qz-tm-preview { background: #fff; border: 2px solid var(--ink); border-radius: 11px; padding: 9px 11px; font-size: .76rem; }
+.qz-tm-sample { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.qz-tm-sample li { font-size: .72rem; color: rgba(0,0,0,.6); overflow-wrap: anywhere; }
+.qz-tm-more { font-style: italic; }
+.qz-tm-acts { display: flex; gap: 7px; justify-content: flex-end; }
 .qz-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .qz-item { background: #fff; border: 2px solid var(--ink); border-radius: 14px; box-shadow: var(--pop); padding: 12px; }
 .qz-item.sel { background: var(--primary-light, #eef2ff); }

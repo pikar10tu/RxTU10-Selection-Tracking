@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { getCategories, normalizeCategories, MAX_CATEGORIES } from './questionCategories.js'
+import { getCategories, normalizeCategories, unregisteredTopics, MAX_CATEGORIES } from './questionCategories.js'
 
 test('getCategories — ข้อใหม่ที่มี categories array', () => {
   assert.deepEqual(getCategories({ categories: ['เบาหวาน', 'ไต'] }), ['เบาหวาน', 'ไต'])
@@ -38,4 +38,31 @@ test(`normalizeCategories — เกิน ${MAX_CATEGORIES} ตัด`, () => {
 test('normalizeCategories — ไม่ใช่ array → []', () => {
   assert.deepEqual(normalizeCategories(undefined), [])
   assert.deepEqual(normalizeCategories('ไต'), [])
+})
+
+// ── unregisteredTopics — ชื่อหมวดที่ยังไม่อยู่ในทะเบียนกลาง config/topics.list ──
+test('unregisteredTopics — คืนเฉพาะชื่อที่ยังไม่มีในทะเบียน', () => {
+  assert.deepEqual(unregisteredTopics(['ไต', 'ตับ'], ['ไต', 'โรคอ้วน']), ['โรคอ้วน'])
+})
+
+test('unregisteredTopics — ไม่มีของใหม่ → []', () => {
+  assert.deepEqual(unregisteredTopics(['ไต', 'ตับ'], ['ตับ', 'ไต']), [])
+})
+
+test('unregisteredTopics — ตัดซ้ำในชุดที่ส่งเข้ามาเอง', () => {
+  assert.deepEqual(unregisteredTopics([], ['โรคอ้วน', 'โรคอ้วน', 'ไต']), ['โรคอ้วน', 'ไต'])
+})
+
+test('unregisteredTopics — clean ช่องว่างหัวท้ายก่อนเทียบ (ไม่เพิ่มของที่มีอยู่แล้ว)', () => {
+  assert.deepEqual(unregisteredTopics(['ไต'], ['  ไต  ', '', null, '   ']), [])
+})
+
+test(`unregisteredTopics — ไม่ติดเพดาน ${MAX_CATEGORIES} หมวด (ทะเบียนกลางยาวได้)`, () => {
+  const many = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+  assert.deepEqual(unregisteredTopics([], many), many)
+})
+
+test('unregisteredTopics — อินพุตไม่ใช่ array → []', () => {
+  assert.deepEqual(unregisteredTopics(undefined, undefined), [])
+  assert.deepEqual(unregisteredTopics(['ไต'], 'ตับ'), [])
 })

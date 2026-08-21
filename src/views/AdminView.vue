@@ -429,6 +429,8 @@ import { ACHIEVEMENTS } from '../data/achievements.js'
 import { usageStatus, DAILY_READ_LIMIT, DAILY_WRITE_LIMIT } from '../utils/usageMeter.js'
 import { computeStatus, reviewStatusKey, tallyReviewCounts } from '../utils/questionReview.js'
 import { getCategories } from '../utils/questionCategories.js'
+import { distinctCategories } from '../utils/questionsFilter.js'
+import { useTopics } from '../composables/useTopics.js'
 
 const authStore = useAuthStore()
 const members   = useMembersStore()
@@ -436,6 +438,7 @@ const usage     = useUsageStore()
 const { maintenance, pvpOpen, expeditionOpen, arcadeOpen } = useAppConfig()
 const { toast } = useToast()
 const { confirm } = useConfirm()
+const { addTopics } = useTopics()
 
 // ซิงก์ระบบตรวจข้อสอบ: เติม reviewStatus ให้ข้อเก่า (ก่อนมีระบบตรวจ — query หน้า /review
 // มองไม่เห็นข้อที่ไม่มี field นี้) + ซ่อมสถานะที่ drift (รวมข้อค้าง 1 เสียง pending → half)
@@ -494,7 +497,14 @@ async function syncReviewSystem() {
       })
     })
     usage.track(snap.size + 1, stale.length + 1)
-    toast(`ซิงก์แล้ว — อัปเดต ${stale.length} ข้อ · ความคืบหน้าตั้งต้นใหม่แล้ว`, 'success')
+    // ซ่อมทะเบียนหมวดกลาง (config/topics.list) ให้รู้จักทุกหมวดที่มีอยู่จริงบนข้อ —
+    // หมวดที่มากับ bulk import ไม่เคยถูกลงทะเบียน จึงไม่โผล่ใน dropdown หน้าตรวจข้อสอบ
+    // แม้จะมีข้ออื่นติดหมวดนั้นอยู่แล้ว · ล้มได้ ไม่ล้มการซิงก์
+    let addedTopics = []
+    try { addedTopics = await addTopics(distinctCategories(all)) }
+    catch (e) { console.error('[topics register sync]', e) }
+    const topicTail = addedTopics.length ? ` · เก็บหมวดตกทะเบียน ${addedTopics.length} หมวดเข้า dropdown` : ''
+    toast(`ซิงก์แล้ว — อัปเดต ${stale.length} ข้อ · ความคืบหน้าตั้งต้นใหม่แล้ว${topicTail}`, 'success')
   } catch (e) { console.error('[review sync]', e); toast('ซิงก์ไม่สำเร็จ', 'error') }
   finally { reviewSyncBusy.value = false }
 }

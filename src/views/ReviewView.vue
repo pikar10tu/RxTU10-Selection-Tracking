@@ -149,12 +149,14 @@ import { computeStatus, nextReviewQueue, buildLeaderboard, VERDICT_LABEL, pickWe
 import { getCategories, normalizeCategories } from '../utils/questionCategories.js'
 import { quizSample } from '../utils/quizSample.js'
 import TopicSelect from '../components/questions/TopicSelect.vue'
+import { useTopics } from '../composables/useTopics.js'
 import { useConfirm } from '../composables/useConfirm.js'
 
 const authStore = useAuthStore()
 const usage = useUsageStore()
 const { toast } = useToast()
 const { confirm } = useConfirm()
+const { addTopics } = useTopics()
 
 const LETTERS = ['ก', 'ข', 'ค', 'ง', 'จ', 'ฉ']
 const VERDICTS = [
@@ -386,6 +388,11 @@ async function submit() {
       tx.set(doc(db, 'reviewMeta', 'main'), metaPatch, { merge: true })
     })
     usage.track(1, already ? 0 : 3)
+    // หมวดที่ติดมากับข้ออาจไม่เคยขึ้นทะเบียนกลาง (มาจาก bulk import / category เดี่ยวของข้อเก่า)
+    // ผู้ตรวจยืนยันแล้ว = ของจริง → เก็บเข้า dropdown ให้ข้ออื่นเลือกตามได้ · ล้มได้ ไม่ล้มการส่งผล
+    if (!already && committedCats?.length) {
+      try { await addTopics(committedCats) } catch (e) { console.error('[topics register review]', e) }
+    }
     // อัปเดต local ให้คิว/leaderboard เลื่อนทันที (ไม่ reload) — ใช้ค่าที่ "เขียนจริง" เป๊ะ ไม่คำนวณซ้ำจากฟอร์ม
     const idx = list.value.findIndex(x => x.id === q.id)
     if (idx >= 0) {

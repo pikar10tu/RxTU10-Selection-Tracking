@@ -41,8 +41,10 @@ const busy = ref(false)
 onMounted(loadTopics)
 
 const full = computed(() => props.modelValue.length >= MAX_CATEGORIES)
-// หัวข้อที่ยังไม่ถูกเลือก (ค่าที่เลือกแล้วไม่ต้องโผล่ซ้ำ)
-const available = computed(() => topics.value.filter(t => !props.modelValue.includes(t)))
+// หัวข้อที่ยังไม่ถูกเลือก (ค่าที่เลือกแล้วไม่ต้องโผล่ซ้ำ) — เรียง ก-ฮ เพราะทะเบียนยาวขึ้นมาก
+// หลังลงทะเบียนหมวดจาก bulk import ย้อนหลัง (ลำดับที่เขียนเข้าไปไม่มีความหมายกับคนอ่าน)
+const available = computed(() =>
+  topics.value.filter(t => !props.modelValue.includes(t)).sort((a, b) => a.localeCompare(b, 'th')))
 
 function add(name) {
   if (!name || props.modelValue.includes(name) || full.value) return
