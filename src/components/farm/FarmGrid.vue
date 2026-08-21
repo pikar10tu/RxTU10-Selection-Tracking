@@ -17,7 +17,7 @@
         <!-- planted -->
         <template v-else>
           <div v-if="stat(plot).ready" class="plot-ready-tag">พร้อม!</div>
-          <div class="plot-emoji" :class="{ ripe: stat(plot).ready }" :style="emojiStyle(plot)"><Emoji :char="stat(plot).crop.emoji" /></div>
+          <div class="plot-emoji" :class="{ ripe: stat(plot).ready }" :style="emojiStyle(plot)"><Emoji :char="stageChar(plot)" /></div>
           <div class="plot-name">{{ stat(plot).crop.name }}</div>
 
           <template v-if="stat(plot).ready">
@@ -64,7 +64,8 @@ import HelpButton from '../help/HelpButton.vue'
 import { useAuthStore } from '../../stores/auth.js'
 import { useFarm } from '../../composables/useFarm.js'
 import { useConfirm } from '../../composables/useConfirm.js'
-import { getCrop } from '../../data/crops.js'
+import { getCrop, stageEmoji, DEFAULT_STAGES } from '../../data/crops.js'
+import { fluentFile } from '../../utils/emoji.js'
 import SeedPicker from './SeedPicker.vue'
 
 const auth = useAuthStore()
@@ -73,7 +74,17 @@ const { confirm } = useConfirm()
 
 const now = ref(Date.now())
 let timer = null
-onMounted(() => { timer = setInterval(() => { now.value = Date.now() }, 1000) })
+onMounted(() => {
+  timer = setInterval(() => { now.value = Date.now() }, 1000)
+  // preload รูประยะการโต — <Emoji> เป็น lazy img ไม่งั้นตอนสลับระยะครั้งแรกภาพจะวูบ
+  // (แพทเทิร์นเดียวกับ preload projectile ของ battle commit b6a996c)
+  const chars = new Set(DEFAULT_STAGES)
+  for (const c of seedChoices.value) for (const s of (c.stages || [])) chars.add(s)
+  for (const ch of chars) {
+    const f = fluentFile(ch)
+    if (f) { const img = new Image(); img.src = import.meta.env.BASE_URL + f }
+  }
+})
 onUnmounted(() => clearInterval(timer))
 
 const plots       = computed(() => farm.plots.value)
@@ -89,6 +100,9 @@ function onPick(seedId) { const i = pickIndex.value; pickIndex.value = null; if 
 
 // reactive plot status (re-evaluates as `now` ticks)
 function stat(plot) { return farm.status(plot, now.value) }
+
+// อีโมจิที่แสดงในแปลง = ระยะการโต (พร้อมเก็บ → progress = 1 → คืนผลจริงอยู่แล้ว)
+function stageChar(plot) { const s = stat(plot); return stageEmoji(s.crop, s.progress) }
 
 // emoji โตขึ้นตาม progress (ต้นเล็ก → โตเต็มเมื่อพร้อม)
 function emojiStyle(plot) {
