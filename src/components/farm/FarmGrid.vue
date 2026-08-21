@@ -153,16 +153,21 @@ async function confirmSell(it, ev) {
   const from = ev?.currentTarget?.getBoundingClientRect()
   const total = (it.sellPrice * it.qty).toLocaleString()
   if (!await confirm(`ขาย ${it.name} ×${it.qty} = +${total} เหรียญ?`)) return
+  // farm.sell คืน undefined เสมอ (useFarm กลืนผลลัพธ์ commit() เอง) — เช็กจาก coins
+  // หลัง await แทน เพราะถ้าบันทึกล้มเหลว useFarm จะ rollback coins กลับเป็นค่าเดิมให้
+  const before = coins.value
   await farm.sell(it.id)
-  shootCoins(from)
+  if (coins.value > before) shootCoins(from)
 }
 
 async function confirmSellAll(ev) {
   const from = ev?.currentTarget?.getBoundingClientRect()
   const total = invList.value.reduce((s, it) => s + it.sellPrice * it.qty, 0)
   if (!await confirm(`ขายผลผลิตทั้งหมด รวม +${total.toLocaleString()} เหรียญ?`)) return
+  // เหตุผลเดียวกับ confirmSell — เช็ก coins แทนเชื่อ resolve ของ await
+  const before = coins.value
   await farm.sellAll()
-  shootCoins(from)
+  if (coins.value > before) shootCoins(from)
 }
 
 // เหรียญพุ่งเข้าชิปเหรียญบนหัวฟาร์ม
@@ -211,7 +216,8 @@ const invList = computed(() =>
 .plot-ready-tag { position: absolute; top: 6px; right: 6px; background: linear-gradient(135deg,#22c55e,#16a34a); color: #fff; font-weight: 800; font-size: .7rem; padding: 2px 7px; border-radius: 999px; box-shadow: 0 2px 5px rgba(22,163,74,.45); }
 .plot-emoji { position: relative; z-index: 1; font-size: 1.8rem; line-height: 1; transform-origin: center bottom; transition: transform .4s cubic-bezier(.34,1.56,.64,1); filter: drop-shadow(0 2px 2px rgba(0,0,0,.22)); }
 .plot-emoji.ripe { animation: ripeBob 1.4s ease-in-out infinite; }
-.plot-name { position: relative; z-index: 1; font-size: .72rem; color: #fff; font-weight: 800; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+/* บังคับบรรทัดเดียว — ชื่อยาว wrap เป็น 2 บรรทัดแล้วดันเนื้อหาขึ้นไปอยู่บนพื้นฟ้าสว่าง อ่านสระ/วรรณยุกต์ไทยไม่ออก */
+.plot-name { position: relative; z-index: 1; font-size: .72rem; color: #fff; font-weight: 800; text-shadow: 0 1px 3px rgba(0,0,0,.6); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .plot-bar { position: relative; z-index: 1; width: 100%; height: 6px; background: rgba(255,255,255,.4); border-radius: 999px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.15); }
 .plot-fill { height: 100%; background: linear-gradient(90deg,#84cc16,#22c55e); border-radius: 999px; transition: width .8s linear; }
 .plot-time { position: relative; z-index: 1; font-size: .7rem; color: #fff; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
@@ -228,9 +234,11 @@ const invList = computed(() =>
 .inv-qty { font-weight: 800; font-size: .74rem; }
 .inv-sell { font-size: .7rem; color: #b45309; font-weight: 700; }
 
+/* ค่าเฟรม 0%/100% ต้องตรงกับ box-shadow ที่ .plot.ready ประกาศไว้ (animation เขียนทับทุกเฟรม)
+   และต้องมี inset shadow ของดินด้วย ไม่งั้นแปลงพร้อมเก็บจะเสียเงาดินด้านในไป */
 @keyframes plotGlow {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(34,197,94,.25), 0 4px 14px -4px rgba(34,197,94,.45); }
-  50%      { box-shadow: 0 0 0 1px rgba(34,197,94,.45), 0 6px 20px -3px rgba(34,197,94,.7); }
+  0%, 100% { box-shadow: 0 0 0 1px rgba(34,197,94,.35), 0 5px 16px -5px rgba(34,197,94,.6), inset 0 -6px 10px -6px rgba(80,55,25,.35); }
+  50%      { box-shadow: 0 0 0 1px rgba(34,197,94,.55), 0 7px 22px -4px rgba(34,197,94,.85), inset 0 -6px 10px -6px rgba(80,55,25,.35); }
 }
 @keyframes ripeBob {
   0%, 100% { transform: translateY(0) rotate(-2deg); }

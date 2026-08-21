@@ -2,6 +2,11 @@
 // doctrine:
 //   • ชั้นเอฟเฟกต์แปะที่ document.body เท่านั้น — #main-content เป็น position:fixed
 //     = สร้าง stacking context ของที่อยู่ข้างในสู้ #bottom-nav ไม่ได้ (CLAUDE.md ข้อ 6)
+//   • zIndex ของชั้นนี้ = 250 โดยตั้งใจ: ต้องสูงกว่า #bottom-nav (200, ข้อบังคับจริงตาม
+//     CLAUDE.md ข้อ 6) แต่ต่ำกว่าโมดัล/ชีตทุกตัว (BottomSheet 400, .modal-ov 900) — ของที่ลอย
+//     แปะ body ทีหลังใน DOM จึงเพนต์ทับได้ ถ้าตั้งสูงเกินจะแล่นผ่านหน้าโมดัลที่เปิดค้างอยู่
+//     (เคสจริง: เก็บเกี่ยวแล้วรีบกดปลูกต่อ ของยังลอยไม่ทันจบ SeedPicker ก็เปิดทับแล้ว)
+//     ⚠️ อย่าดันขึ้นโดยไม่คิด — ต่ำกว่าโมดัลคือความตั้งใจ ไม่ใช่ค่าที่ลืมปรับ
 //   • ขับด้วย WAAPI เปลี่ยนแค่ transform/opacity (แนวคิดเดียวกับ battlefx.js แต่แยกไฟล์
 //     ไม่ import และไม่แก้ของ battle — เคสกระตุก iOS ของนั้นเพิ่งปิด)
 //   • ของที่ลอยเป็น element ชั่วคราวนอก Vue → Vue ไม่ต้อง re-render ระหว่างอนิเมชัน
@@ -23,7 +28,7 @@ function ensureLayer() {
   layer = document.createElement('div')
   layer.setAttribute('aria-hidden', 'true')
   Object.assign(layer.style, {
-    position: 'fixed', inset: '0', pointerEvents: 'none', overflow: 'hidden', zIndex: '900',
+    position: 'fixed', inset: '0', pointerEvents: 'none', overflow: 'hidden', zIndex: '250',
   })
   document.body.appendChild(layer)
   return layer
