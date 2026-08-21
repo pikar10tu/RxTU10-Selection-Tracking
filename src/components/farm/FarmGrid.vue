@@ -149,9 +149,9 @@ const invList = computed(() =>
 .farm-title { font-weight: 800; font-size: 1rem; }
 .farm-sub { font-size: .7rem; color: rgba(0,0,0,.45); }
 .farm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.plot { position: relative; overflow: hidden; border-radius: 12px; background: linear-gradient(180deg, #e9f4ff 0%, #eef7e6 52%, #b07f52 52%, #8a5c36 100%); border: 1px solid rgba(120,90,50,.28); box-shadow: inset 0 -6px 10px -6px rgba(80,55,25,.35); min-height: 110px; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; transition: border-color .25s, box-shadow .25s; }
+.plot { position: relative; overflow: hidden; border-radius: 12px; background: linear-gradient(180deg, #e9f4ff 0%, #eef7e6 42%, #b07f52 42%, #8a5c36 100%); border: 1px solid rgba(120,90,50,.28); box-shadow: inset 0 -6px 10px -6px rgba(80,55,25,.35); min-height: 110px; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; transition: border-color .25s, box-shadow .25s; }
 /* จุดดินจางๆ ให้พื้นล่างไม่เรียบเป็นแผ่นสี */
-.plot::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 48%; pointer-events: none; background: radial-gradient(circle at 22% 30%, rgba(0,0,0,.12) 0 3px, transparent 4px), radial-gradient(circle at 72% 62%, rgba(0,0,0,.1) 0 2px, transparent 3px); }
+.plot::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 58%; pointer-events: none; background: radial-gradient(circle at 22% 30%, rgba(0,0,0,.12) 0 3px, transparent 4px), radial-gradient(circle at 72% 62%, rgba(0,0,0,.1) 0 2px, transparent 3px); }
 .plot.empty { background: rgba(120,90,50,.05); border-style: dashed; box-shadow: none; }
 .plot.empty::before { display: none; }
 .plot.ready { border-color: rgba(34,197,94,.6); box-shadow: 0 0 0 1px rgba(34,197,94,.35), 0 5px 16px -5px rgba(34,197,94,.6); animation: plotGlow 1.8s ease-in-out infinite; }
@@ -162,10 +162,10 @@ const invList = computed(() =>
 .plot-ready-tag { position: absolute; top: 6px; right: 6px; background: linear-gradient(135deg,#22c55e,#16a34a); color: #fff; font-weight: 800; font-size: .7rem; padding: 2px 7px; border-radius: 999px; box-shadow: 0 2px 5px rgba(22,163,74,.45); }
 .plot-emoji { position: relative; z-index: 1; font-size: 1.8rem; line-height: 1; transform-origin: center bottom; transition: transform .4s cubic-bezier(.34,1.56,.64,1); filter: drop-shadow(0 2px 2px rgba(0,0,0,.22)); }
 .plot-emoji.ripe { animation: ripeBob 1.4s ease-in-out infinite; }
-.plot-name { position: relative; z-index: 1; font-size: .72rem; color: #fff; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,.45); }
+.plot-name { position: relative; z-index: 1; font-size: .72rem; color: #fff; font-weight: 800; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 .plot-bar { position: relative; z-index: 1; width: 100%; height: 6px; background: rgba(255,255,255,.4); border-radius: 999px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.15); }
 .plot-fill { height: 100%; background: linear-gradient(90deg,#84cc16,#22c55e); border-radius: 999px; transition: width .8s linear; }
-.plot-time { position: relative; z-index: 1; font-size: .7rem; color: #fff; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.plot-time { position: relative; z-index: 1; font-size: .7rem; color: #fff; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 .plot-btn.harvest { position: relative; z-index: 1; border: none; background: linear-gradient(135deg,#22c55e,#16a34a); color: #fff; font-weight: 800; font-size: .7rem; padding: 5px 8px; border-radius: 8px; cursor: pointer; font-family: inherit; }
 .inv { margin-top: 14px; border-top: 1px dashed rgba(0,0,0,.12); padding-top: 12px; }
 .inv-head { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: .82rem; margin-bottom: 8px; }
