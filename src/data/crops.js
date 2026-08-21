@@ -34,9 +34,9 @@ export const CROPS = [
   { id: 'pumpkin',  name: 'ฟักทองยักษ์', emoji: '🎃', tier: 'epic',     unlockLevel: 10, seedCost: 5000,  growMinutes: 2880, sellPrice: 20000 },
   // ── Lv11–12: ตำนาน (legendary) ──
   { id: 'glowflower', name: 'ดอกไม้เรืองแสง', emoji: '🌟', tier: 'legendary', unlockLevel: 11, seedCost: 600, growMinutes: 20, sellPrice: 1100 },
-  { id: 'lotus',    name: 'บัวหลวง',    emoji: '🪷', tier: 'legendary', unlockLevel: 11, seedCost: 2000,  growMinutes: 240,  sellPrice: 5600 },
+  { id: 'lotus',    name: 'บัวหลวง',    emoji: '🪷', tier: 'legendary', unlockLevel: 11, seedCost: 2000,  growMinutes: 240,  sellPrice: 5600, stages: ['🌱','🍃'] },
   { id: 'sunflower', name: 'ทานตะวันทอง', emoji: '🌻', tier: 'legendary', unlockLevel: 12, seedCost: 6000, growMinutes: 1440, sellPrice: 22000 },
-  { id: 'moneytree', name: 'ต้นไม้เงินตรา', emoji: '🌳', tier: 'legendary', unlockLevel: 12, seedCost: 15000, growMinutes: 4320, sellPrice: 70000 },
+  { id: 'moneytree', name: 'ต้นไม้เงินตรา', emoji: '🌳', tier: 'legendary', unlockLevel: 12, seedCost: 15000, growMinutes: 4320, sellPrice: 70000, stages: ['🌱','🌲'] },
 ]
 
 const _byId = Object.fromEntries(CROPS.map(c => [c.id, c]))
@@ -69,4 +69,29 @@ export function growLabel(crop) {
   if (m < 60) return `${m} นาที`
   if (m < 1440) { const h = m / 60; return `${Number.isInteger(h) ? h : h.toFixed(1)} ชม.` }
   const d = m / 1440; return `${Number.isInteger(d) ? d : d.toFixed(1)} วัน`
+}
+
+// ════════════════════════════════════════════════════════════
+//  ระยะการโต — แสดงผลล้วนๆ ไม่กระทบเวลาโต/ผลผลิต/ราคา
+//  พืชเปลี่ยนภาพระหว่างรอ: ต้นอ่อน → ต้นโต → ผลจริง
+//  พืชที่ระยะกลางแบบร่วมดูแปลก ใส่ `stages: ['a','b']` ทับรายตัวได้ในข้อมูลด้านบน
+//  ⚠️ อีโมจิที่ใช้ต้องมีไฟล์ใน public/emoji/fluent/ ไม่งั้น <Emoji> จะ fallback
+//     ไปใช้ฟอนต์เครื่อง (หน้าตาไม่ตรงกันแต่ละเครื่อง) — เพิ่มตัวใหม่ต้องรัน
+//     `node scripts/fetch-fluent.mjs` (ต้องต่อเน็ต)
+// ════════════════════════════════════════════════════════════
+
+/** ระยะกลางที่ใช้ร่วมกันทุกพืช (ต้นอ่อน → ต้นโต) */
+export const DEFAULT_STAGES = ['🌱', '🌿']
+
+/** จุดตัดความคืบหน้าที่เปลี่ยนระยะ — ขอบเขตนับเข้าระยะถัดไป */
+export const STAGE_CUTS = [0.33, 0.70]
+
+/** อีโมจิที่ควรแสดงตามความคืบหน้า (0..1) · อินพุตพังแค่ไหนก็ไม่ throw */
+export function stageEmoji(crop, progress) {
+  if (!crop) return ''
+  const n = Number(progress)
+  const p = Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 0
+  if (p >= STAGE_CUTS[1]) return crop.emoji
+  const own = Array.isArray(crop.stages) && crop.stages.length >= 2 ? crop.stages : DEFAULT_STAGES
+  return p >= STAGE_CUTS[0] ? own[1] : own[0]
 }
