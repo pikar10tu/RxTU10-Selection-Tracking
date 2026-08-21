@@ -2,8 +2,9 @@
   <div class="farm">
     <div class="farm-head">
       <span class="farm-title"><Emoji char="🌾" /> ฟาร์ม <HelpButton topic="farm" /></span>
-      <span class="farm-sub">{{ plotCount }} แปลง · ปลูกได้ {{ seedChoices.length }} ชนิด<template v-if="upcoming"> · ปลดล็อก Lv.{{ upcoming.level }} {{ upcomingEmojis }}</template></span>
+      <span class="farm-coins" ref="coinChipEl"><Emoji char="🪙" /> {{ shownCoins.toLocaleString() }}</span>
     </div>
+    <div class="farm-sub">{{ plotCount }} แปลง · ปลูกได้ {{ seedChoices.length }} ชนิด<template v-if="upcoming"> · ปลดล็อก Lv.{{ upcoming.level }} {{ upcomingEmojis }}</template></div>
 
     <!-- plots -->
     <div class="farm-grid">
@@ -63,6 +64,7 @@ import Emoji from '../shared/Emoji.vue'
 import HelpButton from '../help/HelpButton.vue'
 import { useAuthStore } from '../../stores/auth.js'
 import { useFarm } from '../../composables/useFarm.js'
+import { useCountUp } from '../../composables/useCountUp.js'
 import { useConfirm } from '../../composables/useConfirm.js'
 import { getCrop, stageEmoji, DEFAULT_STAGES } from '../../data/crops.js'
 import { fluentFile } from '../../utils/emoji.js'
@@ -93,6 +95,8 @@ onUnmounted(() => clearInterval(timer))
 const plots       = computed(() => farm.plots.value)
 const plotCount   = computed(() => farm.plotCount.value)
 const coins       = computed(() => auth.userData?.coins || 0)
+const shownCoins  = useCountUp(coins)                    // เลขวิ่งตอนได้เหรียญเพิ่ม
+const coinChipEl  = ref(null)                             // ปลายทางให้เหรียญพุ่งเข้า (ใช้ใน Task 6)
 const seedChoices = computed(() => farm.seedChoices.value)
 const upcoming    = computed(() => farm.upcomingSeed.value)
 const upcomingEmojis = computed(() => (upcoming.value?.crops || []).map(c => c.emoji).join(''))
@@ -145,9 +149,10 @@ const invList = computed(() =>
 
 <style scoped>
 .farm { background: #fff; border: 1px solid rgba(0,0,0,.08); border-radius: 16px; padding: 14px; }
-.farm-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.farm-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .farm-title { font-weight: 800; font-size: 1rem; }
-.farm-sub { font-size: .7rem; color: rgba(0,0,0,.45); }
+.farm-coins { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; font-size: .82rem; color: #b45309; background: linear-gradient(160deg,#fff,rgba(245,158,11,.14)); border: 1px solid rgba(180,83,9,.22); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+.farm-sub { font-size: .7rem; color: rgba(0,0,0,.45); margin-bottom: 12px; }
 .farm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .plot { position: relative; overflow: hidden; border-radius: 12px; background: linear-gradient(180deg, #e9f4ff 0%, #eef7e6 42%, #b07f52 42%, #8a5c36 100%); border: 1px solid rgba(120,90,50,.28); box-shadow: inset 0 -6px 10px -6px rgba(80,55,25,.35); min-height: 110px; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; transition: border-color .25s, box-shadow .25s; }
 /* จุดดินจางๆ ให้พื้นล่างไม่เรียบเป็นแผ่นสี */
