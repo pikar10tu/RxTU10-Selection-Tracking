@@ -8,7 +8,7 @@
 
     <!-- plots -->
     <div class="farm-grid">
-      <div v-for="(plot, i) in plots" :key="i" class="plot" :class="{ ready: stat(plot).ready, empty: !plot }">
+      <div v-for="(plot, i) in plots" :key="i" class="plot" :class="{ ready: stat(plot).ready, empty: !plot }" :ref="el => { if (el) plotEls[i] = el }">
         <!-- empty -->
         <button v-if="!plot" class="plot-empty" @click="openPicker(i)">
           <span class="plot-plus">＋</span>
@@ -22,7 +22,7 @@
           <div class="plot-name">{{ stat(plot).crop.name }}</div>
 
           <template v-if="stat(plot).ready">
-            <button class="plot-btn harvest" @click="farm.harvest(i)"><Emoji char="✅" /> เก็บเกี่ยว</button>
+            <button class="plot-btn harvest" @click="onHarvest(i, plot)"><Emoji char="✅" /> เก็บเกี่ยว</button>
           </template>
           <template v-else>
             <div class="plot-bar"><div class="plot-fill" :style="{ width: (stat(plot).progress * 100) + '%' }"></div></div>
@@ -34,13 +34,13 @@
 
     <!-- inventory / sell -->
     <div class="inv">
-      <div class="inv-head">
+      <div class="inv-head" ref="invHeadEl" :class="{ pop: basketPop }">
         <span><Emoji char="🧺" /> ผลผลิต</span>
-        <button v-if="invList.length" class="inv-sellall" @click="confirmSellAll">ขายทั้งหมด</button>
+        <button v-if="invList.length" class="inv-sellall" @click="confirmSellAll($event)">ขายทั้งหมด</button>
       </div>
       <div v-if="!invList.length" class="inv-empty">ยังไม่มีผลผลิต — ปลูกแล้วเก็บเกี่ยวมาขายได้เลย</div>
       <div v-else class="inv-list">
-        <button v-for="it in invList" :key="it.id" class="inv-item" @click="confirmSell(it)">
+        <button v-for="it in invList" :key="it.id" class="inv-item" @click="confirmSell(it, $event)">
           <span class="inv-emoji"><Emoji :char="it.emoji" /></span>
           <span class="inv-qty">×{{ it.qty }}</span>
           <span class="inv-sell">ขาย {{ (it.sellPrice * it.qty).toLocaleString() }}<Emoji char="🪙" /></span>
@@ -68,6 +68,7 @@ import { useCountUp } from '../../composables/useCountUp.js'
 import { useConfirm } from '../../composables/useConfirm.js'
 import { getCrop, stageEmoji, DEFAULT_STAGES } from '../../data/crops.js'
 import { fluentFile } from '../../utils/emoji.js'
+import { flyTo, cancelFarmFx } from '../../utils/farmfx.js'
 import SeedPicker from './SeedPicker.vue'
 
 const auth = useAuthStore()
@@ -90,7 +91,11 @@ onMounted(() => {
     if (f) { const img = new Image(); img.src = import.meta.env.BASE_URL + f }
   }
 })
-onUnmounted(() => clearInterval(timer))
+onUnmounted(() => { clearInterval(timer); clearTimeout(popTimer); cancelFarmFx() })
+
+const plotEls  = ref([])        // element ของแต่ละแปลง (ต้นทางของผลผลิตที่ลอย)
+const invHeadEl = ref(null)     // หัวกล่องผลผลิต (ปลายทาง)
+const basketPop = ref(false)    // ให้กล่องผลผลิตเด้งตอนของถึง
 
 const plots       = computed(() => farm.plots.value)
 const plotCount   = computed(() => farm.plotCount.value)
@@ -119,14 +124,53 @@ function emojiStyle(plot) {
   return { transform: `scale(${scale.toFixed(2)})` }
 }
 
-// ยืนยันก่อนขาย (กันกดพลาด)
-async function confirmSell(it) {
-  const total = (it.sellPrice * it.qty).toLocaleString()
-  if (await confirm(`ขาย ${it.name} ×${it.qty} = +${total} เหรียญ?`)) farm.sell(it.id)
+// เก็บเกี่ยว: ต้องจับตำแหน่งแปลง "ก่อน" เรียก harvest เพราะ patchUser เป็น optimistic update
+// → พอเรียกเสร็จแปลงจะว่างทันที rect ที่ได้หลังจากนั้นจะเป็นของแปลงเปล่า
+function onHarvest(i, plot) {
+  const st = stat(plot)
+  if (!st.ready) { farm.harvest(i); return }        // ไม่พร้อม = ให้ useFarm เป็นคน toast บอกเอง
+  const from = plotEls.value[i]?.getBoundingClientRect()
+  const to   = invHeadEl.value?.getBoundingClientRect()
+  const char = st.crop?.emoji
+  farm.harvest(i)
+  if (from && to && char) {
+    flyTo({ emoji: char, from, to, count: 1, onArrive: popBasket })
+  }
 }
-async function confirmSellAll() {
+
+// กล่องผลผลิตเด้งรับของ
+let popTimer = null
+function popBasket() {
+  basketPop.value = true
+  clearTimeout(popTimer)
+  popTimer = setTimeout(() => { basketPop.value = false }, 380)
+}
+
+// ยืนยันก่อนขาย (กันกดพลาด)
+// ⚠️ จับ rect ของปุ่มแบบ synchronous ก่อน await confirm — หลัง await แล้ว
+//    currentTarget จะเป็น null และรายการอาจหายไปจาก DOM แล้ว
+async function confirmSell(it, ev) {
+  const from = ev?.currentTarget?.getBoundingClientRect()
+  const total = (it.sellPrice * it.qty).toLocaleString()
+  if (!await confirm(`ขาย ${it.name} ×${it.qty} = +${total} เหรียญ?`)) return
+  await farm.sell(it.id)
+  shootCoins(from)
+}
+
+async function confirmSellAll(ev) {
+  const from = ev?.currentTarget?.getBoundingClientRect()
   const total = invList.value.reduce((s, it) => s + it.sellPrice * it.qty, 0)
-  if (await confirm(`ขายผลผลิตทั้งหมด รวม +${total.toLocaleString()} เหรียญ?`)) farm.sellAll()
+  if (!await confirm(`ขายผลผลิตทั้งหมด รวม +${total.toLocaleString()} เหรียญ?`)) return
+  await farm.sellAll()
+  shootCoins(from)
+}
+
+// เหรียญพุ่งเข้าชิปเหรียญบนหัวฟาร์ม
+// (ขายให้เสร็จก่อนแล้วค่อยยิง — ความถูกต้องของ state สำคัญกว่าการจับจังหวะให้ตรงเป๊ะ
+//  เลขในชิปวิ่ง ~700ms เหรียญลอย ~620ms สองอย่างซ้อนกันพอดีอยู่แล้ว)
+function shootCoins(from) {
+  const to = coinChipEl.value?.getBoundingClientRect()
+  if (from && to) flyTo({ emoji: '🪙', from, to, count: 4, size: 22 })
 }
 
 // format remaining grow time (ms) → readable countdown
@@ -192,9 +236,16 @@ const invList = computed(() =>
   0%, 100% { transform: translateY(0) rotate(-2deg); }
   50%      { transform: translateY(-3px) rotate(2deg); }
 }
+.inv-head.pop { animation: basketPop .38s cubic-bezier(.34,1.56,.64,1); }
+@keyframes basketPop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
 @media (prefers-reduced-motion: reduce) {
   .plot.ready { animation: none; }
   .plot-emoji.ripe { animation: none; }
+  .inv-head.pop { animation: none; }
   .plot-emoji, .plot-fill, .plot, .inv-item, .plot-empty { transition: none; }
 }
 </style>
