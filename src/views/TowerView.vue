@@ -9,7 +9,8 @@
     </div>
 
     <template v-if="authStore.isLoggedIn">
-      <TowerPath :floor="floor" :best="best" :max="TOWER_MAX" :crowd="crowd" @pick="() => {}" />
+      <TowerPath :floor="floor" :best="best" :max="TOWER_MAX" :crowd="crowd"
+                 @pick="sheetFloor = $event" />
 
       <!-- การ์ดชั้นปัจจุบัน -->
       <div class="tw-card">
@@ -81,6 +82,8 @@
     <TeamPicker v-model:open="pickOpen" />
     <BattleReplay :data="replay" theme="tower" @close="replay = null" />
     <PetDetailModal :pet-id="detailId" @close="detailId = null" />
+    <FloorSheet :floor="sheetFloor" :crowd="crowd" :current-floor="floor"
+                @close="sheetFloor = null" @fight="onSheetFight" />
 
     <!-- scout ศัตรู (read-only) — Teleport ไป body: #main-content stacking context, z-index สู้ #bottom-nav ไม่ได้ (ดู CLAUDE.md) -->
     <Teleport to="body">
@@ -117,6 +120,7 @@ import PetDetailModal from '../components/pets/PetDetailModal.vue'
 import PetThumb from '../components/shared/PetThumb.vue'
 import HelpButton from '../components/help/HelpButton.vue'
 import TowerPath from '../components/tower/TowerPath.vue'
+import FloorSheet from '../components/tower/FloorSheet.vue'
 
 const authStore = useAuthStore()
 const membersStore = useMembersStore()
@@ -149,6 +153,7 @@ const replay = ref(null)
 const busy = ref(false)
 const detailId = ref(null)
 const scout = ref(null)
+const sheetFloor = ref(null)
 
 const zone = computed(() => floorZone(floor.value))
 const zoneBg = computed(() => zone.value.royal
@@ -168,6 +173,12 @@ async function onFight() {
   busy.value = true
   try { const r = await fight(); if (r) replay.value = r }
   finally { busy.value = false }
+}
+
+// กด "สู้ชั้นนี้" ในแผง → ปิดแผงแล้วยิงศึกเลย (ปุ่มโผล่เฉพาะตอนเป็นชั้นปัจจุบันอยู่แล้ว)
+function onSheetFight() {
+  sheetFloor.value = null
+  onFight()
 }
 </script>
 
