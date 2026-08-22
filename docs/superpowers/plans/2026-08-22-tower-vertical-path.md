@@ -732,9 +732,10 @@ const rivals = computed(() => {
 - [ ] **Step 6: ตรวจว่าไม่มีใครอ้าง `rosterUsers` ใน TowerView แล้ว**
 
 ```bash
-grep -n "rosterUsers" src/views/TowerView.vue
+grep -n "rosterUsers" src/views/TowerView.vue | grep -v "//"
 ```
-Expected: ไม่มีผลลัพธ์ (exit 1)
+Expected: ไม่มีผลลัพธ์
+(กรอง `//` ออกเพราะคอมเมนต์อธิบายใน Step 4/5 เอ่ยชื่อ `rosterUsers` โดยตั้งใจ — ที่ต้องหายคือ**โค้ด**ที่อ่านมัน)
 
 - [ ] **Step 7: build**
 
