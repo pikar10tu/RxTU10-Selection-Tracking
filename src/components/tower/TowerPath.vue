@@ -55,6 +55,13 @@
         <div class="tp-marker" :class="{ climbing, snap }" :style="markerStyle" aria-hidden="true">
           <span class="tp-marker-in"><Emoji char="🧗" /></span>
         </div>
+
+        <div v-if="burstFloor" class="tp-burst" :class="isLeft(burstFloor) ? 'l' : 'r'"
+             :style="{ transform: `translate3d(0, ${(max - burstFloor) * ROW_H}px, 0)` }"
+             aria-hidden="true">
+          <span class="tp-ring"></span>
+          <span class="tp-gain">+{{ burstBonus.toLocaleString() }}/วัน</span>
+        </div>
       </div>
     </div>
   </div>
@@ -63,7 +70,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import Emoji from '../shared/Emoji.vue'
-import { floorZone, TOWER_BONUS_FLOORS } from '../../data/towerFloors.js'
+import { floorZone, TOWER_BONUS_FLOORS, getTowerBonus } from '../../data/towerFloors.js'
 import { letterAvatar, fallbackAvatar } from '../../utils/avatar.js'
 
 const ROW_H  = 60
@@ -191,22 +198,27 @@ const popFloor  = ref(0)     // ชั้นที่เพิ่งผ่าน
 const fillFloor = ref(0)     // ชั้นที่เส้นเชื่อมกำลังไล่สี
 const snap      = ref(false) // ตัด transition หนึ่งเฟรมตอนสั่งข้ามอนิเมชัน
 
+// วงแหวนปลดล็อกหมุดโบนัส — element ชั่วคราว สร้างตอนเล่นแล้วลบทิ้ง ไม่ค้างใน DOM
+const burstFloor = ref(0)
+const burstBonus = computed(() => getTowerBonus(burstFloor.value))
+
 let timers = []
 const at = (ms, fn) => timers.push(setTimeout(fn, ms))
 function clearTimers() { timers.forEach(clearTimeout); timers = [] }
 
 function endClimb() {
   clearTimers()
-  if (climbing.value) {
+  if (climbing.value) {           // ← คงไว้จาก Task 5 fix ห้ามทำหาย (แตะ = ข้ามทันที)
     // ปิด transition หนึ่งเฟรมให้ marker กระโดดไปตำแหน่งปลายทางทันที ไม่ไถลต่ออีก .84s
     // ต้อง rAF ซ้อนสองชั้น: ชั้นแรกรอให้ DOM patch ของ Vue (microtask) ลงและเบราว์เซอร์
     // คำนวณสไตล์ใหม่โดยไม่มี transition · ชั้นสองคือเฟรมถัดไปที่ปลอดภัยจะคืน transition
     snap.value = true
     requestAnimationFrame(() => requestAnimationFrame(() => { snap.value = false }))
   }
-  climbing.value  = false
-  popFloor.value  = 0
-  fillFloor.value = 0
+  climbing.value   = false
+  popFloor.value   = 0
+  fillFloor.value  = 0
+  burstFloor.value = 0
 }
 
 function runClimb(from) {
@@ -217,10 +229,11 @@ function runClimb(from) {
   //    สีเส้น (--tp-up) เปลี่ยนตั้งแต่ t=0 เพราะผูกกับ best ที่ปล่อยพร้อมกัน
   //    ถ้า clip มาทีหลัง จะเห็นสีเต็มก่อนแล้วโดนลบทิ้งค่อยไล่ใหม่ = ดูเหมือนจอกระตุก
   //    การหน่วง 300ms ย้ายไปเป็น animation-delay ใน CSS แทน
-  fillFloor.value = from
+  fillFloor.value = from          // ← คงไว้จาก Task 5 fix: ต้องอยู่แพตช์เดียวกับ climbing
   centerOnCurrent(true)
-  at(260,  () => { popFloor.value  = from })
-  at(1200, endClimb)
+  at(260,  () => { popFloor.value = from })
+  if (isMilestone(from)) at(860, () => { burstFloor.value = from })
+  at(1900, endClimb)          // ยืดจาก 1200 ให้วงแหวน (700ms ที่ t=860) เล่นจบก่อนถูกล้าง
 }
 
 watch(() => props.floor, (nf, of) => {
@@ -426,5 +439,42 @@ onBeforeUnmount(clearTimers)
   .tp-row.fill::before,
   .tp-marker.climbing .tp-marker-in { animation: none; }
   .tp-marker { transition: none; }
+}
+
+/* ── วงแหวนปลดล็อกหมุดโบนัส ────────────────────────────
+   วางทับแถวของหมุดนั้น จัดฝั่งเดียวกับโหนด · pointer-events:none ไม่ขวางการกด
+   ห้าม animate box-shadow/filter ที่นี่ — วงแหวนใช้ border + transform/opacity เท่านั้น */
+.tp-burst {
+  position: absolute; top: 0; left: 0; right: 0; height: 60px;
+  display: flex; align-items: center; pointer-events: none; z-index: 2;
+}
+.tp-burst.l { justify-content: flex-start; padding-left: calc(8% + 30px); }
+.tp-burst.r { justify-content: flex-end;   padding-right: calc(8% + 30px); }
+
+.tp-ring {
+  position: absolute; width: 48px; height: 48px; border-radius: 999px;
+  border: 3px solid var(--gold);
+  animation: tp-ring .7s ease-out forwards;
+}
+@keyframes tp-ring {
+  from { transform: scale(.4); opacity: 1; }
+  to   { transform: scale(2.2); opacity: 0; }
+}
+
+.tp-gain {
+  position: relative;
+  padding: 3px 9px; border-radius: 999px;
+  background: var(--gold); border: 2px solid var(--ink);
+  font-size: .74rem; font-weight: 800; color: var(--ink); white-space: nowrap;
+  animation: tp-gain .9s ease-out forwards;
+}
+@keyframes tp-gain {
+  from { transform: translateY(6px); opacity: 0; }
+  35%  { transform: translateY(-6px); opacity: 1; }
+  to   { transform: translateY(-20px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tp-ring, .tp-gain { animation: none; opacity: 0; }
 }
 </style>
