@@ -7,6 +7,7 @@
     </div>
 
     <FarmGrid />
+    <FarmOrders />
     <FarmShop />
   </div>
 </template>
@@ -14,6 +15,7 @@
 <script setup>
 import Emoji from '../components/shared/Emoji.vue'
 import FarmGrid from '../components/farm/FarmGrid.vue'
+import FarmOrders from '../components/farm/FarmOrders.vue'
 import FarmShop from '../components/farm/FarmShop.vue'
 </script>
 
