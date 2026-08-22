@@ -9,7 +9,7 @@
     </div>
 
     <template v-if="authStore.isLoggedIn">
-      <TowerPath :floor="floor" :best="best" :max="TOWER_MAX" :crowd="crowd"
+      <TowerPath :floor="displayFloor" :best="displayBest" :max="TOWER_MAX" :crowd="crowd"
                  @pick="sheetFloor = $event" />
 
       <!-- การ์ดชั้นปัจจุบัน -->
@@ -80,7 +80,7 @@
     <div v-else class="tw-login">เข้าสู่ระบบเพื่อเล่น</div>
 
     <TeamPicker v-model:open="pickOpen" />
-    <BattleReplay :data="replay" theme="tower" @close="replay = null" />
+    <BattleReplay :data="replay" theme="tower" @close="onReplayClose" />
     <PetDetailModal :pet-id="detailId" @close="detailId = null" />
     <FloorSheet :floor="sheetFloor" :crowd="crowd" :current-floor="floor"
                 @close="sheetFloor = null" @fight="onSheetFight" />
@@ -105,7 +105,7 @@
 <script setup>
 import Emoji from '../components/shared/Emoji.vue'
 import { RouterLink } from 'vue-router'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
 import { useMembersStore } from '../stores/members.js'
 import { useTower } from '../composables/useTower.js'
@@ -155,6 +155,25 @@ const detailId = ref(null)
 const scout = ref(null)
 const sheetFloor = ref(null)
 
+// path หน่วงตามหลัง store: patchUser ใน fight() ขยับ floor ทันทีตั้งแต่ replay ยังไม่เปิด
+// ถ้าไม่หน่วง marker จะไปถึงที่ใหม่ก่อนคนดูจะเห็น = ไม่มีอนิเมชันไต่ให้ดู
+const holdPath    = ref(false)
+const displayFloor = ref(floor.value)
+const displayBest  = ref(best.value)
+
+watch([floor, best], ([f, b]) => {
+  if (holdPath.value) return
+  displayFloor.value = f
+  displayBest.value  = b
+})
+
+// ปล่อยค่าที่หน่วงไว้ → TowerPath เห็น floor เพิ่มขึ้น แล้วเล่นซีเควนซ์ไต่เอง
+function releasePath() {
+  holdPath.value     = false
+  displayFloor.value = floor.value
+  displayBest.value  = best.value
+}
+
 const zone = computed(() => floorZone(floor.value))
 const zoneBg = computed(() => zone.value.royal
   ? 'linear-gradient(135deg, var(--ink) 0%, #5b21b6 100%)'
@@ -171,8 +190,22 @@ const scoutStat = computed(() => {
 async function onFight() {
   if (busy.value) return
   busy.value = true
-  try { const r = await fight(); if (r) replay.value = r }
-  finally { busy.value = false }
+  holdPath.value = true          // ต้องตั้งก่อน await — patchUser ข้างใน fight() ขยับ floor ทันที
+  try {
+    const r = await fight()
+    if (r) replay.value = r      // ทั้งชนะและแพ้มี replay → ปล่อย path ตอนปิด replay
+    else releasePath()           // fight() คืน null (ยังไม่ได้จัดทีม) → ปล่อยเลย
+  } catch (e) {
+    releasePath()
+    throw e
+  } finally {
+    busy.value = false
+  }
+}
+
+function onReplayClose() {
+  replay.value = null
+  releasePath()
 }
 
 // กด "สู้ชั้นนี้" ในแผง → ปิดแผงแล้วยิงศึกเลย (ปุ่มโผล่เฉพาะตอนเป็นชั้นปัจจุบันอยู่แล้ว)

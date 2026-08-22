@@ -23,7 +23,7 @@
       </span>
     </div>
 
-    <div ref="boxEl" class="tp-box" role="list"
+    <div ref="boxEl" class="tp-box" role="list" @click.capture="onBoxClick"
          :aria-label="`เส้นทางหอคอย ${max} ชั้น ตอนนี้อยู่ชั้น ${floor}`">
       <div class="tp-inner">
         <div v-for="n in rows" :key="n" class="tp-row" :class="rowClass(n)"
@@ -52,7 +52,7 @@
         <!-- marker ผู้เล่น: absolute นอกแถว → ไม่โดน paint containment ของแถวคลิป
              X ต้องพึ่งความกว้างกล่อง (ระยะขอบเป็น %) จึงวัดครั้งเดียวด้วย ResizeObserver
              X กับ Y ต้องอยู่ใน transform เดียวกัน ไม่งั้นตอน Task 5 marker จะวาร์บแนวนอน -->
-        <div class="tp-marker" :style="markerStyle" aria-hidden="true">
+        <div class="tp-marker" :class="{ climbing }" :style="markerStyle" aria-hidden="true">
           <span class="tp-marker-in"><Emoji char="🧗" /></span>
         </div>
       </div>
@@ -94,7 +94,10 @@ function rowClass(n) {
   return [
     isLeft(n) ? 'l' : 'r',
     n <= props.best ? 'done' : n === props.floor ? 'now' : 'lock',
-    { first: n === props.max, last: n === 1 },
+    {
+      first: n === props.max, last: n === 1,          // ← คงไว้ ห้ามทำหาย (ดู Task 2)
+      pop: n === popFloor.value, fill: n === fillFloor.value,
+    },
   ]
 }
 
@@ -181,7 +184,48 @@ onMounted(() => {
 })
 onBeforeUnmount(() => { io?.disconnect(); ro?.disconnect() })
 
-watch(() => props.floor, () => { nextTick(attachObserver) })
+// ── ซีเควนซ์ไต่ขึ้นหนึ่งขั้น ─────────────────────────────
+// ขับด้วยการที่ prop floor เพิ่มขึ้น (TowerView หน่วงไว้จนปิด BattleReplay แล้วค่อยปล่อย)
+const climbing  = ref(false)
+const popFloor  = ref(0)     // ชั้นที่เพิ่งผ่าน — เด้งตอนพลิกเป็น ✅
+const fillFloor = ref(0)     // ชั้นที่เส้นเชื่อมกำลังไล่สี
+
+let timers = []
+const at = (ms, fn) => timers.push(setTimeout(fn, ms))
+function clearTimers() { timers.forEach(clearTimeout); timers = [] }
+
+function endClimb() {
+  clearTimers()
+  climbing.value  = false
+  popFloor.value  = 0
+  fillFloor.value = 0
+}
+
+function runClimb(from) {
+  clearTimers()
+  if (reduceMotion()) { endClimb(); centerOnCurrent(false); return }
+  climbing.value = true
+  centerOnCurrent(true)
+  at(260,  () => { popFloor.value  = from })
+  at(300,  () => { fillFloor.value = from })
+  at(1200, endClimb)
+}
+
+watch(() => props.floor, (nf, of) => {
+  nextTick(attachObserver)
+  if (nf > of) runClimb(of)      // ไต่ขึ้นเท่านั้น — แพ้/รีเซตไม่อนิเมต
+  else endClimb()
+})
+
+// แตะตรงไหนระหว่างไต่ = ข้ามไปสถานะปลายทางทันที (คนที่ตีรัวๆ ไม่ต้องรอ)
+function onBoxClick(e) {
+  if (!climbing.value) return
+  e.stopPropagation()
+  e.preventDefault()
+  endClimb()
+}
+
+onBeforeUnmount(clearTimers)
 </script>
 
 <style scoped>
@@ -328,5 +372,46 @@ watch(() => props.floor, () => { nextTick(attachObserver) })
   display: flex; align-items: center; justify-content: center;
   width: 30px; height: 30px;
   border-radius: 999px; background: var(--gold); border: 2px solid var(--ink);
+}
+
+/* ── อนิเมชันไต่ขึ้น ────────────────────────────────────
+   ทั้งหมดเป็น transform/opacity ยกเว้น clip-path จุดเดียว (กล่อง ~130x30px ทีละอัน)
+   ห้ามเผลอใส่ box-shadow/filter/background เข้าไปใน keyframe เหล่านี้ */
+
+/* โหนดที่เพิ่งผ่านเด้งตอนพลิกเป็น ✅ */
+.tp-row.pop .tp-node { animation: tp-pop .34s cubic-bezier(.34, 1.5, .64, 1); }
+@keyframes tp-pop {
+  40%  { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+
+/* เส้นเชื่อมช่วงที่เพิ่งผ่านไล่สีจากล่างขึ้นบน
+   ครึ่งบนของแถวที่เพิ่งผ่าน = ช่วงที่เชื่อมไปชั้นถัดขึ้นไป */
+.tp-row.fill::before { animation: tp-fill .5s ease-out; }
+@keyframes tp-fill {
+  from { clip-path: inset(100% 0 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+/* marker: X กับ Y อยู่ใน transform เดียวกันจึงขยับพร้อมกัน (ไม่วาร์บแนวนอน)
+   หน่วง .34s ให้เกิดหลังโหนดเด้งกับเส้นไล่สี ตามลำดับในสเปก
+   ⚠️ transition ต้องอยู่บน .tp-marker เฉยๆ **ห้ามใส่ไว้ใต้ .climbing**
+      เพราะคลาส climbing กับค่า transform ใหม่ลงพร้อมกันในเฟรมเดียว —
+      transition ที่เพิ่งถูกเพิ่มในเฟรมเดียวกับที่ค่าเปลี่ยน เบราว์เซอร์จะไม่อนิเมตให้
+      (ต่างจาก @keyframes ที่ทริกเกอร์ได้ทันทีตอนคลาสถูกเพิ่ม) */
+.tp-marker { transition: transform .5s cubic-bezier(.34, 1.3, .64, 1) .34s; }
+.tp-marker.climbing .tp-marker-in { animation: tp-hop .5s cubic-bezier(.4, 0, .4, 1) .34s; }
+@keyframes tp-hop {
+  50%  { transform: translateY(-12px); }
+  100% { transform: translateY(0); }
+}
+/* จอง compositor layer เฉพาะช่วงกำลังไต่ — ใส่ค้างไว้ = กินแรมตลอดเวลา */
+.tp-marker.climbing, .tp-marker.climbing .tp-marker-in { will-change: transform; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tp-row.pop .tp-node,
+  .tp-row.fill::before,
+  .tp-marker.climbing .tp-marker-in { animation: none; }
+  .tp-marker { transition: none; }
 }
 </style>
