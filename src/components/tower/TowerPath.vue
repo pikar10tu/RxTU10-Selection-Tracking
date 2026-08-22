@@ -38,6 +38,15 @@
             <span class="tp-ico"><Emoji :char="iconOf(n)" /></span>
             <span class="tp-n">{{ n }}</span>
           </button>
+          <button v-if="crowdOf(n)" class="tp-rail"
+                  :aria-label="`เพื่อน ${crowdOf(n).all.length} คนอยู่ชั้น ${n}`"
+                  @click="$emit('pick', n)">
+            <img v-for="f in crowdOf(n).shown" :key="f.uid" class="tp-face"
+                 :src="f.photo || letterAvatar(f.name, 52)" :alt="''"
+                 width="26" height="26" loading="lazy" decoding="async"
+                 @error="fallbackAvatar($event, f.name, 52)" />
+            <span v-if="crowdOf(n).extra" class="tp-more">+{{ crowdOf(n).extra }}</span>
+          </button>
         </div>
 
         <!-- marker ผู้เล่น: absolute นอกแถว → ไม่โดน paint containment ของแถวคลิป
@@ -55,6 +64,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import Emoji from '../shared/Emoji.vue'
 import { floorZone, TOWER_BONUS_FLOORS } from '../../data/towerFloors.js'
+import { letterAvatar, fallbackAvatar } from '../../utils/avatar.js'
 
 const ROW_H  = 60
 const NODE_W = 108
@@ -110,6 +120,7 @@ function labelOf(n) {
   const c = props.crowd?.get(n)
   return `ชั้น ${n} ${state}` + (c ? ` เพื่อน ${c.all.length} คนอยู่ชั้นนี้` : '')
 }
+const crowdOf = (n) => props.crowd?.get(n) || null
 
 // ── marker ──────────────────────────────────────────────
 // Y = แถวของชั้นนั้น + จัดกึ่งกลางแนวตั้งในแถว
@@ -278,6 +289,30 @@ watch(() => props.floor, () => { nextTick(attachObserver) })
 .tp-row.now  .tp-node { background: var(--gold); border-width: 3px; box-shadow: 4px 4px 0 var(--ink); }
 .tp-node.milestone { outline: 2px dashed var(--gold); outline-offset: 2px; }
 .tp-coin { position: absolute; top: -8px; right: -6px; font-size: .72rem; line-height: 1; }
+
+/* ── รางเพื่อน ──────────────────────────────────────────
+   อยู่ฝั่งตรงข้ามโหนดเสมอ → ไม่มีทางทับโหนด
+   รางทั้งรางเป็นปุ่มเดียว emit('pick', n) ตัวเดียวกับโหนด — เปิดแผงเดียวกัน */
+.tp-rail {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center;
+  border: none; background: none; padding: 2px; cursor: pointer;
+}
+.tp-row.l .tp-rail { right: var(--tp-pad); }
+.tp-row.r .tp-rail { left:  var(--tp-pad); }
+.tp-rail:active { transform: translateY(-50%) scale(.94); }
+
+.tp-face {
+  width: 26px; height: 26px; flex-shrink: 0;
+  border-radius: 999px; border: 2px solid #fff; background: #cbd5e1;
+  object-fit: cover; display: block;
+}
+.tp-face + .tp-face { margin-left: -9px; }
+.tp-more {
+  margin-left: 4px; padding: 1px 6px; border-radius: 999px;
+  background: var(--ink); color: #fff;
+  font-size: .72rem; font-weight: 800; line-height: 1.5;
+}
 
 /* ── marker ผู้เล่น ─────────────────────────────────────
    absolute ที่ .tp-inner → ไม่โดน paint containment ของแถว

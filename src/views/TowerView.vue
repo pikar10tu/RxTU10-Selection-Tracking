@@ -9,7 +9,7 @@
     </div>
 
     <template v-if="authStore.isLoggedIn">
-      <TowerPath :floor="floor" :best="best" :max="TOWER_MAX" @pick="() => {}" />
+      <TowerPath :floor="floor" :best="best" :max="TOWER_MAX" :crowd="crowd" @pick="() => {}" />
 
       <!-- การ์ดชั้นปัจจุบัน -->
       <div class="tw-card">
@@ -107,6 +107,7 @@ import { useAuthStore } from '../stores/auth.js'
 import { useMembersStore } from '../stores/members.js'
 import { useTower } from '../composables/useTower.js'
 import { towerRanking } from '../utils/towerRivals.js'
+import { buildFloorCrowd } from '../utils/towerCrowd.js'
 import { getPetDef, ELEMENTS, RARITY, EL_NAME, GRADE_LABELS } from '../data/index.js'
 import { floorZone, BONUS_CAP_FLOOR } from '../data/towerFloors.js'
 import { buildCombatant } from '../data/battle.js'
@@ -124,14 +125,21 @@ const defOf = (id) => getPetDef(id) || { emoji: '❓', name: '?' }
 
 onMounted(() => { membersStore.loadRoster().catch(() => {}) })  // best-effort, 1 read
 
+const meUid = computed(() => authStore.currentUser?.uid || '')
+// เพื่อนปักหมุดรายชั้น — อ่าน rosterRows ดิบ (rosterUsers key ด้วย studentId แล้วตก guest)
+const crowd = computed(() => buildFloorCrowd(membersStore.rosterRows, meUid.value))
+
 // แถบเทียบเพื่อน — best-effort ทั้งชุด: ไม่มีข้อมูล/total 0 → คืน null (การ์ดซ่อนทั้งใบ)
+// อ่าน rosterRows ดิบให้ตรงกับเส้นทางหอคอย — เดิมอ่าน rosterUsers ซึ่ง key ด้วย studentId
+// จึงตกเพื่อนที่เป็น guest ทำให้หน้าเดียวกันนับเพื่อนได้ไม่เท่ากันสองที่
 const rivals = computed(() => {
-  const others = Object.values(membersStore.rosterUsers || {})
-    .map(u => ({ uid: u.uid, nickname: u.nickname, towerBest: u.towerBest || 0 }))
+  const me = meUid.value || 'me'
+  const others = Object.entries(membersStore.rosterRows || {})
+    .filter(([uid, r]) => r && uid !== me)
+    .map(([uid, r]) => ({ uid, nickname: r.n || '?', towerBest: r.tb || 0 }))
   if (!others.length) return null
   const u = authStore.userData || {}
-  const me = { uid: authStore.currentUser?.uid || 'me', nickname: u.nickname || 'ฉัน', towerBest: best.value }
-  const r = towerRanking(others, me)
+  const r = towerRanking(others, { uid: me, nickname: u.nickname || 'ฉัน', towerBest: best.value })
   return r.total > 0 ? r : null
 })
 const medal = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`)
