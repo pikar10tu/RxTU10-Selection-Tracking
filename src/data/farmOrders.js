@@ -120,7 +120,10 @@ export function normalizeOrders(raw, now) {
     if (s && typeof s === 'object' && s.items && typeof s.items === 'object' && Object.keys(s.items).length) {
       out.push({ id: String(s.id || `o${i}`), items: { ...s.items }, reward: { coins: Number(s.reward?.coins) || 0 } })
     } else if (s && typeof s === 'object' && Number.isFinite(Number(s.at))) {
-      out.push({ at: Number(s.at) })
+      // self-heal: at ที่ถูกต้องไม่มีทางเกิน now + REROLL_MS (รอนานสุด) อยู่แล้ว
+      // clamp กันนาฬิกาเครื่องถูกเลื่อนไปข้างหน้าตอนสร้างค่า (เช่นเลื่อน 1 ปีเพื่อข้ามเวลารอ)
+      // แล้วเขียนค่า at ที่ไกลเกินจริงค้างไว้ — ไม่งั้นช่องนั้นค้าง "รอ" ไปตลอดกาลแก้เองไม่ได้
+      out.push({ at: Math.min(Number(s.at), ready + REROLL_MS) })
     } else {
       out.push({ at: ready })
     }

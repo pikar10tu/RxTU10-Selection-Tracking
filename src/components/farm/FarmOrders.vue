@@ -27,7 +27,7 @@
               <span class="sr-only">{{ cropOf(id).name }} {{ qty }} ชิ้น</span>
             </span>
           </div>
-          <div class="fo-pay"><Emoji char="🪙" /> {{ o.reward.coins.toLocaleString() }}</div>
+          <div class="fo-pay"><Emoji char="🪙" /> {{ o.reward.coins.toLocaleString() }}<span class="sr-only">เหรียญ</span></div>
           <div class="fo-btns">
             <button
               class="fo-send"
@@ -59,16 +59,18 @@ const orders    = computed(() => board.orders.value)
 const busyId    = computed(() => board.busyId.value)
 const now       = ref(Date.now())
 let timer = null
+let dead = false   // กัน interval ถูกสร้างหลัง unmount ไปแล้ว (await ค้างข้าม unmount)
 
 onMounted(async () => {
   await board.refillDue()
+  if (dead) return   // component หายไปแล้วระหว่างรอ await — อย่าสร้าง interval ที่ไม่มีใครเคลียร์
   timer = setInterval(async () => {
     now.value = Date.now()
     // ช่องไหนนับถอยหลังจบแล้วให้เติมใบใหม่ (refillDue ไม่เขียนถ้าไม่มีช่องถึงเวลา)
     await board.refillDue()
   }, 1000)
 })
-onUnmounted(() => clearInterval(timer))
+onUnmounted(() => { dead = true; clearInterval(timer) })
 
 const cropOf = (id) => getCrop(id) || { name: id, emoji: '❓' }
 const missing = (o) => missingItems(o, board.inventory.value)

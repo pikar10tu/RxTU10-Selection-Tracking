@@ -26,19 +26,23 @@ export function useFarmOrders() {
   function cloneOrders() { return orders.value.map(o => ({ ...o })) }
 
   // เขียนครั้งเดียวจบเสมอ — แยกเขียนแล้วเน็ตหลุดกลางคัน = หักของแต่ไม่ได้เงิน
-  async function commit(next, { inventory: newInv, coinDelta = 0 } = {}) {
+  // salesGain บวกเข้า farmSalesTotal เดิม (เหมือน useFarm.commit) เพื่อไม่ให้ achievement การขายฟาร์มนิ่งไป
+  async function commit(next, { inventory: newInv, coinDelta = 0, salesGain = 0 } = {}) {
     const farm = { ...(auth.userData?.farm || {}), orders: next }
     if (newInv) farm.inventory = newInv
     const optimistic = { farm }
     if (coinDelta) optimistic.coins = (auth.userData?.coins || 0) + coinDelta
+    if (salesGain) optimistic.farmSalesTotal = (auth.userData?.farmSalesTotal || 0) + salesGain
     const patch = { 'farm.orders': next }
     if (newInv) patch['farm.inventory'] = newInv
     if (coinDelta) patch.coins = increment(coinDelta)
+    if (salesGain) patch.farmSalesTotal = increment(salesGain)
     return auth.patchUser(optimistic, patch)
   }
 
   /** เติมใบใหม่ให้ทุกช่องที่ถึงเวลา · ไม่มีช่องถึงเวลา = ไม่เขียนอะไรเลย */
   async function refillDue() {
+    if (!auth.userData) return false   // onboarding gate ปกติกันไว้แล้ว แต่กันเผื่อหลุดมาได้จากที่อื่น
     const now = Date.now()
     const due = dueSlots(orders.value, now)
     if (!due.length) return false
@@ -79,7 +83,7 @@ export function useFarmOrders() {
     next[i] = { at: Date.now() + REFILL_MS }
     const gain = Number(o.reward?.coins) || 0
 
-    const ok = await commit(next, { inventory: inv, coinDelta: gain })
+    const ok = await commit(next, { inventory: inv, coinDelta: gain, salesGain: gain })
     busyId.value = null
     if (ok) toast(`ส่งออเดอร์แล้ว +${gain.toLocaleString()} เหรียญ`, 'success')
     else toast('ส่งออเดอร์ไม่สำเร็จ', 'error')

@@ -151,6 +151,20 @@ test('normalizeOrders: เก็บออเดอร์เดิมไว้ค
   assert.deepEqual(normalizeOrders([{ id: 'x2', items: { tomato: 1 } }], 1000)[0].reward, { coins: 0 })
 })
 
+test('normalizeOrders: at ที่ไกลเกินจริง (นาฬิกาเครื่องถูกเลื่อนไปข้างหน้า) ถูก clamp ที่ now + REROLL_MS', () => {
+  const now = 1_000_000
+  const farFuture = now + 400 * 24 * 60 * 60 * 1000   // now + 400 วัน
+  const out = normalizeOrders([{ at: farFuture }], now)
+  assert.deepEqual(out[0], { at: now + REROLL_MS })
+})
+
+test('normalizeOrders: at ปกติ (ในช่วงรอตามจริง) ไม่ถูกแตะ', () => {
+  const now = 1_000_000
+  const normalAt = now + 10 * 60 * 1000   // now + 10 นาที
+  const out = normalizeOrders([{ at: normalAt }], now)
+  assert.deepEqual(out[0], { at: normalAt })
+})
+
 test('dueSlots: เฉพาะช่องว่างที่ถึงเวลาแล้ว · ช่องที่มีออเดอร์ไม่ถูกนับ', () => {
   const orders = [
     { at: 900 },                                        // ถึงเวลา
