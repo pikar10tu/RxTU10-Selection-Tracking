@@ -23,9 +23,9 @@
       </span>
     </div>
 
-    <div ref="boxEl" class="tp-box" role="list" @click.capture="onBoxClick"
-         :aria-label="`เส้นทางหอคอย ${max} ชั้น ตอนนี้อยู่ชั้น ${floor}`">
-      <div class="tp-inner">
+    <div ref="boxEl" class="tp-box" @click.capture="onBoxClick">
+      <div class="tp-inner" role="list"
+           :aria-label="`เส้นทางหอคอย ${max} ชั้น ตอนนี้อยู่ชั้น ${floor}`">
         <div v-for="n in rows" :key="n" class="tp-row" :class="rowClass(n)"
              :style="lineStyle(n)" role="listitem">
           <button class="tp-node" :class="{ milestone: isMilestone(n) }"
@@ -104,6 +104,7 @@ function rowClass(n) {
     {
       first: n === props.max, last: n === 1,          // ← คงไว้ ห้ามทำหาย (ดู Task 2)
       pop: n === popFloor.value, fill: n === fillFloor.value,
+      fillUp: fillFloor.value > 0 && n === fillFloor.value + 1,
     },
   ]
 }
@@ -230,6 +231,7 @@ function runClimb(from) {
   //    ถ้า clip มาทีหลัง จะเห็นสีเต็มก่อนแล้วโดนลบทิ้งค่อยไล่ใหม่ = ดูเหมือนจอกระตุก
   //    การหน่วง 300ms ย้ายไปเป็น animation-delay ใน CSS แทน
   fillFloor.value = from          // ← คงไว้จาก Task 5 fix: ต้องอยู่แพตช์เดียวกับ climbing
+  burstFloor.value = 0            // กันค่าค้างจากรอบก่อนถ้าไต่รอบใหม่ก่อน endClimb เดิมยิง
   centerOnCurrent(true)
   at(260,  () => { popFloor.value = from })
   if (isMilestone(from)) at(860, () => { burstFloor.value = from })
@@ -356,6 +358,7 @@ onBeforeUnmount(clearTimers)
 
 .tp-row.lock .tp-node { opacity: .6; }
 .tp-row.now  .tp-node { background: var(--gold); border-width: 3px; box-shadow: 4px 4px 0 var(--ink); }
+.tp-row.now .tp-node:active { box-shadow: 0 0 0 var(--ink); }
 .tp-node.milestone { outline: 2px dashed var(--gold); outline-offset: 2px; }
 .tp-coin { position: absolute; top: -8px; right: -6px; font-size: .72rem; line-height: 1; }
 
@@ -411,8 +414,12 @@ onBeforeUnmount(clearTimers)
 }
 
 /* เส้นเชื่อมช่วงที่เพิ่งผ่านไล่สีจากล่างขึ้นบน
-   ครึ่งบนของแถวที่เพิ่งผ่าน = ช่วงที่เชื่อมไปชั้นถัดขึ้นไป */
-.tp-row.fill::before { animation: tp-fill .5s ease-out .3s backwards; }
+   ⚠️ เส้นหนึ่งเส้นถูกวาดด้วย pseudo สองตัวคนละแถว (paint containment ตัดของที่ล้นขอบแถว)
+      ครึ่งล่าง = ::before ของแถว from · ครึ่งบน = ::after ของแถว from+1
+      ต้องอนิเมตทั้งคู่และไล่ต่อกัน ไม่งั้นครึ่งบนจะเด้งเป็นสีเต็มตั้งแต่ t=0
+   หน่วงอยู่ที่นี่ ไม่ใช่ setTimeout + `backwards` ค้าง clip ไว้ตลอดช่วงหน่วง */
+.tp-row.fill::before   { animation: tp-fill .25s ease-out .3s  backwards; }
+.tp-row.fillUp::after  { animation: tp-fill .25s ease-out .55s backwards; }
 @keyframes tp-fill {
   from { clip-path: inset(100% 0 0 0); }
   to   { clip-path: inset(0 0 0 0); }
@@ -437,6 +444,7 @@ onBeforeUnmount(clearTimers)
 @media (prefers-reduced-motion: reduce) {
   .tp-row.pop .tp-node,
   .tp-row.fill::before,
+  .tp-row.fillUp::after,
   .tp-marker.climbing .tp-marker-in { animation: none; }
   .tp-marker { transition: none; }
 }
