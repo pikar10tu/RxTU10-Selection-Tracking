@@ -2,6 +2,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
 import { MAX_RESIDENCE_LEVEL } from '../data/residence.js'
+import { createdAtMs, implausibleStock } from '../utils/farmPlausibility.js'
 
 // Rough, honor-based integrity trip-wire (client-only app — can't truly prevent
 // console tampering; this catches impossible values that slip through and logs
@@ -42,6 +43,16 @@ export function runIntegrityCheck(userData) {
   const lvl = userData.residence?.level
   if (typeof lvl === 'number' && (lvl > MAX_RESIDENCE_LEVEL || lvl < 1)) {
     reportCheat('residence-out-of-range', `level=${lvl}`)
+  }
+
+  // ผลผลิตในกล่องเกินกว่าที่จะปลูกทันตลอดอายุบัญชี → บันทึกไว้ให้แอดมินดู (ไม่ขวางผู้เล่น)
+  const badStock = implausibleStock(userData.farm?.inventory, {
+    createdMs: createdAtMs(userData.createdAt),
+    plotsUnlocked: userData.farm?.plotsUnlocked,
+    now: Date.now(),
+  })
+  if (badStock.length) {
+    reportCheat('farm-stock-impossible', badStock.map(b => `${b.cropId}=${b.have}/max${b.max}`).join(' '))
   }
 }
 
