@@ -9,38 +9,7 @@
     </div>
 
     <template v-if="authStore.isLoggedIn">
-      <!-- แถบไต่ชั้น v2: full-tower track + window 6 ชั้นเดิม -->
-      <div class="tw-climb">
-        <div class="tw-climb-head">
-          <span><span class="tw-climb-floor">ชั้น {{ floor }}</span><span class="tw-climb-of"> / {{ TOWER_MAX }}</span></span>
-          <span class="tw-climb-best">สูงสุด {{ best }}</span>
-        </div>
-        <div class="tw-track-wrap" role="img" :aria-label="`ความคืบหน้าหอคอย ชั้นสูงสุด ${best} จาก ${TOWER_MAX}`">
-          <span v-for="p in TOWER_BONUS_FLOORS" :key="'pin' + p" class="tw-pin" :style="{ left: p + '%' }"><Emoji char="🪙" /></span>
-          <div class="tw-track">
-            <div class="tw-track-fill" :style="{ width: best + '%', '--pct': trackPct }">
-              <div class="tw-track-fill-inner"></div>
-            </div>
-          </div>
-          <span class="tw-track-crown"><Emoji char="👑" /></span>
-          <span class="tw-me" :style="{ left: best + '%' }">▲</span>
-        </div>
-        <div class="tw-track-scale">
-          <span class="tw-scale-1">1</span>
-          <span class="tw-scale-70">70</span>
-          <span class="tw-scale-100">{{ TOWER_MAX }}</span>
-        </div>
-        <div class="tw-climb-row">
-          <div v-for="n in climbFloors" :key="n" class="tw-chip"
-               :class="{ cleared: n <= best, current: n === floor, locked: n > floor, milestone: isMilestone(n) }">
-            <span v-if="isMilestone(n)" class="tw-chip-coin"><Emoji char="🪙" /></span>
-            <span class="tw-chip-n">{{ n }}</span>
-            <Emoji v-if="n < floor" char="✅" />
-            <Emoji v-else-if="n === floor" char="⚔️" />
-            <Emoji v-else char="🔒" />
-          </div>
-        </div>
-      </div>
+      <TowerPath :floor="floor" :best="best" :max="TOWER_MAX" @pick="() => {}" />
 
       <!-- การ์ดชั้นปัจจุบัน -->
       <div class="tw-card">
@@ -139,13 +108,14 @@ import { useMembersStore } from '../stores/members.js'
 import { useTower } from '../composables/useTower.js'
 import { towerRanking } from '../utils/towerRivals.js'
 import { getPetDef, ELEMENTS, RARITY, EL_NAME, GRADE_LABELS } from '../data/index.js'
-import { floorZone, TOWER_BONUS_FLOORS, BONUS_CAP_FLOOR } from '../data/towerFloors.js'
+import { floorZone, BONUS_CAP_FLOOR } from '../data/towerFloors.js'
 import { buildCombatant } from '../data/battle.js'
 import TeamPicker from '../components/battle/TeamPicker.vue'
 import BattleReplay from '../components/battle/BattleReplay.vue'
 import PetDetailModal from '../components/pets/PetDetailModal.vue'
 import PetThumb from '../components/shared/PetThumb.vue'
 import HelpButton from '../components/help/HelpButton.vue'
+import TowerPath from '../components/tower/TowerPath.vue'
 
 const authStore = useAuthStore()
 const membersStore = useMembersStore()
@@ -173,18 +143,9 @@ const detailId = ref(null)
 const scout = ref(null)
 
 const zone = computed(() => floorZone(floor.value))
-// track fill % (min 1 กัน div-by-zero ใน --pct เวลา best=0 — ตัว fill ก็กว้าง 0% อยู่แล้วเลยไม่มีผลภาพ)
-const trackPct = computed(() => Math.max(best.value, 1))
 const zoneBg = computed(() => zone.value.royal
   ? 'linear-gradient(135deg, var(--ink) 0%, #5b21b6 100%)'
   : `linear-gradient(135deg, ${zone.value.color}, ${zone.value.color}bb)`)
-const isMilestone = (n) => TOWER_BONUS_FLOORS.includes(n)
-const climbFloors = computed(() => {
-  const start = Math.max(1, Math.min(TOWER_MAX - 5, floor.value - 1))
-  const out = []
-  for (let n = start; n < start + 6 && n <= TOWER_MAX; n++) out.push(n)
-  return out
-})
 const elEmoji = (p) => ELEMENTS[p?.element]?.emoji || '✊'
 const elName = (p) => EL_NAME[p?.element] || p?.element
 const rarityLabel = (p) => RARITY[p?.rarity]?.label || p?.rarity
@@ -206,50 +167,6 @@ async function onFight() {
 .tw-head { display: flex; align-items: center; justify-content: space-between; }
 .tw-head-r { display: flex; align-items: center; gap: 8px; }
 .tw-back { font-size: .8rem; color: var(--muted); text-decoration: none; }
-
-.tw-climb { background: #fff; border: 2px solid var(--ink); border-radius: 16px; padding: 10px 12px; box-shadow: var(--pop); margin-bottom: 12px; }
-.tw-climb-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.tw-climb-floor { font-weight: 800; font-size: .9rem; color: var(--ink); }
-.tw-climb-of { font-weight: 700; font-size: .78rem; color: var(--muted); }
-.tw-climb-best { font-size: .72rem; font-weight: 700; color: var(--muted); }
-
-.tw-track-wrap { position: relative; padding-top: 14px; }
-.tw-pin { position: absolute; top: 0; transform: translateX(-50%); font-size: .7rem; line-height: 1; }
-.tw-track {
-  height: 14px; border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; position: relative;
-  background: linear-gradient(90deg,
-    #84cc1640 0%, #84cc1640 20%,
-    #60a5fa40 20%, #60a5fa40 40%,
-    #c084fc40 40%, #c084fc40 55%,
-    #fbbf2440 55%, #fbbf2440 69%,
-    #5b21b640 69%, #5b21b640 100%);
-}
-.tw-track-fill { position: absolute; inset: 0; overflow: hidden; }
-.tw-track-fill-inner {
-  height: 100%;
-  width: calc(100% * 100 / var(--pct));
-  background: linear-gradient(90deg,
-    #84cc16 0%, #84cc16 20%,
-    #60a5fa 20%, #60a5fa 40%,
-    #c084fc 40%, #c084fc 55%,
-    #fbbf24 55%, #fbbf24 69%,
-    #5b21b6 69%, #5b21b6 100%);
-}
-.tw-track-crown { position: absolute; top: 0; right: -2px; font-size: .7rem; line-height: 1; }
-.tw-me { position: absolute; top: 100%; margin-top: 2px; transform: translateX(-50%); font-size: .7rem; line-height: 1; color: var(--ink); }
-.tw-track-scale { position: relative; height: 14px; margin-top: 13px; font-size: .7rem; font-weight: 700; color: var(--muted); }
-.tw-scale-1 { position: absolute; left: 0; }
-.tw-scale-70 { position: absolute; left: 70%; transform: translateX(-50%); color: #b45309; }
-.tw-scale-100 { position: absolute; right: 0; }
-
-.tw-climb-row { display: flex; gap: 6px; margin-top: 8px; }
-.tw-chip { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 2px; border-radius: 10px; background: #f1f5f9; font-size: .9rem; position: relative; }
-.tw-chip-n { font-size: .7rem; font-weight: 800; color: var(--muted); }
-.tw-chip.cleared { background: #dcfce7; }
-.tw-chip.current { background: var(--gold); box-shadow: 0 0 0 2px var(--ink); }
-.tw-chip.locked { opacity: .55; }
-.tw-chip.milestone { outline: 2px dashed var(--gold); outline-offset: -2px; }
-.tw-chip-coin { position: absolute; top: -7px; right: -3px; font-size: .7rem; }
 
 .tw-card { background: #fff; border: 2px solid var(--ink); border-radius: 18px; box-shadow: var(--pop); overflow: hidden; }
 .tw-zone { display: flex; align-items: center; gap: 12px; padding: 14px 16px; color: #fff; }
