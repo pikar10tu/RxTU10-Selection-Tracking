@@ -1075,6 +1075,7 @@ function runClimb(from) {
   centerOnCurrent(true)
   at(260,  () => { popFloor.value = from })
   at(1200, endClimb)
+  // (Task 6 เพิ่ม burstFloor.value = 0 ตรงนี้ด้วย + ขยับเป็น at(1900, endClimb))
 }
 
 watch(() => props.floor, (nf, of) => {
@@ -1115,7 +1116,11 @@ function rowClass(n) {
     n <= props.best ? 'done' : n === props.floor ? 'now' : 'lock',
     {
       first: n === props.max, last: n === 1,          // ← คงไว้ ห้ามทำหาย (ดู Task 2)
-      pop: n === popFloor.value, fill: n === fillFloor.value,
+      pop: n === popFloor.value,
+      // เส้นหนึ่งเส้นวาดด้วย pseudo สองตัวคนละแถว → ต้องติดคลาสทั้งคู่ ไม่งั้นครึ่งบนเด้งเป็นสีเต็มที่ t=0
+      fill:   n === fillFloor.value,                              // ครึ่งล่าง (::before ของแถว from)
+      fillUp: fillFloor.value > 0 && n === fillFloor.value + 1,   // ครึ่งบน (::after ของแถว from+1)
+      // ⚠️ guard `> 0` จำเป็น — ตอน idle fillFloor = 0 จะไปตรงกับแถวชั้น 1 แล้วเล่นอนิเมชันตอน mount
     },
   ]
 }
@@ -1145,9 +1150,13 @@ function rowClass(n) {
 
 /* เส้นเชื่อมช่วงที่เพิ่งผ่านไล่สีจากล่างขึ้นบน
    ครึ่งบนของแถวที่เพิ่งผ่าน = ช่วงที่เชื่อมไปชั้นถัดขึ้นไป
-   ⚠️ หน่วง .3s อยู่ที่นี่ ไม่ใช่ setTimeout + `backwards` ค้าง clip ไว้ตลอดช่วงหน่วง
-      ไม่งั้นจะเห็นสีเต็ม (เพราะ --tp-up เปลี่ยนตั้งแต่ t=0) แล้วโดนลบทิ้งค่อยไล่ใหม่ */
-.tp-row.fill::before { animation: tp-fill .5s ease-out .3s backwards; }
+   ⚠️ หน่วงอยู่ที่นี่ ไม่ใช่ setTimeout + `backwards` ค้าง clip ไว้ตลอดช่วงหน่วง
+      ไม่งั้นจะเห็นสีเต็ม (เพราะ --tp-up/--tp-dn เปลี่ยนตั้งแต่ t=0) แล้วโดนลบทิ้งค่อยไล่ใหม่
+   ⚠️ ต้องอนิเมตทั้งสองครึ่ง: ครึ่งล่าง = ::before ของแถว from · ครึ่งบน = ::after ของแถว from+1
+      ไล่ต่อกัน (.3–.55s แล้ว .55–.8s) จึงอ่านเป็นเส้นเดียวไล่ขึ้น ไม่ใช่ครึ่งบนเด้งติดสีรอไว้ก่อน
+      ชัดที่สุดตรงหมุด 20/40/70 เพราะขอบโซนอยู่ตรงนั้นพอดี สองครึ่งจึงเป็นคนละสี */
+.tp-row.fill::before  { animation: tp-fill .25s ease-out .3s  backwards; }
+.tp-row.fillUp::after { animation: tp-fill .25s ease-out .55s backwards; }
 @keyframes tp-fill {
   from { clip-path: inset(100% 0 0 0); }
   to   { clip-path: inset(0 0 0 0); }
@@ -1259,7 +1268,8 @@ function runClimb(from) {
   clearTimers()
   if (reduceMotion()) { endClimb(); centerOnCurrent(false); return }
   climbing.value = true
-  fillFloor.value = from          // ← คงไว้จาก Task 5 fix: ต้องอยู่แพตช์เดียวกับ climbing
+  fillFloor.value  = from         // ← คงไว้จาก Task 5 fix: ต้องอยู่แพตช์เดียวกับ climbing
+  burstFloor.value = 0            // กันค่าค้างถ้าไต่รอบใหม่ก่อน endClimb เดิมยิง
   centerOnCurrent(true)
   at(260,  () => { popFloor.value = from })
   if (isMilestone(from)) at(860, () => { burstFloor.value = from })
