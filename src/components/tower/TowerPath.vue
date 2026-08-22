@@ -1,5 +1,5 @@
 <!--
-  TowerPath — เส้นทางไต่หอคอยแนวตั้งซิกแซก 100 ชั้น
+  TowerPath — เส้นทางไต่หอคอย 100 ชั้น เรียงเป็นคอลัมน์เดียวไต่ตรงขึ้นไปบนโครงหอคอย
   รับ props ล้วน ไม่รู้จัก store ใดๆ (เทสง่าย + ตอนทำ P3 passive ไม่ต้องแตะไฟล์นี้)
 
   perf doctrine (จากบทเรียน BattleReplay ที่เคยกระตุกบน iOS):
@@ -7,8 +7,16 @@
       ข้าม layout+paint ของแถวนอกจอเอง — ไม่ virtualize เพราะต้องผูก scroll listener
       ซึ่งบน iOS momentum scroll เสี่ยงเรนเดอร์ไม่ทันเป็นช่องว่างขาว
     • ทุกแถวสูง ROW_H เท่ากันเป๊ะ → contain-intrinsic-size ตรงจริง = ไม่มี scrollbar กระตุก
-    • ห้ามผูก scroll event · IntersectionObserver / ResizeObserver ใช้ได้ (ไม่ยิงตอน scroll)
+    • ห้ามผูก scroll event · IntersectionObserver ใช้ได้ (ไม่ยิงตอน scroll)
+
+  เดิมเป็นซิกแซกซ้าย-ขวา · เปลี่ยนเป็นคอลัมน์เดียว 23 ส.ค. — ทำให้ทริกที่เปราะสองอันหายไป:
+    • เส้นเชื่อมเคยเป็นเส้นทแยงที่วาดด้วย linear-gradient มุมเอียง แล้วต้องแบ่งครึ่งบน/ล่าง
+      คนละ pseudo-element เพราะ contain:paint คลิปของที่ล้นขอบแถว → ตอนนี้เป็นเส้นตรง
+      (ยังแบ่งสองครึ่งอยู่ เพราะสองครึ่งคนละช่วงการเดินทาง = คนละสี ดู lineStyle)
+    • marker เคยต้องวัดความกว้างกล่องด้วย ResizeObserver เพื่อหาแกน X (ระยะขอบเป็น %)
+      → ตอนนี้ X คงที่จาก 50% จัดด้วย CSS ล้วน transform เหลือถือแค่ Y
 -->
+
 <template>
   <div class="tp">
     <div class="tp-head">
@@ -50,13 +58,12 @@
         </div>
 
         <!-- marker ผู้เล่น: absolute นอกแถว → ไม่โดน paint containment ของแถวคลิป
-             X ต้องพึ่งความกว้างกล่อง (ระยะขอบเป็น %) จึงวัดครั้งเดียวด้วย ResizeObserver
-             X กับ Y ต้องอยู่ใน transform เดียวกัน ไม่งั้นตอน Task 5 marker จะวาร์บแนวนอน -->
+             X คงที่จาก 50% จัดด้วย CSS · transform ถือแค่ Y ที่ต้องอนิเมต -->
         <div class="tp-marker" :class="{ climbing, snap }" :style="markerStyle" aria-hidden="true">
           <span class="tp-marker-in"><Emoji char="🧗" /></span>
         </div>
 
-        <div v-if="burstFloor" class="tp-burst" :class="isLeft(burstFloor) ? 'l' : 'r'"
+        <div v-if="burstFloor" class="tp-burst"
              :style="{ transform: `translate3d(0, ${(max - burstFloor) * ROW_H}px, 0)` }"
              aria-hidden="true">
           <span class="tp-ring"></span>
@@ -74,10 +81,7 @@ import { floorZone, TOWER_BONUS_FLOORS, getTowerBonus } from '../../data/towerFl
 import { letterAvatar, fallbackAvatar } from '../../utils/avatar.js'
 
 const ROW_H  = 60
-const NODE_W = 108
 const MARKER = 30
-const PAD    = 0.08     // = 8% ต้องตรงกับ --tp-pad ใน CSS ข้างล่าง
-const GAP    = 6        // ระยะห่างระหว่างขอบโหนดกับ marker
 
 const props = defineProps({
   floor: { type: Number, required: true },
@@ -88,18 +92,20 @@ const props = defineProps({
 defineEmits(['pick'])
 
 const boxEl = ref(null)
-const boxW  = ref(0)
 
 // ชั้นสูงอยู่บน → ไล่ลงมาชั้น 1
 const rows = computed(() => Array.from({ length: props.max }, (_, i) => props.max - i))
 
 const isMilestone = (n) => TOWER_BONUS_FLOORS.includes(n)
-const isLeft      = (n) => n % 2 === 1
 const zoneColor   = (n) => floorZone(n).color
+
+// เส้นชั้นที่ยังไม่ผ่าน — ink โปร่งแทนเทา #e2e8f0 เดิม
+// เทาเย็นถูกเลือกไว้ตอนพื้นหลังเป็น --bg เรียบ พอพื้นเป็นไล่เฉดสีโซน+โครงหอคอย มันจมหาย
+// การ "ทำให้เข้มลง" ทำงานได้ทุกแถบสี ต่างจากการ "ทาสีเทาทับ"
+const LOCK_LINE = 'rgba(36, 27, 51, .16)'
 
 function rowClass(n) {
   return [
-    isLeft(n) ? 'l' : 'r',
     n <= props.best ? 'done' : n === props.floor ? 'now' : 'lock',
     {
       first: n === props.max, last: n === 1,          // ← คงไว้ ห้ามทำหาย (ดู Task 2)
@@ -109,9 +115,15 @@ function rowClass(n) {
   ]
 }
 
-// พื้นโหนดที่ผ่านแล้ว = สีโซนจาง (ต่อท้าย 40 = alpha ~25% แบบเดียวกับแถบเดิมที่ถูกแทนที่)
+// พื้นโหนดที่ผ่านแล้ว = สีโซนผสมขาว 25% แบบ**ทึบ**
+// เดิมเป็น alpha (สีโซน + '40') ซึ่งคงที่เพราะพื้นหลังเรียบสีเดียว
+// พอพื้นหลังเป็นไล่เฉด สีที่มองเห็นจะเพี้ยนไปทีละชั้นตามฉากหลัง + คอนทราสต์ตัวเลขตก
+const tint = (hex) => '#' + [1, 3, 5]
+  .map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * .25 + 191.25).toString(16).padStart(2, '0'))
+  .join('')
+
 function nodeStyle(n) {
-  return n <= props.best ? { background: zoneColor(n) + '40' } : null
+  return n <= props.best ? { background: tint(zoneColor(n)) } : null
 }
 
 // สีเส้นเชื่อม 2 ครึ่ง แยกกันเพราะคนละช่วงการเดินทาง:
@@ -119,8 +131,8 @@ function nodeStyle(n) {
 //   ครึ่งล่าง (::after) = ช่วง n ↔ n-1 → ผ่านแล้วเมื่อพิชิตชั้น n-1 สำเร็จ → n <= best + 1
 function lineStyle(n) {
   return {
-    '--tp-up': n <= props.best     ? zoneColor(n) : '#e2e8f0',
-    '--tp-dn': n <= props.best + 1 ? zoneColor(n) : '#e2e8f0',
+    '--tp-up': n <= props.best     ? zoneColor(n) : LOCK_LINE,
+    '--tp-dn': n <= props.best + 1 ? zoneColor(n) : LOCK_LINE,
   }
 }
 
@@ -135,14 +147,11 @@ const crowdOf = (n) => props.crowd?.get(n) || null
 
 // ── marker ──────────────────────────────────────────────
 // Y = แถวของชั้นนั้น + จัดกึ่งกลางแนวตั้งในแถว
-// X = กึ่งกลาง marker ที่วางชิดด้านนอกโหนดฝั่งเดียวกัน
-const markerStyle = computed(() => {
-  const w = boxW.value
-  const y = (props.max - props.floor) * ROW_H + (ROW_H - MARKER) / 2
-  const off = PAD * w + NODE_W + GAP
-  const x = isLeft(props.floor) ? off : w - off - MARKER
-  return { transform: `translate3d(${Math.round(x)}px, ${y}px, 0)` }
-})
+// X ไม่อยู่ที่นี่แล้ว — คอลัมน์เดียวทำให้มันคงที่ จัดด้วย CSS `left: calc(50% - …)`
+// transform จึงถือแค่ Y ซึ่งเป็นค่าเดียวที่ต้องอนิเมตตอนไต่
+const markerStyle = computed(() => ({
+  transform: `translate3d(0, ${(props.max - props.floor) * ROW_H + (ROW_H - MARKER) / 2}px, 0)`,
+}))
 
 // ── scroll ให้ชั้นปัจจุบันอยู่กลางกล่อง ──────────────────
 // คำนวณตรงจากสูตร ไม่ใช้ scrollIntoView → ตั้งได้ก่อนเฟรมแรก ไม่มีอาการวาบจากชั้นบนสุด
@@ -179,18 +188,11 @@ function attachObserver() {
   io.observe(el)
 }
 
-let ro = null
 onMounted(() => {
-  boxW.value = boxEl.value?.clientWidth || 0
   centerOnCurrent(false)
   attachObserver()
-  if (typeof ResizeObserver !== 'undefined' && boxEl.value) {
-    // ยิงตอน mount + ตอนหมุนจอ — ไม่ยิงตอน scroll
-    ro = new ResizeObserver(([e]) => { boxW.value = e.contentRect.width })
-    ro.observe(boxEl.value)
-  }
 })
-onBeforeUnmount(() => { io?.disconnect(); ro?.disconnect() })
+onBeforeUnmount(() => { io?.disconnect() })
 
 // ── ซีเควนซ์ไต่ขึ้นหนึ่งขั้น ─────────────────────────────
 // ขับด้วยการที่ prop floor เพิ่มขึ้น (TowerView หน่วงไว้จนปิด BattleReplay แล้วค่อยปล่อย)
@@ -282,60 +284,52 @@ onBeforeUnmount(clearTimers)
   overscroll-behavior: contain;   /* กันเลื่อนทะลุไปดันหน้าหลัก */
   background: var(--bg);
 }
-.tp-inner { position: relative; }
+
+/* ── ฉากหลัง: โครงหอคอย + ไล่เฉดสีโซน ───────────────────
+   วางบน .tp-inner (สูง 6,000px) ไม่ใช่ .tp-box — พื้นหลังของ scroll container
+   ไม่เลื่อนตามเนื้อหา จะได้ฉากนิ่งแทนความรู้สึกว่ากำลังไต่
+
+   ชั้นบน = โครงหอคอย SVG ไทล์ซ้ำแนวตั้ง สูง 120px = 2 แถวพอดี
+            → แนวหินตรงกับเส้นแบ่งชั้นเสมอ ไม่ว่าเลื่อนไปอยู่ตรงไหน
+            background-size 100% = ยืดเต็มความกว้างกล่องทุกขนาดจอ
+   ชั้นล่าง = ไล่เฉดจากสีโซนทั้ง 5 (จุดหยุดตรงกับ ZONES ใน data/towerFloors.js)
+            → หอคอยรับสีของโซนที่กำลังไต่ และแถบโซนกลายเป็นบรรยากาศในตัวเอง
+   แถวไม่มีพื้นหลังของตัวเอง สีจาก parent จึงทะลุขึ้นมาได้ ไม่ชน contain:paint */
+.tp-inner {
+  position: relative;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='390' height='120' viewBox='0 0 390 120' preserveAspectRatio='none'%3E%3Cg stroke='%23241b33' fill='none' stroke-width='2'%3E%3Cpath d='M58 0v120M332 0v120' stroke-opacity='.17'/%3E%3Cpath d='M100 0v120M290 0v120' stroke-opacity='.07'/%3E%3Cpath d='M58 59h274M58 119h274' stroke-opacity='.12'/%3E%3Cpath d='M58 29h274M58 89h274' stroke-opacity='.05'/%3E%3Cpath d='M79 0v29M121 29v30M79 59v30M121 89v30M269 0v29M311 29v30M269 59v30M311 89v30' stroke-opacity='.05'/%3E%3C/g%3E%3Cg fill='%23241b33' fill-opacity='.07'%3E%3Cpath d='M70 36V20a9 9 0 0 1 18 0v16z'/%3E%3Cpath d='M302 96V80a9 9 0 0 1 18 0v16z'/%3E%3C/g%3E%3C/svg%3E")
+      repeat-y center top / 100% 120px,
+    linear-gradient(to top,
+      #eef7dd 0%,  #eef7dd 17%,   /* 1–20   ลานประลอง */
+      #e4f0fe 23%, #e4f0fe 37%,   /* 21–40  หอเวทเก่า */
+      #f0e6fe 43%, #f0e6fe 52%,   /* 41–55  ปราการอสูร */
+      #fdf2dc 58%, #fdf2dc 66%,   /* 56–69  ยอดหอคอยมังกร */
+      #d9cfea 72%, #cbbfe2 100%); /* 70–100 บัลลังก์ราชันย์ */
+}
 
 /* ── แถว ────────────────────────────────────────────────
-   --tp-pad ต้องตรงกับค่า PAD ใน <script setup> (marker พึ่งค่าเดียวกัน)
    content-visibility: auto → ข้าม layout+paint ของแถวนอกจอ
    ⚠️ มันบังคับ contain:paint ด้วย = คลิปทุกอย่างที่ล้นขอบแถว
       เส้นเชื่อมจึงต้องแบ่งครึ่งบน/ครึ่งล่างให้อยู่ในกรอบตัวเอง ห้ามวาดคร่อมสองแถว */
 .tp-row {
-  --tp-pad: 8%;
   position: relative;
   height: 60px;
-  display: flex; align-items: center;
+  display: flex; align-items: center; justify-content: center;
   content-visibility: auto;
   contain-intrinsic-size: auto 60px;
 }
-.tp-row.l { justify-content: flex-start; padding-left: var(--tp-pad); }
-.tp-row.r { justify-content: flex-end;   padding-right: var(--tp-pad); }
 
-/* ── เส้นเชื่อมทแยง ─────────────────────────────────────
-   แถบสีใน linear-gradient ตั้งฉากกับแกน → ทิศแกนสลับกับเส้นที่เห็น:
-     to bottom right (แกน \) → เห็นเป็นเส้น /
-     to bottom left  (แกน /) → เห็นเป็นเส้น \
-   กล่องแต่ละครึ่งกินจากกลางโหนด (var(--tp-pad) + ครึ่งความกว้างโหนด) ถึงกึ่งกลางแถว 50% */
-.tp-row::before, .tp-row::after { content: ''; position: absolute; pointer-events: none; }
-.tp-row::before { top: 0;   height: 50%; }
-.tp-row::after  { top: 50%; height: 50%; }
+/* ── เส้นเชื่อมแนวตั้ง ───────────────────────────────────
+   ยังแบ่งสองครึ่งอยู่ ไม่ใช่เพราะเรขาคณิต แต่เพราะสองครึ่งเป็นคนละช่วงการเดินทาง
+   จึงเปลี่ยนสีคนละจังหวะ (ดู lineStyle) — และ contain:paint ก็บังคับอยู่แล้ว */
+.tp-row::before, .tp-row::after {
+  content: ''; position: absolute; pointer-events: none;
+  left: 50%; width: 4px; margin-left: -2px;
+}
+.tp-row::before { top: 0;   height: 50%; background: var(--tp-up); }
+.tp-row::after  { top: 50%; height: 50%; background: var(--tp-dn); }
 
-.tp-row.l::before, .tp-row.l::after { left: calc(var(--tp-pad) + 54px); right: 50%; }
-.tp-row.r::before, .tp-row.r::after { left: 50%; right: calc(var(--tp-pad) + 54px); }
-
-/* ซ้าย-ครึ่งบน: กึ่งกลางแถวอยู่มุมบนขวา → โหนดมุมล่างซ้าย = เส้น / */
-.tp-row.l::before {
-  background-image: linear-gradient(to bottom right,
-    transparent calc(50% - 2px), var(--tp-up) calc(50% - 2px),
-    var(--tp-up) calc(50% + 2px), transparent calc(50% + 2px));
-}
-/* ซ้าย-ครึ่งล่าง: โหนดมุมบนซ้าย → กึ่งกลางแถวมุมล่างขวา = เส้น \ */
-.tp-row.l::after {
-  background-image: linear-gradient(to bottom left,
-    transparent calc(50% - 2px), var(--tp-dn) calc(50% - 2px),
-    var(--tp-dn) calc(50% + 2px), transparent calc(50% + 2px));
-}
-/* ขวา-ครึ่งบน: กึ่งกลางแถวมุมบนซ้าย → โหนดมุมล่างขวา = เส้น \ */
-.tp-row.r::before {
-  background-image: linear-gradient(to bottom left,
-    transparent calc(50% - 2px), var(--tp-up) calc(50% - 2px),
-    var(--tp-up) calc(50% + 2px), transparent calc(50% + 2px));
-}
-/* ขวา-ครึ่งล่าง: โหนดมุมบนขวา → กึ่งกลางแถวมุมล่างซ้าย = เส้น / */
-.tp-row.r::after {
-  background-image: linear-gradient(to bottom right,
-    transparent calc(50% - 2px), var(--tp-dn) calc(50% - 2px),
-    var(--tp-dn) calc(50% + 2px), transparent calc(50% + 2px));
-}
 /* แถวบนสุดไม่มีชั้นเหนือขึ้นไป · แถวล่างสุดไม่มีชั้นใต้ลงมา
    ใช้คลาสไม่ใช้ :first-child/:last-child — .tp-inner มี .tp-marker เป็นลูกตัวสุดท้ายด้วย
    ทำให้ :last-child ไม่เคย match แถวไหนเลย (เส้นชั้น 1 ห้อยลงไปในที่ว่าง) */
@@ -344,34 +338,38 @@ onBeforeUnmount(clearTimers)
 
 /* ── โหนด ───────────────────────────────────────────────
    ขนาดคงที่ทุกสถานะ → เปลี่ยนสถานะไม่ทำให้เกิด layout shift */
+/* ขอบขาว 4px รอบโหนด = ตัดโหนดออกจากฉากหลังที่มีทั้งสีและลวดลาย
+   (เงาแข็งเดิม --pop อย่างเดียวไม่พอ พอพื้นไม่ใช่สีเรียบ ขอบ ink จะกลืนกับเส้นหอคอย)
+   สองชั้น: halo ขาวก่อน แล้วเงาแข็งเหลื่อม 3px รอบ halo อีกที */
 .tp-node {
   position: relative; z-index: 1;
   width: 108px; height: 44px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; gap: 5px;
   border: 2px solid var(--ink); border-radius: 12px;
-  background: #f1f5f9; box-shadow: var(--pop);
+  background: #fff; box-shadow: 0 0 0 4px #fff, 3px 3px 0 4px var(--ink);
   font-family: inherit; cursor: pointer;
 }
-.tp-node:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--ink); }
+.tp-node:active { transform: translate(2px, 2px); box-shadow: 0 0 0 4px #fff; }
 .tp-ico { font-size: 1rem; line-height: 1; }
 .tp-n   { font-size: .78rem; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
 
 .tp-row.lock .tp-node { opacity: .6; }
-.tp-row.now  .tp-node { background: var(--gold); border-width: 3px; box-shadow: 4px 4px 0 var(--ink); }
-.tp-row.now .tp-node:active { box-shadow: 0 0 0 var(--ink); }
+.tp-row.now  .tp-node { background: var(--gold); border-width: 3px; }
+.tp-row.now .tp-node:active { box-shadow: 0 0 0 4px #fff; }
 .tp-node.milestone { outline: 2px dashed var(--gold); outline-offset: 2px; }
 .tp-coin { position: absolute; top: -8px; right: -6px; font-size: .72rem; line-height: 1; }
 
 /* ── รางเพื่อน ──────────────────────────────────────────
-   อยู่ฝั่งตรงข้ามโหนดเสมอ → ไม่มีทางทับโหนด
-   รางทั้งรางเป็นปุ่มเดียว emit('pick', n) ตัวเดียวกับโหนด — เปิดแผงเดียวกัน */
+   ขวาโหนดตายตัว (54px = ครึ่งโหนด + 8px ระยะห่าง) — ตาไม่ต้องไล่หาสลับฝั่งแบบตอนซิกแซก
+   รางทั้งรางเป็นปุ่มเดียว emit('pick', n) ตัวเดียวกับโหนด — เปิดแผงเดียวกัน
+   overflow ของ .tp เป็น hidden อยู่แล้ว: ถ้ามีเพื่อนเยอะจนล้น จะโดนตัดที่ขอบการ์ด
+   ไม่ดันความกว้าง (shown สูงสุด 3 + ป้าย +N = ~94px พอดีในจอ 360px) */
 .tp-rail {
-  position: absolute; top: 50%; transform: translateY(-50%);
+  position: absolute; top: 50%; left: calc(50% + 62px);
+  transform: translateY(-50%);
   display: flex; align-items: center;
   border: none; background: none; padding: 2px; cursor: pointer;
 }
-.tp-row.l .tp-rail { right: var(--tp-pad); }
-.tp-row.r .tp-rail { left:  var(--tp-pad); }
 .tp-rail:active { transform: translateY(-50%) scale(.94); }
 
 .tp-face {
@@ -382,15 +380,16 @@ onBeforeUnmount(clearTimers)
 .tp-face + .tp-face { margin-left: -9px; }
 .tp-more {
   margin-left: 4px; padding: 1px 6px; border-radius: 999px;
-  background: var(--ink); color: #fff;
+  background: var(--ink); color: #fff; box-shadow: 0 0 0 2px #fff;
   font-size: .72rem; font-weight: 800; line-height: 1.5;
 }
 
 /* ── marker ผู้เล่น ─────────────────────────────────────
    absolute ที่ .tp-inner → ไม่โดน paint containment ของแถว
-   transform เดียวถือทั้ง X และ Y (Task 5 จะใส่ transition ที่นี่) */
+   X คงที่: 90px = ครึ่งโหนด 54 + ระยะห่าง 6 + ความกว้าง marker 30 → ชิดซ้ายโหนดพอดี
+   transform เหลือถือแค่ Y = ค่าเดียวที่ต้องอนิเมตตอนไต่ */
 .tp-marker {
-  position: absolute; top: 0; left: 0;
+  position: absolute; top: 0; left: calc(50% - 90px);
   width: 30px; height: 30px;
   display: flex; align-items: center; justify-content: center;
   pointer-events: none;
@@ -425,7 +424,7 @@ onBeforeUnmount(clearTimers)
   to   { clip-path: inset(0 0 0 0); }
 }
 
-/* marker: X กับ Y อยู่ใน transform เดียวกันจึงขยับพร้อมกัน (ไม่วาร์บแนวนอน)
+/* marker: transform ถือแค่ Y แล้ว (X เป็น CSS คงที่) — ไม่มีการวาร์บแนวนอนให้กังวลอีก
    หน่วง .34s ให้เกิดหลังโหนดเด้งกับเส้นไล่สี ตามลำดับในสเปก
    ⚠️ transition ต้องอยู่บน .tp-marker เฉยๆ **ห้ามใส่ไว้ใต้ .climbing**
       เพราะคลาส climbing กับค่า transform ใหม่ลงพร้อมกันในเฟรมเดียว —
@@ -450,14 +449,15 @@ onBeforeUnmount(clearTimers)
 }
 
 /* ── วงแหวนปลดล็อกหมุดโบนัส ────────────────────────────
-   วางทับแถวของหมุดนั้น จัดฝั่งเดียวกับโหนด · pointer-events:none ไม่ขวางการกด
+   วางทับแถวของหมุดนั้น จัดกึ่งกลางตรงกับโหนด · pointer-events:none ไม่ขวางการกด
+   ป้าย +N/วัน ลอยขึ้นเหนือโหนด (keyframe tp-gain เลื่อนขึ้นอยู่แล้ว) — บังเลขชั้น
+   ชั่วครู่ ~900ms ซึ่งรับได้ เพราะเป็นจังหวะฉลองที่คนกำลังมองอยู่พอดี
    ห้าม animate box-shadow/filter ที่นี่ — วงแหวนใช้ border + transform/opacity เท่านั้น */
 .tp-burst {
   position: absolute; top: 0; left: 0; right: 0; height: 60px;
-  display: flex; align-items: center; pointer-events: none; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; z-index: 2;
 }
-.tp-burst.l { justify-content: flex-start; padding-left: calc(8% + 30px); }
-.tp-burst.r { justify-content: flex-end;   padding-right: calc(8% + 30px); }
 
 .tp-ring {
   position: absolute; width: 48px; height: 48px; border-radius: 999px;
