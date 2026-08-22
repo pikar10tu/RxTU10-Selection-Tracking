@@ -1046,8 +1046,18 @@ let timers = []
 const at = (ms, fn) => timers.push(setTimeout(fn, ms))
 function clearTimers() { timers.forEach(clearTimeout); timers = [] }
 
+const snap = ref(false)     // ตัด transition หนึ่งเฟรมตอนสั่งข้ามอนิเมชัน
+
 function endClimb() {
   clearTimers()
+  if (climbing.value) {
+    // marker ใช้ transition บนคลาสฐาน (จำเป็น ดูกฎ same-frame ข้างล่าง) การถอดคลาส climbing
+    // จึงหยุด @keyframes ได้แต่หยุด transition ไม่ได้ — marker จะไถลต่ออีก .84s หลังแตะข้าม
+    // ปิด transition หนึ่งเฟรมให้กระโดดถึงปลายทางทันที ตามที่สเปกสัญญาว่า "แตะ = ข้ามทันที"
+    // rAF ซ้อนสองชั้น: ชั้นแรกรอ DOM patch ของ Vue (microtask) + คำนวณสไตล์ใหม่แบบไม่มี transition
+    snap.value = true
+    requestAnimationFrame(() => requestAnimationFrame(() => { snap.value = false }))
+  }
   climbing.value  = false
   popFloor.value  = 0
   fillFloor.value = 0
@@ -1057,9 +1067,13 @@ function runClimb(from) {
   clearTimers()
   if (reduceMotion()) { endClimb(); centerOnCurrent(false); return }
   climbing.value = true
+  // ⚠️ fillFloor ต้องตั้งพร้อม climbing ในแพตช์เดียวกัน ห้ามหน่วงด้วย setTimeout
+  //    สีเส้น (--tp-up) เปลี่ยนตั้งแต่ t=0 อยู่แล้วเพราะผูกกับ best ที่ปล่อยพร้อมกัน
+  //    ถ้า clip มาทีหลัง จะเห็นสีเต็ม → โดนลบทิ้ง → ค่อยไล่ใหม่ = ดูเหมือนจอกระตุก
+  //    การหน่วง 300ms ย้ายไปเป็น animation-delay ใน CSS แทน (ดู .tp-row.fill::before)
+  fillFloor.value = from
   centerOnCurrent(true)
-  at(260,  () => { popFloor.value  = from })
-  at(300,  () => { fillFloor.value = from })
+  at(260,  () => { popFloor.value = from })
   at(1200, endClimb)
 }
 
@@ -1110,7 +1124,7 @@ function rowClass(n) {
 แก้ `.tp-marker` ให้รับคลาส `climbing`:
 
 ```html
-        <div class="tp-marker" :class="{ climbing }" :style="markerStyle" aria-hidden="true">
+        <div class="tp-marker" :class="{ climbing, snap }" :style="markerStyle" aria-hidden="true">
 ```
 
 - [ ] **Step 6: `TowerPath.vue` — เพิ่ม CSS อนิเมชัน**
@@ -1130,8 +1144,10 @@ function rowClass(n) {
 }
 
 /* เส้นเชื่อมช่วงที่เพิ่งผ่านไล่สีจากล่างขึ้นบน
-   ครึ่งบนของแถวที่เพิ่งผ่าน = ช่วงที่เชื่อมไปชั้นถัดขึ้นไป */
-.tp-row.fill::before { animation: tp-fill .5s ease-out; }
+   ครึ่งบนของแถวที่เพิ่งผ่าน = ช่วงที่เชื่อมไปชั้นถัดขึ้นไป
+   ⚠️ หน่วง .3s อยู่ที่นี่ ไม่ใช่ setTimeout + `backwards` ค้าง clip ไว้ตลอดช่วงหน่วง
+      ไม่งั้นจะเห็นสีเต็ม (เพราะ --tp-up เปลี่ยนตั้งแต่ t=0) แล้วโดนลบทิ้งค่อยไล่ใหม่ */
+.tp-row.fill::before { animation: tp-fill .5s ease-out .3s backwards; }
 @keyframes tp-fill {
   from { clip-path: inset(100% 0 0 0); }
   to   { clip-path: inset(0 0 0 0); }
@@ -1149,6 +1165,8 @@ function rowClass(n) {
   50%  { transform: translateY(-12px); }
   100% { transform: translateY(0); }
 }
+/* ต้องอยู่หลังกฎ .tp-marker ข้างบนเพื่อชนะ source order */
+.tp-marker.snap { transition: none; }
 /* จอง compositor layer เฉพาะช่วงกำลังไต่ — ใส่ค้างไว้ = กินแรมตลอดเวลา */
 .tp-marker.climbing, .tp-marker.climbing .tp-marker-in { will-change: transform; }
 
@@ -1223,6 +1241,10 @@ const burstBonus = computed(() => getTowerBonus(burstFloor.value))
 ```js
 function endClimb() {
   clearTimers()
+  if (climbing.value) {           // ← คงไว้จาก Task 5 fix ห้ามทำหาย (แตะ = ข้ามทันที)
+    snap.value = true
+    requestAnimationFrame(() => requestAnimationFrame(() => { snap.value = false }))
+  }
   climbing.value   = false
   popFloor.value   = 0
   fillFloor.value  = 0
@@ -1237,9 +1259,9 @@ function runClimb(from) {
   clearTimers()
   if (reduceMotion()) { endClimb(); centerOnCurrent(false); return }
   climbing.value = true
+  fillFloor.value = from          // ← คงไว้จาก Task 5 fix: ต้องอยู่แพตช์เดียวกับ climbing
   centerOnCurrent(true)
-  at(260,  () => { popFloor.value  = from })
-  at(300,  () => { fillFloor.value = from })
+  at(260,  () => { popFloor.value = from })
   if (isMilestone(from)) at(860, () => { burstFloor.value = from })
   at(1900, endClimb)          // ยืดจาก 1200 ให้วงแหวน (700ms ที่ t=860) เล่นจบก่อนถูกล้าง
 }
