@@ -52,7 +52,7 @@
         <!-- marker ผู้เล่น: absolute นอกแถว → ไม่โดน paint containment ของแถวคลิป
              X ต้องพึ่งความกว้างกล่อง (ระยะขอบเป็น %) จึงวัดครั้งเดียวด้วย ResizeObserver
              X กับ Y ต้องอยู่ใน transform เดียวกัน ไม่งั้นตอน Task 5 marker จะวาร์บแนวนอน -->
-        <div class="tp-marker" :class="{ climbing }" :style="markerStyle" aria-hidden="true">
+        <div class="tp-marker" :class="{ climbing, snap }" :style="markerStyle" aria-hidden="true">
           <span class="tp-marker-in"><Emoji char="🧗" /></span>
         </div>
       </div>
@@ -189,6 +189,7 @@ onBeforeUnmount(() => { io?.disconnect(); ro?.disconnect() })
 const climbing  = ref(false)
 const popFloor  = ref(0)     // ชั้นที่เพิ่งผ่าน — เด้งตอนพลิกเป็น ✅
 const fillFloor = ref(0)     // ชั้นที่เส้นเชื่อมกำลังไล่สี
+const snap      = ref(false) // ตัด transition หนึ่งเฟรมตอนสั่งข้ามอนิเมชัน
 
 let timers = []
 const at = (ms, fn) => timers.push(setTimeout(fn, ms))
@@ -196,6 +197,13 @@ function clearTimers() { timers.forEach(clearTimeout); timers = [] }
 
 function endClimb() {
   clearTimers()
+  if (climbing.value) {
+    // ปิด transition หนึ่งเฟรมให้ marker กระโดดไปตำแหน่งปลายทางทันที ไม่ไถลต่ออีก .84s
+    // ต้อง rAF ซ้อนสองชั้น: ชั้นแรกรอให้ DOM patch ของ Vue (microtask) ลงและเบราว์เซอร์
+    // คำนวณสไตล์ใหม่โดยไม่มี transition · ชั้นสองคือเฟรมถัดไปที่ปลอดภัยจะคืน transition
+    snap.value = true
+    requestAnimationFrame(() => requestAnimationFrame(() => { snap.value = false }))
+  }
   climbing.value  = false
   popFloor.value  = 0
   fillFloor.value = 0
@@ -205,9 +213,13 @@ function runClimb(from) {
   clearTimers()
   if (reduceMotion()) { endClimb(); centerOnCurrent(false); return }
   climbing.value = true
+  // ⚠️ ต้องตั้งพร้อม climbing ในแพตช์เดียวกัน ห้ามหน่วงด้วย setTimeout
+  //    สีเส้น (--tp-up) เปลี่ยนตั้งแต่ t=0 เพราะผูกกับ best ที่ปล่อยพร้อมกัน
+  //    ถ้า clip มาทีหลัง จะเห็นสีเต็มก่อนแล้วโดนลบทิ้งค่อยไล่ใหม่ = ดูเหมือนจอกระตุก
+  //    การหน่วง 300ms ย้ายไปเป็น animation-delay ใน CSS แทน
+  fillFloor.value = from
   centerOnCurrent(true)
   at(260,  () => { popFloor.value  = from })
-  at(300,  () => { fillFloor.value = from })
   at(1200, endClimb)
 }
 
@@ -387,7 +399,7 @@ onBeforeUnmount(clearTimers)
 
 /* เส้นเชื่อมช่วงที่เพิ่งผ่านไล่สีจากล่างขึ้นบน
    ครึ่งบนของแถวที่เพิ่งผ่าน = ช่วงที่เชื่อมไปชั้นถัดขึ้นไป */
-.tp-row.fill::before { animation: tp-fill .5s ease-out; }
+.tp-row.fill::before { animation: tp-fill .5s ease-out .3s backwards; }
 @keyframes tp-fill {
   from { clip-path: inset(100% 0 0 0); }
   to   { clip-path: inset(0 0 0 0); }
@@ -400,6 +412,7 @@ onBeforeUnmount(clearTimers)
       transition ที่เพิ่งถูกเพิ่มในเฟรมเดียวกับที่ค่าเปลี่ยน เบราว์เซอร์จะไม่อนิเมตให้
       (ต่างจาก @keyframes ที่ทริกเกอร์ได้ทันทีตอนคลาสถูกเพิ่ม) */
 .tp-marker { transition: transform .5s cubic-bezier(.34, 1.3, .64, 1) .34s; }
+.tp-marker.snap { transition: none; }
 .tp-marker.climbing .tp-marker-in { animation: tp-hop .5s cubic-bezier(.4, 0, .4, 1) .34s; }
 @keyframes tp-hop {
   50%  { transform: translateY(-12px); }
