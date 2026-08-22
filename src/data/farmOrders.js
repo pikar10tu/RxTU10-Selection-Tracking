@@ -57,3 +57,85 @@ export function missingItems(order, inventory) {
   }
   return out
 }
+
+// ── ตัวสุ่มแบบมี seed (mulberry32) — ไม่ใช่ crypto ใช้เพื่อให้เทสได้ว่า
+//    seed เดิมต้องได้ออเดอร์เดิมเสมอ ──
+function rng(seed) {
+  let a = (Number(seed) || 0) >>> 0
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+// จำนวนชิ้นผูกกับเวลาโต ไม่ใช่สุ่มลอยๆ — กันออเดอร์อย่าง "ต้นไม้เงินตรา ×5" (กินเวลา 15 วัน)
+export const QTY_BRACKETS = [
+  { maxMinutes: 15,       min: 3, max: 8 },
+  { maxMinutes: 180,      min: 2, max: 5 },
+  { maxMinutes: 1440,     min: 1, max: 3 },
+  { maxMinutes: Infinity, min: 1, max: 2 },
+]
+
+export function qtyBracket(crop) {
+  const m = Number(crop?.growMinutes) || 0
+  return QTY_BRACKETS.find(b => m <= b.maxMinutes) || QTY_BRACKETS[QTY_BRACKETS.length - 1]
+}
+
+/** สร้างออเดอร์ 1 ใบจาก seed · `crops` = พืชที่ปลดล็อกแล้วเท่านั้น · คืน null ถ้าไม่มีพืชให้เลือก */
+export function buildOrder(seed, crops, now) {
+  const list = (Array.isArray(crops) ? crops : []).filter(Boolean)
+  if (!list.length) return null
+  const rand = rng(seed)
+
+  // จำนวนชนิด: สุ่มตามน้ำหนัก แล้ว clamp ด้วยจำนวนพืชที่มีจริง
+  let roll = rand() * KIND_WEIGHTS.reduce((s, w) => s + w, 0)
+  let kinds = 1
+  for (let i = 0; i < KIND_WEIGHTS.length; i++) {
+    if (roll < KIND_WEIGHTS[i]) { kinds = i + 1; break }
+    roll -= KIND_WEIGHTS[i]
+  }
+  kinds = Math.min(kinds, MAX_KINDS, list.length)
+
+  // เลือกพืชไม่ซ้ำ (หยิบออกจากกองทีละตัว)
+  const pool = list.slice()
+  const items = {}
+  for (let i = 0; i < kinds; i++) {
+    const crop = pool.splice(Math.floor(rand() * pool.length), 1)[0]
+    const b = qtyBracket(crop)
+    items[crop.id] = b.min + Math.floor(rand() * (b.max - b.min + 1))
+  }
+
+  return { id: `o${now}x${((Number(seed) || 0) >>> 0).toString(36)}`, items, reward: orderReward(items) }
+}
+
+/** ทำให้ array ช่องถูกรูปเสมอ — ช่องที่หายไป/เพี้ยนกลายเป็นช่องพร้อมใช้ทันที (คนเก่าได้บอร์ดเต็มเลย) */
+export function normalizeOrders(raw, now) {
+  const src = Array.isArray(raw) ? raw : []
+  const ready = Number(now) || 0
+  const out = []
+  for (let i = 0; i < ORDER_SLOTS; i++) {
+    const s = src[i]
+    if (s && typeof s === 'object' && s.items && typeof s.items === 'object' && Object.keys(s.items).length) {
+      out.push({ id: String(s.id || `o${i}`), items: { ...s.items }, reward: { coins: Number(s.reward?.coins) || 0 } })
+    } else if (s && typeof s === 'object' && Number.isFinite(Number(s.at))) {
+      out.push({ at: Number(s.at) })
+    } else {
+      out.push({ at: ready })
+    }
+  }
+  return out
+}
+
+/** index ของช่องที่ว่างและถึงเวลาเติมใบใหม่แล้ว */
+export function dueSlots(orders, now) {
+  const list = Array.isArray(orders) ? orders : []
+  const t = Number(now) || 0
+  const out = []
+  for (let i = 0; i < list.length; i++) {
+    const s = list[i]
+    if (s && !s.items && Number(s.at) <= t) out.push(i)
+  }
+  return out
+}
