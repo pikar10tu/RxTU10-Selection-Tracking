@@ -322,6 +322,7 @@ function rowClass(n) {
   return [
     isLeft(n) ? 'l' : 'r',
     n <= props.best ? 'done' : n === props.floor ? 'now' : 'lock',
+    { first: n === props.max, last: n === 1 },
   ]
 }
 
@@ -491,9 +492,12 @@ watch(() => props.floor, () => { nextTick(attachObserver) })
     transparent calc(50% - 2px), var(--tp-dn) calc(50% - 2px),
     var(--tp-dn) calc(50% + 2px), transparent calc(50% + 2px));
 }
-/* แถวบนสุดไม่มีชั้นเหนือขึ้นไป · แถวล่างสุดไม่มีชั้นใต้ลงมา */
-.tp-row:first-child::before { display: none; }
-.tp-row:last-child::after   { display: none; }
+/* แถวบนสุดไม่มีชั้นเหนือขึ้นไป · แถวล่างสุดไม่มีชั้นใต้ลงมา
+   ⚠️ ใช้คลาส ห้ามใช้ :first-child/:last-child — .tp-inner มี .tp-marker เป็นลูกตัวสุดท้ายด้วย
+      ทำให้ :last-child ไม่เคย match แถวไหนเลย → เส้นครึ่งล่างของชั้น 1 ห้อยลงไปในที่ว่าง
+      (และ :last-of-type ก็ไม่ช่วย เพราะ marker เป็น div เหมือนกัน) */
+.tp-row.first::before { display: none; }
+.tp-row.last::after   { display: none; }
 
 /* ── โหนด ───────────────────────────────────────────────
    ขนาดคงที่ทุกสถานะ → เปลี่ยนสถานะไม่ทำให้เกิด layout shift */
@@ -1094,7 +1098,10 @@ function rowClass(n) {
   return [
     isLeft(n) ? 'l' : 'r',
     n <= props.best ? 'done' : n === props.floor ? 'now' : 'lock',
-    { pop: n === popFloor.value, fill: n === fillFloor.value },
+    {
+      first: n === props.max, last: n === 1,          // ← คงไว้ ห้ามทำหาย (ดู Task 2)
+      pop: n === popFloor.value, fill: n === fillFloor.value,
+    },
   ]
 }
 ```
