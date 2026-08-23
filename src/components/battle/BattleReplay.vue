@@ -1,6 +1,6 @@
 <!-- BattleReplay v2 — event-driven (dispatch ตาม event.t) · melee/ranged · ป้ายธาตุ/crit/ตาย ·
      UI: ป้ายฝั่ง + badge ธาตุ + กรอบสีแยกข้าง = ดูรู้เรื่องว่าใครฝั่งไหน/ตีใคร/แพ้ทางมั้ย
-     controls: pause/skip · แตะตัว = pause + inspect (ช่อง passive รอ §5.5 master plan)
+     controls: พัก + กดค้างเร่ง (ปุ่มข้าม/เร็วถูกลบ Task 6 — heavy/finish ไม่ย่อแม้กดค้าง) · แตะตัว = pause + inspect (ช่อง passive รอ §5.5 master plan)
      จังหวะขับด้วย beat.timing (battleBeats.js) แทน baseDelay คงที่ (Task 4) — ปุ่มเร็วเดิมถูกลบ
      ⚠️ ทุก emoji ผ่าน <Emoji> (Fluent self-host) — อย่าใส่ emoji ดิบในเทมเพลต (เป็น tofu บนบางเครื่อง) -->
 <template>
@@ -8,7 +8,9 @@
        → nav โผล่ทะลุก้นจอสู้. ย้ายทั้งชุด (peek/result/inspect เป็นลูกข้างใน z คงเดิม) ไป root (ดู CLAUDE.md) -->
   <Teleport to="body">
   <div v-if="data" class="br-ov" :class="'br-theme-' + theme">
-    <div class="br-box" ref="boxRef">
+    <div class="br-box" ref="boxRef"
+         @pointerdown="onHoldStart" @pointerup="onHoldEnd"
+         @pointercancel="onHoldEnd" @pointerleave="onHoldEnd">
       <div v-if="introPhase" class="br-intro" @click="skipIntro">
         <span class="br-intro-txt" :class="introPhase">{{ introPhase === 'ready' ? 'READY?' : 'GO!' }}</span>
       </div>
@@ -52,9 +54,9 @@
 
       <div class="br-ctrl" v-if="!done">
         <button class="br-btn sm" @click="togglePause"><Emoji :char="paused ? '▶️' : '⏸️'" /> {{ paused ? 'เล่น' : 'พัก' }}</button>
-        <!-- ปุ่ม "เร็ว ×N" เดิมถูกลบ (Task 4: speed ref/REPLAY_CFG.speeds หายไปแล้ว) — Task 6 ใส่ปุ่มกดค้างเร่งแทน -->
-        <button class="br-btn sm" @click="skipToEnd">ข้ามไปผล</button>
       </div>
+      <div v-if="ffActive" class="br-ff"><Emoji char="⏩" /> เร่ง</div>
+      <div v-if="holdHint" class="br-hold-hint">กดค้างเพื่อเร่ง</div>
     </div>
 
     <!-- peek สนามหลังจบ: ปุ่มลอยกลับเข้าหน้าสรุป + ปิด (มีปุ่มปิดตรงนี้ด้วย ไม่ต้องกดดูสรุปกลับก่อน) -->
@@ -148,7 +150,35 @@ const prefs = ref(readPrefs())          // อ่านครั้งเดี�
 const ffActive = ref(false)             // โหมดเร่ง (กดค้าง) — Task 6 เป็นคนสลับ
 const pace = computed(() => paceMult(prefs.value.pace))
 // speed/cycleSpeed/ปุ่ม "เร็ว ×N" ถูกลบทั้งชุด (Task 4) — เวลามาจาก beat.timing แล้ว
-// Task 6 จะเพิ่มปุ่มกดค้างเร่ง (ffActive) แทนที่ตรงนี้
+
+// ── กดค้าง = เร่ง (ไม่ใช่ข้าม) ──
+// กติกาที่ทำให้มันไม่ใช่ปุ่มข้าม: FF_SCALE ใน battleBeats ย่อเฉพาะ chip/solid — heavy/finish เล่นเต็มเสมอ
+// ผลคือคนรีบก็ยังได้ดูคริกับหมัดน็อกครบ แล้วจบที่หน้าสรุปเหมือนกัน
+const HOLD_MS = 400
+const holdHint = ref(false)
+let holdTimer = null, hintTimer = null
+function onHoldStart(e) {
+  if (done.value || inspectUid.value || introPhase.value) return           // ไฟต์จบ/เปิด inspect/ยังโชว์ READY-GO อยู่ = ไม่ใช่จังหวะกดค้างเร่ง
+  if (e.target.closest && e.target.closest('.br-unit, .br-btn')) return   // แตะการ์ด/ปุ่ม = คนละเจตนา (เปิด inspect / พัก)
+  // ผูก pointer capture กับกล่องสนามไว้ — กันเคส "ไฟต์จบกลางที่กดค้าง" ที่โมดัลสรุปลอยทับกล่องพอดี
+  // ไม่ capture ไว้ pointerup ตอนปล่อยนิ้วจะไปตกที่โมดัล (topmost element ตอนนั้น) ไม่ใช่กล่อง → onHoldEnd ไม่ทำงาน → ffActive ค้าง true ข้ามไฟต์ถัดไป
+  // (มี watch(done) ด้านล่างกันเหนียวอีกชั้น เผื่อ browser ไหนไม่รองรับ/ไม่ทำตาม capture)
+  if (boxRef.value?.setPointerCapture) { try { boxRef.value.setPointerCapture(e.pointerId) } catch { /* บาง browser โยน ไม่ใช่สาระ */ } }
+  clearTimeout(holdTimer)
+  holdTimer = setTimeout(() => { ffActive.value = true; holdHint.value = false }, HOLD_MS)
+}
+function onHoldEnd(e) {
+  clearTimeout(holdTimer)
+  if (e?.pointerId != null && boxRef.value?.hasPointerCapture?.(e.pointerId)) {
+    try { boxRef.value.releasePointerCapture(e.pointerId) } catch { /* เพิกเฉย */ }
+  }
+  if (!ffActive.value) {
+    // แตะสั้นๆ โดยไม่ค้าง → บอกใบ้ว่ามีทางเร่งอยู่ (ค้นพบได้ตอนต้องการ ไม่ล่อตาตอนไม่ต้องการ)
+    holdHint.value = true
+    clearTimeout(hintTimer); hintTimer = setTimeout(() => { holdHint.value = false }, 1500)
+  }
+  ffActive.value = false
+}
 const hp = ref({})
 const inspectUid = ref(null)
 const introPhase = ref(null)   // 'ready' | 'go' | null (null = เริ่มเล่น log แล้ว)
@@ -240,6 +270,8 @@ function reset() {
   clearHighlights()                                                         // ล้างคลาส windup/acting/flash ค้าง
   idx.value = 0; round.value = 1
   paused.value = false; inspectUid.value = null
+  ffActive.value = false; holdHint.value = false                             // เคลียร์โหมดเร่ง/คำใบ้ค้างจากไฟต์ก่อน
+  clearTimeout(holdTimer); clearTimeout(hintTimer)
   const h = {}; Object.keys(maxHp).forEach(uid => { h[uid] = 100 }); hp.value = h
   Object.keys(maxHp).forEach(setDead)                                       // ทุกตัว hp=100 → setDead ถอด class dead ค้างจากไฟต์ก่อน
   // fx: DOM ของ .br-box/.br-fx-layer ต้องพร้อมก่อน attach — รอ nextTick (ครั้งแรกอาจยัง mount ไม่เสร็จตอน watch immediate ยิง)
@@ -364,22 +396,6 @@ function togglePause() {
   paused.value = !paused.value
   if (!paused.value) { clearTimeout(timer); step() }   // เคลียร์ timer ค้างก่อนเล่นต่อ (กันรันซ้อน)
 }
-function skipToEnd() {
-  gen++                                                    // ตัด promise chain windup/lunge/impact ที่ค้างอยู่ (gen guard ใน applyAttack/step)
-  clearTimeout(timer)
-  pendingTimers.forEach(clearTimeout); pendingTimers.clear()   // ตัด wait() ที่ค้างอยู่ทั้งหมด กันโดนโผล่มาแตะ state หลัง log จบไปแล้ว
-  Object.values(els).forEach(el => { if (el) { el.style.transform = ''; el.style.transition = ''; el.style.zIndex = '' } })  // ล้าง lunge ค้างกลางทาง
-  clearHighlights()                                         // ล้างคลาส windup/acting/flash ค้าง
-  fx?.cancelAll()                                           // ตัด pop/callout/koPuff/projectile/lunge/dash ค้างจาก fx pool (lunge เก็บ anim ใน anims set → cancel() ที่นี่ trigger cleanup zIndex/transform ในตัวเอง)
-  const end = beats.value[beats.value.length - 1]
-  const finalHp = {}; Object.keys(maxHp).forEach(uid => finalHp[uid] = 100)
-  for (const ev of beats.value) if (ev.t === 'attack') finalHp[ev.target] = Math.max(0, Math.round((ev.targetHpAfter / (maxHp[ev.target] || 1)) * 100))
-  hp.value = finalHp
-  Object.keys(maxHp).forEach(setDead)                       // sync dead ให้ครบทุกตัวตาม hp สุดท้าย (bulk skip ไม่ได้ผ่าน applyImpact ทีละหมัด)
-  round.value = end?.rounds || round.value
-  idx.value = beats.value.length
-  clearTimeout(resultTimer); resultReady.value = true; resultOpen.value = true   // ข้าม = เปิดสรุปทันที
-}
 function inspect(uid) { paused.value = true; clearTimeout(timer); inspectUid.value = uid }
 
 function hpPct(uid) { return hp.value[uid] ?? 100 }
@@ -401,9 +417,14 @@ const insp = computed(() => {
 })
 
 watch(() => props.data, (d) => { if (d) { buildMax(d); preloadCombat(d); reset() } }, { immediate: true })
-// ตีจบ → เว้น ~0.5 วิ ให้เห็นสนามจบ แล้วเปิด modal สรุป (skipToEnd เปิดทันทีเอง — เช็ก resultReady กันตั้งซ้ำ)
+// ตีจบ → เว้น ~0.5 วิ ให้เห็นสนามจบ แล้วเปิด modal สรุป (เช็ก resultReady กันตั้งซ้ำ — reset() เปิดเองทันทีถ้า log ว่างตั้งแต่แรก)
 watch(done, (v) => {
-  if (!v || resultReady.value) return
+  if (!v) return
+  // นิ้วอาจยังกดค้างอยู่ตอนไฟต์จบพอดี (โมดัลสรุปลอยทับกล่องสนาม) — เคลียร์โหมดเร่ง/คำใบ้ทันทีกันค้างข้ามไฟต์ถัดไป
+  // (ปกติ pointerup จะตกที่กล่องเดิมเพราะ setPointerCapture ไว้ใน onHoldStart แล้ว แต่กันเหนียวอีกชั้น)
+  clearTimeout(holdTimer); clearTimeout(hintTimer)
+  ffActive.value = false; holdHint.value = false
+  if (resultReady.value) return
   resultTimer = setTimeout(() => { resultReady.value = true; resultOpen.value = true }, REPLAY_CFG.resultDelayMs)
 }, { immediate: true })
 // layout เปลี่ยน (หมุนจอ/ปรับขนาด) = center ที่ cache ไว้ใน fx ใช้ไม่ได้ ต้องวัดใหม่
@@ -429,6 +450,7 @@ if (showFps.value) fpsRaf = requestAnimationFrame(fpsLoop)
 
 onUnmounted(() => {
   clearTimeout(timer); clearTimeout(introTimer); clearTimeout(resultTimer)
+  clearTimeout(holdTimer); clearTimeout(hintTimer)
   pendingTimers.forEach(clearTimeout); pendingTimers.clear()
   window.removeEventListener('resize', onResize); window.removeEventListener('orientationchange', onResize)
   if (fpsRaf) cancelAnimationFrame(fpsRaf)
@@ -452,7 +474,10 @@ onUnmounted(() => {
     linear-gradient(180deg, #3b2f1a 0%, #2a1f12 60%, #17100a 100%),
     repeating-linear-gradient(90deg, rgba(255,220,150,.05) 0 2px, transparent 2px 46px);
 }
-.br-box { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+/* touch-action:none + กันเลือกข้อความ/callout ของ iOS — กล่องนี้รับ pointerdown ค้างเป็น input เกม (เร่ง)
+   ไม่งั้นกดค้าง ~400ms บนข้อความ (เช่น "รอบ 1") อาจเด้งเมนู copy/แว่นขยายของ Safari มาแทรกกลางค้าง */
+.br-box { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 8px; position: relative;
+  touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 /* hitstop เดิม scale ทั้ง box = re-raster เต็มจอ @DPR3 ทุก crit (แพงสุด คุ้มน้อยสุด แค่เด้ง 1.2%) → ตัดทิ้ง
    crit ยังสื่อผ่านเลขใหญ่/ทอง + จังหวะ freeze (extra delay ใน step) ที่ยังอยู่ */
 .br-round { text-align: center; color: #fff; font-weight: 800; font-size: .82rem; letter-spacing: .06em; margin-bottom: 2px; }
@@ -507,6 +532,15 @@ onUnmounted(() => {
 .br-btn { border: 2px solid #fff; background: rgba(255,255,255,.14); color: #fff; border-radius: 12px; padding: 10px 22px; font-family: inherit; font-weight: 800; cursor: pointer; transition: background .12s; }
 .br-btn:active { background: rgba(255,255,255,.28); }
 .br-btn.sm { padding: 9px 14px; font-size: .82rem; }
+
+/* ป้ายบอกสถานะเร่ง — เกาะมุมบนซ้ายของกล่อง ไม่บังสนาม */
+.br-ff { position: absolute; top: 2px; left: 4px; z-index: 11; font-size: .72rem; font-weight: 800;
+  color: #fde68a; background: rgba(0,0,0,.55); border-radius: 7px; padding: 2px 7px; pointer-events: none; }
+.br-hold-hint { position: absolute; left: 50%; transform: translateX(-50%); bottom: 46px; z-index: 11;
+  font-size: .72rem; font-weight: 700; color: rgba(255,255,255,.75); background: rgba(0,0,0,.45);
+  border-radius: 999px; padding: 4px 10px; pointer-events: none; animation: br-hint-in .2s ease; }
+@keyframes br-hint-in { from { opacity: 0 } to { opacity: 1 } }
+
 .br-result { font-size: 1.2rem; font-weight: 800; color: #fff; }
 .br-result.win { color: #34d399; }
 
