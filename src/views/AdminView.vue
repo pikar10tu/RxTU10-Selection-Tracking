@@ -404,7 +404,33 @@
           </li>
         </ul>
       </section>
+
+      <!-- ───── ห้องแล็บจังหวะไฟต์ ───── -->
+      <section class="admin-card">
+        <div class="admin-card-head"><span><Emoji char="🎬" /> ห้องแล็บจังหวะไฟต์</span></div>
+        <div class="admin-hint">
+          ค่าที่เลือก <b>เก็บบนเครื่องนี้เครื่องเดียว</b> ไม่กระทบนักศึกษาคนอื่น ·
+          ไฟต์ทดสอบเป็นเคสหนักสุด (4v4 ประชิดล้วน) และเป็นไฟต์เดิมทุกครั้ง จึงเทียบกันได้จริง ·
+          ไม่มีรางวัล ไม่บันทึกอะไร ยิงซ้ำได้ไม่จำกัด
+        </div>
+
+        <div class="admin-hint"><b>ภาพ</b> — ไล่ลงมาถ้าเจอกระตุก</div>
+        <div class="fxlab-row">
+          <button v-for="n in fxNames" :key="n" class="btn-mini"
+                  :class="{ on: fxPrefs.fx === n }" @click="pickFx(n)">{{ FX_LABEL[n] }}</button>
+        </div>
+
+        <div class="admin-hint"><b>จังหวะ</b> — ไม่เกี่ยวกับความลื่น เลือกตามความรู้สึกล้วนๆ</div>
+        <div class="fxlab-row">
+          <button v-for="n in paceNames" :key="n" class="btn-mini"
+                  :class="{ on: fxPrefs.pace === n }" @click="pickPace(n)">{{ PACE_LABEL[n] }}</button>
+        </div>
+
+        <button class="btn-mini" @click="runTestFight">▶ ยิงไฟต์ทดสอบ</button>
+      </section>
     </template>
+
+    <BattleReplay :data="fxReplay" theme="arena" @close="fxReplay = null" />
   </div>
 </template>
 
@@ -431,6 +457,9 @@ import { computeStatus, reviewStatusKey, tallyReviewCounts } from '../utils/ques
 import { getCategories } from '../utils/questionCategories.js'
 import { distinctCategories } from '../utils/questionsFilter.js'
 import { useTopics } from '../composables/useTopics.js'
+import BattleReplay from '../components/battle/BattleReplay.vue'
+import { simulateBattle } from '../utils/battleEngine.js'
+import { FX_PRESETS, PACE_PRESETS, readPrefs, writePrefs } from '../utils/battleReplayPrefs.js'
 
 const authStore = useAuthStore()
 const members   = useMembersStore()
@@ -439,6 +468,48 @@ const { maintenance, pvpOpen, expeditionOpen, arcadeOpen } = useAppConfig()
 const { toast } = useToast()
 const { confirm } = useConfirm()
 const { addTopics } = useTopics()
+
+// ── ห้องแล็บจังหวะไฟต์ (§11 ของสเปก battle-replay-pacing) ──
+// ค่าที่เลือกเก็บใน localStorage ของเครื่องนี้เท่านั้น ไม่แตะ config/app → นักศึกษาที่กำลังเล่นอยู่ไม่โดนผลกระทบ
+const fxPrefs = ref(readPrefs())
+const FX_LABEL = { high: 'สวยสุด', mid: 'กลาง', low: 'เบา' }
+const PACE_LABEL = { grand: 'อลังการ', normal: 'กลาง', tight: 'กระชับ' }
+const fxNames = Object.keys(FX_PRESETS)
+const paceNames = Object.keys(PACE_PRESETS)
+function pickFx(name) { fxPrefs.value = writePrefs({ ...fxPrefs.value, fx: name }) }
+function pickPace(name) { fxPrefs.value = writePrefs({ ...fxPrefs.value, pace: name }) }
+
+// ไฟต์ทดสอบ: เคสหนักสุดเท่าที่ทำได้ — เพ็ททั้ง 8 ตัวเป็น melee ล้วน (ไม่มี atkStyle:"ranged" ซึ่งไม่แตะการ์ดเลย)
+// ธาตุคละกันโดยตั้งใจ → เกิดแพ้ทางบ่อย → หมัดชั้น heavy เยอะ → จอสั่น+เป้าบีบตัวถี่สุด
+// seed 695 คัดมาจากการไล่ 3000 seed ด้วย engine จริง แล้วเลือกตัวที่หนักสุด: 40 หมัด · คริ 7 · แพ้ทาง 22
+// (ยืนยันด้วย simulateBattle จริงตอน build panel นี้ — ตรงตามที่อ้าง)
+// ไม่เขียน Firestore ไม่ให้รางวัล ยิงซ้ำได้ไม่จำกัด และเป็นไฟต์เดิมเป๊ะทุกครั้ง จึงเทียบ preset กันได้
+const TEST_SEED = 695
+const TEST_TEAM_A = [
+  { id: 'kirin', rarity: 'legendary', element: 'fist', grade: 5 },
+  { id: 'trex', rarity: 'legendary', element: 'fist', grade: 5 },
+  { id: 'ouroboros', rarity: 'legendary', element: 'scissors', grade: 5 },
+  { id: 'mammoth', rarity: 'legendary', element: 'paper', grade: 5 },
+]
+const TEST_TEAM_B = [
+  { id: 'simurgh', rarity: 'legendary', element: 'scissors', grade: 5 },
+  { id: 'qilin', rarity: 'legendary', element: 'paper', grade: 5 },
+  { id: 'cerberus', rarity: 'epic', element: 'fist', grade: 5 },
+  { id: 'panda', rarity: 'epic', element: 'paper', grade: 5 },
+]
+const fxReplay = ref(null)
+function runTestFight() {
+  const result = simulateBattle(TEST_TEAM_A, TEST_TEAM_B, TEST_SEED)
+  fxReplay.value = {
+    playerTeam: TEST_TEAM_A, botTeam: TEST_TEAM_B, result,
+    won: result.winner === 'A',
+    vsLabel: 'ไฟต์ทดสอบ',
+    winText: 'ชนะ (ไฟต์ทดสอบ ไม่มีรางวัล)',
+    loseText: 'แพ้ (ไฟต์ทดสอบ ไม่มีรางวัล)',
+    rewardText: '—',
+    fpsMeter: true,
+  }
+}
 
 // ซิงก์ระบบตรวจข้อสอบ: เติม reviewStatus ให้ข้อเก่า (ก่อนมีระบบตรวจ — query หน้า /review
 // มองไม่เห็นข้อที่ไม่มี field นี้) + ซ่อมสถานะที่ drift (รวมข้อค้าง 1 เสียง pending → half)
@@ -1064,6 +1135,8 @@ async function saveEcon(m) {
 .btn-mini:disabled { opacity: .4; cursor: default; }
 .btn-gold { background: var(--gold); color: #fff; }
 .btn-gray { background: #fff; color: var(--ink); }
+.fxlab-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+.fxlab-row .btn-mini.on { background: var(--ink); color: #fff; }
 .log-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .log-row { padding: 8px 10px; border-radius: 10px; background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.18); }
 .log-main { font-size: .8rem; }

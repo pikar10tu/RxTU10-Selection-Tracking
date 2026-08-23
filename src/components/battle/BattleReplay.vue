@@ -91,6 +91,12 @@
           </div>
         </div>
 
+        <div v-if="showFps" class="br-fps-sum">
+          เฟรมแย่สุด <b>{{ Math.round(fpsPeak) }}ms</b> ·
+          หลุด 60fps <b>{{ fpsOver16 }}</b> เฟรม ·
+          ต่ำกว่า 30fps <b :class="{ bad: fpsOver33 > 0 }">{{ fpsOver33 }}</b> เฟรม
+        </div>
+
         <div class="br-modal-btns">
           <button class="br-btn sm" @click="resultOpen = false"><Emoji char="👀" /> ดูสนาม</button>
           <button class="br-btn" @click="$emit('close')">ปิด</button>
@@ -279,6 +285,7 @@ function reset() {
   runIntro()
   // log ว่าง = done ค้าง true ตั้งแต่แรก → watch(done) ไม่ยิงซ้ำ ต้องเปิดสรุปเองไม่งั้น overlay ไม่มีทางออก
   if (done.value) { resultReady.value = true; resultOpen.value = true }
+  startFps()   // รีเซ็ตตัวนับ fps ทุกไฟต์ใหม่ (ไม่งั้นไฟต์ที่ 2+ ในพาเนล Admin จะสะสมทับไฟต์ก่อนหน้า)
 }
 
 // intro READY?→GO! ก่อนเริ่มเล่น log (แตะข้ามได้)
@@ -432,21 +439,36 @@ function onResize() { fx?.invalidateCenters() }
 window.addEventListener('resize', onResize)
 window.addEventListener('orientationchange', onResize)
 
-// ── FPS/frame-time meter (เก็บหลักฐานจริงจาก Safari) — เปิดด้วย ?fps=1 ท้าย URL ก่อน # ──
-// โชว์ frame time แย่สุดใน ~1 วิ (ms) มุมจอ: >16ms = หลุด 60fps, >33ms = ต่ำกว่า 30fps (กระตุกชัด)
-const showFps = ref(new URLSearchParams(location.search).has('fps'))
+// ── FPS/frame-time meter — เปิดด้วย ?fps=1 ท้าย URL หรือ data.fpsMeter (พาเนล Admin) ──
+// worst = frame time แย่สุดใน ~1 วิ · over16/over33 = จำนวนเฟรมสะสมทั้งไฟต์ที่หลุด 60fps / ต่ำกว่า 30fps
+// ⚠️ over16 นับรวม over33 ด้วย (ไม่ใช่ else-if แยกกลุ่ม) — ไม่งั้นป้าย "หลุด 60fps" จะนับไม่ครบตอนมีเฟรมแย่ถึงขั้น <30fps ปนอยู่
+const showFps = computed(() => new URLSearchParams(location.search).has('fps') || props.data?.fpsMeter === true)
 const fpsWorst = ref(0)
+const fpsOver16 = ref(0)
+const fpsOver33 = ref(0)
+const fpsPeak = ref(0)
 let fpsRaf = 0, fpsLast = 0, fpsMax = 0, fpsWindowStart = 0
 function fpsLoop(now) {
   if (fpsLast) {
     const dt = now - fpsLast
     if (dt > fpsMax) fpsMax = dt
+    if (dt > fpsPeak.value) fpsPeak.value = dt
+    if (dt > 16) fpsOver16.value++
+    if (dt > 33) fpsOver33.value++
     if (now - fpsWindowStart > 1000) { fpsWorst.value = Math.round(fpsMax); fpsMax = 0; fpsWindowStart = now }
   } else { fpsWindowStart = now }
   fpsLast = now
   fpsRaf = requestAnimationFrame(fpsLoop)
 }
-if (showFps.value) fpsRaf = requestAnimationFrame(fpsLoop)
+function startFps() {
+  if (!showFps.value) return
+  // รีเซ็ตตัวนับทุกครั้งที่เรียก (ทุกไฟต์ใหม่ผ่าน reset()) — ไม่เช็ก fpsRaf ก่อนรีเซ็ต ไม่งั้นไฟต์ที่ 2+ จะสะสมทับไฟต์ก่อนหน้า (loop เดิมยังวิ่งอยู่จาก mount แรก)
+  // แค่กันไม่ให้เปิด rAF loop ซ้อนกัน 2 ลูป (ถ้ามีอยู่แล้วก็ปล่อยวิ่งต่อ ไม่ต้อง cancel+restart)
+  fpsLast = 0; fpsMax = 0; fpsWindowStart = 0
+  fpsPeak.value = 0; fpsOver16.value = 0; fpsOver33.value = 0
+  if (!fpsRaf) fpsRaf = requestAnimationFrame(fpsLoop)
+}
+watch(showFps, (v) => { if (v) startFps() }, { immediate: true })
 
 onUnmounted(() => {
   clearTimeout(timer); clearTimeout(introTimer); clearTimeout(resultTimer)
@@ -487,6 +509,10 @@ onUnmounted(() => {
   color: #34d399; background: rgba(0,0,0,.55); border-radius: 7px; padding: 2px 6px; pointer-events: none; }
 .br-fps.warn { color: #fbbf24; }
 .br-fps.bad { color: #f87171; }
+.br-fps-sum { text-align: center; font-size: .72rem; color: rgba(255,255,255,.72); font-variant-numeric: tabular-nums;
+  border-top: 1px solid rgba(255,255,255,.15); padding-top: 7px; margin-top: 2px; }
+.br-fps-sum b { color: #fde68a; }
+.br-fps-sum b.bad { color: #f87171; }
 
 .br-side { display: flex; align-items: center; gap: 6px; font-size: .72rem; font-weight: 800; color: rgba(255,255,255,.8); padding: 0 2px; }
 .br-side .dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
