@@ -16,7 +16,7 @@
 - **ไม่มี test runner กลางในรีโป** — pure utils รันตรงด้วย `node --test src/utils/<x>.test.js` · ส่วน Vue/DOM ตรวจด้วย `npm run build` + ทดลองใน `npm run dev` (ตาม CLAUDE.md)
 - **ข้อบังคับ performance จาก v3 (`docs/superpowers/specs/2026-07-17-battle-replay-v3-fx-split-design.md`) มีผลทุกบรรทัด:**
   - การ์ดจริงขยับได้ **1 `el.animate()` ต่อหมัดเท่านั้น** keyframes ครบวงจร `fill:'none'` — ห้ามแตกเป็นหลาย animation
-  - keyframes มีแต่ `transform`/`opacity` — `zIndex` ตั้ง static ก่อนเริ่ม เคลียร์หลังจบ **ห้ามอยู่ใน keyframes**
+  - keyframes ของการ์ดมีได้แค่ `transform` กับ `opacity` (composite ล้วนทั้งคู่) — `zIndex` และ property ที่ทำให้เกิด layout/paint **ห้ามอยู่ใน keyframes เด็ดขาด** (เหตุผลใน v3: z-index ใน keyframes ทำให้หลุด accelerated path · opacity ไม่หลุด และ doctrine บรรทัดที่ 2 ของ `battleFx.js` ระบุ "transform/opacity เท่านั้น" อยู่แล้ว)
   - ห้ามแตะ paint property ของการ์ด (border/class) ระหว่าง animation รัน — เปลี่ยนให้เสร็จก่อนสั่ง animate
   - ของอายุ < 1 วิ ห้ามอยู่ใน Vue reactivity — ต้องอยู่ใน FX pool (imperative)
   - **ห้าม animation วนไม่รู้จบบนการ์ด** (= layer ค้างถาวร) — วงแหวนอันตรายต้องอยู่บน FX pool
