@@ -525,10 +525,8 @@ onUnmounted(() => {
 /* FX pool styles — ไม่ scoped (element สร้าง imperative ไม่มี data-v-*) · namespace .brfx-* กันชน global */
 .br-fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
 .brfx { position: absolute; left: 0; top: 0; will-change: transform; }
-.brfx-pop { font-weight: 900; font-size: 1.5rem; color: #fecaca; -webkit-text-stroke: 3px rgba(15,23,42,.85); paint-order: stroke fill; white-space: nowrap; }
-.brfx-pop.crit { color: #fbbf24; font-size: 2rem; }
+.brfx-pop { font-weight: 900; color: #fecaca; -webkit-text-stroke: 3px rgba(15,23,42,.85); paint-order: stroke fill; white-space: nowrap; }
 .brfx-pop.super { color: #fca5a5; }
-.brfx-pop.weak { color: #cbd5e1; font-size: 1.1rem; }
 .brfx-call { font-weight: 800; font-size: .7rem; white-space: nowrap; padding: 2px 6px; border-radius: 7px; }
 .brfx-call.super { background: #ef4444; color: #fff; }
 .brfx-call.weak { background: rgba(203,213,225,.95); color: #334155; }
@@ -539,4 +537,23 @@ onUnmounted(() => {
 .brfx-ring { width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 18px; }
 .brfx-ring.windup { box-shadow: 0 0 0 3px #fde68a, 0 0 18px 4px rgba(253,230,138,.55); }
 .brfx-ring.acting { box-shadow: 0 0 0 3px #fde68a, 0 6px 16px rgba(0,0,0,.4); }
+
+/* ขนาดเลขตามชั้น — นี่คือช่องทางหลักที่ผู้เล่นอ่านน้ำหนักของหมัดออกขณะดูเร็วๆ */
+.brfx-pop.tier-chip   { font-size: .9rem;  color: #fecaca; }
+.brfx-pop.tier-solid  { font-size: 1.15rem; }
+.brfx-pop.tier-heavy  { font-size: 1.7rem; }
+.brfx-pop.tier-finish { font-size: 2.3rem; }
+/* crit/super/weak ทับสีได้ แต่ห้ามทับขนาดของชั้น — ชั้นเป็นเจ้าของขนาด */
+.brfx-pop.crit { color: #fbbf24; }
+.brfx-pop.weak { color: #cbd5e1; }
+
+.brfx-call.survive { background: #34d399; color: #06371f; }
+
+.brfx-jab { width: 1.1rem; height: 1.1rem; }
+
+/* วงแหวนโซนอันตราย — เต้นด้วย opacity ล้วนบน pool element ที่ promote ถาวรแล้ว */
+.brfx-danger {
+  width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 18px;
+  box-shadow: 0 0 0 3px #ef4444, 0 0 16px 3px rgba(239, 68, 68, .5);
+}
 </style>
