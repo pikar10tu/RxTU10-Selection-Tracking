@@ -277,19 +277,22 @@ const handlers = {
 }
 
 // impact: hp/pop/callout/burst/ko ตอนโดนตี — รับ g เช็ค gen กัน reset ระหว่างพุ่งมาเขียน state เก่าทับ
-function applyImpact(beat, g) {
+// t = scaled timing ของ beat นี้ (จาก applyAttack) — ใช้เป็นฐานเวลาให้ squashTarget/ko แทนเลขคงที่เดิม (420/520)
+// เพื่อไม่ให้อนิเมชันการ์ดเป้าอยู่นานเกินจังหวะของ beat เอง (โดยเฉพาะ pace tight)
+function applyImpact(beat, g, t) {
   if (g !== gen) return
   const tgtEl = els[beat.target]
   highlight(beat.target, 'flash')
-  setTimeout(() => { if (g === gen) highlight(beat.target, 'flash', false) }, 250)
+  let targetAnim = null   // promise ของ squashTarget/ko บนการ์ดเป้า (ถ้ามี) — ผูกอายุ flash กับตัวนี้แทน timeout ตายตัว
+  const postMs = Math.round(t.hitstop + t.tail)   // ช่วงหลังโดน = พอดีกับจังหวะที่การ์ดเป้ายังเด้ง/หมุนอยู่
 
   // ขนาดดาว/แรงสั่นตามชั้น — ชั้น chip/solid ห้ามสั่นจอเด็ดขาด (§6.2 ของสเปก)
   // beat.kill ตัด squashTarget ทิ้งเสมอ (ไม่ว่าจะชั้น heavy/finish) เพราะ ko() ด้านล่างครอบการ์ดตัวเดียวกันแล้ว
   // — ยิง animate() 2 ครั้งบนการ์ดใบเดียวกันผิดกฎ "1 หมัด 1 animation/การ์ด" (ข้อบังคับ v3, พบโดยผู้รีวิว Task 3)
   if (beat.tier === 'chip') { /* ชั้นถากไม่มีดาว ไม่มีสั่น */ }
   else if (beat.tier === 'solid') fx?.burst(beat.target, 34)
-  else if (beat.tier === 'heavy') { fx?.burst(beat.target, 66); fx?.shake(5, 2); if (!beat.kill) fx?.squashTarget(tgtEl, 'heavy', 420) }
-  else { fx?.burst(beat.target, 92); fx?.shake(8, 3, true); if (!beat.kill) fx?.squashTarget(tgtEl, 'finish', 420) }
+  else if (beat.tier === 'heavy') { fx?.burst(beat.target, 66); fx?.shake(5, 2); if (!beat.kill) targetAnim = fx?.squashTarget(tgtEl, 'heavy', postMs) }
+  else { fx?.burst(beat.target, 92); fx?.shake(8, 3, true); if (!beat.kill) targetAnim = fx?.squashTarget(tgtEl, 'finish', postMs) }
 
   hp.value = { ...hp.value, [beat.target]: Math.max(0, Math.round((beat.targetHpAfter / (maxHp[beat.target] || 1)) * 100)) }
   setDead(beat.target)
@@ -298,11 +301,16 @@ function applyImpact(beat, g) {
   if (beat.eff === 'super' || beat.eff === 'weak') fx?.callout(beat.target, beat.eff)
 
   // อนิเมชันน็อกผูกกับ beat.kill ไม่ใช่กับชั้น — 1 ไฟต์ตาย 4–5 ตัว แต่มีชั้น finish แค่หมัดเดียว
-  if (beat.kill) { fx?.dangerRing(beat.target, false); fx?.ko(beat.target, tgtEl) }
+  if (beat.kill) { fx?.dangerRing(beat.target, false); targetAnim = fx?.ko(beat.target, tgtEl, postMs) }
   else {
     if (beat.danger) fx?.dangerRing(beat.target, true)
     if (beat.survive) fx?.callout(beat.target, 'survive')
   }
+
+  // flash: การ์ดเป้ามี animate() ต่อ (squash/ko) ก็รอมันจบก่อนถอด flash กัน border-color ชนกลางอากาศ (ข้อบังคับ v3)
+  // ไม่มี animation (chip/solid ไม่ตาย) → ใช้ timeout 250ms เดิม
+  if (targetAnim) targetAnim.then(() => { if (g === gen) highlight(beat.target, 'flash', false) })
+  else setTimeout(() => { if (g === gen) highlight(beat.target, 'flash', false) }, 250)
 }
 
 // windup → motion → impact → hitstop → tail ตาม beat.timing
@@ -327,10 +335,12 @@ async function applyAttack(beat) {
   // melee ชั้นอื่น: การ์ดพุ่งอยู่แล้วจาก lunge() ด้านบน ไม่ต้องยิงอะไรเพิ่ม
 
   await wait(t.motion); if (g !== gen) return
-  applyImpact(beat, g)
+  applyImpact(beat, g, t)
   await wait(t.hitstop); if (g !== gen) return
+  // acting ถอดหลัง tail เท่านั้น — fx.lunge() ของผู้โจมตียังพุ่งอยู่ตลอด windup+motion+hitstop+tail (1 animation ครอบทั้ง beat)
+  // ถอด class ระหว่างที่มันยังวิ่งอยู่ = border-color เปลี่ยนกลางอากาศ ชน re-raster (ข้อบังคับ v3, พบโดยผู้รีวิว)
+  await wait(t.tail); if (g !== gen) return
   highlight(beat.attacker, 'acting', false)
-  await wait(t.tail)
 }
 
 async function step() {

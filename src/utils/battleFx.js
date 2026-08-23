@@ -249,13 +249,13 @@ export function createBattleFx() {
   // opacity ในเฟรมนี้ไม่ผิดกฎ "การ์ด: transform เท่านั้น" — ตัวที่ห้ามจริงๆ คือ zIndex/paint (border, class)
   // เพราะทำให้หลุด accelerated path (ดู doctrine บรรทัด 2 ของไฟล์นี้: "ขับด้วย WAAPI transform/opacity เท่านั้น")
   // ส่วน opacity เป็น compositor-only เหมือน transform เลยยัง 1 animation/1 promotion ปกติ
-  function ko(uid, el) {
+  function ko(uid, el, ms = 520) {
     koPuff(uid)
     if (!F('ko') || !el) return Promise.resolve()
     const anim = el.animate([
       { transform: 'translate(0,0) rotate(0) scale(1)', opacity: 1 },
       { transform: 'translate(70px,-60px) rotate(150deg) scale(.6)', opacity: 0 },
-    ], { duration: 520, easing: 'ease-in', fill: 'none' })
+    ], { duration: ms, easing: 'ease-in', fill: 'none' })
     anims.add(anim)
     return anim.finished.catch(() => {}).finally(() => { anims.delete(anim); el.style.transform = '' })
   }
