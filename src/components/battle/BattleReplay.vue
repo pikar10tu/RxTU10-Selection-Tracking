@@ -15,7 +15,7 @@
         <span class="br-intro-txt" :class="introPhase">{{ introPhase === 'ready' ? 'READY?' : 'GO!' }}</span>
       </div>
       <div class="br-round" v-if="!done">รอบ {{ round }}</div>
-      <div v-if="showFps" class="br-fps" :class="{ bad: fpsWorst > 33, warn: fpsWorst > 16 && fpsWorst <= 33 }">{{ fpsWorst }}ms</div>
+      <div v-if="showFps" class="br-fps" :class="{ bad: fpsWorst > 33, warn: fpsWorst > fpsDropAt && fpsWorst <= 33 }">{{ fpsWorst }}ms</div>
 
       <div class="br-side foe-label"><i class="dot foe"></i> ศัตรู</div>
       <div class="br-team">
@@ -91,10 +91,15 @@
           </div>
         </div>
 
+        <!-- ป้ายตรงนี้ต้องตรงกับสิ่งที่ตัวนับ "นับจริง": เกณฑ์สะดุดคำนวณจากคาบเฟรมของจอเครื่องนี้ ไม่ใช่ 60fps ตายตัว
+             และทุกตัวเลขหยุดนิ่งตั้งแต่ไฟต์จบ (stopFps snapshot) — ไม่ใช่ค่าที่ยังวิ่งอยู่ตอนกำลังอ่าน -->
         <div v-if="showFps" class="br-fps-sum">
           เฟรมแย่สุด <b>{{ Math.round(fpsPeak) }}ms</b> ·
-          หลุด 60fps <b>{{ fpsOver16 }}</b> เฟรม ·
+          สะดุด (ช้ากว่า {{ Math.round(fpsDropAt) }}ms) <b>{{ fpsDrop }}</b> เฟรม ·
           ต่ำกว่า 30fps <b :class="{ bad: fpsOver33 > 0 }">{{ fpsOver33 }}</b> เฟรม
+          <div class="br-fps-note">
+            จอเครื่องนี้ ~{{ fpsBase ? Math.round(fpsBase) : '—' }}ms/เฟรม · นับเฉพาะช่วงที่ไฟต์กำลังเล่น
+          </div>
         </div>
 
         <div class="br-modal-btns">
@@ -133,6 +138,7 @@ import { fluentFile } from '../../utils/emoji.js'
 import { createBattleFx } from '../../utils/battleFx.js'
 import { buildBeats, scaleTiming } from '../../utils/battleBeats.js'
 import { readPrefs, fxFlags, paceMult } from '../../utils/battleReplayPrefs.js'
+import { createFrameMeter, FALLBACK_BASE, DROP_RATIO } from '../../utils/frameMeter.js'
 
 const props = defineProps({
   data: { type: Object, default: null },
@@ -165,7 +171,9 @@ const holdHint = ref(false)
 let holdTimer = null, hintTimer = null
 function onHoldStart(e) {
   if (done.value || inspectUid.value || introPhase.value) return           // ไฟต์จบ/เปิด inspect/ยังโชว์ READY-GO อยู่ = ไม่ใช่จังหวะกดค้างเร่ง
-  if (e.target.closest && e.target.closest('.br-unit, .br-btn')) return   // แตะการ์ด/ปุ่ม = คนละเจตนา (เปิด inspect / พัก)
+  // แตะการ์ด/ปุ่ม = คนละเจตนา (เปิด inspect / พัก) · รวม .br-ctrl ด้วย เพราะ padding รอบปุ่มพักไม่ใช่ตัวปุ่ม
+  // แต่คนเล็งจะกดปุ่มพัก แล้วพลาดไปโดนขอบ → กลายเป็นเริ่มกดค้างเร่งแทน
+  if (e.target.closest && e.target.closest('.br-unit, .br-btn, .br-ctrl')) return
   // ผูก pointer capture กับกล่องสนามไว้ — กันเคส "ไฟต์จบกลางที่กดค้าง" ที่โมดัลสรุปลอยทับกล่องพอดี
   // ไม่ capture ไว้ pointerup ตอนปล่อยนิ้วจะไปตกที่โมดัล (topmost element ตอนนั้น) ไม่ใช่กล่อง → onHoldEnd ไม่ทำงาน → ffActive ค้าง true ข้ามไฟต์ถัดไป
   // (มี watch(done) ด้านล่างกันเหนียวอีกชั้น เผื่อ browser ไหนไม่รองรับ/ไม่ทำตาม capture)
@@ -195,8 +203,19 @@ let resultTimer = null
 let introTimer = null
 let gen = 0                      // generation guard — reset/skip เพิ่มค่า เพื่อให้ promise chain ค้างจาก wait() รู้ตัวว่าโดนยกเลิก
 let timer = null
+let stepGen = -1                 // gen ของ beat chain ที่กำลังวิ่ง (-1 = ว่าง) — กันเปิดสายซ้อน ดู step()
+                                 // ⚠️ ประกาศไว้บนสุดโดยตั้งใจ: reset() แตะตัวนี้ และ reset() ถูกเรียกจาก watch(immediate) ด้านล่าง
 const pendingTimers = new Set()  // เก็บ timer id จาก wait() ทั้งหมด — clear ตอน reset/skip/unmount กัน promise chain ค้างมาเขียน state เก่าทับ
+const pendingRafs = new Set()    // เช่นเดียวกันแต่เป็น rAF (ใช้เลื่อนอนิเมชันการ์ดไป 1 เฟรม ใน applyImpact)
 function wait(ms) { return new Promise(r => { const t = setTimeout(r, ms); pendingTimers.add(t) }) }
+// setTimeout ที่ยกเลิกได้แบบเดียวกับ wait() — สำหรับงานที่ไม่ต้อง await (ถอดคลาส flash)
+function later(fn, ms) { const t = setTimeout(() => { pendingTimers.delete(t); fn() }, ms); pendingTimers.add(t); return t }
+// รอให้เพนต์ของเฟรมปัจจุบันลงจอก่อนค่อยทำงาน (เรียกจากใน task ของ timer → callback ไปตกเฟรมถัดไป)
+function nextFrame(fn) { const r = requestAnimationFrame(() => { pendingRafs.delete(r); fn() }); pendingRafs.add(r); return r }
+function clearPending() {
+  pendingTimers.forEach(clearTimeout); pendingTimers.clear()
+  pendingRafs.forEach(cancelAnimationFrame); pendingRafs.clear()
+}
 let maxHp = {}, unitAtk = {}     // uid → maxHp / atk (static ต่อ unit จาก buildCombatant)
 const els = {}                   // uid → DOM el (วัดตำแหน่ง melee/ranged)
 function setEl(uid, el) { if (el) els[uid] = el }
@@ -270,7 +289,8 @@ function reset() {
   prefs.value = readPrefs()     // อ่านใหม่ทุกไฟต์ — พาเนล Admin เปลี่ยนค่าแล้วยิงไฟต์ทดสอบต้องเห็นผลทันที
   clearTimeout(timer); clearTimeout(introTimer)
   clearTimeout(resultTimer); resultOpen.value = false; resultReady.value = false
-  pendingTimers.forEach(clearTimeout); pendingTimers.clear()                // ตัด wait() ที่ค้างอยู่ทั้งหมด (windup/motion/hitstop)
+  clearPending()                                                            // ตัด wait()/later()/nextFrame() ที่ค้างอยู่ทั้งหมด (windup/motion/hitstop/flash)
+  stepGen = -1                                                              // ไม่มี chain ของ gen ใหม่วิ่งอยู่ (chain เก่าคนละ gen แล้ว ปลดตัวเองไม่ได้ — ดู step())
   introPhase.value = null                                                   // กันค้างตอน replay ใหม่
   Object.values(els).forEach(el => { if (el) { el.style.transform = ''; el.style.transition = ''; el.style.zIndex = '' } })  // ล้าง lunge ค้างจากไฟต์ก่อน (component ถูก mount ค้างไว้ ใช้ซ้ำ)
   clearHighlights()                                                         // ล้างคลาส windup/acting/flash ค้าง
@@ -314,44 +334,80 @@ function defForUid(uid) {
 const handlers = {
   round(e) { round.value = e.n },
   attack(e) { return applyAttack(e) },
-  end() { clearHighlights() },
+  // ตัวที่รอดมาด้วยเลือด ≤25% ไม่เคยถูกสั่งปิดวงแหวน (dangerRing(uid,false) เรียกเฉพาะตอนตาย)
+  // → เดิมวงแหวน iterations:Infinity เต้นค้างผ่านหน้าสรุป/ตอน peek ยาวจนกว่าจะ reset() (§5.2 บอกให้ปิดตอนจบไฟต์)
+  end() { clearHighlights(); fx?.dangerClearAll() },
 }
 
+// เวลามาตรฐานของอนิเมชันการ์ดเป้าตามสเปก (§4 ชั้น 3–4) — postMs ใช้เป็น "เพดาน" ไม่ใช่ตัวค่าเอง
+// เหตุที่เคยเอา postMs มาเป็นค่าตรงๆ คือกันอนิเมชันล้นออกนอก beat ตัวเอง ซึ่งเป็นเหตุผลของ "เพดาน" ไม่ใช่ "ค่าแทน"
+// ปล่อยตามเดิม heavy ได้ 850ms / finish ได้ 1320ms — บีบ-ดีดกลับยาว 1.3 วิ อ่านเป็น "เนือย" ไม่ใช่ "หนัก"
+const SQUASH_MS = { heavy: 420, finish: 520 }
+const KO_MS = 520
+const FLASH_MS = 250            // อายุสูงสุดของกรอบแดงตอนโดน (เมื่อไม่มีอนิเมชันการ์ดให้ผูกอายุด้วย)
+const FRAME_MS = 17             // งบ 1 เฟรมที่เลื่อนอนิเมชันการ์ดออกไป (ดู applyImpact) — ต้องหักจากงบเวลาที่เหลือของ beat
+
 // impact: hp/pop/callout/burst/ko ตอนโดนตี — รับ g เช็ค gen กัน reset ระหว่างพุ่งมาเขียน state เก่าทับ
-// t = scaled timing ของ beat นี้ (จาก applyAttack) — ใช้เป็นฐานเวลาให้ squashTarget/ko แทนเลขคงที่เดิม (420/520)
-// เพื่อไม่ให้อนิเมชันการ์ดเป้าอยู่นานเกินจังหวะของ beat เอง (โดยเฉพาะ pace tight)
+// t = scaled timing ของ beat นี้ (จาก applyAttack) — postMs = เวลาที่ beat นี้ยังเหลืออยู่หลัง impact
+//
+// ⚠️ ลำดับสำคัญมาก (สองข้อบังคับที่ต้องเป็นจริงพร้อมกัน):
+//   1) หลอดเลือด/เลข/หลอดผี (Vue patch) ต้องลง "ก่อน" อนิเมชันการ์ดเป้าเริ่ม — ไม่งั้น patch + หลอดผี transition 450ms
+//      + fx.shake() ที่ขยับ .br-box (บรรพบุรุษร่วม) จะซ้อนอยู่ในอนิเมชันการ์ดเดียวกัน = เฟรมแพงที่สุดของทั้งฟีเจอร์
+//      และเกิดทุกหมัด heavy/finish → เลื่อนอนิเมชันการ์ดไป 1 เฟรม (nextFrame) ให้เพนต์ของ patch ลงจอก่อน
+//   2) คลาส dead ต้องลง "ก่อน" ko() เริ่ม ไม่ใช่ระหว่างที่มันวิ่ง (ข้อบังคับ v3) — จึงย้ายไปอยู่ต้น nextFrame
+//      ติดกับ ko() ในทาสก์เดียวกัน · ใส่เร็วกว่านั้นไม่ได้ เพราะ .dead { opacity:.25 } จะถูกเพนต์ 1 เฟรม
+//      แล้วเฟรมแรกของ ko (opacity 1) เด้งกลับ = การ์ดกะพริบ
+// เลือดยังหดที่จังหวะ impact เป๊ะเหมือนเดิม เลื่อนแค่อนิเมชันการ์ด ~17ms ซึ่งมองไม่ออก
 function applyImpact(beat, g, t) {
   if (g !== gen) return
   const tgtEl = els[beat.target]
-  highlight(beat.target, 'flash')
-  let targetAnim = null   // promise ของ squashTarget/ko บนการ์ดเป้า (ถ้ามี) — ผูกอายุ flash กับตัวนี้แทน timeout ตายตัว
-  const postMs = Math.round(t.hitstop + t.tail)   // ช่วงหลังโดน = พอดีกับจังหวะที่การ์ดเป้ายังเด้ง/หมุนอยู่
+  const postMs = Math.round(t.hitstop + t.tail)   // ช่วงหลังโดน = เวลาที่เหลือของ beat นี้
+  const cardMs = Math.max(0, postMs - FRAME_MS)   // งบของอนิเมชันการ์ดเป้า (หัก 1 เฟรมที่เลื่อนไป)
+  const flashOff = () => { if (g === gen) highlight(beat.target, 'flash', false) }
 
+  // ── 1) paint บนการ์ดเป้า + Vue patch ลงให้ครบก่อน (ยังไม่มีอนิเมชันการ์ดวิ่งตอนนี้) ──
+  highlight(beat.target, 'flash')
+  hp.value = { ...hp.value, [beat.target]: Math.max(0, Math.round((beat.targetHpAfter / (maxHp[beat.target] || 1)) * 100)) }
+
+  // ── 2) ของที่ไม่ได้แตะการ์ดเป้า ยิงที่จังหวะ impact ตรงๆ (นี่คือจังหวะที่คนดูรู้สึกว่า "โดน") ──
   // ขนาดดาว/แรงสั่นตามชั้น — ชั้น chip/solid ห้ามสั่นจอเด็ดขาด (§6.2 ของสเปก)
-  // beat.kill ตัด squashTarget ทิ้งเสมอ (ไม่ว่าจะชั้น heavy/finish) เพราะ ko() ด้านล่างครอบการ์ดตัวเดียวกันแล้ว
-  // — ยิง animate() 2 ครั้งบนการ์ดใบเดียวกันผิดกฎ "1 หมัด 1 animation/การ์ด" (ข้อบังคับ v3, พบโดยผู้รีวิว Task 3)
   if (beat.tier === 'chip') { /* ชั้นถากไม่มีดาว ไม่มีสั่น */ }
   else if (beat.tier === 'solid') fx?.burst(beat.target, 34)
-  else if (beat.tier === 'heavy') { fx?.burst(beat.target, 66); fx?.shake(5, 2); if (!beat.kill) targetAnim = fx?.squashTarget(tgtEl, 'heavy', postMs) }
-  else { fx?.burst(beat.target, 92); fx?.shake(8, 3, true); if (!beat.kill) targetAnim = fx?.squashTarget(tgtEl, 'finish', postMs) }
-
-  hp.value = { ...hp.value, [beat.target]: Math.max(0, Math.round((beat.targetHpAfter / (maxHp[beat.target] || 1)) * 100)) }
-  setDead(beat.target)
+  else if (beat.tier === 'heavy') { fx?.burst(beat.target, 66); fx?.shake(5, 2) }
+  else { fx?.burst(beat.target, 92); fx?.shake(8, 3, true) }
 
   fx?.pop(beat.target, { dmg: beat.dmg, crit: beat.crit, eff: beat.eff, tier: beat.tier })
   if (beat.eff === 'super' || beat.eff === 'weak') fx?.callout(beat.target, beat.eff)
-
-  // อนิเมชันน็อกผูกกับ beat.kill ไม่ใช่กับชั้น — 1 ไฟต์ตาย 4–5 ตัว แต่มีชั้น finish แค่หมัดเดียว
-  if (beat.kill) { fx?.dangerRing(beat.target, false); targetAnim = fx?.ko(beat.target, tgtEl, postMs) }
+  if (beat.kill) fx?.dangerRing(beat.target, false)
   else {
     if (beat.danger) fx?.dangerRing(beat.target, true)
     if (beat.survive) fx?.callout(beat.target, 'survive')
   }
 
-  // flash: การ์ดเป้ามี animate() ต่อ (squash/ko) ก็รอมันจบก่อนถอด flash กัน border-color ชนกลางอากาศ (ข้อบังคับ v3)
-  // ไม่มี animation (chip/solid ไม่ตาย) → ใช้ timeout 250ms เดิม
-  if (targetAnim) targetAnim.then(() => { if (g === gen) highlight(beat.target, 'flash', false) })
-  else setTimeout(() => { if (g === gen) highlight(beat.target, 'flash', false) }, 250)
+  // ── 3) อนิเมชันการ์ดเป้า ──
+  // beat.kill ตัด squashTarget ทิ้งเสมอ (ไม่ว่าชั้นไหน) เพราะ ko() ครอบการ์ดใบเดียวกันแล้ว
+  // — ยิง animate() 2 ครั้งบนการ์ดใบเดียวกันผิดกฎ "1 หมัด 1 animation/การ์ด" (ข้อบังคับ v3, พบโดยผู้รีวิว Task 3)
+  const wantsCardAnim = beat.kill || beat.tier === 'heavy' || beat.tier === 'finish'
+  if (!wantsCardAnim) {
+    setDead(beat.target)                        // ไม่มีอนิเมชันการ์ดตามมา = ใส่ได้เลย (ปกติเป็น no-op เพราะยังไม่ตาย)
+    later(flashOff, Math.min(FLASH_MS, postMs)) // ⚠️ ผูกกับ beat: 250ms ตายตัวจะล้นเข้า beat ถัดไป (chip ทั้ง beat 320ms)
+    return
+  }
+  const myIdx = idx.value                       // beat ที่กำลังเล่นอยู่ตอนนี้ (idx ขยับตอนจบ beat เท่านั้น)
+  nextFrame(() => {
+    if (g !== gen) return                       // reset/ไฟต์ใหม่แทรกระหว่างรอเฟรม
+    setDead(beat.target)                        // ต้องอยู่ตรงนี้เท่านั้น — ก่อน animate() และไม่เร็วกว่านั้น (ดูหมายเหตุข้อ 2 ด้านบน)
+    // ⚠️ rAF หยุดสนิทเมื่อแท็บถูกพับไปหลัง แต่ setTimeout ยังเดิน (แค่ถูกหรี่) → กลับมาแล้วเฟรมนี้อาจมาช้าไปหลาย beat
+    // ปล่อยให้ยิงต่อ = อนิเมชันเก่าไปซ้อนการ์ดที่กำลังพุ่งอยู่ใน beat อื่น (เคสต้องห้ามข้อ "1 หมัด 1 animation/การ์ด")
+    // แต่ setDead ด้านบนต้องลงเสมอ เพราะมันคือ "สถานะตาย" ไม่ใช่เอฟเฟกต์ — อ่านจาก hp ปัจจุบันจึงถูกต้องเสมอ
+    if (idx.value !== myIdx) { flashOff(); return }
+    let targetAnim = null                       // null = ไม่มีอนิเมชันจริง (preset ปิด/ไม่มี el) — ไม่ใช่ promise ที่ resolve แล้ว
+    if (beat.kill) targetAnim = fx?.ko(beat.target, tgtEl, Math.min(KO_MS, cardMs))
+    else targetAnim = fx?.squashTarget(tgtEl, beat.tier, Math.min(SQUASH_MS[beat.tier] ?? 420, cardMs))
+    // การ์ดเป้ามี animate() ต่อ ก็รอมันจบก่อนถอด flash กัน border-color ชนกลางอากาศ (ข้อบังคับ v3)
+    if (targetAnim) targetAnim.then(flashOff)
+    else later(flashOff, Math.min(FLASH_MS, cardMs))
+  })
 }
 
 // windup → motion → impact → hitstop → tail ตาม beat.timing
@@ -369,6 +425,10 @@ async function applyAttack(beat) {
     await wait(t.windup); if (g !== gen) return
     highlight(beat.attacker, 'windup', false)
   }
+  // ⚠️ จุดสลับคลาส windup → acting นี้อยู่ "กลาง" fx.lunge() ที่ยังพุ่งอยู่บนการ์ดใบเดียวกัน
+  // ปลอดภัยได้เพราะ .windup กับ .acting ตั้ง border-color ค่าเดียวกัน (#fde68a) เป๊ะ = ไม่มี paint เปลี่ยนจริง
+  // ⛔ วันไหนแยกสีสองคลาสนี้ = เปลี่ยน paint ระหว่างการ์ดมี animation วิ่ง = ผิดข้อบังคับ v3 ทันที (เคสเดียวกับบั๊ก flash 250ms)
+  //    ถ้าจำเป็นต้องแยกสีจริง ต้องย้ายจุดสลับไปหลัง lunge จบ ไม่ใช่แค่แก้สีแล้วจบ
   highlight(beat.attacker, 'acting')
 
   if (ranged) fx?.projectile(beat.attacker, beat.target, projectileOf(def), t.motion)
@@ -384,14 +444,30 @@ async function applyAttack(beat) {
   highlight(beat.attacker, 'acting', false)
 }
 
+// ── กันเปิด beat chain ซ้อนกัน 2 สาย ──
+// step() เช็ค paused แค่ตอนต้น พอเข้าไปใน await h(b) แล้ว beat ที่กำลังเล่นจะเล่นจนจบเสมอ
+// ถ้าคนกด "พัก" แล้วกด "เล่น" ก่อน beat นั้นจบ togglePause จะเรียก step() ทั้งที่ idx ยังไม่ขยับ
+// → beat เดิมเล่นซ้ำพร้อมกันอีกสาย: lunge 2 ตัวบนการ์ดผู้ตีใบเดียว (เคสต้องห้ามตรงๆ), squash/ko ซ้อน,
+//   เลขดาเมจเด้ง 2 ที, idx เพิ่ม 2 ครั้ง (beat หายไปเงียบๆ 1 อัน) และทั้งสองสายแย่ง timer ตัวเดียวกัน
+// เลือกใช้ re-entrancy guard ที่ต้นทาง (ไม่ใช่ให้ applyAttack คอยดู paused ทุกเฟส) เพราะ
+//   ก) กันได้ทุกทางเข้า — togglePause, skipIntro, timer ของ step เอง ไม่ใช่เฉพาะ pause
+//   ข) ไม่ต้องแตะ applyAttack ซึ่งเป็นที่อยู่ของ "1 animation ครอบทั้ง beat" — หยุดกลางคันคือแตกสัญญาข้อนั้น
+// guard ผูกกับ gen ไม่ใช่ boolean เปล่า: chain เก่าที่โดน reset ตัดกลางทาง (wait() ถูก clear แล้วไม่ resolve ตลอดกาล)
+// จะไม่ล็อกไฟต์ใหม่ไว้ และถ้ามันฟื้นมาทีหลังก็ปลด guard ของ gen ใหม่ไม่ได้ — gen guard ชนะเสมอ (stepGen ประกาศไว้ด้านบน)
 async function step() {
+  const g = gen
+  if (stepGen === g) return          // มี chain ของ gen นี้วิ่งอยู่แล้ว
   clearTimeout(timer)
   if (paused.value) return
   if (idx.value >= beats.value.length) { clearHighlights(); return }
-  const g = gen
-  const b = beats.value[idx.value]
-  const h = handlers[b.t]
-  if (h) await h(b)          // attack = รอครบทั้ง beat จริง · round = sync · type ที่ไม่รู้จัก = ข้ามเงียบ
+  stepGen = g
+  try {
+    const b = beats.value[idx.value]
+    const h = handlers[b.t]
+    if (h) await h(b)        // attack = รอครบทั้ง beat จริง · round = sync · type ที่ไม่รู้จัก = ข้ามเงียบ
+  } finally {
+    if (stepGen === g) stepGen = -1   // chain เก่าปลดของ gen ใหม่ไม่ได้
+  }
   if (g !== gen) return
   idx.value++
   // ช่องว่างระหว่างหมัดอยู่ใน beat.timing.tail แล้ว — ไม่มี baseDelay อีกต่อไป
@@ -401,6 +477,7 @@ async function step() {
 
 function togglePause() {
   paused.value = !paused.value
+  // กด "เล่น" ระหว่าง beat ยังวิ่งอยู่ = ไม่ต้องทำอะไร step() จะเด้งออกที่ guard แล้วสายเดิมเดินต่อเอง
   if (!paused.value) { clearTimeout(timer); step() }   // เคลียร์ timer ค้างก่อนเล่นต่อ (กันรันซ้อน)
 }
 function inspect(uid) { paused.value = true; clearTimeout(timer); inspectUid.value = uid }
@@ -423,10 +500,53 @@ const insp = computed(() => {
   }
 })
 
+// ── มาตรวัดเฟรม — เปิดด้วย ?fps=1 ท้าย URL หรือ data.fpsMeter (พาเนล Admin) ──
+// ⚠️ ต้องประกาศ "เหนือ" watch(props.data, immediate) ด้านล่าง เพราะ reset() เรียก startFps()
+//    ซึ่งอ่าน showFps — ถ้าอยู่ใต้ watch จะเข้า TDZ ทันทีที่มี call site ไหน mount มาพร้อม data
+// คณิตทั้งหมดอยู่ใน utils/frameMeter.js (pure, มีเทส) — ที่นี่เหลือแค่ rAF + ต่อสาย ref
+//
+// สิ่งที่เปลี่ยนจากของเดิม (ตัวเลขเดิมชี้นำการตัดสินใจผิดทาง):
+//   · เดิม `dt > 16` = ทุกเฟรมบนจอ 60Hz (คาบจริง 16.67ms) ถูกนับว่าหลุดหมด → สอง preset ได้ ~1,200 เท่ากัน = สัญญาณรบกวนล้วน
+//     ตอนนี้จูนศูนย์หาคาบจริงของจอเครื่องนั้นก่อน (มัธยฐาน 30 เฟรมแรก) แล้วนับที่ 1.5× ของคาบนั้น
+//   · เดิม loop ไม่เคยหยุด และตัวเลขถูกเรนเดอร์ "ในโมดัลสรุป" → เลขวิ่งขึ้นเรื่อยๆ ระหว่างคนอ่าน
+//     พร้อม re-render ทั้ง component (การ์ด 8 ใบ + v-for ขีดหลอด + ตารางสรุป 2 ชุด) ทุกเฟรม
+//     และ peak ยังกลืนเอาเฟรมกระตุกตอนโมดัลเด้งเข้ามาเป็น "เฟรมแย่สุดของไฟต์" อีก
+//     ตอนนี้หยุดนับตอนไฟต์จบ แล้ว snapshot ค่าลง ref ทีเดียว — เลขในสรุป = เลขของไฟต์ที่เพิ่งเล่นจบ นิ่งสนิท
+const showFps = computed(() => new URLSearchParams(location.search).has('fps') || props.data?.fpsMeter === true)
+const fpsWorst = ref(0)     // เฟรมแย่สุดในหน้าต่าง ~1 วิ (ป้ายสดมุมจอ)
+const fpsDropAt = ref(FALLBACK_BASE * DROP_RATIO)   // เกณฑ์ "สะดุด" ที่คำนวณจากจอเครื่องนี้
+const fpsBase = ref(0)      // คาบเฟรมของจอเครื่องนี้ (0 = ยังจูนศูนย์ไม่เสร็จ)
+const fpsPeak = ref(0)
+const fpsDrop = ref(0)      // เฟรมสะสมทั้งไฟต์ที่ช้ากว่าคาบปกติ 1.5 เท่า
+const fpsOver33 = ref(0)    // เฟรมสะสมทั้งไฟต์ที่ต่ำกว่า 30fps (เกณฑ์สัมบูรณ์ — จงใจไม่ผูกกับจอ)
+let fpsRaf = 0
+let meter = createFrameMeter()
+function fpsLoop(now) {
+  // push() คืน true เฉพาะตอนหน้าต่าง 1 วิ ปิดรอบ → เขียน ref วินาทีละครั้ง ไม่ใช่ทุกเฟรม
+  if (meter.push(now)) { const s = meter.stats(); fpsWorst.value = Math.round(s.worst); fpsDropAt.value = s.dropAt }
+  fpsRaf = requestAnimationFrame(fpsLoop)
+}
+function startFps() {
+  if (!showFps.value || done.value) return     // ไฟต์ที่ log ว่าง (done ตั้งแต่ต้น) ไม่ต้องเปิดลูป
+  meter = createFrameMeter()                   // ทิ้งของเก่าทั้งชุด ไม่สะสมข้ามไฟต์
+  fpsWorst.value = 0; fpsBase.value = 0; fpsPeak.value = 0; fpsDrop.value = 0; fpsOver33.value = 0
+  fpsDropAt.value = FALLBACK_BASE * DROP_RATIO
+  if (!fpsRaf) fpsRaf = requestAnimationFrame(fpsLoop)
+}
+function stopFps() {
+  if (fpsRaf) { cancelAnimationFrame(fpsRaf); fpsRaf = 0 }
+  const s = meter.stats()                      // snapshot ครั้งเดียว = ตัวเลขในสรุปไม่ขยับอีกเลย
+  fpsBase.value = s.base; fpsPeak.value = s.peak
+  fpsDrop.value = s.drop; fpsOver33.value = s.bad
+  fpsDropAt.value = s.dropAt; fpsWorst.value = Math.round(s.worst)
+}
+
 watch(() => props.data, (d) => { if (d) { buildMax(d); preloadCombat(d); reset() } }, { immediate: true })
 // ตีจบ → เว้น ~0.5 วิ ให้เห็นสนามจบ แล้วเปิด modal สรุป (เช็ก resultReady กันตั้งซ้ำ — reset() เปิดเองทันทีถ้า log ว่างตั้งแต่แรก)
 watch(done, (v) => {
   if (!v) return
+  stopFps()                 // ตัวเลขที่โชว์ในสรุปต้องเป็นของ "ไฟต์ที่เพิ่งจบ" และห้ามขยับระหว่างคนอ่าน (ดูหมายเหตุมาตรวัดเฟรม)
+  fx?.dangerClearAll()      // §5.2: วงแหวนอันตรายปิดเมื่อตายหรือจบไฟต์ — ครอบเคสจบแบบไม่มีหมัดสังหารปิดท้ายด้วย
   // นิ้วอาจยังกดค้างอยู่ตอนไฟต์จบพอดี (โมดัลสรุปลอยทับกล่องสนาม) — เคลียร์โหมดเร่ง/คำใบ้ทันทีกันค้างข้ามไฟต์ถัดไป
   // (ปกติ pointerup จะตกที่กล่องเดิมเพราะ setPointerCapture ไว้ใน onHoldStart แล้ว แต่กันเหนียวอีกชั้น)
   clearTimeout(holdTimer); clearTimeout(hintTimer)
@@ -439,43 +559,14 @@ function onResize() { fx?.invalidateCenters() }
 window.addEventListener('resize', onResize)
 window.addEventListener('orientationchange', onResize)
 
-// ── FPS/frame-time meter — เปิดด้วย ?fps=1 ท้าย URL หรือ data.fpsMeter (พาเนล Admin) ──
-// worst = frame time แย่สุดใน ~1 วิ · over16/over33 = จำนวนเฟรมสะสมทั้งไฟต์ที่หลุด 60fps / ต่ำกว่า 30fps
-// ⚠️ over16 นับรวม over33 ด้วย (ไม่ใช่ else-if แยกกลุ่ม) — ไม่งั้นป้าย "หลุด 60fps" จะนับไม่ครบตอนมีเฟรมแย่ถึงขั้น <30fps ปนอยู่
-const showFps = computed(() => new URLSearchParams(location.search).has('fps') || props.data?.fpsMeter === true)
-const fpsWorst = ref(0)
-const fpsOver16 = ref(0)
-const fpsOver33 = ref(0)
-const fpsPeak = ref(0)
-let fpsRaf = 0, fpsLast = 0, fpsMax = 0, fpsWindowStart = 0
-function fpsLoop(now) {
-  if (fpsLast) {
-    const dt = now - fpsLast
-    if (dt > fpsMax) fpsMax = dt
-    if (dt > fpsPeak.value) fpsPeak.value = dt
-    if (dt > 16) fpsOver16.value++
-    if (dt > 33) fpsOver33.value++
-    if (now - fpsWindowStart > 1000) { fpsWorst.value = Math.round(fpsMax); fpsMax = 0; fpsWindowStart = now }
-  } else { fpsWindowStart = now }
-  fpsLast = now
-  fpsRaf = requestAnimationFrame(fpsLoop)
-}
-function startFps() {
-  if (!showFps.value) return
-  // รีเซ็ตตัวนับทุกครั้งที่เรียก (ทุกไฟต์ใหม่ผ่าน reset()) — ไม่เช็ก fpsRaf ก่อนรีเซ็ต ไม่งั้นไฟต์ที่ 2+ จะสะสมทับไฟต์ก่อนหน้า (loop เดิมยังวิ่งอยู่จาก mount แรก)
-  // แค่กันไม่ให้เปิด rAF loop ซ้อนกัน 2 ลูป (ถ้ามีอยู่แล้วก็ปล่อยวิ่งต่อ ไม่ต้อง cancel+restart)
-  fpsLast = 0; fpsMax = 0; fpsWindowStart = 0
-  fpsPeak.value = 0; fpsOver16.value = 0; fpsOver33.value = 0
-  if (!fpsRaf) fpsRaf = requestAnimationFrame(fpsLoop)
-}
 watch(showFps, (v) => { if (v) startFps() }, { immediate: true })
 
 onUnmounted(() => {
   clearTimeout(timer); clearTimeout(introTimer); clearTimeout(resultTimer)
   clearTimeout(holdTimer); clearTimeout(hintTimer)
-  pendingTimers.forEach(clearTimeout); pendingTimers.clear()
+  clearPending()
   window.removeEventListener('resize', onResize); window.removeEventListener('orientationchange', onResize)
-  if (fpsRaf) cancelAnimationFrame(fpsRaf)
+  if (fpsRaf) { cancelAnimationFrame(fpsRaf); fpsRaf = 0 }
   fx?.destroy(); fx = null; attachedLayer = null
 })
 </script>
@@ -513,6 +604,7 @@ onUnmounted(() => {
   border-top: 1px solid rgba(255,255,255,.15); padding-top: 7px; margin-top: 2px; }
 .br-fps-sum b { color: #fde68a; }
 .br-fps-sum b.bad { color: #f87171; }
+.br-fps-note { font-size: .7rem; color: rgba(255,255,255,.5); margin-top: 3px; }
 
 .br-side { display: flex; align-items: center; gap: 6px; font-size: .72rem; font-weight: 800; color: rgba(255,255,255,.8); padding: 0 2px; }
 .br-side .dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
@@ -530,7 +622,9 @@ onUnmounted(() => {
 .br-face { font-size: 2rem; line-height: 1; }
 .br-el { position: absolute; top: 3px; left: 3px; font-size: .8rem; background: rgba(0,0,0,.45); border-radius: 8px; padding: 1px 3px; line-height: 1; }
 /* Phase 2b: ตัด card lift/shake/glow (::after) ทิ้ง — ไฮไลต์เหลือแค่ border-color (ถูก, ไม่ re-raster)
-   windup/acting เดิม telegraph ย้ายไป fx.ring (brfx-ring, plain DOM/WAAPI นอก Vue reactivity) แล้ว */
+   windup/acting เดิม telegraph ย้ายไป fx.ring (brfx-ring, plain DOM/WAAPI นอก Vue reactivity) แล้ว
+   ⛔ สองคลาสนี้ต้องได้ border-color "ค่าเดียวกัน" เสมอ — จุดสลับคลาสใน applyAttack() อยู่กลาง fx.lunge()
+      ที่ยังวิ่งอยู่ ถ้าแยกสีเมื่อไหร่ = paint เปลี่ยนกลางอนิเมชันการ์ด = ผิดข้อบังคับ v3 (ดูคอมเมนต์ที่ applyAttack) */
 .br-unit.acting, .br-unit.windup { border-color: #fde68a; }
 .br-unit.flash { border-color: #f87171; }
 .br-unit.dead { opacity: .25; filter: grayscale(1); }
@@ -639,8 +733,8 @@ onUnmounted(() => {
 .brfx-proj { width: 1.4rem; height: 1.4rem; }
 .brfx-dash { width: 2rem; height: 2rem; }
 .brfx-ring { width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 18px; }
+/* เหลือ phase เดียวคือ windup — กฎ .brfx-ring.acting ถูกลบพร้อม branch 'acting' ใน fx.ring() ที่ไม่มี call site แล้ว */
 .brfx-ring.windup { box-shadow: 0 0 0 3px #fde68a, 0 0 18px 4px rgba(253,230,138,.55); }
-.brfx-ring.acting { box-shadow: 0 0 0 3px #fde68a, 0 6px 16px rgba(0,0,0,.4); }
 
 /* ยุคเดิม (call site ที่ยังไม่ส่ง tier — battleFx.js ไม่แปะ tier class เลยเมื่อ tier undefined แล้ว
    ตกลงมาที่กฎกลุ่มนี้ตรงๆ) — Task 4 ส่ง tier ครบทุกจุดเรียกแล้วค่อยลบทิ้งได้ */

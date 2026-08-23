@@ -142,6 +142,13 @@ export function createBattleFx() {
   }
 
   let burstIdx = 0
+  // ── วงแหวนเงื้อ: ต้องดับเมื่อ "เงื้อจบ" ไม่ใช่ค้างอยู่จนกว่าจะมีคนเงื้อใหม่ ──
+  // เดิมจบที่ opacity .9 + fill:'forwards' แล้วดับเฉพาะ phase 'acting' ซึ่งไม่มี call site เหลือแล้ว
+  // → แหวนทองค้างบนการ์ดที่ไม่ได้ทำอะไร (ชั้น chip ~57% ของ beat ไม่เรียกตัวนี้เลย) ยาวหลายวินาที
+  //   บางทีค้างบนการ์ดที่ตายไปแล้ว และค้างยาวถึงหน้าสรุป → "แหวนที่ติดตลอด" ไม่ได้บอกอะไรเลย
+  // แก้: เติมเฟรมวูบดับท้าย keyframes (บานออก+จาง) จบที่ opacity 0 พร้อมจังหวะที่หมัดถูกปล่อย
+  //      — จบด้วย opacity 0 ทำให้ fill:'forwards' ค้างค่า 0 เอง ไม่ต้องพึ่ง el.style ตามหลัง
+  //      (⚠️ el.style.opacity สู้ค่าที่ animation fill:'forwards' ค้างไว้ไม่ได้ — นี่คือเหตุผลที่ของเดิมถึงดับไม่ลงแม้จะเข้า branch)
   function ring(uid, phase, ms) {
     const el = pool.ring[0]
     el.getAnimations?.().forEach(a => a.cancel())
@@ -149,11 +156,11 @@ export function createBattleFx() {
     const base = baseXform(uid, 0, 0); if (!base) return Promise.resolve()
     el.style.transform = base
     return run(el, [
-      { transform: base + ' scale(.85)', opacity: 0 },
-      { transform: base + ' scale(1.05)', opacity: 1, offset: .4 },
-      { transform: base + ' scale(1)', opacity: phase === 'windup' ? .9 : 1 },
-    ], { duration: ms || (phase === 'windup' ? 250 : 120), easing: 'ease-out', fill: 'forwards' })
-      .then(() => { if (phase === 'acting') { el.style.opacity = '0' } })
+      { transform: base + ' scale(.85)', opacity: 0, offset: 0 },
+      { transform: base + ' scale(1.05)', opacity: 1, offset: .35 },
+      { transform: base + ' scale(1)', opacity: .9, offset: .78 },
+      { transform: base + ' scale(1.15)', opacity: 0, offset: 1 },
+    ], { duration: ms || 250, easing: 'ease-out', fill: 'forwards' })
   }
   function burst(uid, size) {
     if (!F('burst')) return Promise.resolve()
@@ -220,8 +227,11 @@ export function createBattleFx() {
   }
 
   // ── เป้าบีบตัวแล้วดีดกลับ — ชั้น heavy/finish เท่านั้น (preset high) ──
+  // ⚠️ คืน null เมื่อไม่ได้เล่นอะไร (flag ปิด / ไม่มี el) — ห้ามคืน Promise.resolve()
+  //    เพราะ promise ที่ resolve แล้วยัง truthy → ฝั่งเรียกแยกไม่ออกว่า "รออนิเมชัน" กับ "ไม่มีอนิเมชันให้รอ"
+  //    ผลคือ preset mid/low (targetSquash:false) จะถอด flash ทิ้งใน microtask ถัดไป = เฟรมเดียวกับที่เพิ่งใส่
   function squashTarget(el, tier, ms = 400) {
-    if (!F('targetSquash') || !el) return Promise.resolve()
+    if (!F('targetSquash') || !el) return null
     const amt = tier === 'finish' ? 0.5 : 0.36
     const anim = el.animate([
       { transform: 'scale(1)' },
@@ -252,15 +262,21 @@ export function createBattleFx() {
   // opacity ในเฟรมนี้ไม่ผิดกฎ "การ์ด: transform เท่านั้น" — ตัวที่ห้ามจริงๆ คือ zIndex/paint (border, class)
   // เพราะทำให้หลุด accelerated path (ดู doctrine บรรทัด 2 ของไฟล์นี้: "ขับด้วย WAAPI transform/opacity เท่านั้น")
   // ส่วน opacity เป็น compositor-only เหมือน transform เลยยัง 1 animation/1 promotion ปกติ
+  // ⚠️ คืน null เมื่อไม่ได้เล่นอะไร — เหตุผลเดียวกับ squashTarget() ด้านบน (reduced-motion ปิด ko ด้วย)
   function ko(uid, el, ms = 520) {
     koPuff(uid)
-    if (!F('ko') || !el) return Promise.resolve()
+    if (!F('ko') || !el) return null
+    // เฟรมสุดท้ายจบที่ .25 ไม่ใช่ 0 — เพราะสภาพพักของการ์ดที่ตายคือ .dead { opacity:.25 }
+    // ถ้าจบที่ 0 การ์ดจะจางหายสนิทแล้ว "เด้งกลับมาโผล่ที่ 25%" ในช่องเดิมทันทีที่ fill:'none' คืนค่า
+    el.style.zIndex = '8'                      // static ก่อนเริ่ม เคลียร์ตอนจบ (แพทเทิร์นเดียวกับ lunge) — ไม่งั้นการ์ดกระเด็นลอดใต้การ์ดข้างๆ
     const anim = el.animate([
       { transform: 'translate(0,0) rotate(0) scale(1)', opacity: 1 },
-      { transform: 'translate(70px,-60px) rotate(150deg) scale(.6)', opacity: 0 },
+      { transform: 'translate(70px,-60px) rotate(150deg) scale(.6)', opacity: .25 },
     ], { duration: ms, easing: 'ease-in', fill: 'none' })
     anims.add(anim)
-    return anim.finished.catch(() => {}).finally(() => { anims.delete(anim); el.style.transform = '' })
+    return anim.finished.catch(() => {}).finally(() => {
+      anims.delete(anim); el.style.zIndex = ''; el.style.transform = ''
+    })
   }
 
   // ── โซนอันตราย: วงแหวนเต้นค้างบน FX pool (ห้ามทำบนการ์ด = layer ค้างถาวร ตามข้อบังคับ v3) ──
@@ -287,6 +303,10 @@ export function createBattleFx() {
     el.style.opacity = '0'
     dangerOn.delete(uid)
   }
+  // ดับวงแหวนอันตรายทุกวง — ใช้ตอน "ไฟต์จบ" (§5.2 ของสเปก: ปิดเมื่อตายหรือจบไฟต์)
+  // ตัวที่รอดด้วยเลือด ≤25% ไม่เคยถูกสั่งปิด เพราะ dangerRing(uid,false) เรียกเฉพาะตอนตาย
+  // → เดิมวงแหวน iterations:Infinity เต้นค้างยาวผ่านหน้าสรุปและตอน peek สนาม จนกว่าจะ reset()
+  function dangerClearAll() { for (const uid of Array.from(dangerOn.keys())) dangerRing(uid, false) }
 
   let projIdx = 0
   function projectile(fromUid, toUid, char, ms) {
@@ -311,6 +331,6 @@ export function createBattleFx() {
   return {
     attach, reset, cancelAll, setRate, setFlags, destroy, centerOf, invalidateCenters,
     pop, callout, koPuff, ring, burst, projectile, dash,
-    jab, lunge, squashTarget, shake, ko, dangerRing,
+    jab, lunge, squashTarget, shake, ko, dangerRing, dangerClearAll,
   }
 }
