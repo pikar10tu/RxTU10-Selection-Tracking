@@ -863,14 +863,14 @@ import { fxFlags, REDUCED_FLAGS } from './battleReplayPrefs.js'
 
 แก้ `projectile` ให้รับเวลา — เปลี่ยนลายเซ็นเป็น `function projectile(fromUid, toUid, char, ms)` และแทน `{ duration: 280, ... }` ด้วย `{ duration: ms || 280, ... }`
 
-**ลบ `cardLunge` ทิ้งทั้งฟังก์ชัน** (ถูก `lunge` แทนที่)
+**⚠️ อย่าเพิ่งลบ `cardLunge`** — `BattleReplay.vue` ยังเรียกผ่าน `playMotion()` อยู่จนกว่า Task 4 จะแทนที่ ถ้าลบตอนนี้แอปจะพังตอนรัน (build ยังผ่านเพราะไม่มี type check แต่ไฟต์จะ throw ทุกหมัด) **Task 4 เป็นคนลบ** — commit ระหว่างทางต้องรันได้เสมอ
 
 แก้บรรทัด return ท้ายไฟล์:
 
 ```js
   return {
     attach, reset, cancelAll, setRate, setFlags, destroy, centerOf, invalidateCenters,
-    pop, callout, koPuff, ring, burst, projectile, dash,
+    pop, callout, koPuff, ring, burst, projectile, dash, cardLunge,   // cardLunge ยังอยู่ — Task 4 ลบ
     jab, lunge, squashTarget, shake, ko, dangerRing,
   }
 ```
@@ -902,13 +902,13 @@ import { fxFlags, REDUCED_FLAGS } from './battleReplayPrefs.js'
 
 **ลบบรรทัดเดิม** `.brfx-pop { ... font-size: 1.5rem; ... }` ออกเฉพาะส่วน `font-size` และ `.brfx-pop.crit { color: #fbbf24; font-size: 2rem; }` / `.brfx-pop.super { color: #fca5a5; }` / `.brfx-pop.weak { color: #cbd5e1; font-size: 1.1rem; }` — ขนาดต้องมาจากชั้นอย่างเดียว ไม่งั้น crit จะไปทับขนาดของ finish · เก็บ `.brfx-pop.super { color: #fca5a5; }` ไว้
 
-- [ ] **Step 5: ตรวจว่า build ผ่านและไม่มี reference ค้าง**
+- [ ] **Step 5: ตรวจว่า build ผ่านและแอปยังรันได้**
 
 ```
-grep -rn "cardLunge" src/
 npm run build
+npm run dev
 ```
-Expected: `grep` ไม่เจออะไรเลย (ถ้าเจอใน `BattleReplay.vue` แปลว่ายังไม่ได้แก้ — Task 4 จะแก้ ให้ปล่อยไว้ก่อนแล้วรวม commit กับ Task 4 แทน) · `npm run build` สำเร็จไม่มี error
+Expected: build สำเร็จไม่มี error · เปิดหอคอยสู้ 1 ไฟต์แล้ว **ยังเล่นได้เหมือนเดิมทุกอย่าง** — task นี้เพิ่มความสามารถให้ `battleFx` เฉยๆ ยังไม่มีใครเรียกของใหม่ (`BattleReplay.vue` ยังใช้ `cardLunge` เดิมอยู่) ถ้าไฟต์พังแปลว่าไปแตะของเดิมโดยไม่ตั้งใจ
 
 - [ ] **Step 6: Commit**
 
@@ -1005,7 +1005,7 @@ async function applyAttack(beat) {
 }
 ```
 
-**ลบ** ฟังก์ชัน `playMotion` และ `meleeMode` ทิ้ง (`?melee=dash` เป็น plan B ของ v3 ที่ตัดสินไปแล้วว่าใช้ card — และ `lunge` ครอบหน้าที่นี้หมดแล้ว)
+**ลบ** ฟังก์ชัน `playMotion` และ `meleeMode` ทิ้ง — แล้ว**ลบ `cardLunge` ออกจาก `src/utils/battleFx.js` ด้วย** (ทั้งฟังก์ชันและชื่อในบรรทัด return) เพราะ `playMotion` เป็นผู้เรียกรายสุดท้าย · Task 3 จงใจเก็บไว้เพื่อให้ commit ระหว่างทางรันได้ (`?melee=dash` เป็น plan B ของ v3 ที่ตัดสินไปแล้วว่าใช้ card — และ `lunge` ครอบหน้าที่นี้หมดแล้ว)
 
 - [ ] **Step 4: แก้ `applyImpact` ให้ใช้ tier**
 
@@ -1262,7 +1262,7 @@ function onHoldEnd() {
 - [ ] **Step 5: ตรวจว่าไม่มี reference ค้าง แล้ว build**
 
 ```
-grep -n "skipToEnd\|cycleSpeed\|speed\.value\|REPLAY_CFG.speeds\|baseDelay\|hitStopMs" src/components/battle/BattleReplay.vue
+grep -rn "skipToEnd\|cycleSpeed\|cardLunge\|playMotion\|meleeMode\|baseDelay\|hitStopMs" src/
 npm run build
 ```
 Expected: `grep` ไม่เจออะไรเลย · build ผ่าน
