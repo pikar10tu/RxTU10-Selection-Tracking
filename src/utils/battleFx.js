@@ -245,6 +245,9 @@ export function createBattleFx() {
   }
 
   // ── น็อก: การ์ดหมุนกระเด็นออก + ควัน (แทน koPuff เดิมสำหรับชั้น finish) ──
+  // opacity ในเฟรมนี้ไม่ผิดกฎ "การ์ด: transform เท่านั้น" — ตัวที่ห้ามจริงๆ คือ zIndex/paint (border, class)
+  // เพราะทำให้หลุด accelerated path (ดู doctrine บรรทัด 2 ของไฟล์นี้: "ขับด้วย WAAPI transform/opacity เท่านั้น")
+  // ส่วน opacity เป็น compositor-only เหมือน transform เลยยัง 1 animation/1 promotion ปกติ
   function ko(uid, el) {
     koPuff(uid)
     if (!F('ko') || !el) return Promise.resolve()

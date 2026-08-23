@@ -525,7 +525,7 @@ onUnmounted(() => {
 /* FX pool styles — ไม่ scoped (element สร้าง imperative ไม่มี data-v-*) · namespace .brfx-* กันชน global */
 .br-fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
 .brfx { position: absolute; left: 0; top: 0; will-change: transform; }
-.brfx-pop { font-weight: 900; color: #fecaca; -webkit-text-stroke: 3px rgba(15,23,42,.85); paint-order: stroke fill; white-space: nowrap; }
+.brfx-pop { font-weight: 900; font-size: 1.5rem; color: #fecaca; -webkit-text-stroke: 3px rgba(15,23,42,.85); paint-order: stroke fill; white-space: nowrap; }
 .brfx-pop.super { color: #fca5a5; }
 .brfx-call { font-weight: 800; font-size: .7rem; white-space: nowrap; padding: 2px 6px; border-radius: 7px; }
 .brfx-call.super { background: #ef4444; color: #fff; }
@@ -539,11 +539,22 @@ onUnmounted(() => {
 .brfx-ring.acting { box-shadow: 0 0 0 3px #fde68a, 0 6px 16px rgba(0,0,0,.4); }
 
 /* ขนาดเลขตามชั้น — นี่คือช่องทางหลักที่ผู้เล่นอ่านน้ำหนักของหมัดออกขณะดูเร็วๆ */
-.brfx-pop.tier-chip   { font-size: .9rem;  color: #fecaca; }
-.brfx-pop.tier-solid  { font-size: 1.15rem; }
+.brfx-pop.tier-chip   { font-size: .9rem; }
 .brfx-pop.tier-heavy  { font-size: 1.7rem; }
 .brfx-pop.tier-finish { font-size: 2.3rem; }
-/* crit/super/weak ทับสีได้ แต่ห้ามทับขนาดของชั้น — ชั้นเป็นเจ้าของขนาด */
+/* tier-solid ไม่ตั้ง font-size เอง (ตั้งใจ) — POP_TIER_CLS[tier] || POP_TIER_CLS.solid ใน battleFx.js ทำให้
+   ทุกจุดเรียก pop() ที่ยังไม่ส่ง tier (เช่นจุดเรียกปัจจุบันใน BattleReplay.vue ก่อน Task 4) ได้ class
+   "tier-solid" เหมือนกับหมัดชั้น solid จริงทุกตัวอักษร — แยกไม่ออกด้วย CSS ล้วน ปล่อยให้สืบทอด font-size
+   จาก base/.crit/.weak ด้านล่างไปก่อน (= ของเดิมก่อน task-3) ไม่งั้นเลขดาเมจส่วนใหญ่จะเล็กลงทันทีทั้งที่
+   ยังไม่มีใครเรียก tier จริง · เมื่อจุดเรียกส่ง tier แท้เสมอ (ไม่มี fallback เงียบ) ค่อยเพิ่ม
+   .brfx-pop.tier-solid { font-size: 1.15rem } กลับมาได้
+
+   crit/weak ทับสีได้เสมอ แต่ทับ "ขนาด" เฉพาะตอนไม่มีชั้น chip/heavy/finish จริงติดมาด้วย (:not(...) กันไว้)
+   — กรณีนั้นคือ fallback ด้านบน ต้องใช้ขนาดเดิม 2rem/1.1rem แทน 1.5rem ฐาน (ของเดิมก่อน task-3 เช่นกัน)
+   ส่วนกรณีมีชั้นจริง ชั้นเป็นเจ้าของขนาดเสมอ ไม่ให้ crit/weak มาทับ (specificity เท่ากับ .crit เฉยๆ แต่
+   :not() เพิ่ม specificity ให้กฎนี้แพ้ไม่ได้เฉพาะตอนไม่มีชั้นจริงเท่านั้น) */
+.brfx-pop.crit:not(.tier-chip):not(.tier-heavy):not(.tier-finish) { font-size: 2rem; }
+.brfx-pop.weak:not(.tier-chip):not(.tier-heavy):not(.tier-finish) { font-size: 1.1rem; }
 .brfx-pop.crit { color: #fbbf24; }
 .brfx-pop.weak { color: #cbd5e1; }
 
