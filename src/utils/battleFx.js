@@ -91,7 +91,8 @@ export function createBattleFx() {
     const el = pool.pop[popIdx = (popIdx + 1) % pool.pop.length]
     el.getAnimations?.().forEach(a => a.cancel())
     el.textContent = '-' + dmg
-    el.className = 'brfx brfx-pop ' + (POP_TIER_CLS[tier] || POP_TIER_CLS.solid)
+    const tierCls = POP_TIER_CLS[tier]
+    el.className = 'brfx brfx-pop' + (tierCls ? ' ' + tierCls : '')
       + (crit ? ' crit' : eff === 'super' ? ' super' : eff === 'weak' ? ' weak' : '')
     const dx = Math.round(Math.random() * 28 - 14)
     const base = baseXform(uid, dx, -6); if (!base) return
