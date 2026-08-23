@@ -22,6 +22,7 @@
           <span class="br-el"><Emoji :char="elEmoji(p)" /></span>
           <span class="br-face"><Emoji :char="defOf(p.id).emoji" /></span>
           <div class="br-hp">
+            <div class="br-hp-ghost" :style="{ transform: 'scaleX(' + hpPct('B'+i) / 100 + ')' }"></div>
             <div class="br-hp-fill" :style="{ transform: 'scaleX(' + hpPct('B'+i) / 100 + ')' }"></div>
             <span v-for="(t, ti) in ticksFor('B'+i)" :key="ti" class="br-tick" :style="{ left: t + '%' }"></span>
           </div>
@@ -37,6 +38,7 @@
           <span class="br-el"><Emoji :char="elEmoji(p)" /></span>
           <span class="br-face"><Emoji :char="defOf(p.id).emoji" /></span>
           <div class="br-hp">
+            <div class="br-hp-ghost" :style="{ transform: 'scaleX(' + hpPct('A'+i) / 100 + ')' }"></div>
             <div class="br-hp-fill mine" :style="{ transform: 'scaleX(' + hpPct('A'+i) / 100 + ')' }"></div>
             <span v-for="(t, ti) in ticksFor('A'+i)" :key="ti" class="br-tick" :style="{ left: t + '%' }"></span>
           </div>
@@ -484,8 +486,11 @@ onUnmounted(() => {
 
 .br-hp { position: relative; width: 84%; height: 7px; background: rgba(0,0,0,.35); border-radius: 999px; overflow: hidden; }
 /* เลือด: scaleX (composite) แทน transition width (layout ทุกเฟรม) — origin ซ้าย · promote เฉพาะตอน transition รัน (ไม่ตั้ง will-change ถาวร) */
-.br-hp-fill { width: 100%; height: 100%; background: #ef4444; border-radius: 999px; transform-origin: left center; transition: transform .2s ease-out; }
+.br-hp-fill { position: relative; width: 100%; height: 100%; background: #ef4444; border-radius: 999px; transform-origin: left center; transition: transform .1s linear; }
 .br-hp-fill.mine { background: #34d399; }
+/* หลอดผี: อยู่ใต้หลอดจริง หดตามหลัง → ช่องขาวที่โผล่ = ดาเมจที่เพิ่งกิน */
+.br-hp-ghost { position: absolute; inset: 0; background: #fff; opacity: .75; border-radius: 999px;
+  transform-origin: left center; transition: transform .45s ease-out .16s; }
 .br-tick { position: absolute; top: 0; width: 1px; height: 100%; background: rgba(255,255,255,.55); }
 .br-stats { display: flex; justify-content: space-between; align-items: center; gap: 3px; width: 88%; margin-top: 3px; }
 .br-atk, .br-hpn { font-size: .72rem; font-weight: 800; color: #fff; line-height: 1; padding: 2px 6px; border-radius: 999px; min-width: 18px; text-align: center; }
