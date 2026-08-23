@@ -1,6 +1,7 @@
 <!-- BattleReplay v2 — event-driven (dispatch ตาม event.t) · melee/ranged · ป้ายธาตุ/crit/ตาย ·
      UI: ป้ายฝั่ง + badge ธาตุ + กรอบสีแยกข้าง = ดูรู้เรื่องว่าใครฝั่งไหน/ตีใคร/แพ้ทางมั้ย
-     controls: pause/speed/skip · แตะตัว = pause + inspect (ช่อง passive รอ §5.5 master plan)
+     controls: pause/skip · แตะตัว = pause + inspect (ช่อง passive รอ §5.5 master plan)
+     จังหวะขับด้วย beat.timing (battleBeats.js) แทน baseDelay คงที่ (Task 4) — ปุ่มเร็วเดิมถูกลบ
      ⚠️ ทุก emoji ผ่าน <Emoji> (Fluent self-host) — อย่าใส่ emoji ดิบในเทมเพลต (เป็น tofu บนบางเครื่อง) -->
 <template>
   <!-- Teleport ไป body: #main-content (position:fixed) = stacking context → z420 สู้ #bottom-nav (z200) ไม่ได้ถ้า render ในนี้
@@ -49,7 +50,7 @@
 
       <div class="br-ctrl" v-if="!done">
         <button class="br-btn sm" @click="togglePause"><Emoji :char="paused ? '▶️' : '⏸️'" /> {{ paused ? 'เล่น' : 'พัก' }}</button>
-        <button class="br-btn sm" @click="cycleSpeed">เร็ว ×{{ speed }}</button>
+        <!-- ปุ่ม "เร็ว ×N" เดิมถูกลบ (Task 4: speed ref/REPLAY_CFG.speeds หายไปแล้ว) — Task 6 ใส่ปุ่มกดค้างเร่งแทน -->
         <button class="br-btn sm" @click="skipToEnd">ข้ามไปผล</button>
       </div>
     </div>
@@ -120,6 +121,8 @@ import { buildCombatant } from '../../data/battle.js'
 import { computeBattleSummary } from '../../utils/battleSummary.js'
 import { fluentFile } from '../../utils/emoji.js'
 import { createBattleFx } from '../../utils/battleFx.js'
+import { buildBeats, scaleTiming } from '../../utils/battleBeats.js'
+import { readPrefs, fxFlags, paceMult } from '../../utils/battleReplayPrefs.js'
 
 const props = defineProps({
   data: { type: Object, default: null },
@@ -129,12 +132,9 @@ defineEmits(['close'])
 
 const BASE_URL = import.meta.env.BASE_URL
 
-// baseDelay = ระยะห่างต่อจังหวะที่ ×1 (มากกว่าเวลาเคลื่อนไหวเสมอ กันทับกัน) — กดเร่ง ×2/×4 ได้
-// windup (telegraph) ย้ายไป fx.ring แล้ว (duration hardcode ใน battleFx.js) — ไม่อ่าน windupMs ที่นี่แล้ว
-// melee lunge (fx.cardLunge/fx.dash) duration hardcode ใน battleFx.js แล้วเหมือนกัน — ไม่มี lungeMs ที่นี่แล้ว
-// resultDelayMs = เว้นจังหวะให้เห็นสนามจบก่อนเปิด modal สรุป (คงที่ ไม่หารด้วย speed)
-// pop/callout/koPuff durations ย้ายไป fx pool (battleFx.js) แล้ว — คงที่ไม่หารด้วย speed เหมือนเดิม
-const REPLAY_CFG = { baseDelay: 380, speeds: [1, 2, 4], hitStopMs: 130, resultDelayMs: 500 }
+// เวลาทั้งหมดมาจาก beat.timing แล้ว — เหลือแค่เวลา "รอบนอกไฟต์"
+// resultDelayMs 900 (เดิม 500) = ให้หมัดน็อกชั้น finish ได้ลงจอดก่อนเปิด modal สรุป
+const REPLAY_CFG = { resultDelayMs: 900 }
 
 const defOf = (id) => getPetDef(id) || { emoji: '❓' }
 const elEmoji = (p) => ELEMENTS[p?.element]?.emoji || '✊'
@@ -142,7 +142,11 @@ const elEmoji = (p) => ELEMENTS[p?.element]?.emoji || '✊'
 const idx = ref(0)
 const round = ref(1)
 const paused = ref(false)
-const speed = ref(1)
+const prefs = ref(readPrefs())          // อ่านครั้งเดียวตอน mount — พาเนล Admin เขียนก่อนเปิด replay อยู่แล้ว
+const ffActive = ref(false)             // โหมดเร่ง (กดค้าง) — Task 6 เป็นคนสลับ
+const pace = computed(() => paceMult(prefs.value.pace))
+// speed/cycleSpeed/ปุ่ม "เร็ว ×N" ถูกลบทั้งชุด (Task 4) — เวลามาจาก beat.timing แล้ว
+// Task 6 จะเพิ่มปุ่มกดค้างเร่ง (ffActive) แทนที่ตรงนี้
 const hp = ref({})
 const inspectUid = ref(null)
 const introPhase = ref(null)   // 'ready' | 'go' | null (null = เริ่มเล่น log แล้ว)
@@ -177,7 +181,7 @@ function ensureFx() {
   if (fx) fx.destroy()                                    // layer เปลี่ยน (ไฟต์ใหม่ remount .br-fx-layer) → ทิ้งของเก่า (listener/pool) ก่อนสร้างใหม่
   fx = createBattleFx()
   fx.attach({ boxEl: boxRef.value, layerEl: fxLayerEl.value, getEl: uid => els[uid] || null })
-  fx.setRate(speed.value)
+  fx.setFlags(fxFlags(prefs.value.fx))
   attachedLayer = fxLayerEl.value
 }
 
@@ -190,12 +194,14 @@ function ticksFor(uid) {
   return out
 }
 
-const log = computed(() => props.data?.result?.log || [])
-const done = computed(() => idx.value >= log.value.length)
+const rawLog = computed(() => props.data?.result?.log || [])
+// ⚠️ maxHp เป็น plain object ที่ buildMax() เขียนทับ ไม่ใช่ ref — beats จึงไม่ re-compute เองเมื่อ maxHp เปลี่ยน
+// แต่ปลอดภัยเพราะ buildMax(d) ถูกเรียกก่อน reset() ในตัว watcher เดียวกันเสมอ และ rawLog เปลี่ยนพร้อมกัน (props.data ใหม่ทั้งก้อน) ซึ่ง trigger การ compute ใหม่อยู่แล้ว
+const beats = computed(() => buildBeats(rawLog.value, maxHp))
+const done = computed(() => idx.value >= beats.value.length)
 const summary = computed(() => done.value
-  ? computeBattleSummary(log.value, props.data?.playerTeam || [], props.data?.botTeam || [])
+  ? computeBattleSummary(rawLog.value, props.data?.playerTeam || [], props.data?.botTeam || [])
   : null)
-const delay = computed(() => REPLAY_CFG.baseDelay / speed.value)
 
 function buildMax(d) {
   maxHp = {}; unitAtk = {}
@@ -223,6 +229,7 @@ function preloadCombat(d) {
 }
 function reset() {
   gen++                                                                     // ยกเลิก promise chain ค้างทุกตัว (applyAttack/step เช็ค gen ทุกจุด)
+  prefs.value = readPrefs()     // อ่านใหม่ทุกไฟต์ — พาเนล Admin เปลี่ยนค่าแล้วยิงไฟต์ทดสอบต้องเห็นผลทันที
   clearTimeout(timer); clearTimeout(introTimer)
   clearTimeout(resultTimer); resultOpen.value = false; resultReady.value = false
   pendingTimers.forEach(clearTimeout); pendingTimers.clear()                // ตัด wait() ที่ค้างอยู่ทั้งหมด (windup/motion/hitstop)
@@ -262,16 +269,6 @@ function defForUid(uid) {
   const arr = uid[0] === 'A' ? props.data?.playerTeam : props.data?.botTeam
   return getPetDef(arr?.[i]?.id) || { emoji: '❓' }
 }
-// meleeMode (Phase 2b-2): 'card' (ดีฟอลต์) = การ์ดจริงพุ่งชน (fx.cardLunge) · 'dash' = สไปรต์แยกพุ่งฟาดแล้วจาง (fx.dash) — สลับผ่าน ?melee=dash
-const meleeMode = new URLSearchParams(location.search).get('melee') === 'dash' ? 'dash' : 'card'
-function playMotion(e) {
-  const def = defForUid(e.attacker)
-  if (atkStyleOf(def) === 'ranged') return fx?.projectile(e.attacker, e.target, projectileOf(def)) ?? Promise.resolve()
-  if (meleeMode === 'dash') return fx?.dash(e.attacker, e.target, def.emoji) ?? Promise.resolve()
-  // melee ดีฟอลต์: การ์ดจริงพุ่งชนแล้วเด้งกลับ (Hearthstone-style) — fx.cardLunge จัดการ zIndex/transform/cleanup เองหมด
-  return fx?.cardLunge(els[e.attacker], e.attacker, e.target) ?? Promise.resolve()
-}
-
 // ── event dispatch — เพิ่ม handler ใหม่ที่นี่ (passive/heal/…) ──
 const handlers = {
   round(e) { round.value = e.n },
@@ -279,46 +276,75 @@ const handlers = {
   end() { clearHighlights() },
 }
 
-// impact: hp/pop/callout/koPuff ตอนโดนตี (เกิดตอนจบ motion) — รับ g เช็ค gen กัน reset/skip ระหว่างพุ่ง/ยิงมาเขียน state เก่าทับ
-// pop/callout/koPuff เป็น fire-and-forget ผ่าน fx pool (plain DOM/WAAPI นอก Vue reactivity)
-function applyImpact(e, g) {
+// impact: hp/pop/callout/burst/ko ตอนโดนตี — รับ g เช็ค gen กัน reset ระหว่างพุ่งมาเขียน state เก่าทับ
+function applyImpact(beat, g) {
   if (g !== gen) return
-  highlight(e.target, 'flash')
-  fx?.burst(e.target)                                               // 💥 = motion decoration
-  setTimeout(() => { if (g === gen) highlight(e.target, 'flash', false) }, 250)   // gen-guard กันไปถอด flash ของไฟต์ใหม่หลัง reset/skip
-  hp.value = { ...hp.value, [e.target]: Math.max(0, Math.round((e.targetHpAfter / (maxHp[e.target] || 1)) * 100)) }
-  setDead(e.target)                                                // hp เปลี่ยน → sync dead แบบ imperative (ไม่ผ่าน reactive :class)
-  // pop/callout/koPuff = information (เลขดาเมจ/แพ้ทาง/💀) ไม่ใช่ decoration — เรียกเสมอ
-  fx?.pop(e.target, { dmg: e.dmg, crit: e.crit, eff: e.eff })
-  if (e.eff === 'super' || e.eff === 'weak') fx?.callout(e.target, e.eff)
-  if (e.targetHpAfter <= 0) fx?.koPuff(e.target)
-  // crit ไม่มี visual scale แล้ว (ตัด full-screen re-raster) — จังหวะ freeze คง extra wait ท้าย applyAttack ไว้ (hitStopMs)
+  const tgtEl = els[beat.target]
+  highlight(beat.target, 'flash')
+  setTimeout(() => { if (g === gen) highlight(beat.target, 'flash', false) }, 250)
+
+  // ขนาดดาว/แรงสั่นตามชั้น — ชั้น chip/solid ห้ามสั่นจอเด็ดขาด (§6.2 ของสเปก)
+  // beat.kill ตัด squashTarget ทิ้งเสมอ (ไม่ว่าจะชั้น heavy/finish) เพราะ ko() ด้านล่างครอบการ์ดตัวเดียวกันแล้ว
+  // — ยิง animate() 2 ครั้งบนการ์ดใบเดียวกันผิดกฎ "1 หมัด 1 animation/การ์ด" (ข้อบังคับ v3, พบโดยผู้รีวิว Task 3)
+  if (beat.tier === 'chip') { /* ชั้นถากไม่มีดาว ไม่มีสั่น */ }
+  else if (beat.tier === 'solid') fx?.burst(beat.target, 34)
+  else if (beat.tier === 'heavy') { fx?.burst(beat.target, 66); fx?.shake(5, 2); if (!beat.kill) fx?.squashTarget(tgtEl, 'heavy', 420) }
+  else { fx?.burst(beat.target, 92); fx?.shake(8, 3, true); if (!beat.kill) fx?.squashTarget(tgtEl, 'finish', 420) }
+
+  hp.value = { ...hp.value, [beat.target]: Math.max(0, Math.round((beat.targetHpAfter / (maxHp[beat.target] || 1)) * 100)) }
+  setDead(beat.target)
+
+  fx?.pop(beat.target, { dmg: beat.dmg, crit: beat.crit, eff: beat.eff, tier: beat.tier })
+  if (beat.eff === 'super' || beat.eff === 'weak') fx?.callout(beat.target, beat.eff)
+
+  // อนิเมชันน็อกผูกกับ beat.kill ไม่ใช่กับชั้น — 1 ไฟต์ตาย 4–5 ตัว แต่มีชั้น finish แค่หมัดเดียว
+  if (beat.kill) { fx?.dangerRing(beat.target, false); fx?.ko(beat.target, tgtEl) }
+  else {
+    if (beat.danger) fx?.dangerRing(beat.target, true)
+    if (beat.survive) fx?.callout(beat.target, 'survive')
+  }
 }
 
-// windup → motion → impact ทีละสเต็ป (await จริง แทนคิว callback ซ้อน 3 ชั้น) — gen guard คั่นทุกจุดกัน reset/skip ระหว่างทาง
-async function applyAttack(e) {
+// windup → motion → impact → hitstop → tail ตาม beat.timing
+// การ์ดพุ่ง = 1 animation ครอบทั้ง beat (ยิงแล้วไม่ await — เราเดินเวลาด้วย wait() แยก) ตามข้อบังคับ v3
+async function applyAttack(beat) {
   const g = gen
-  highlight(e.attacker, 'windup')
-  await (fx?.ring(e.attacker, 'windup') ?? Promise.resolve())
-  if (g !== gen) return          // โดน reset/skip ระหว่างเงื้อ
-  highlight(e.attacker, 'windup', false); highlight(e.attacker, 'acting')
-  await playMotion(e); if (g !== gen) return            // โดน reset/skip ระหว่างพุ่ง/ยิง
-  applyImpact(e, g)
-  highlight(e.attacker, 'acting', false)
-  if (e.crit) await wait(REPLAY_CFG.hitStopMs / speed.value)
+  const t = scaleTiming(beat, { pace: pace.value, ff: ffActive.value })
+  const def = defForUid(beat.attacker)
+  const ranged = atkStyleOf(def) === 'ranged'
+
+  if (beat.tier !== 'chip') {
+    highlight(beat.attacker, 'windup')                       // เปลี่ยน class ให้เสร็จ "ก่อน" สั่ง animate (ข้อบังคับ v3)
+    fx?.ring(beat.attacker, 'windup', t.windup)
+    if (!ranged) fx?.lunge(els[beat.attacker], beat.attacker, beat.target, t, beat.tier)
+    await wait(t.windup); if (g !== gen) return
+    highlight(beat.attacker, 'windup', false)
+  }
+  highlight(beat.attacker, 'acting')
+
+  if (ranged) fx?.projectile(beat.attacker, beat.target, projectileOf(def), t.motion)
+  else if (beat.tier === 'chip') fx?.jab(beat.attacker, beat.target, t.motion)
+  // melee ชั้นอื่น: การ์ดพุ่งอยู่แล้วจาก lunge() ด้านบน ไม่ต้องยิงอะไรเพิ่ม
+
+  await wait(t.motion); if (g !== gen) return
+  applyImpact(beat, g)
+  await wait(t.hitstop); if (g !== gen) return
+  highlight(beat.attacker, 'acting', false)
+  await wait(t.tail)
 }
 
 async function step() {
   clearTimeout(timer)
   if (paused.value) return
-  if (idx.value >= log.value.length) { clearHighlights(); return }
+  if (idx.value >= beats.value.length) { clearHighlights(); return }
   const g = gen
-  const e = log.value[idx.value]
-  const h = handlers[e.t]
-  if (h) await h(e)                             // attack = รอจบทั้ง windup+motion+impact(+hitstop) จริง · round = sync · type ที่ไม่รู้จัก = ข้ามเงียบ
-  if (g !== gen) return                         // โดน reset/skip ระหว่างรอ handler
+  const b = beats.value[idx.value]
+  const h = handlers[b.t]
+  if (h) await h(b)          // attack = รอครบทั้ง beat จริง · round = sync · type ที่ไม่รู้จัก = ข้ามเงียบ
+  if (g !== gen) return
   idx.value++
-  if (idx.value < log.value.length) timer = setTimeout(step, e.t === 'round' ? 0 : delay.value)   // round marker ไม่หน่วงเวลา
+  // ช่องว่างระหว่างหมัดอยู่ใน beat.timing.tail แล้ว — ไม่มี baseDelay อีกต่อไป
+  if (idx.value < beats.value.length) timer = setTimeout(step, 0)
   else clearHighlights()
 }
 
@@ -326,25 +352,20 @@ function togglePause() {
   paused.value = !paused.value
   if (!paused.value) { clearTimeout(timer); step() }   // เคลียร์ timer ค้างก่อนเล่นต่อ (กันรันซ้อน)
 }
-function cycleSpeed() {
-  const s = REPLAY_CFG.speeds
-  speed.value = s[(s.indexOf(speed.value) + 1) % s.length]
-  fx?.setRate(speed.value)   // projectile WAAPI duration (run() ใน battleFx.js) หารตาม rate — คงพฤติกรรมเร่งความเร็วเดิม
-}
 function skipToEnd() {
   gen++                                                    // ตัด promise chain windup/lunge/impact ที่ค้างอยู่ (gen guard ใน applyAttack/step)
   clearTimeout(timer)
   pendingTimers.forEach(clearTimeout); pendingTimers.clear()   // ตัด wait() ที่ค้างอยู่ทั้งหมด กันโดนโผล่มาแตะ state หลัง log จบไปแล้ว
   Object.values(els).forEach(el => { if (el) { el.style.transform = ''; el.style.transition = ''; el.style.zIndex = '' } })  // ล้าง lunge ค้างกลางทาง
   clearHighlights()                                         // ล้างคลาส windup/acting/flash ค้าง
-  fx?.cancelAll()                                           // ตัด pop/callout/koPuff/projectile/cardLunge/dash ค้างจาก fx pool (cardLunge เก็บ anim ใน anims set → cancel() ที่นี่ trigger cleanup zIndex/transform ในตัวเอง)
-  const end = log.value[log.value.length - 1]
+  fx?.cancelAll()                                           // ตัด pop/callout/koPuff/projectile/lunge/dash ค้างจาก fx pool (lunge เก็บ anim ใน anims set → cancel() ที่นี่ trigger cleanup zIndex/transform ในตัวเอง)
+  const end = beats.value[beats.value.length - 1]
   const finalHp = {}; Object.keys(maxHp).forEach(uid => finalHp[uid] = 100)
-  for (const ev of log.value) if (ev.t === 'attack') finalHp[ev.target] = Math.max(0, Math.round((ev.targetHpAfter / (maxHp[ev.target] || 1)) * 100))
+  for (const ev of beats.value) if (ev.t === 'attack') finalHp[ev.target] = Math.max(0, Math.round((ev.targetHpAfter / (maxHp[ev.target] || 1)) * 100))
   hp.value = finalHp
   Object.keys(maxHp).forEach(setDead)                       // sync dead ให้ครบทุกตัวตาม hp สุดท้าย (bulk skip ไม่ได้ผ่าน applyImpact ทีละหมัด)
   round.value = end?.rounds || round.value
-  idx.value = log.value.length
+  idx.value = beats.value.length
   clearTimeout(resultTimer); resultReady.value = true; resultOpen.value = true   // ข้าม = เปิดสรุปทันที
 }
 function inspect(uid) { paused.value = true; clearTimeout(timer); inspectUid.value = uid }
@@ -437,7 +458,7 @@ onUnmounted(() => {
 .me-label { margin-top: 2px; }
 
 .br-team { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-/* ไม่ตั้ง will-change ถาวร — melee lunge (Phase 2b-2) วิ่งผ่าน fx.cardLunge (WAAPI el.animate ตรง ไม่ใช่ CSS transition)
+/* ไม่ตั้ง will-change ถาวร — melee lunge วิ่งผ่าน fx.lunge (WAAPI el.animate ตรง ไม่ใช่ CSS transition)
    browser promote เฉพาะช่วง animation รัน แล้ว release เอง (fill:none คืน layer ทันทีที่จบ) — ไม่มี transition: transform บน .br-unit แล้ว
    เดิม promote ถาวรทั้ง 8 การ์ด = layer เปล่าค้างตลอด → WebKit thrash */
 .br-unit { position: relative; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: rgba(255,255,255,.06); border: 2px solid transparent; border-radius: 16px; transition: border-color .15s; cursor: pointer; }

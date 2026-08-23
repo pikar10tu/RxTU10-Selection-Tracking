@@ -305,23 +305,9 @@ export function createBattleFx() {
       { transform: `translate(${b.x}px, ${b.y}px) scale(.9) translateZ(0)`, opacity: 0 },
     ], { duration: 250, easing: 'cubic-bezier(.2,.7,.3,1.1)', fill: 'forwards' }).then(() => { el.style.opacity = '0' })
   }
-  // melee ข้อยกเว้น: การ์ดจริงพุ่ง out-and-back = 1 animation (fill:none) · z-index set นอก keyframes
-  function cardLunge(el, fromUid, toUid) {
-    const a = centerOf(fromUid), b = centerOf(toUid); if (!el || !a || !b) return Promise.resolve()
-    const dx = (b.x - a.x).toFixed(1), dy = (b.y - a.y).toFixed(1)
-    el.style.zIndex = '7'                         // ยกบนสุด (static ก่อนเริ่ม ไม่อยู่ใน keyframes)
-    const anim = el.animate([
-      { transform: 'translate(0,0) scale(1)' },
-      { transform: `translate(${dx}px, ${dy}px) scale(1.18)`, offset: .5 },
-      { transform: 'translate(0,0) scale(1)' },
-    ], { duration: 500 / rate, easing: 'ease-in-out', fill: 'none' })
-    anims.add(anim)
-    return anim.finished.catch(() => {}).finally(() => { anims.delete(anim); el.style.zIndex = ''; el.style.transform = '' })
-  }
-
   return {
     attach, reset, cancelAll, setRate, setFlags, destroy, centerOf, invalidateCenters,
-    pop, callout, koPuff, ring, burst, projectile, dash, cardLunge,   // cardLunge ยังอยู่ — Task 4 ลบ
+    pop, callout, koPuff, ring, burst, projectile, dash,
     jab, lunge, squashTarget, shake, ko, dangerRing,
   }
 }
