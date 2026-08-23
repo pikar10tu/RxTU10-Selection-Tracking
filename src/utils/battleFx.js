@@ -174,11 +174,14 @@ export function createBattleFx() {
     const el = pool.jab[jabIdx = (jabIdx + 1) % pool.jab.length]
     el.getAnimations?.().forEach(x => x.cancel())
     el.style.opacity = '1'
-    const mx = a.x + (b.x - a.x) * 0.7, my = a.y + (b.y - a.y) * 0.7   // หยุดที่ 70% = ฟีล "เอื้อมไปแตะ"
+    // reduced-motion: ไม่วิ่งข้ามจอ แค่กะพริบที่เป้า (ยังบอกได้ว่าหมัดลงตรงไหน)
+    const sx = reduced() ? b.x : a.x, sy = reduced() ? b.y : a.y
+    const mx = b.x - (b.x - a.x) * 0.3, my = b.y - (b.y - a.y) * 0.3   // หยุดที่ 70% ของทาง
+    const ex = reduced() ? b.x : mx, ey = reduced() ? b.y : my
     return run(el, [
-      { transform: `translate(${a.x}px, ${a.y}px) scale(.3) translateZ(0)`, opacity: .7 },
-      { transform: `translate(${mx}px, ${my}px) scale(.85) translateZ(0)`, opacity: 1, offset: .7 },
-      { transform: `translate(${mx}px, ${my}px) scale(.6) translateZ(0)`, opacity: 0 },
+      { transform: `translate(${sx}px, ${sy}px) scale(.3) translateZ(0)`, opacity: .7 },
+      { transform: `translate(${ex}px, ${ey}px) scale(.85) translateZ(0)`, opacity: 1, offset: .7 },
+      { transform: `translate(${ex}px, ${ey}px) scale(.6) translateZ(0)`, opacity: 0 },
     ], { duration: ms, easing: 'ease-out', fill: 'forwards' }).then(() => { el.style.opacity = '0' })
   }
 
