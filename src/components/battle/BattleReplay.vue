@@ -617,9 +617,10 @@ onUnmounted(() => {
 .br-peek-btn { background: #4f46e5; border-color: #fff; box-shadow: 0 6px 20px rgba(0, 0, 0, .45); }
 
 /* reduced-motion: คงจังหวะ 4 ชั้น ขนาดเลข และ hitstop ไว้ครบ — ตัดเฉพาะของที่เคลื่อนไหว
-   หลอดผีเปลี่ยนจาก "ไล่ตามหลัง" เป็น "จางหาย" ยังบอกปริมาณดาเมจได้เหมือนเดิม */
+   หลอดผีไม่แตะที่นี่โดยตั้งใจ — มัน "ไล่ตามหลัง" ด้วยแค่การ transition แถบบางๆ ไม่ถึง 0.5 วิ
+   ไม่ใช่การเคลื่อนไหวแบบที่ prefers-reduced-motion กันไว้ (จอสั่น/หมุน/พุ่งข้ามจอ) แถมยังบอกดาเมจ
+   ที่เพิ่งกิน — ตัดออกจะเสียข้อมูล ไม่ใช่แค่ลดความหวือหวา จึงปล่อยให้ทำงานปกติทั้งสอง mode */
 @media (prefers-reduced-motion: reduce) {
-  .br-hp-ghost { transition: opacity .4s ease-out .1s; }
   .br-intro-txt.ready, .br-intro-txt.go { animation: none; }
   .br-modal { animation: none; }
   .br-hold-hint { animation: none; }
