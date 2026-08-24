@@ -273,6 +273,28 @@ function buildMax(d) {
   const add = (p, uid) => { const c = buildCombatant(p); maxHp[uid] = Math.round(c.maxHp) || 1; unitAtk[uid] = Math.round(c.atk) }
   ;(d?.botTeam || []).forEach((p, i) => add(p, 'B' + i))
   ;(d?.playerTeam || []).forEach((p, i) => add(p, 'A' + i))
+  if (import.meta.env.DEV) warnTeamMismatch(d)
+}
+
+// ── กันเคส "ทีมที่วาด ≠ ทีมที่ engine สู้ด้วย" (dev เท่านั้น) ──
+// เกิดจริง 24 ส.ค.: useTower อ่าน botTeam (computed ผูกกับ floor) อีกรอบ "หลัง" patchUser ขยับชั้นแล้ว
+// → ชนะชั้น 1 (บอท 1 ตัว) แต่จอวาดการ์ดศัตรู 2 ใบของชั้น 2 · log มีแค่ B0 → ตี B0 ตายแล้วจบทันที
+// อาการฝั่งผู้เล่นคือ "ศัตรูมีสองตัว ตีตายตัวเดียวเกมจบเลย" ซึ่งอ่านไม่ออกเลยว่าเป็นบั๊กที่ไหน
+// เช็คนี้ไม่มีทางเป็น false positive ฝั่ง "log อ้าง uid ที่ไม่มีการ์ด" · ส่วนฝั่ง "การ์ดที่ log ไม่เคยแตะ"
+// เป็นได้จริงถ้าไฟต์จบเร็วมากจนสล็อตท้ายไม่ทันออกตี จึงเตือนเฉยๆ ไม่ throw
+function warnTeamMismatch(d) {
+  const uids = new Set()
+  for (const e of (d?.result?.log || [])) {
+    if (e?.t !== 'attack') continue
+    if (e.attacker) uids.add(e.attacker)
+    if (e.target) uids.add(e.target)
+  }
+  if (!uids.size) return
+  const known = new Set(Object.keys(maxHp))
+  const ghost = [...uids].filter(u => !known.has(u))
+  const idle = [...known].filter(u => !uids.has(u))
+  if (ghost.length) console.error('[BattleReplay] log อ้างถึงตัวที่ไม่มีการ์ดวาดไว้:', ghost.join(', '), '— ทีมที่ส่งเข้ามาไม่ใช่ทีมที่ engine สู้ด้วย')
+  else if (idle.length) console.warn('[BattleReplay] มีการ์ดที่ไม่เคยปรากฏใน log เลย:', idle.join(', '), '— ปกติได้ถ้าไฟต์จบเร็วมาก แต่ถ้าเป็นฝั่งที่แพ้ทั้งทีม แปลว่าทีมที่วาดผิดตัว')
 }
 
 // อุ่น cache+decode asset combat ทั้งหมดก่อนเริ่มเล่น (intro หน่วง ~1.1s) — dash/pop/projectile swap src กลางไฟต์

@@ -44,8 +44,16 @@ export function useTower() {
   async function fight() {
     if (!team.value.length) { toast('จัดทีมก่อนนะ (อย่างน้อย 1 ตัว)', 'info'); return null }
     const cleared = floor.value
+    // ⚠️ ต้องหยิบทีมบอทออกมาเก็บไว้ "ก่อน" patchUser — botTeam เป็น computed ที่ผูกกับ floor
+    //    ซึ่ง patchUser อัปเดต optimistic แบบ synchronous ⇒ อ่าน botTeam.value อีกทีตอน return
+    //    จะได้ทีมของ "ชั้นถัดไป" ไม่ใช่ชั้นที่เพิ่งสู้
+    //    อาการ: ชนะชั้น 1 (บอท 1 ตัว) แล้วจอ replay วาดการ์ดศัตรู 2 ใบของชั้น 2 ทั้งที่ log มีแค่ B0
+    //    → ตี B0 ตาย log จบทันที = "ศัตรูมีสองตัว ตีตายตัวเดียวเกมจบเลย" (เจอจริง 24 ส.ค.)
+    //    ชั้นสูงกว่านั้นจำนวนเท่ากันเลยไม่สะดุดตา แต่สปีชีส์/ธาตุ/maxHp ที่วาดก็ผิดตัวเหมือนกัน
+    //    (หลอดเลือดหดผิดสัดส่วน เพราะ maxHp มาจากเพ็ทคนละตัวกับที่ engine คำนวณ)
+    const bots = botTeam.value
     const seed = Date.now()
-    const result = simulateBattle(team.value, botTeam.value, seed)
+    const result = simulateBattle(team.value, bots, seed)
     const won = result.winner === 'A'
     await recordStats(result, team.value, won)
     if (won) {
@@ -57,7 +65,7 @@ export function useTower() {
       )
       syncRosterRow()   // อัปแถวตัวเองในบอร์ด (เขียนเฉพาะตอนค่าเปลี่ยนจริง)
     }
-    return { result, botTeam: botTeam.value, playerTeam: team.value, won, cleared }
+    return { result, botTeam: bots, playerTeam: team.value, won, cleared }
   }
 
   return { floor, best, team, botTeam, bonus, fight, TOWER_MAX }
