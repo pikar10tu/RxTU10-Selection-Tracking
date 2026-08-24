@@ -426,6 +426,24 @@
                   :class="{ on: fxPrefs.pace === n }" @click="pickPace(n)">{{ PACE_LABEL[n] }}</button>
         </div>
 
+        <div class="admin-hint"><b>ท่าชน</b> — ยิงไฟต์เดิมทีละแบบแล้วบอกว่าชอบตัวไหน</div>
+        <div class="fxlab-row">
+          <button v-for="n in styleNames" :key="n" class="btn-mini"
+                  :class="{ on: fxPrefs.style === n }" @click="pickStyle(n)">{{ MOTION_STYLES[n].label }}</button>
+        </div>
+        <div class="admin-hint fxlab-note">{{ MOTION_STYLES[fxPrefs.style].hint }}</div>
+
+        <!-- เครื่องที่เปิด Reduce Motion จะไม่เห็นการ์ดพุ่งเลยไม่ว่าเลือกแบบไหน — ถ้าไม่บอกตรงนี้
+             คนเทสจะสรุปว่า "ทุกแบบเหมือนกันหมด/ไม่มีอะไรขยับ" ซึ่งเป็นคนละเรื่องกับท่าชน -->
+        <div v-if="reduceMotionOn" class="fxlab-warn">
+          ⚠️ เครื่องนี้เปิด <b>Reduce Motion</b> อยู่ (iOS: Settings → Accessibility → Motion) —
+          ระบบจะตัดการ์ดพุ่ง/จอสั่น/ดาวทิ้งทั้งหมด ทำให้ทุกแบบดูเหมือนกัน
+          <label class="fxlab-check">
+            <input type="checkbox" :checked="fxPrefs.motionOverride" @change="toggleMotionOverride">
+            เทสท่าชนโดยไม่สนค่านี้ (เฉพาะเครื่องนี้ · นักศึกษาที่เปิด Reduce Motion ยังได้แบบตัดการเคลื่อนไหวเหมือนเดิม)
+          </label>
+        </div>
+
         <button class="btn-mini" @click="runTestFight">▶ ยิงไฟต์ทดสอบ</button>
       </section>
     </template>
@@ -459,7 +477,7 @@ import { distinctCategories } from '../utils/questionsFilter.js'
 import { useTopics } from '../composables/useTopics.js'
 import BattleReplay from '../components/battle/BattleReplay.vue'
 import { simulateBattle } from '../utils/battleEngine.js'
-import { FX_PRESETS, PACE_PRESETS, readPrefs, writePrefs } from '../utils/battleReplayPrefs.js'
+import { FX_PRESETS, PACE_PRESETS, MOTION_STYLES, FX_LABEL, PACE_LABEL, readPrefs, writePrefs } from '../utils/battleReplayPrefs.js'
 
 const authStore = useAuthStore()
 const members   = useMembersStore()
@@ -472,12 +490,15 @@ const { addTopics } = useTopics()
 // ── ห้องแล็บจังหวะไฟต์ (§11 ของสเปก battle-replay-pacing) ──
 // ค่าที่เลือกเก็บใน localStorage ของเครื่องนี้เท่านั้น ไม่แตะ config/app → นักศึกษาที่กำลังเล่นอยู่ไม่โดนผลกระทบ
 const fxPrefs = ref(readPrefs())
-const FX_LABEL = { high: 'สวยสุด', mid: 'กลาง', low: 'เบา' }
-const PACE_LABEL = { grand: 'อลังการ', normal: 'กลาง', tight: 'กระชับ' }
 const fxNames = Object.keys(FX_PRESETS)
 const paceNames = Object.keys(PACE_PRESETS)
+const styleNames = Object.keys(MOTION_STYLES)
 function pickFx(name) { fxPrefs.value = writePrefs({ ...fxPrefs.value, fx: name }) }
 function pickPace(name) { fxPrefs.value = writePrefs({ ...fxPrefs.value, pace: name }) }
+function pickStyle(name) { fxPrefs.value = writePrefs({ ...fxPrefs.value, style: name }) }
+function toggleMotionOverride(e) { fxPrefs.value = writePrefs({ ...fxPrefs.value, motionOverride: e.target.checked }) }
+// อ่านครั้งเดียวตอนเปิดหน้า — คนไปสลับใน Settings แล้วกลับมาต้องรีเฟรช ซึ่งเป็นสิ่งที่เขาทำอยู่แล้วตอนเทส
+const reduceMotionOn = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
 // ไฟต์ทดสอบ: เคสหนักสุดเท่าที่ทำได้ — เพ็ททั้ง 8 ตัวเป็น melee ล้วน (ไม่มี atkStyle:"ranged" ซึ่งไม่แตะการ์ดเลย)
 // ธาตุคละกันโดยตั้งใจ → เกิดแพ้ทางบ่อย → หมัดชั้น heavy เยอะ → จอสั่น+เป้าบีบตัวถี่สุด
@@ -1137,6 +1158,11 @@ async function saveEcon(m) {
 .btn-gray { background: #fff; color: var(--ink); }
 .fxlab-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
 .fxlab-row .btn-mini.on { background: var(--ink); color: #fff; }
+.fxlab-note { margin: 6px 0 10px; }
+.fxlab-warn { font-size: .72rem; line-height: 1.5; color: #92400e; background: rgba(245,158,11,.12);
+  border: 1px solid rgba(245,158,11,.35); border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; }
+.fxlab-check { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; cursor: pointer; }
+.fxlab-check input { margin-top: 2px; flex: none; }
 .log-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .log-row { padding: 8px 10px; border-radius: 10px; background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.18); }
 .log-main { font-size: .8rem; }

@@ -1,7 +1,8 @@
 // battleFx.js — motion layer ของ BattleReplay (plain JS ไม่พึ่ง Vue)
 // doctrine: pool element promote ถาวร reuse · ขับด้วย WAAPI transform/opacity เท่านั้น · promise resolve เสมอ · one-way (Vue→fx)
 import { fluentFile } from './emoji.js'
-import { fxFlags, REDUCED_FLAGS } from './battleReplayPrefs.js'
+import { fxFlags, REDUCED_FLAGS, DEFAULT_PREFS } from './battleReplayPrefs.js'
+import { lungeKeyframes, squashKeyframes, targetReactsIn } from './battleMotion.js'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -10,11 +11,15 @@ export function createBattleFx() {
   const anims = new Set()               // active WAAPI (สำหรับ cancelAll)
   let centers = {}, boxRect = null
   let flags = fxFlags(undefined)                    // ค่าเริ่มต้นจาก DEFAULT_PREFS จนกว่า component จะเรียก setFlags
+  let styleName = DEFAULT_PREFS.style               // ท่าชน (แบบ A/B/C/D) — ดู MOTION_STYLES
+  let ignoreReduced = false                         // ⚠️ ห้องแล็บเท่านั้น: เทียบท่าชนบนเครื่องที่เปิด Reduce Motion ไว้
   const reducedMQ = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null
-  const reduced = () => !!(reducedMQ && reducedMQ.matches)
+  const reduced = () => !ignoreReduced && !!(reducedMQ && reducedMQ.matches)
   // อ่าน flag ผ่านตัวนี้เสมอ — reduced-motion ทับ preset ที่ user เลือกได้ตลอด
   const F = (k) => (reduced() ? REDUCED_FLAGS[k] : flags[k])
   function setFlags(f) { flags = { ...flags, ...(f || {}) } }
+  function setStyle(name) { styleName = name }      // ชื่อมั่ว = motionStyle() ตกกลับให้เองทุกจุดที่อ่าน
+  function setReducedOverride(v) { ignoreReduced = !!v }
 
   // ── centers cache (ย้ายมาจาก BattleReplay) ──
   function invalidateCenters() { centers = {}; boxRect = null }
@@ -193,31 +198,14 @@ export function createBattleFx() {
   }
 
   // ── การ์ดพุ่ง: 1 animation ครอบ windup+motion+hitstop+tail ทั้งก้อน (ข้อบังคับ v3 — 1 promotion/หมัด) ──
-  // ท่าต่อชั้น: pull = ถอยหลังกี่ px · psx/psy = สเกลตอนย่อ · sx/sy = สเกลตอนพุ่งถึง (ยืดตามทิศ)
-  const LUNGE_POSE = {
-    solid:  { pull: 14, psx: 1.06, psy: 0.90, sx: 0.90, sy: 1.18 },
-    heavy:  { pull: 24, psx: 1.12, psy: 0.94, sx: 0.82, sy: 1.30 },
-    finish: { pull: 28, psx: 1.16, psy: 0.92, sx: 0.80, sy: 1.34 },
-  }
+  // รูปร่าง keyframes (ระยะที่พุ่งถึง/จังหวะกลับ/เด้ง/เอียง) อยู่ใน battleMotion.js เพราะเป็น pure = เทสได้
+  // ที่นี่เหลือแค่ "หา element + วัดพิกัด + ยิง WAAPI + เก็บกวาด"
   function lunge(el, fromUid, toUid, timing, tier) {
     if (!F('cardLunge') || !el) return Promise.resolve()
-    const P = LUNGE_POSE[tier]; if (!P) return Promise.resolve()      // chip ไม่มีท่า = ไม่พุ่ง
     const a = centerOf(fromUid), b = centerOf(toUid); if (!a || !b) return Promise.resolve()
+    const kf = lungeKeyframes(styleName, tier, timing, { x: b.x - a.x, y: b.y - a.y })
+    if (!kf) return Promise.resolve()            // แบบนี้ไม่ให้ชั้นนี้ขยับการ์ด (เช่น chip ในแบบ A)
     const total = timing.windup + timing.motion + timing.hitstop + timing.tail
-    if (total <= 0) return Promise.resolve()
-    const dx = (b.x - a.x).toFixed(1), dy = (b.y - a.y).toFixed(1)
-    const o1 = timing.windup / total
-    const o2 = (timing.windup + timing.motion) / total
-    const o3 = (timing.windup + timing.motion + timing.hitstop) / total
-    const hit = `translate(${dx}px, ${dy}px) scale(${P.sx}, ${P.sy})`
-    // เฟรม o2→o3 ซ้ำท่าเดิม = การ์ดหยุดนิ่งช่วง hitstop โดยไม่ต้องแตกเป็น animation ที่สอง
-    const kf = [
-      { transform: 'translate(0,0) scale(1)', offset: 0 },
-      { transform: `translate(0, ${P.pull}px) scale(${P.psx}, ${P.psy})`, offset: o1 },
-      { transform: hit, offset: o2 },
-      { transform: hit, offset: o3 },
-      { transform: 'translate(0,0) scale(1)', offset: 1 },
-    ]
     el.style.zIndex = '7'                        // static ก่อนเริ่ม ไม่อยู่ใน keyframes (ข้อบังคับ v3)
     const anim = el.animate(kf, { duration: total, easing: 'ease-in-out', fill: 'none' })
     anims.add(anim)
@@ -226,19 +214,26 @@ export function createBattleFx() {
     })
   }
 
-  // ── เป้าบีบตัวแล้วดีดกลับ — ชั้น heavy/finish เท่านั้น (preset high) ──
-  // ⚠️ คืน null เมื่อไม่ได้เล่นอะไร (flag ปิด / ไม่มี el) — ห้ามคืน Promise.resolve()
+  // ── เป้าถูกกระแทกถอย + บีบตัวแล้วดีดกลับ — ชั้นไหนบ้างขึ้นกับท่าชน (แบบ A = heavy/finish เท่านั้น เหมือนเดิม) ──
+  // ชั้นไหนที่การ์ดเป้า "มีปฏิกิริยา" ภายใต้ preset+ท่าชนปัจจุบัน — ฝั่ง BattleReplay ใช้ตัดสินใจว่าต้องรอเฟรมมั้ย
+  // (เดิม hardcode heavy/finish ไว้สองที่ พอแบบ B/C/D ให้ชั้น solid ถอยด้วย ก็ต้องมีที่เดียวที่ตอบคำถามนี้)
+  function targetReacts(tier) {
+    return F('targetSquash') && targetReactsIn(styleName, tier)
+  }
+  // ⚠️ คืน null เมื่อไม่ได้เล่นอะไร (flag ปิด / ไม่มี el / ท่าชนไม่แตะชั้นนี้) — ห้ามคืน Promise.resolve()
   //    เพราะ promise ที่ resolve แล้วยัง truthy → ฝั่งเรียกแยกไม่ออกว่า "รออนิเมชัน" กับ "ไม่มีอนิเมชันให้รอ"
   //    ผลคือ preset mid/low (targetSquash:false) จะถอด flash ทิ้งใน microtask ถัดไป = เฟรมเดียวกับที่เพิ่งใส่
-  function squashTarget(el, tier, ms = 400) {
+  function squashTarget(el, tier, ms = 400, fromUid, toUid) {
     if (!F('targetSquash') || !el) return null
-    const amt = tier === 'finish' ? 0.5 : 0.36
-    const anim = el.animate([
-      { transform: 'scale(1)' },
-      { transform: `scale(${(1 + amt * 0.5).toFixed(3)}, ${(1 - amt).toFixed(3)})`, offset: .3 },
-      { transform: `scale(${(1 - amt * 0.3).toFixed(3)}, ${(1 + amt * 0.4).toFixed(3)})`, offset: .6 },
-      { transform: 'scale(1)' },
-    ], { duration: ms, easing: 'cubic-bezier(.3,1.4,.5,1)', fill: 'none' })
+    // ทิศกระแทก = แนวเดียวกับที่ผู้ตีพุ่งเข้ามา (นี่คือครึ่งที่ขาดไปของคำว่า "ชน")
+    let unit = null
+    if (fromUid && toUid) {
+      const a = centerOf(fromUid), b = centerOf(toUid)
+      if (a && b) { const l = Math.hypot(b.x - a.x, b.y - a.y) || 1; unit = { x: (b.x - a.x) / l, y: (b.y - a.y) / l } }
+    }
+    const kf = squashKeyframes(styleName, tier, unit)
+    if (!kf) return null
+    const anim = el.animate(kf, { duration: ms, easing: 'cubic-bezier(.3,1.4,.5,1)', fill: 'none' })
     anims.add(anim)
     return anim.finished.catch(() => {}).finally(() => { anims.delete(anim); el.style.transform = '' })
   }
@@ -329,8 +324,8 @@ export function createBattleFx() {
     ], { duration: 250, easing: 'cubic-bezier(.2,.7,.3,1.1)', fill: 'forwards' }).then(() => { el.style.opacity = '0' })
   }
   return {
-    attach, reset, cancelAll, setRate, setFlags, destroy, centerOf, invalidateCenters,
+    attach, reset, cancelAll, setRate, setFlags, setStyle, setReducedOverride, destroy, centerOf, invalidateCenters,
     pop, callout, koPuff, ring, burst, projectile, dash,
-    jab, lunge, squashTarget, shake, ko, dangerRing, dangerClearAll,
+    jab, lunge, squashTarget, targetReacts, shake, ko, dangerRing, dangerClearAll,
   }
 }

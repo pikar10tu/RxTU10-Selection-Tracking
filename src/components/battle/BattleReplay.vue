@@ -15,6 +15,9 @@
         <span class="br-intro-txt" :class="introPhase">{{ introPhase === 'ready' ? 'READY?' : 'GO!' }}</span>
       </div>
       <div class="br-round" v-if="!done">รอบ {{ round }}</div>
+      <!-- ป้ายบอกว่ากำลังดูค่าชุดไหนอยู่ — โผล่เฉพาะไฟต์ทดสอบในห้องแล็บ (fpsMeter/?fps=1)
+           เทียบท่าชน 4 แบบติดกันแล้วจำไม่ได้ว่ากำลังดูอันไหน = เทสเสียเปล่าทั้งรอบ -->
+      <div v-if="showFps" class="br-lab-tag">{{ labTag }}</div>
       <div v-if="showFps" class="br-fps" :class="{ bad: fpsWorst > 33, warn: fpsWorst > fpsDropAt && fpsWorst <= 33 }">{{ fpsWorst }}ms</div>
 
       <div class="br-side foe-label"><i class="dot foe"></i> ศัตรู</div>
@@ -137,7 +140,7 @@ import { computeBattleSummary } from '../../utils/battleSummary.js'
 import { fluentFile } from '../../utils/emoji.js'
 import { createBattleFx } from '../../utils/battleFx.js'
 import { buildBeats, scaleTiming } from '../../utils/battleBeats.js'
-import { readPrefs, fxFlags, paceMult } from '../../utils/battleReplayPrefs.js'
+import { readPrefs, fxFlags, paceMult, motionStyle, FX_LABEL, PACE_LABEL } from '../../utils/battleReplayPrefs.js'
 import { createFrameMeter, FALLBACK_BASE, DROP_RATIO } from '../../utils/frameMeter.js'
 
 const props = defineProps({
@@ -234,12 +237,17 @@ let fx = null
 let attachedLayer = null           // .br-fx-layer element ที่ fx ผูกอยู่ตอนนี้ — เทียบกันจับ layer remount (overlay v-if สร้าง DOM ใหม่ทุกไฟต์)
 function ensureFx() {
   if (!boxRef.value || !fxLayerEl.value) return
-  if (fx && attachedLayer === fxLayerEl.value) return    // attach แล้วกับ layer ปัจจุบัน — ข้าม
-  if (fx) fx.destroy()                                    // layer เปลี่ยน (ไฟต์ใหม่ remount .br-fx-layer) → ทิ้งของเก่า (listener/pool) ก่อนสร้างใหม่
-  fx = createBattleFx()
-  fx.attach({ boxEl: boxRef.value, layerEl: fxLayerEl.value, getEl: uid => els[uid] || null })
+  if (!fx || attachedLayer !== fxLayerEl.value) {
+    if (fx) fx.destroy()                                  // layer เปลี่ยน (ไฟต์ใหม่ remount .br-fx-layer) → ทิ้งของเก่า (listener/pool) ก่อนสร้างใหม่
+    fx = createBattleFx()
+    fx.attach({ boxEl: boxRef.value, layerEl: fxLayerEl.value, getEl: uid => els[uid] || null })
+    attachedLayer = fxLayerEl.value
+  }
+  // ⚠️ ต้องอยู่นอก if — ยิงไฟต์ใหม่ "โดยไม่ปิด overlay" (ปุ่มยิงซ้ำในห้องแล็บ) จะได้ layer เดิม
+  // ของเดิม set flag เฉพาะตอน attach ครั้งแรก → เปลี่ยน preset แล้วกดยิงซ้ำจะยังเล่นด้วยค่าเก่าทั้งไฟต์
   fx.setFlags(fxFlags(prefs.value.fx))
-  attachedLayer = fxLayerEl.value
+  fx.setStyle(prefs.value.style)
+  fx.setReducedOverride(prefs.value.motionOverride === true)
 }
 
 // ── การ์ดสไตล์ Hearthstone: ATK/HP เป็นเลข + หลอดเลือดขีดทุก 50 HP ──
@@ -342,7 +350,7 @@ const handlers = {
 // เวลามาตรฐานของอนิเมชันการ์ดเป้าตามสเปก (§4 ชั้น 3–4) — postMs ใช้เป็น "เพดาน" ไม่ใช่ตัวค่าเอง
 // เหตุที่เคยเอา postMs มาเป็นค่าตรงๆ คือกันอนิเมชันล้นออกนอก beat ตัวเอง ซึ่งเป็นเหตุผลของ "เพดาน" ไม่ใช่ "ค่าแทน"
 // ปล่อยตามเดิม heavy ได้ 850ms / finish ได้ 1320ms — บีบ-ดีดกลับยาว 1.3 วิ อ่านเป็น "เนือย" ไม่ใช่ "หนัก"
-const SQUASH_MS = { heavy: 420, finish: 520 }
+const SQUASH_MS = { solid: 260, heavy: 420, finish: 520 }
 const KO_MS = 520
 const FLASH_MS = 250            // อายุสูงสุดของกรอบแดงตอนโดน (เมื่อไม่มีอนิเมชันการ์ดให้ผูกอายุด้วย)
 const FRAME_MS = 17             // งบ 1 เฟรมที่เลื่อนอนิเมชันการ์ดออกไป (ดู applyImpact) — ต้องหักจากงบเวลาที่เหลือของ beat
@@ -387,7 +395,8 @@ function applyImpact(beat, g, t) {
   // ── 3) อนิเมชันการ์ดเป้า ──
   // beat.kill ตัด squashTarget ทิ้งเสมอ (ไม่ว่าชั้นไหน) เพราะ ko() ครอบการ์ดใบเดียวกันแล้ว
   // — ยิง animate() 2 ครั้งบนการ์ดใบเดียวกันผิดกฎ "1 หมัด 1 animation/การ์ด" (ข้อบังคับ v3, พบโดยผู้รีวิว Task 3)
-  const wantsCardAnim = beat.kill || beat.tier === 'heavy' || beat.tier === 'finish'
+  // ท่าชนแบบ B/C/D ให้ชั้น solid ถอยหลังด้วย → ถามจาก fx ที่เดียว แทน hardcode ชั้นไว้ตรงนี้
+  const wantsCardAnim = beat.kill || (fx ? fx.targetReacts(beat.tier) : (beat.tier === 'heavy' || beat.tier === 'finish'))
   if (!wantsCardAnim) {
     setDead(beat.target)                        // ไม่มีอนิเมชันการ์ดตามมา = ใส่ได้เลย (ปกติเป็น no-op เพราะยังไม่ตาย)
     later(flashOff, Math.min(FLASH_MS, postMs)) // ⚠️ ผูกกับ beat: 250ms ตายตัวจะล้นเข้า beat ถัดไป (chip ทั้ง beat 320ms)
@@ -403,7 +412,7 @@ function applyImpact(beat, g, t) {
     if (idx.value !== myIdx) { flashOff(); return }
     let targetAnim = null                       // null = ไม่มีอนิเมชันจริง (preset ปิด/ไม่มี el) — ไม่ใช่ promise ที่ resolve แล้ว
     if (beat.kill) targetAnim = fx?.ko(beat.target, tgtEl, Math.min(KO_MS, cardMs))
-    else targetAnim = fx?.squashTarget(tgtEl, beat.tier, Math.min(SQUASH_MS[beat.tier] ?? 420, cardMs))
+    else targetAnim = fx?.squashTarget(tgtEl, beat.tier, Math.min(SQUASH_MS[beat.tier] ?? 420, cardMs), beat.attacker, beat.target)
     // การ์ดเป้ามี animate() ต่อ ก็รอมันจบก่อนถอด flash กัน border-color ชนกลางอากาศ (ข้อบังคับ v3)
     if (targetAnim) targetAnim.then(flashOff)
     else later(flashOff, Math.min(FLASH_MS, cardMs))
@@ -432,7 +441,12 @@ async function applyAttack(beat) {
   highlight(beat.attacker, 'acting')
 
   if (ranged) fx?.projectile(beat.attacker, beat.target, projectileOf(def), t.motion)
-  else if (beat.tier === 'chip') fx?.jab(beat.attacker, beat.target, t.motion)
+  else if (beat.tier === 'chip') {
+    // ชั้นถากไม่มี windup (t.windup = 0) → จุดนี้คือ "ต้น beat" พอดี lunge จึงยังครอบทั้ง beat ตามข้อบังคับ v3
+    // แบบ A คืนทันทีเพราะ chipReach = 0 (การ์ดไม่ขยับเลย เหมือนเดิมเป๊ะ)
+    fx?.lunge(els[beat.attacker], beat.attacker, beat.target, t, 'chip')
+    fx?.jab(beat.attacker, beat.target, t.motion)
+  }
   // melee ชั้นอื่น: การ์ดพุ่งอยู่แล้วจาก lunge() ด้านบน ไม่ต้องยิงอะไรเพิ่ม
 
   await wait(t.motion); if (g !== gen) return
@@ -513,6 +527,13 @@ const insp = computed(() => {
 //     และ peak ยังกลืนเอาเฟรมกระตุกตอนโมดัลเด้งเข้ามาเป็น "เฟรมแย่สุดของไฟต์" อีก
 //     ตอนนี้หยุดนับตอนไฟต์จบ แล้ว snapshot ค่าลง ref ทีเดียว — เลขในสรุป = เลขของไฟต์ที่เพิ่งเล่นจบ นิ่งสนิท
 const showFps = computed(() => new URLSearchParams(location.search).has('fps') || props.data?.fpsMeter === true)
+// ป้ายห้องแล็บ: บอกว่าไฟต์ที่กำลังดูอยู่นี้ใช้ค่าชุดไหน + เตือนถ้าเครื่องกำลังตัดการเคลื่อนไหวทิ้งอยู่
+// (ไม่งั้น "ทุกแบบเหมือนกันหมด" จะถูกตีความว่าท่าชนไม่ต่างกัน ทั้งที่ระบบตัดทิ้งไปก่อนแล้ว)
+const labTag = computed(() => {
+  const p = prefs.value
+  const cut = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches && !p.motionOverride
+  return `${motionStyle(p.style).label} · ${FX_LABEL[p.fx] || p.fx} · ${PACE_LABEL[p.pace] || p.pace}${cut ? ' · ⚠️ Reduce Motion ตัดการเคลื่อนไหวอยู่' : ''}`
+})
 const fpsWorst = ref(0)     // เฟรมแย่สุดในหน้าต่าง ~1 วิ (ป้ายสดมุมจอ)
 const fpsDropAt = ref(FALLBACK_BASE * DROP_RATIO)   // เกณฑ์ "สะดุด" ที่คำนวณจากจอเครื่องนี้
 const fpsBase = ref(0)      // คาบเฟรมของจอเครื่องนี้ (0 = ยังจูนศูนย์ไม่เสร็จ)
@@ -598,6 +619,9 @@ onUnmounted(() => {
 /* FPS meter (?fps=1) — เขียว=ลื่น เหลือง=หลุด 60fps แดง=ต่ำกว่า 30fps (กระตุกชัด) */
 .br-fps { position: absolute; top: 2px; right: 4px; z-index: 11; font-size: .7rem; font-weight: 800; font-variant-numeric: tabular-nums;
   color: #34d399; background: rgba(0,0,0,.55); border-radius: 7px; padding: 2px 6px; pointer-events: none; }
+/* ป้ายค่าชุดที่กำลังเทส — อยู่ใต้ "รอบ N" ไม่ทับ fps (ขวาบน) และไม่ทับป้ายเร่ง (ซ้ายบน) */
+.br-lab-tag { text-align: center; font-size: .7rem; font-weight: 700; color: rgba(255,255,255,.6);
+  margin: -4px 0 2px; pointer-events: none; }
 .br-fps.warn { color: #fbbf24; }
 .br-fps.bad { color: #f87171; }
 .br-fps-sum { text-align: center; font-size: .72rem; color: rgba(255,255,255,.72); font-variant-numeric: tabular-nums;
