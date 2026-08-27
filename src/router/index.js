@@ -11,6 +11,7 @@ const routes = [
     { path: '/play',      name: 'play',      component: () => import('../views/PlayView.vue')      },
     { path: '/study',     name: 'study',     component: () => import('../views/StudyView.vue')     },
     { path: '/study/crcl', name: 'crcl', component: () => import('../views/CrClTrainerView.vue') },
+    { path: '/study/time-attack', name: 'timeAttack', component: () => import('../views/TimeAttackView.vue') },
     { path: '/quiz',      name: 'quiz',      component: () => import('../views/QuizView.vue')      },
     { path: '/questions', name: 'questions', component: () => import('../views/QuestionsView.vue') },
     { path: '/review',    name: 'review',    component: () => import('../views/ReviewView.vue')    },
