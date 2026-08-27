@@ -25,6 +25,7 @@
         <div v-for="(p, i) in data.botTeam" :key="'B'+i" :ref="el => setEl('B'+i, el)"
              class="br-unit foe" @click="inspect('B'+i)">
           <span class="br-el"><Emoji :char="elEmoji(p)" /></span>
+          <span v-if="skillIcon(p)" class="br-skill-dot"><Emoji :char="skillIcon(p)" /></span>
           <span class="br-face"><Emoji :char="defOf(p.id).emoji" /></span>
           <div class="br-hp">
             <div class="br-hp-ghost" :style="{ transform: 'scaleX(' + hpPct('B'+i) / 100 + ')' }"></div>
@@ -41,6 +42,7 @@
         <div v-for="(p, i) in data.playerTeam" :key="'A'+i" :ref="el => setEl('A'+i, el)"
              class="br-unit me" @click="inspect('A'+i)">
           <span class="br-el"><Emoji :char="elEmoji(p)" /></span>
+          <span v-if="skillIcon(p)" class="br-skill-dot"><Emoji :char="skillIcon(p)" /></span>
           <span class="br-face"><Emoji :char="defOf(p.id).emoji" /></span>
           <div class="br-hp">
             <div class="br-hp-ghost" :style="{ transform: 'scaleX(' + hpPct('A'+i) / 100 + ')' }"></div>
@@ -51,6 +53,20 @@
         </div>
       </div>
       <div class="br-side me-label"><i class="dot me"></i> ทีมคุณ</div>
+
+      <!-- สปอตไลต์สกิล — หรี่ฉากแล้วชูแบนเนอร์ให้อ่านก่อน ผลค่อยลงทีหลัง
+           🚫 ห้ามใช้ backdrop-filter/blur ตรงนี้เด็ดขาด — เป็นตัวฆ่าเฟรมบน iOS Safari (ดูเคสกระตุก v3)
+           อยู่ "ใต้" fx layer เพื่อให้เลข/ประกายของผลที่ลงตามมาไม่ถูกฉากหรี่กลบ -->
+      <div v-if="spot" class="br-spot" :class="{ out: spotOut }" :style="spotStyle" aria-hidden="true">
+        <div class="br-spot-dim"></div>
+        <div class="br-spot-card">
+          <div class="br-spot-top">
+            <span class="br-spot-icon"><Emoji :char="spot.icon" /></span>
+            <span class="br-spot-name">{{ spot.name }}</span>
+          </div>
+          <div v-if="spot.desc" class="br-spot-desc">{{ spot.desc }}</div>
+        </div>
+      </div>
 
       <!-- fx pool layer (pops/callouts/koPuff/projectile) — พิกัดสัมพัทธ์กับ .br-box -->
       <div class="br-fx-layer" ref="fxLayerEl"></div>
@@ -113,7 +129,7 @@
     </div>
 
     <!-- inspect popover — pause + ดูสเตตัส combat จริง + ช่อง passive (รอบนี้ยังว่าง '—') -->
-    <div v-if="inspectUid && insp" class="br-inspect" @click.self="inspectUid = null">
+    <div v-if="inspectUid && insp" class="br-inspect" @click.self="closeInspect">
       <div class="br-card">
         <div class="br-card-emoji"><Emoji :char="insp.def.emoji" /></div>
         <div class="br-card-name">{{ insp.def.name }}</div>
@@ -121,8 +137,10 @@
         <div class="br-card-row"><span>ระดับ</span><b>{{ rarityLabel(insp.def.rarity) }} · เกรด {{ GRADE_LABELS[Math.min(5, Math.max(0, insp.grade || 0))] }}</b></div>
         <div class="br-card-row"><span>พลังโจมตี</span><b>{{ insp.atk }}</b></div>
         <div class="br-card-row"><span>พลังชีวิต</span><b>{{ insp.hpNow }} / {{ insp.hpMax }}</b></div>
-        <div class="br-card-pass"><span>Passive</span><b>{{ insp.passive ? insp.passive.name : 'เร็วๆ นี้' }}</b></div>
-        <button class="br-btn sm" @click="inspectUid = null">ปิด</button>
+        <div class="br-card-pass"><span>ทักษะเฉพาะ</span><b>{{ insp.passive ? insp.passive.name : 'ตัวนี้ยังไม่มี' }}</b></div>
+        <!-- เดิมโชว์แค่ชื่อ เปิดมาก็ยังไม่รู้อยู่ดีว่าสกิลทำอะไร — passiveText() เติมเลขจริงของขั้นให้แล้ว -->
+        <div v-if="insp.passive" class="br-card-passdesc">{{ passiveText(insp.passive) }}</div>
+        <button class="br-btn sm" @click="closeInspect">ปิด</button>
       </div>
     </div>
   </div>
@@ -134,6 +152,7 @@ import { useEscapeKey } from '../../composables/useEscapeKey.js'
 import Emoji from '../shared/Emoji.vue'
 import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import { getPetDef, atkStyleOf, projectileOf, passiveOf, sparkOf, ELEMENTS, EL_NAME, GRADE_LABELS } from '../../data/index.js'
+import { passiveText } from '../../data/petPassives.js'
 import { RARITY } from '../../data/index.js'
 import { buildCombatant } from '../../data/battle.js'
 import { computeBattleSummary } from '../../utils/battleSummary.js'
@@ -198,9 +217,17 @@ function onHoldEnd(e) {
 }
 const hp = ref({})
 const inspectUid = ref(null)
+let pausedBeforeInspect = false  // คนกด ⏸️ เองอยู่ก่อนแล้วหรือเปล่า — ปิด inspect แล้วต้องคืนสถานะนั้น ไม่ใช่เล่นต่อดื้อ ๆ
+// สปอตไลต์สกิล — แบนเนอร์ที่ขึ้นก่อน แล้วผลค่อยลง (ชั้น spotlight ของ battleBeats)
+const spot = ref(null)           // { icon, name, desc } · null = ไม่มีสปอตไลต์อยู่
+const spotOut = ref(false)       // true = กำลังเลื่อนออก (เฟสผลลง)
+// ความยาวอนิเมชันผูกกับ beat.timing จริง (ไม่ใช่ค่าคงที่ใน CSS) — ไม่งั้นพอ pace ไม่ใช่ ×1
+// แบนเนอร์จะยังเลื่อนเข้าไม่เสร็จตอนช่วงค้างอ่านหมดแล้ว
+const spotStyle = ref({})
 const introPhase = ref(null)   // 'ready' | 'go' | null (null = เริ่มเล่น log แล้ว)
 const resultOpen = ref(false)
 useEscapeKey(resultOpen, () => { resultOpen.value = false })    // modal สรุปโชว์อยู่
+useEscapeKey(() => !!inspectUid.value, () => closeInspect())     // ปิด inspect แล้วไฟต์ต้องเดินต่อเหมือนกดปุ่มปิด
 const resultReady = ref(false)   // จบไฟต์+ผ่านจังหวะรอแล้ว — ใช้โชว์ปุ่มลอย "ดูสรุป" ตอน peek
 let resultTimer = null
 let introTimer = null
@@ -226,7 +253,7 @@ function setEl(uid, el) { if (el) els[uid] = el }
 // ── ไฮไลต์ (Phase 2b): classList ตรงบน els[uid] แทน reactive ref (acting/winding/flashing) ──
 // ตัด Vue reactivity ออกจาก path ที่วิ่งทุกหมัด — toggle class ตรงถูกกว่า set ref แล้วรอ re-render
 function highlight(uid, cls, on = true) { const el = els[uid]; if (el) el.classList[on ? 'add' : 'remove'](cls) }
-function clearHighlights() { Object.values(els).forEach(el => el && el.classList.remove('windup', 'acting', 'flash')) }
+function clearHighlights() { Object.values(els).forEach(el => el && el.classList.remove('windup', 'acting', 'flash', 'spotlit')) }
 // dead ก็ imperative classList เหมือนกัน (ไม่ใช่ reactive :class แล้ว) — กัน Vue re-render เขียนทับ flash/acting/windup ตอน hp เปลี่ยน (Task 9 finding #1)
 function setDead(uid) { highlight(uid, 'dead', (hp.value[uid] ?? 100) <= 0) }
 
@@ -326,7 +353,7 @@ function reset() {
   Object.values(els).forEach(el => { if (el) { el.style.transform = ''; el.style.transition = ''; el.style.zIndex = '' } })  // ล้าง lunge ค้างจากไฟต์ก่อน (component ถูก mount ค้างไว้ ใช้ซ้ำ)
   clearHighlights()                                                         // ล้างคลาส windup/acting/flash ค้าง
   idx.value = 0; round.value = 1
-  paused.value = false; inspectUid.value = null
+  paused.value = false; inspectUid.value = null; pausedBeforeInspect = false; clearSpot()
   ffActive.value = false; holdHint.value = false                             // เคลียร์โหมดเร่ง/คำใบ้ค้างจากไฟต์ก่อน
   clearTimeout(holdTimer); clearTimeout(hintTimer)
   const h = {}; Object.keys(maxHp).forEach(uid => { h[uid] = 100 }); hp.value = h
@@ -368,15 +395,63 @@ const handlers = {
   // ตัวที่รอดมาด้วยเลือด ≤25% ไม่เคยถูกสั่งปิดวงแหวน (dangerRing(uid,false) เรียกเฉพาะตอนตาย)
   // → เดิมวงแหวน iterations:Infinity เต้นค้างผ่านหน้าสรุป/ตอน peek ยาวจนกว่าจะ reset() (§5.2 บอกให้ปิดตอนจบไฟต์)
   end() { clearHighlights(); fx?.dangerClearAll() },
-  // passive — timing ZERO จาก battleBeats ⇒ ยิง FX แล้วคืนทันที ไม่กินเวลาไฟต์ (กฎเหล็ก)
+  // passive — ชั้นมาจาก battleBeats (spotlight/glance/openGroup/mute) · เวลาเดินในตัว handler เอง
   passive(e) { return applyPassive(e) },
 }
 
-// FX ของ passive: ป้ายชื่อเหนือหัวเสมอ + ประกายตามชนิดผล
-// ⚠️ ห้าม await อะไรที่ยาวกว่าป้าย — handler นี้อยู่นอกงบเวลาของ beat
-function applyPassive(e) {
+/** คำอธิบายสกิลของ event นี้ · ป้าย duo (รางวัลคนเก่ง) ไม่ใช่สกิลประจำตัวใคร → คืนค่าว่าง โชว์แค่ชื่อ */
+function passiveDescOf(e) {
+  const p = passiveOf(defForUid(e.uid))
+  return p && p.name === e.name ? passiveText(p) : ''
+}
+
+// ── passive: เดินเวลาเองตามชั้นที่ battleBeats แจกมา ──
+//   spotlight → แบนเนอร์ขึ้น ค้างให้อ่าน แล้ว "ผลค่อยลง" (จังหวะที่ผู้ใช้ขอ อ้างอิง 7DS Grand Cross)
+//   glance    → ป้าย+FX แล้วหยุดสั้น ๆ ให้ตาจับได้
+//   openGroup → ยกแรก ป้ายขึ้นพร้อมกันทุกใบ (ตัวท้ายกลุ่มถือเวลาค้างไว้คนเดียว)
+//   mute      → ครั้งซ้ำของสกิลเดิม กินเวลา 0ms = พฤติกรรมเดิมเป๊ะ
+async function applyPassive(e) {
   if (!e?.uid) return
-  fx?.banner(e.uid, e.name, e.icon)
+  const g = gen
+  const t = scaleTiming(e, { pace: pace.value, ff: ffActive.value })
+  if (e.pTier === 'spotlight') { await spotlightPassive(e, t, g); return }
+  firePassiveFx(e)
+  const hold = t.windup + t.motion + t.hitstop + t.tail
+  if (hold > 0) await wait(hold)
+}
+
+function clearSpot(uid) {
+  spot.value = null
+  spotOut.value = false
+  if (uid) highlight(uid, 'spotlit', false)
+  else Object.values(els).forEach(el => el && el.classList.remove('spotlit'))
+}
+
+/** ไทม์ไลน์สปอตไลต์: หรี่ฉาก+แบนเนอร์เข้า (windup) → ค้างอ่าน (hitstop) → ผลลง+แบนเนอร์ออก (tail) */
+async function spotlightPassive(e, t, g) {
+  spotStyle.value = {
+    '--spot-delay': `${Math.round(t.windup * 0.43)}ms`,
+    '--spot-in': `${Math.round(t.windup * 0.57)}ms`,
+    '--spot-out': `${Math.round(t.tail) || 1}ms`,
+  }
+  spot.value = { icon: e.icon || '✨', name: e.name || 'ทักษะเฉพาะ', desc: passiveDescOf(e) }
+  spotOut.value = false
+  highlight(e.uid, 'spotlit')
+  await wait(t.windup + t.motion); if (g !== gen) return clearSpot(e.uid)
+  await wait(t.hitstop); if (g !== gen) return clearSpot(e.uid)
+  // ── เฟสผล: แบนเนอร์เริ่มเลื่อนออกพร้อมกับที่ผลลงจริง ──
+  // ⚠️ หลอดเลือด/เลขเด้ง ต้องอยู่ตรงนี้เท่านั้น ห้ามไปอัปตั้งแต่ต้นฟังก์ชัน
+  //    ไม่งั้นเลือดจะขยับตั้งแต่แบนเนอร์ยังไม่ทันขึ้น = คนดูเห็น "ผล" ก่อน "เหตุ" ซึ่งเป็นสิ่งที่ฟีเจอร์นี้ตั้งใจแก้
+  spotOut.value = true
+  firePassiveFx(e, false)      // ป้ายเล็กเหนือหัวไม่ต้องแล้ว — แบนเนอร์ใหญ่ทำหน้าที่นั้นไปแล้ว
+  await wait(t.tail); if (g !== gen) return clearSpot(e.uid)
+  clearSpot(e.uid)
+}
+
+// FX ของ passive: ป้ายชื่อเหนือหัว + ประกายตามชนิดผล + ขยับหลอดเลือด
+// ⚠️ ห้าม await อะไรในนี้ — ตัวเดินเวลาคือ applyPassive/spotlightPassive
+function firePassiveFx(e, banner = true) {
+  if (banner) fx?.banner(e.uid, e.name, e.icon)
   const on = Array.isArray(e.targets) && e.targets.length ? e.targets : [e.uid]
 
   // ── หลอดเลือด: ฮีล/ฟื้น/รับแทน ทำให้เลือดเปลี่ยนโดยไม่มี attack event
@@ -563,7 +638,23 @@ function togglePause() {
   // กด "เล่น" ระหว่าง beat ยังวิ่งอยู่ = ไม่ต้องทำอะไร step() จะเด้งออกที่ guard แล้วสายเดิมเดินต่อเอง
   if (!paused.value) { clearTimeout(timer); step() }   // เคลียร์ timer ค้างก่อนเล่นต่อ (กันรันซ้อน)
 }
-function inspect(uid) { paused.value = true; clearTimeout(timer); inspectUid.value = uid }
+function inspect(uid) {
+  pausedBeforeInspect = paused.value   // คนกด ⏸️ เองไว้ก่อนแล้ว → ปิดหน้าต่างแล้วต้อง "ยังพักอยู่"
+  paused.value = true
+  clearTimeout(timer)
+  inspectUid.value = uid
+}
+// 🐞 เดิมปิดหน้าต่างแค่ `inspectUid = null` ไม่เคยคืน paused เลย → ไฟต์ค้างจนกว่าจะไปกด ▶️ เอง
+function closeInspect() {
+  inspectUid.value = null
+  if (pausedBeforeInspect) return      // เขาตั้งใจพักไว้เอง อย่าไปเล่นต่อให้
+  paused.value = false
+  clearTimeout(timer)
+  step()
+}
+
+/** ไอคอนสกิลของเพ็ทตัวนี้ (static ต่อไฟต์ — อ่านจาก def ไม่ใช่ state ที่วิ่งทุกเฟรม) */
+const skillIcon = (p) => passiveOf(getPetDef(p?.id))?.icon || ''
 
 function hpPct(uid) { return hp.value[uid] ?? 100 }
 
@@ -757,6 +848,7 @@ onUnmounted(() => {
 .br-result { font-size: 1.2rem; font-weight: 800; color: #fff; }
 .br-result.win { color: #34d399; }
 
+.br-card-passdesc { font-size: .74rem; line-height: 1.45; color: rgba(0,0,0,.62); margin: 2px 0 8px; text-align: left; }
 .br-inspect { position: fixed; inset: 0; z-index: 430; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.5); }
 .br-card { background: #1e293b; color: #fff; border: 2px solid #fff; border-radius: 18px; padding: 16px 18px; width: 250px; display: flex; flex-direction: column; gap: 7px; }
 .br-card-emoji { font-size: 2.8rem; text-align: center; }
@@ -817,6 +909,37 @@ onUnmounted(() => {
 <style>
 /* FX pool styles — ไม่ scoped (element สร้าง imperative ไม่มี data-v-*) · namespace .brfx-* กันชน global */
 .br-fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+
+/* ── สปอตไลต์สกิล ────────────────────────────────────────────
+   z-index 4 = ใต้ fx layer (6) เพื่อให้เลข/ประกายของ "ผล" ที่ลงตามมาลอยเหนือฉากหรี่
+   🚫 ห้าม backdrop-filter/blur — iOS Safari เพนต์ไม่ไหว (เคสกระตุกที่แก้ไป 4 รอบกว่าจะเจอ)
+   ทุกอย่างขยับด้วย transform/opacity เท่านั้น */
+.br-spot { position: absolute; inset: 0; z-index: 4; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+.br-spot-dim { position: absolute; inset: 0; background: #0f172a; opacity: 0; will-change: opacity; animation: br-spot-dim-in var(--spot-delay, 180ms) ease-out forwards; }
+.br-spot-card { position: relative; max-width: 84%; padding: 10px 16px; border-radius: 14px; text-align: center;
+  background: rgba(255,255,255,.97); border: 2px solid #0f172a; box-shadow: 0 8px 0 rgba(0,0,0,.35);
+  will-change: transform, opacity; animation: br-spot-in var(--spot-in, 240ms) cubic-bezier(.2,.9,.3,1.2) var(--spot-delay, 180ms) both; }
+.br-spot-top { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.br-spot-icon { font-size: 1.5rem; line-height: 1; }
+.br-spot-name { font-size: 1.05rem; font-weight: 800; color: #312e81; }
+.br-spot-desc { margin-top: 3px; font-size: .76rem; line-height: 1.4; color: rgba(0,0,0,.7); }
+.br-spot.out .br-spot-dim { animation: br-spot-dim-out var(--spot-out, 230ms) ease-in forwards; }
+.br-spot.out .br-spot-card { animation: br-spot-out var(--spot-out, 230ms) ease-in forwards; }
+@keyframes br-spot-dim-in  { to { opacity: .55; } }
+@keyframes br-spot-dim-out { from { opacity: .55; } to { opacity: 0; } }
+@keyframes br-spot-in  { from { opacity: 0; transform: translateY(14px) scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes br-spot-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-10px) scale(.96); } }
+/* การ์ดเจ้าของสกิล — ยกขึ้นเหนือฉากหรี่ให้เห็นว่าใครเป็นคนออกท่า */
+.br-unit.spotlit { z-index: 5; border-color: #fbbf24; box-shadow: 0 0 0 3px rgba(251,191,36,.35); }
+/* จอที่ขอให้ลดการเคลื่อนไหว: ตัดการเลื่อน/ย่อ เหลือ fade — แต่ **เวลายังเท่าเดิม** เพราะจุดประสงค์คือให้อ่านทัน */
+@media (prefers-reduced-motion: reduce) {
+  .br-spot-card { animation: br-spot-fade-in var(--spot-in, 240ms) linear var(--spot-delay, 180ms) both; }
+  .br-spot.out .br-spot-card { animation: br-spot-dim-out var(--spot-out, 230ms) linear forwards; }
+}
+@keyframes br-spot-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* จุดไอคอนสกิลมุมการ์ด — บอกว่าตัวนี้มีทักษะเฉพาะ (เดิมต้องไล่แตะทีละใบถึงจะรู้) */
+.br-skill-dot { position: absolute; top: 2px; right: 4px; font-size: .72rem; line-height: 1; opacity: .85; pointer-events: none; }
 .brfx { position: absolute; left: 0; top: 0; will-change: transform; }
 .brfx-call { font-weight: 800; font-size: .7rem; white-space: nowrap; padding: 2px 6px; border-radius: 7px; }
 .brfx-call.super { background: #ef4444; color: #fff; }
