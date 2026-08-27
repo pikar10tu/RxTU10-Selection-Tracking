@@ -14,6 +14,18 @@
         </div>
       </div>
 
+      <!-- ✨ ทักษะเฉพาะ — ยกขึ้นมาไว้ใต้ชื่อเลย
+           เดิมอยู่ล่างสุดใต้เกรด/วิวัฒน์ ต้องเลื่อนถึงจะเจอ คนเล่นเลยแทบไม่รู้ว่าเพ็ทมีสกิล -->
+      <div class="pd-skill" :class="{ none: !pdPassive }">
+        <div class="pd-skill-kicker">ทักษะเฉพาะ</div>
+        <div class="pd-skill-top">
+          <span class="pd-skill-icon"><Emoji :char="pdPassive ? pdPassive.icon : '✨'" /></span>
+          <span class="pd-skill-name">{{ pdPassive ? pdPassive.name : 'ยังไม่มีทักษะเฉพาะ' }}</span>
+        </div>
+        <!-- passiveText() เติมตัวเลขจริงของขั้นนั้นให้แล้ว — ห้ามพิมพ์ตัวเลขลง desc เอง (petPassives.js) -->
+        <div class="pd-skill-desc">{{ pdPassive ? passiveText(pdPassive) : 'เพ็ทตัวนี้ยังไม่มีทักษะติดตัว — ลองตัวอื่นดูได้' }}</div>
+      </div>
+
       <!-- active team toggle -->
       <button class="pd-active" :class="{ on: isActive }" :disabled="busy" @click="toggleActive">
         <template v-if="isActive"><Emoji char="⭐" /> อยู่ในทีมต่อสู้ · กดเพื่อเอาออก</template>
@@ -45,16 +57,6 @@
         <div v-if="gradeNow < MAX_GRADE && upCost" class="pd-axis-cost">
           ใช้ {{ upCost.copies }} ตัวซ้ำ + {{ upCost.coins.toLocaleString() }} เหรียญ · มี {{ pet.copies || 0 }} ตัวซ้ำ
         </div>
-      </div>
-
-      <!-- ทักษะเฉพาะ — ยังไม่เปิด (ดู economy-battle-master-plan §5.5) -->
-      <div class="pd-section">
-        <div class="pd-sec-head"><Emoji char="✨" /> ทักษะเฉพาะ</div>
-        <template v-if="pdPassive">
-          <div class="pd-passive-name"><Emoji :char="pdPassive.icon" /> {{ pdPassive.name }}</div>
-          <div class="pd-note">{{ passiveText(pdPassive) }}</div>
-        </template>
-        <div v-else class="pd-note">ตัวนี้ยังไม่มีทักษะเฉพาะ</div>
       </div>
 
     </div>
@@ -188,13 +190,14 @@ async function evolve() {
 .pd-stat span { font-size: 1.1rem; }
 .pd-stat b { display: block; font-size: 1.15rem; font-weight: 800; }
 .pd-stat small { font-size: .7rem; color: rgba(0,0,0,.45); }
-.pd-substats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 8px 14px 0; font-size: .7rem; color: rgba(0,0,0,.55); font-weight: 600; }
-.pd-section { padding: 14px 16px; border-top: 1px solid rgba(0,0,0,.06); margin-top: 8px; }
-.pd-sec-head { font-weight: 800; font-size: .82rem; margin-bottom: 8px; }
-.pd-note { font-size: .7rem; color: rgba(0,0,0,.5); margin-bottom: 8px; }
-.pd-passive-name { font-weight: 800; font-size: .82rem; color: var(--primary); margin-bottom: 2px; }
-.pd-note.small { font-size: .7rem; margin: 6px 0 0; }
-.pd-soon { font-size: .7rem; font-weight: 700; color: #b45309; background: rgba(251,191,36,.18); padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+.pd-skill { margin: 12px 14px 0; padding: 10px 12px; border: 2px solid var(--ink); border-radius: 14px; background: linear-gradient(135deg, #eef2ff, #f8fafc); box-shadow: var(--pop); }
+.pd-skill.none { background: #f8fafc; box-shadow: none; border-color: rgba(0,0,0,.18); }
+.pd-skill-kicker { font-size: .7rem; font-weight: 800; color: rgba(0,0,0,.4); letter-spacing: .04em; }
+.pd-skill-top { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+.pd-skill-icon { font-size: 1.35rem; line-height: 1; }
+.pd-skill-name { font-size: .95rem; font-weight: 800; color: var(--primary); }
+.pd-skill.none .pd-skill-name { color: rgba(0,0,0,.45); font-size: .82rem; }
+.pd-skill-desc { font-size: .74rem; color: rgba(0,0,0,.65); line-height: 1.45; margin-top: 4px; }
 .pd-btn { width: 100%; border: 2px solid var(--ink); border-radius: 11px; padding: 10px; font-family: inherit; font-size: .82rem; font-weight: 800; color: #fff; background: #c9c2d4; cursor: pointer; transition: transform .12s, box-shadow .12s; }
 .pd-btn.ok { background: var(--primary); box-shadow: var(--pop); }
 .pd-btn:disabled { opacity: .5; cursor: default; box-shadow: none; }
