@@ -1,6 +1,6 @@
 <!-- TeamPicker — จัดทีม (= activePets, 3 ช่องคงที่ = BATTLE_SLOTS) ใช้ร่วมหอคอย+หน้าเพ็ท
      แตะช่องที่มีตัว = เปิด PetDetailModal (ดู/วิวัฒน์/ถอด) · แตะตัวในคลัง = สลับเข้า/ออกทีม
-     คลังเรียง rarity (legendary→common) + เกรด · โชว์ ธาตุ/เกรด/ชื่อ ต่อตัว -->
+     คลังเรียง rarity (legendary→common) + เกรด · โชว์ สาย/เกรด/ชื่อ ต่อตัว -->
 <template>
   <BottomSheet :open="open" icon="⚔️" title="จัดทีมต่อสู้" @update:open="$emit('update:open', $event)">
     <div class="tp-slots" :style="{ gridTemplateColumns: `repeat(${battleSlots}, 78px)` }">

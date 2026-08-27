@@ -20,7 +20,7 @@
           <button v-for="m in MISSIONS" :key="m.id" class="ex-mis" :class="{ on: missionId === m.id }" @click="missionId = m.id">
             <span class="ex-mis-emoji"><Emoji :char="m.emoji" /></span>
             <span class="ex-mis-name">{{ m.name }}</span>
-            <span class="ex-mis-el">ธาตุ <Emoji :char="elEmoji(m.element)" /></span>
+            <span class="ex-mis-el">สาย <Emoji :char="elEmoji(m.element)" /></span>
           </button>
         </div>
 
@@ -33,7 +33,7 @@
             @click="togglePet(p.id)"
           >
             <PetThumb :pet="unitOf(p)" />
-            <span v-if="curMission && defEl(p.id) === curMission.element" class="ex-pet-bonus">ธาตุตรง</span>
+            <span v-if="curMission && defEl(p.id) === curMission.element" class="ex-pet-bonus">สายตรง</span>
           </button>
           <div v-if="!eligiblePets.length" class="ex-none">ไม่มีเพ็ทนอกทีม — ปลดเพ็ทออกจากทีมต่อสู้ก่อนนะ</div>
         </div>
@@ -84,7 +84,7 @@
             <span>{{ REWARD_TYPES[r.type]?.label || r.type }}</span>
             <b>+{{ r.amount.toLocaleString() }}</b>
           </div>
-          <div v-if="!result.length" class="ex-rv-row ex-rv-empty">รอบนี้ไม่ได้ของพิเศษ — ลองส่งเพ็ทที่มีธาตุตรงมิชชันนะ</div>
+          <div v-if="!result.length" class="ex-rv-row ex-rv-empty">รอบนี้ไม่ได้ของพิเศษ — ลองส่งเพ็ทที่มีสายตรงมิชชันนะ</div>
           <button class="ex-go" @click="result = null">เยี่ยม!</button>
         </div>
       </div>
@@ -136,9 +136,9 @@ const curActiveMission = computed(() => mission(exp.value?.missionId))
 // idle: ส่งได้เมื่อ เลือกเพ็ทครบ + เลือกมิชชัน + เลือกเวลา
 const canSend = computed(() => picked.value.length === PARTY_SIZE && missionId.value && durationId.value)
 
-// helper: emoji ธาตุ
+// helper: emoji สาย
 const elEmoji = (el) => ELEMENTS[el]?.emoji || '✊'
-// helper: ธาตุของเพ็ทจาก def
+// helper: สายของเพ็ทจาก def
 const defEl = (id) => getPetDef(id)?.element || 'scissors'
 // สร้าง battle unit shape {id,rarity,element,grade} จาก pet instance
 const unitOf = (p) => ({

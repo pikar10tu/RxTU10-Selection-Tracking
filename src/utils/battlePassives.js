@@ -126,7 +126,7 @@ export function runOnRound(team) {
     if (u.teamRegenPct && u.hp < u.maxHp) {
       const h = healUnit(u, u.teamRegenPct)
       if (h.amount > 0) out.push({ t: 'passive', uid: u.uid, side: u.side, petId: u.id,
-        name: 'คลื่นคู่หู', icon: '💧', effect: 'duoRegen', targets: [u.uid], ...h, kind: 'heal' })
+        name: 'รางวัลคนเก่ง', icon: '💧', effect: 'duoRegen', targets: [u.uid], ...h, kind: 'heal' })
     }
     if (!p || p.hook !== 'onRound') continue
     const v = valOf(p, u)

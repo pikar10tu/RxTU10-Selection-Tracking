@@ -1,4 +1,4 @@
-<!-- PetThumb — การ์ดเพ็ทสไตล์ Hearthstone: ธาตุ↖ · เกรด↗ · ATK↙ · HP↘ (เลข combat จริง)
+<!-- PetThumb — การ์ดเพ็ทสไตล์ Hearthstone: สาย↖ · เกรด↗ · ATK↙ · HP↘ (เลข combat จริง)
      ใช้ที่ active pet slots + member card · เติมเต็มกล่องพ่อแม่ (parent คุมขนาด ≥56px) -->
 <template>
   <div class="ptc" :class="{ bordered }" :style="bordered ? { borderColor: rarityColor } : null">

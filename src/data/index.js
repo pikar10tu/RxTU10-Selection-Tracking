@@ -22,9 +22,11 @@ export const ELEMENTS = {
     scissors:{ emoji:'✌️', beats:'paper'   },
     paper:   { emoji:'✋', beats:'fist'     },
 };
-export const _EL_NAME = { fist:'✊ ค้อน', scissors:'✌️ กรรไกร', paper:'✋ กระดาษ' };
-// ชื่อธาตุกลาง (ล้วน ไม่มี emoji) — ใช้ทุกที่ที่โชว์ชื่อธาตุ · emoji ดึงจาก ELEMENTS แยก
-export const EL_NAME = { fist: 'ค้อน', scissors: 'กรรไกร', paper: 'กระดาษ' };
+export const _EL_NAME = { fist:'✊ จู่โจม', scissors:'✌️ สมดุล', paper:'✋ พิทักษ์' };
+// ชื่อสายกลาง (ล้วน ไม่มี emoji) — ใช้ทุกที่ที่โชว์ชื่อสาย · emoji ดึงจาก ELEMENTS แยก
+// ⚠️ คีย์ยังเป็น fist/scissors/paper (ข้อมูลเก่าใน Firestore อ้างคีย์นี้) — เปลี่ยนเฉพาะคำที่ผู้ใช้เห็น
+// ชื่อใหม่ตรงกับ ELEMENT_BIAS ใน data/petPower.js: จู่โจม atk×1.2 hp×0.85 · สมดุล 1.0/1.0 · พิทักษ์ atk×0.85 hp×1.2
+export const EL_NAME = { fist: 'จู่โจม', scissors: 'สมดุล', paper: 'พิทักษ์' };
 export function elementBeats(attEl, defEl){ return ELEMENTS[attEl]?.beats === defEl; }
 
 // ── PETS POOL ──

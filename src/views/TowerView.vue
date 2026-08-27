@@ -23,7 +23,7 @@
         </div>
         <div v-if="zone.royal" class="tw-max-cue">
           <div class="tw-max-cue-l1">พลังบอทช่วงนี้ตันแล้ว (เกรด V ทุกตัว)</div>
-          <div class="tw-max-cue-l2">แพ้ชนะวัดที่ธาตุกับการจัดทีม — ✊ ข่ม ✌️ · ✌️ ข่ม ✋ · ✋ ข่ม ✊</div>
+          <div class="tw-max-cue-l2">แพ้ชนะวัดที่สายกับการจัดทีม — ✊ ข่ม ✌️ · ✌️ ข่ม ✋ · ✋ ข่ม ✊</div>
         </div>
         <div class="tw-bonus"><Emoji char="🪙" /> โบนัสรายได้ตอนนี้ +{{ bonus.toLocaleString() }}/วัน<span v-if="best >= BONUS_CAP_FLOOR" class="tw-bonus-cap"> (เต็มเพดานแล้ว)</span></div>
 
@@ -91,7 +91,7 @@
       <div class="tw-scout-box">
         <div class="tw-scout-emoji"><Emoji :char="defOf(scout.id).emoji" /></div>
         <div class="tw-scout-name">{{ defOf(scout.id).name }}</div>
-        <div class="tw-scout-row"><span>ธาตุ</span><b><Emoji :char="elEmoji(scout)" /> {{ elName(scout) }}</b></div>
+        <div class="tw-scout-row"><span>สาย</span><b><Emoji :char="elEmoji(scout)" /> {{ elName(scout) }}</b></div>
         <div class="tw-scout-row"><span>ระดับ</span><b>{{ rarityLabel(scout) }} · เกรด {{ GRADE_LABELS[Math.min(5, Math.max(0, scout.grade || 0))] }}</b></div>
         <div class="tw-scout-row"><span>พลังโจมตี</span><b>{{ scoutStat.atk }}</b></div>
         <div class="tw-scout-row"><span>พลังชีวิต</span><b>{{ scoutStat.hp }}</b></div>

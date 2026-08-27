@@ -1,5 +1,5 @@
-<!-- BattleReplay v2 — event-driven (dispatch ตาม event.t) · melee/ranged · ป้ายธาตุ/crit/ตาย ·
-     UI: ป้ายฝั่ง + badge ธาตุ + กรอบสีแยกข้าง = ดูรู้เรื่องว่าใครฝั่งไหน/ตีใคร/แพ้ทางมั้ย
+<!-- BattleReplay v2 — event-driven (dispatch ตาม event.t) · melee/ranged · ป้ายสาย/crit/ตาย ·
+     UI: ป้ายฝั่ง + badge สาย + กรอบสีแยกข้าง = ดูรู้เรื่องว่าใครฝั่งไหน/ตีใคร/แพ้ทางมั้ย
      controls: พัก + กดค้างเร่ง (ปุ่มข้าม/เร็วถูกลบ Task 6 — heavy/finish ไม่ย่อแม้กดค้าง) · แตะตัว = pause + inspect (ช่อง passive รอ §5.5 master plan)
      จังหวะขับด้วย beat.timing (battleBeats.js) แทน baseDelay คงที่ (Task 4) — ปุ่มเร็วเดิมถูกลบ
      ⚠️ ทุก emoji ผ่าน <Emoji> (Fluent self-host) — อย่าใส่ emoji ดิบในเทมเพลต (เป็น tofu บนบางเครื่อง) -->
@@ -117,7 +117,7 @@
       <div class="br-card">
         <div class="br-card-emoji"><Emoji :char="insp.def.emoji" /></div>
         <div class="br-card-name">{{ insp.def.name }}</div>
-        <div class="br-card-row"><span>ธาตุ</span><b><Emoji :char="insp.elEmoji" /> {{ insp.elName }}</b></div>
+        <div class="br-card-row"><span>สาย</span><b><Emoji :char="insp.elEmoji" /> {{ insp.elName }}</b></div>
         <div class="br-card-row"><span>ระดับ</span><b>{{ rarityLabel(insp.def.rarity) }} · เกรด {{ GRADE_LABELS[Math.min(5, Math.max(0, insp.grade || 0))] }}</b></div>
         <div class="br-card-row"><span>พลังโจมตี</span><b>{{ insp.atk }}</b></div>
         <div class="br-card-row"><span>พลังชีวิต</span><b>{{ insp.hpNow }} / {{ insp.hpMax }}</b></div>
@@ -736,7 +736,7 @@ onUnmounted(() => {
 .br-hpn.foe { background: #ef4444; }    /* HP ศัตรู = แดง */
 .br-hpn.me { background: #16a34a; }     /* HP ทีมคุณ = เขียว */
 
-/* pop/call/puff/proj (เลขดาเมจ, callout ธาตุ, 💀, projectile) ย้ายไป fx pool (.brfx- ท้ายไฟล์ ไม่ scoped) แล้ว —
+/* pop/call/puff/proj (เลขดาเมจ, callout สาย, 💀, projectile) ย้ายไป fx pool (.brfx- ท้ายไฟล์ ไม่ scoped) แล้ว —
    CSS เดิม (br-pop, br-call, br-puff, br-proj และตัวแปรย่อย) + keyframes br-pop-rise, br-rise, br-fly ตัดทิ้ง (ไม่มี markup ใช้แล้ว) */
 
 .br-vs { text-align: center; color: rgba(255,255,255,.85); font-weight: 800; font-size: .82rem; letter-spacing: .04em; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 3px 0; }
