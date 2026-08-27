@@ -17,8 +17,13 @@ import { applySeasonReset, currentSeasonId } from './pvpSeason.js'
 
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d)
 
-/** userData (doc เต็ม) → แถวย่อสำหรับ roster */
-export function buildRosterRow(u) {
+/**
+ * userData (doc เต็ม) → แถวย่อสำหรับ roster
+ * @param prev แถวเดิมของคนนี้ (ถ้ามี) — ใช้พ่วงข้อมูลที่ **ไม่ได้อยู่ใน user doc** ติดมาด้วย
+ *             ตอนนี้มีอย่างเดียวคือ `h` (ประวัติบุก · ดู utils/pvpHistory.js)
+ *             ⚠️ ไม่พ่วง = ประวัติหายทุกครั้งที่ sync (เปลี่ยนชื่อ/อัปบ้าน/จบมินิเกมก็ sync)
+ */
+export function buildRosterRow(u, prev) {
   const d = u || {}
 
   // มินิเกม: เก็บเฉพาะเกมที่เคยทำคะแนนได้จริง — กันแถวบวมด้วยศูนย์
@@ -58,6 +63,8 @@ export function buildRosterRow(u) {
     r:  num(applySeasonReset(d.pvp, currentSeasonId()).rating, PVP_RATING_START),
     m,
     tm,
+    // h ต่อท้ายเสมอ (ตำแหน่งคงที่ = rosterRowChanged เทียบ JSON ได้ตรง ไม่ยิงเขียนเปล่า)
+    ...(prev?.h?.length ? { h: prev.h } : {}),
   }
 }
 
@@ -67,7 +74,8 @@ export function rosterRowChanged(oldRow, newRow) {
   return JSON.stringify(oldRow) !== JSON.stringify(newRow)
 }
 
-/** สร้าง rows ทั้งก้อนจาก users ทั้ง collection (ใช้เฉพาะปุ่มแอดมิน) */
+/** สร้าง rows ทั้งก้อนจาก users ทั้ง collection (ใช้เฉพาะปุ่มแอดมิน)
+ *  ⚠️ ประวัติบุก (`h`) หายทั้งรุ่น — ไม่ได้อยู่ใน user doc · ปุ่มแอดมินต้องเตือนก่อนกด */
 export function buildRosterFromUsers(docs) {
   const rows = {}
   for (const { uid, data } of docs || []) {

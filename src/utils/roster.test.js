@@ -229,3 +229,21 @@ test('rosterOpponents: คนที่กู้ทีมไม่ได้เล
   assert.deepEqual(out.map(o => o.nickname), ['สุ่น'])
   assert.deepEqual(out[0].team.map(p => p.id), ['kirin'])
 })
+
+test('buildRosterRow คง h เดิมไว้ (ไม่งั้น sync ครั้งถัดไปล้างประวัติทิ้ง)', () => {
+  const prev = { n: 'ปิ๊ก', h: [{ u: 'bob', w: 1, c: 250, t: 111 }] }
+  const r = buildRosterRow(user(), prev)
+  assert.deepEqual(r.h, prev.h)
+})
+
+test('buildRosterRow ไม่ใส่คีย์ h เลยถ้าไม่เคยมีประวัติ (กันแถวบวมด้วย array ว่าง)', () => {
+  assert.equal('h' in buildRosterRow(user()), false)
+  assert.equal('h' in buildRosterRow(user(), { n: 'ปิ๊ก' }), false)
+  assert.equal('h' in buildRosterRow(user(), { n: 'ปิ๊ก', h: [] }), false)
+})
+
+test('buildRosterRow เรียกซ้ำด้วยแถวที่ตัวเองสร้าง ได้ผลเท่าเดิม (rosterRowChanged ต้องไม่ยิงเขียนเปล่า)', () => {
+  const prev = buildRosterRow(user(), { h: [{ u: 'bob', w: 1, c: 250, t: 111 }] })
+  const next = buildRosterRow(user(), prev)
+  assert.equal(rosterRowChanged(prev, next), false, 'คีย์ต้องเรียงเหมือนเดิมด้วย (เทียบด้วย JSON.stringify)')
+})

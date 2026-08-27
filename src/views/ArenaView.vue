@@ -46,6 +46,8 @@
           </button>
         </div>
       </div>
+
+      <PvpHistory />
     </template>
     <div v-else class="ar-login">เข้าสู่ระบบเพื่อเล่น</div>
 
@@ -64,6 +66,7 @@ import { useAppConfig } from '../composables/useAppConfig.js'
 import { useArena } from '../composables/useArena.js'
 import TeamPicker from '../components/battle/TeamPicker.vue'
 import BattleReplay from '../components/battle/BattleReplay.vue'
+import PvpHistory from '../components/battle/PvpHistory.vue'
 import PetThumb from '../components/shared/PetThumb.vue'
 import HelpButton from '../components/help/HelpButton.vue'
 

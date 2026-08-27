@@ -106,7 +106,11 @@ export function useArena() {
     )
     // patchUser คืน false เมื่อเขียน Firestore ล้มเหลว (+rollback optimistic แล้ว)
     // → คืน ok=false ให้ fight() ไม่โชว์ replay ลวง
-    syncRosterRow()   // เรตเปลี่ยน → อัปแถวตัวเองในบอร์ด
+    // เรตเปลี่ยน → อัปแถวตัวเองในบอร์ด · พ่วงประวัติการบุกไปในการเขียนครั้งเดียวกัน
+    // บอทข้าม: ไม่มีแถวใน roster และไม่มีใครต้องเห็นฝั่งตั้งรับของบอท
+    syncRosterRow({
+      history: opp.isBot ? null : { u: opp.uid, w: won ? 1 : 0, c: coin, t: Date.now() },
+    })
     return { ok, newRating, delta: newRating - base.rating, coin }
   }
 

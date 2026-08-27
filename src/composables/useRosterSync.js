@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/auth.js'
 import { useMembersStore } from '../stores/members.js'
 import { useUsageStore } from '../stores/usage.js'
 import { buildRosterRow, rosterRowChanged } from '../utils/roster.js'
+import { pushHistory } from '../utils/pvpHistory.js'
 
 /**
  * เขียนแถวของตัวเองลง `roster/current` — **จุดเดียว**ที่ฝั่งนักศึกษาเขียน doc นี้
@@ -22,15 +23,21 @@ export function useRosterSync() {
   const auth = useAuthStore()
   const members = useMembersStore()
 
-  async function syncRosterRow() {
+  /**
+   * @param opts.history รายการประวัติบุก 1 รายการ ({u,w,c,t}) หรือ null
+   *        — พ่วงไปกับ write ที่เกิดหลังไฟต์อยู่แล้ว (เรตเปลี่ยน) ⇒ ไม่มี write เพิ่ม
+   */
+  async function syncRosterRow({ history = null } = {}) {
     const uid = auth.currentUser?.uid
     const u = auth.userData
     if (!uid || !u) return
     if (!u.studentId && !u.nickname) return       // ตรรกะเดียวกับตอนสร้าง roster
     if (members.rosterMissing) return              // ยังไม่มี doc — รอแอดมินกดสร้างก่อน
 
-    const next = buildRosterRow({ ...u, uid })
-    if (!rosterRowChanged(members.rosterRows?.[uid], next)) return
+    const prev = members.rosterRows?.[uid]
+    const next = buildRosterRow({ ...u, uid }, prev)   // prev = พ่วง h เดิมไว้ ไม่ให้ถูกล้างทุกครั้งที่ sync
+    if (history) next.h = pushHistory(prev?.h, history)
+    if (!rosterRowChanged(prev, next)) return
 
     try {
       await updateDoc(doc(db, 'roster', 'current'), {
