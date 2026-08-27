@@ -96,7 +96,7 @@
           <div class="info-rarity" :style="{ background: rarityColor(infoPet.rarity) }">{{ RARITY[infoPet.rarity]?.label }}</div>
           <div class="info-flavor">“{{ infoPet.flavor }}”</div>
           <div v-if="passiveOf(infoPet)" class="info-passive">
-            <b><Emoji :char="passiveOf(infoPet).icon" /> {{ passiveOf(infoPet).name }}</b> — {{ passiveOf(infoPet).desc }}
+            <b><Emoji :char="passiveOf(infoPet).icon" /> {{ passiveOf(infoPet).name }}</b> — {{ passiveText(passiveOf(infoPet)) }}
           </div>
           <button class="info-target" @click="chooseTarget(infoPet.id); infoPet = null">ตั้งเป็นเป้าหมาย</button>
         </div>
@@ -145,6 +145,7 @@ import { increment } from 'firebase/firestore'
 import { useAuthStore } from '../stores/auth.js'
 import { useToast } from '../composables/useToast.js'
 import { PETS, RARITY, passiveOf } from '../data/index.js'
+import { passiveText } from '../data/petPassives.js'
 import { bumpDailyQuest } from '../utils/dailyQuest.js'
 import { rollMany, resolvePullPayment, GACHA_RATES, PULL_COST, TEN_PULL_COST, TEN_PULL_N, HARD_PITY } from '../utils/gacha.js'
 import { mergeRolls } from '../utils/gachaMerge.js'

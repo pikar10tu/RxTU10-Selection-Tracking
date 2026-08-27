@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import {
   applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, passiveFor,
 } from './battlePassives.js'
-import { PET_PASSIVES } from '../data/petPassives.js'
+import { PET_PASSIVES, passiveValueAt, passiveText, PASSIVE_MAX_LEVEL } from '../data/petPassives.js'
 import { PETS } from '../data/index.js'
 import { simulateBattle } from './battleEngine.js'
 import { buildBeats } from './battleBeats.js'
@@ -268,5 +268,58 @@ test('ทุกทีมต้องมีป้าย passive ขึ้นอ�
   for (let s = 1; s <= 20; s++) {
     const mine = simulateBattle(A, B, s).log.filter(e => e.t === 'passive' && e.side === 'A')
     assert.ok(mine.length > 0, `seed ${s} ไม่มีป้าย passive ฝั่งเราเลย`)
+  }
+})
+
+// ── ตัวเลขในคำอธิบาย + เผื่อระบบหินอัพพลัง 3 ขั้น ──
+
+test('passiveText: ไม่มี {placeholder} หลุดออกจอสักตัว ทุกขั้น', () => {
+  for (const [id, p] of Object.entries(PET_PASSIVES)) {
+    for (let lv = 1; lv <= PASSIVE_MAX_LEVEL; lv++) {
+      const txt = passiveText(p, lv)
+      assert.ok(!/[{}]/.test(txt), `${id} ขั้น ${lv} ยังมี placeholder: ${txt}`)
+    }
+  }
+})
+
+test('passiveText: ตัวเลขที่โชว์ต้องตรงกับค่าจริงของขั้นนั้น (ไม่ใช่เลขที่พิมพ์ไว้)', () => {
+  const p = PET_PASSIVES.bahamut
+  assert.ok(passiveText(p, 1).includes(String(passiveValueAt(p, 1).pct)))
+  assert.ok(passiveText(p, 3).includes(String(passiveValueAt(p, 3).pct)))
+  assert.notEqual(passiveText(p, 1), passiveText(p, 3), 'ขั้นต่างกันข้อความต้องต่างกัน')
+})
+
+test('passiveValueAt: ขั้นนอกช่วงถูก clamp · ขั้น 1 = ค่าตั้งต้นเป๊ะ', () => {
+  const p = PET_PASSIVES.fox
+  assert.deepEqual(passiveValueAt(p, 1), p.value)
+  assert.deepEqual(passiveValueAt(p, 0), passiveValueAt(p, 1))
+  assert.deepEqual(passiveValueAt(p, 99), passiveValueAt(p, PASSIVE_MAX_LEVEL))
+})
+
+test('🪨 ขั้น 3 ต้องไม่หลุดเพดานความสมเหตุสมผล (เผื่อดันเจี้ยนหิน)', () => {
+  for (const [id, p] of Object.entries(PET_PASSIVES)) {
+    const v = passiveValueAt(p, PASSIVE_MAX_LEVEL)
+    if (p.effect === 'dodge') assert.ok(v.pct <= 25, `${id} หลบ ${v.pct}% สูงเกินจนไฟต์ยืด`)
+    if (p.effect === 'damageReduction') assert.ok(v.pct <= 35, `${id} ลดดาเมจ ${v.pct}% สูงเกิน`)
+    if (p.effect === 'guardian') assert.ok(v.pct <= 100, `${id} รับแทน ${v.pct}% เกิน 100% เป็นไปไม่ได้`)
+    if (p.effect === 'revive') assert.ok(v.pct <= 70, `${id} ฟื้น ${v.pct}% สูงเกิน`)
+    if (p.effect === 'multiStrike') assert.ok(v.chance <= 60, `${id} โอกาสตีซ้ำ ${v.chance}% สูงเกิน`)
+  }
+})
+
+test('🪨 killChain/cheatDeath/saveAlly ต้องอัพขั้นแล้วค่าไม่ขยับ (โตแล้วพัง)', () => {
+  for (const id of ['kirin', 'cat', 'genie']) {
+    const p = PET_PASSIVES[id]
+    assert.deepEqual(passiveValueAt(p, PASSIVE_MAX_LEVEL), passiveValueAt(p, 1), `${id} ไม่ควรอัพได้`)
+  }
+})
+
+test('ขั้น 3 ต้องแรงกว่าขั้น 1 จริงสำหรับตัวที่อัพได้ (ไม่งั้นหินไร้ความหมาย)', () => {
+  const upgradable = Object.entries(PET_PASSIVES)
+    .filter(([, p]) => Object.values(p.step || {}).some(x => x > 0))
+  assert.ok(upgradable.length >= 20, `อัพได้แค่ ${upgradable.length} ตัว น้อยเกินไป`)
+  for (const [id, p] of upgradable) {
+    const a = passiveValueAt(p, 1), b = passiveValueAt(p, PASSIVE_MAX_LEVEL)
+    assert.ok(Object.keys(p.step).some(k => b[k] > a[k]), `${id} ขั้น 3 ไม่แรงขึ้นเลย`)
   }
 })

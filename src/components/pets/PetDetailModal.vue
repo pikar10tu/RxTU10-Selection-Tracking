@@ -52,7 +52,7 @@
         <div class="pd-sec-head"><Emoji char="✨" /> ทักษะเฉพาะ</div>
         <template v-if="pdPassive">
           <div class="pd-passive-name"><Emoji :char="pdPassive.icon" /> {{ pdPassive.name }}</div>
-          <div class="pd-note">{{ pdPassive.desc }}</div>
+          <div class="pd-note">{{ passiveText(pdPassive) }}</div>
         </template>
         <div v-else class="pd-note">ตัวนี้ยังไม่มีทักษะเฉพาะ</div>
       </div>
@@ -71,6 +71,7 @@ import { useAuthStore } from '../../stores/auth.js'
 import { useToast } from '../../composables/useToast.js'
 import { useConfirm } from '../../composables/useConfirm.js'
 import { RARITY, GRADE_LABELS, getPetDef, ELEMENTS, EL_NAME, passiveOf } from '../../data/index.js'
+import { passiveText } from '../../data/petPassives.js'
 import { buildCombatant } from '../../data/battle.js'
 import { petDailyCoins } from '../../utils/petUtils.js'
 import { BATTLE_SLOTS } from '../../data/residence.js'

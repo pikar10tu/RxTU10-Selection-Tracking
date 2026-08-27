@@ -5,9 +5,13 @@
 // 🔒 กฎเหล็ก: passive ไม่เพิ่มจำนวน beat — cleave/multiStrike อยู่ใน beat เดียวกับหมัดหลัก
 //    (ยิงเป็น event `passive` ที่ battleBeats ให้ timing ZERO ⇒ ไม่กินเวลา)
 //    killChain เป็นข้อยกเว้นเดียวที่เพิ่ม beat จริง จึงมีเพดาน
-import { PET_PASSIVES } from '../data/petPassives.js'
+import { PET_PASSIVES, passiveValueAt } from '../data/petPassives.js'
 
 export const passiveFor = (unit) => PET_PASSIVES[unit?.id] || null
+
+/** ค่าของ passive ตามขั้นที่เพ็ทตัวนั้นอัพไว้ (ยังไม่มีระบบหิน ⇒ undefined = ขั้น 1)
+ *  ⚠️ ห้ามอ่าน p.value ตรงๆ ในตรรกะ — ไม่งั้นพอระบบหินมา ค่าจะไม่ขยับตามขั้น */
+const valOf = (p, unit) => passiveValueAt(p, unit?.passiveLv)
 const alive = (t) => t.filter(u => u.hp > 0)
 const pctOf = (v, pct) => v * (pct / 100)
 
@@ -39,7 +43,7 @@ export function applyAuras(team, foes) {
   for (const u of team) {
     const p = passiveFor(u)
     if (!p || p.hook !== 'aura') continue
-    const v = p.value || {}
+    const v = valOf(p, u)
     // ⚠️ aura ต้องเด้งป้ายตอนเริ่มด้วย — เดิมสเปกเขียนว่า "ไม่มี event เพราะเห็นผลผ่านตัวเลข"
     //    แต่เทสจอจริงพบว่าทีมที่มี aura ล้วน (เช่น whale+seal) เงียบสนิท ผู้เล่นไม่รู้เลยว่ามี passive
     //    master plan §5.5 เขียนถูกแล้วว่า "proc ตอนเริ่มเกม → ป้ายขึ้นพร้อมกันตอนเริ่ม"
@@ -86,7 +90,7 @@ export function runOnStart(team, foes) {
   for (const u of alive(team)) {
     const p = passiveFor(u)
     if (!p || p.hook !== 'onStart') continue
-    const v = p.value || {}
+    const v = valOf(p, u)
     if (p.effect === 'aoeOpener') {
       const targets = alive(foes)
       if (!targets.length) continue
@@ -112,7 +116,7 @@ export function runOnRound(team) {
     // regen จากคู่หู whale🔗seal ติดมากับ unit ไม่ได้มาจาก passive ของตัวเอง
     if (u.teamRegenPct && u.hp < u.maxHp) u.hp = Math.min(u.maxHp, u.hp + pctOf(u.maxHp, u.teamRegenPct))
     if (!p || p.hook !== 'onRound') continue
-    const v = p.value || {}
+    const v = valOf(p, u)
     if (p.effect === 'regenSelf') {
       if (u.hp >= u.maxHp) continue                       // เลือดเต็มแล้วไม่ต้องเด้งป้าย
       u.hp = Math.min(u.maxHp, u.hp + pctOf(u.maxHp, v.pct))
@@ -141,7 +145,7 @@ export function runOnAttack(att, target, foes, rand) {
   const p = passiveFor(att)
   const res = { target, atkMult: 1, extra: [], strikes: 1, strikePct: 100, events: [] }
   if (!p || p.hook !== 'onAttack') return res
-  const v = p.value || {}
+  const v = valOf(p, att)
   switch (p.effect) {
     case 'targetLowest': {
       const low = alive(foes).reduce((b, f) => (!b || f.hp / f.maxHp < b.hp / b.maxHp ? f : b), null)
@@ -199,7 +203,7 @@ export function runOnHit(defender, dmg, attacker, team, rand) {
     if (!gp || gp.hook !== 'onHit' || gp.effect !== 'guardian' || g === defender) continue
     const low = lowestHpAlly(team, g)
     if (low !== defender) continue                     // รับแทนเฉพาะเพื่อนที่บอบช้ำที่สุด
-    const share = pctOf(res.dmg, gp.value.pct)
+    const share = pctOf(res.dmg, valOf(gp, g).pct)
     g.hp -= share
     res.dmg -= share
     res.events.push(ev(g, gp, { targets: [defender.uid], amount: Math.round(share), kind: 'guard' }))
@@ -208,7 +212,7 @@ export function runOnHit(defender, dmg, attacker, team, rand) {
 
   const p = passiveFor(defender)
   if (!p || p.hook !== 'onHit') return res
-  const v = p.value || {}
+  const v = valOf(p, defender)
   switch (p.effect) {
     case 'dodge':
       if (rand() * 100 < v.pct) {
@@ -243,17 +247,17 @@ export function runOnDeath(unit, team) {
 
   // 1) ของตัวเอง — revive / cheatDeath
   const p = passiveFor(unit)
-  if (p && p.hook === 'onDeath' && !unit.passiveUsed) {
-    const v = p.value || {}
+  if (p && p.hook === 'onDeath' && (unit.passiveUses || 0) < (valOf(p, unit).times || 1)) {
+    const v = valOf(p, unit)
     if (p.effect === 'revive') {
-      unit.passiveUsed = true
+      unit.passiveUses = (unit.passiveUses || 0) + 1
       unit.hp = pctOf(unit.maxHp, v.pct)
       out.prevented = true
       out.events.push(ev(unit, p, { targets: [unit.uid], amount: Math.round(unit.hp), kind: 'revive' }))
       return out
     }
     if (p.effect === 'cheatDeath') {
-      unit.passiveUsed = true
+      unit.passiveUses = (unit.passiveUses || 0) + 1
       unit.hp = 1
       out.prevented = true
       out.events.push(ev(unit, p, { targets: [unit.uid], kind: 'revive' }))
@@ -265,8 +269,9 @@ export function runOnDeath(unit, team) {
   for (const g of alive(team)) {
     if (g === unit) continue
     const gp = passiveFor(g)
-    if (!gp || gp.hook !== 'onDeath' || gp.effect !== 'saveAlly' || g.passiveUsed) continue
-    g.passiveUsed = true
+    if (!gp || gp.hook !== 'onDeath' || gp.effect !== 'saveAlly') continue
+    if ((g.passiveUses || 0) >= (valOf(gp, g).times || 1)) continue
+    g.passiveUses = (g.passiveUses || 0) + 1
     unit.hp = 1
     out.prevented = true
     out.events.push(ev(g, gp, { targets: [unit.uid], kind: 'save' }))
@@ -283,7 +288,7 @@ export function runOnKill(killer, chainUsed) {
   const out = { extraAttack: false, events: [] }
   const p = passiveFor(killer)
   if (!p || p.hook !== 'onKill') return out
-  const v = p.value || {}
+  const v = valOf(p, killer)
   if (p.effect === 'stackAtk') {
     const stacks = killer.atkStacks || 0
     if (stacks < v.max) {
