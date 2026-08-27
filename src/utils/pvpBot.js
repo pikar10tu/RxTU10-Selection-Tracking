@@ -2,19 +2,10 @@
 // PvP bot — pure: หุ่นซ้อมในพูลคู่ต่อสู้ · สเกลตามเรต · deterministic จาก seed (แนวเดียว getFloorTeam)
 import { PETS } from '../data/index.js'
 import { BATTLE_SLOTS } from '../data/residence.js'
+import { mulberry32 } from './seededRng.js'
 
 const RARITY_BY_TIER = ['common', 'rare', 'epic', 'legendary']
 const ELS = ['fist', 'scissors', 'paper']
-
-function rng(seed) {
-  let a = seed >>> 0
-  return () => {
-    a |= 0; a = (a + 0x6D2B79F5) | 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
 
 /** เรต → เกรด/ความหายากคร่าวๆ (เรต ~800 = อ่อน, ~2000 = แกร่งสุด) */
 export function botPowerFor(rating) {
@@ -26,7 +17,7 @@ export function botPowerFor(rating) {
 
 /** หุ่นซ้อม 3 ตัว สเกลตามเรต + ธาตุผสม · เรตบอท = เรตผู้เล่น (จับคู่สูสี) */
 export function getPvpBot(rating, seed) {
-  const rand = rng((seed >>> 0) || 1)
+  const rand = mulberry32((seed >>> 0) || 1)
   const { grade, rarity } = botPowerFor(rating)
   const team = []
   for (let i = 0; i < BATTLE_SLOTS; i++) {
