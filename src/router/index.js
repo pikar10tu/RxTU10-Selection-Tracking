@@ -79,4 +79,17 @@ router.onError((err) => {
 })
 
 // clear the reload-guard once we land somewhere successfully
-router.afterEach(() => { sessionStorage.removeItem('chunkReloaded') })
+// โลกประจำโหมด — ตั้ง data-world ให้ CSS เปลี่ยนพื้นหลัง (ดู style.css "โลกประจำโหมด")
+// เพ็ท/สนามรบ/ฟาร์มเท่านั้น · หน้าอื่น (เรียน ข้อสอบ สมาชิก) คงพื้นครีมเดิม
+// /play เป็นทางแยก จึงไม่ตั้งโลก — ปล่อยให้สีบนการ์ดสองใบเป็นตัวบอกทางเอง
+const ROUTE_WORLD = {
+  'play-pets': 'pet', pets: 'pet', shop: 'pet',
+  arena: 'battle', tower: 'battle', expedition: 'battle',
+  'play-farm': 'farm',
+}
+router.afterEach((to) => {
+  sessionStorage.removeItem('chunkReloaded')
+  const w = ROUTE_WORLD[to.name]
+  if (w) document.body.dataset.world = w
+  else delete document.body.dataset.world
+})

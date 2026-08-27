@@ -531,6 +531,44 @@ html, body {
   background-attachment: fixed;
 }
 
+
+/* ══ โลกประจำโหมด ══════════════════════════════════════════════
+   `data-world` ตั้งจาก router (ดู router/index.js) · คงโครง radial 3 ชั้นเดิมทุกโลก
+   เปลี่ยนแค่สี ⇒ อ่านเป็น "ที่เดียวกันแต่คนละห้อง" ไม่ใช่คนละแอป
+   สนามรบ = ม่วงเข้มอมแดง เพราะประลอง/หอคอยอยู่ "ใน" หมวดเพ็ท ไม่ใช่โหมดแยก
+   ⚠️ ทุกโลกต้องอ่อนพอให้การ์ดขาวขอบเข้มยังตัดขึ้น — ห้ามเข้มจนกลืนขอบการ์ด
+   ⚠️ อย่าให้สีพวกนี้ลามเข้าจอไฟต์ (BattleReplay มีพื้นเข้มของตัวเอง
+      เลขดาเมจ/หลอดเลือด/วงแหวนทองจูนมาบนพื้นนั้น — เคยพลาดมาแล้วตอนทำเส้นทางหอคอย) */
+body[data-world="pet"] {
+  background:
+    radial-gradient(circle at 12% 6%, #e3d8fb 0, transparent 40%),
+    radial-gradient(circle at 90% 0%, #f0dcff 0, transparent 36%),
+    radial-gradient(circle at 50% 102%, #d8e2ff 0, transparent 48%),
+    #f6f1fb;
+  background-attachment: fixed;
+}
+body[data-world="battle"] {
+  background:
+    radial-gradient(circle at 12% 6%, #cfbdea 0, transparent 42%),
+    radial-gradient(circle at 88% 2%, #edc7d6 0, transparent 38%),
+    radial-gradient(circle at 50% 102%, #c4b8e6 0, transparent 50%),
+    #e9e0f4;
+  background-attachment: fixed;
+}
+body[data-world="farm"] {
+  background:
+    radial-gradient(circle at 12% 6%, #dcf2cd 0, transparent 40%),
+    radial-gradient(circle at 90% 0%, #f0f7c6 0, transparent 36%),
+    radial-gradient(circle at 50% 102%, #cdeede 0, transparent 48%),
+    #f3f9ec;
+  background-attachment: fixed;
+}
+
+/* หัวเรื่องรับสีประจำโลก — จุดเดียวที่ให้สีโลกแตะตัวอักษร ที่เหลือคงโทนเดิมไว้ */
+body[data-world="pet"]    .page-title { color: #4c2d9e; }
+body[data-world="battle"] .page-title { color: #6d2145; }
+body[data-world="farm"]   .page-title { color: #276b2f; }
+
 #main-content { padding: 16px 14px 28px; }
 
 /* floating sticker bottom nav */
