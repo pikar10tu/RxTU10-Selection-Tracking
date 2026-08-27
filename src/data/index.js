@@ -63,7 +63,21 @@ export const PETS = [
 export const getPetDef = (id) => PETS.find(p => p.id === id) || null;
 
 // รูปแบบการตีใน replay (data ล้วน ปรับได้) — default melee
-export function atkStyleOf(def){ return def?.atkStyle === 'ranged' ? 'ranged' : 'melee'; }
+/**
+ * ท่าโจมตี — **ทุกตัวเป็น melee ทั้งหมด** (user สั่ง 27 ส.ค. "อยากเห็นการง้างหมัด")
+ *
+ * เดิม ranged 8 ตัวคือ legendary ครบทั้ง 3 (bahamut/phoenix/whale) + epic 4 + owl
+ * ⇒ ทีมยิ่งแกร่งยิ่งไม่เห็นท่าง้างเลย ซึ่งกลับหัวกลับหางกับที่ควรเป็น
+ *
+ * ฟิลด์ `atkStyle`/`projectile` ในแค็ตตาล็อก **เก็บไว้โดยตั้งใจ** ไม่ได้ลบ —
+ * ย้อนกลับได้ด้วยการคืนบรรทัดเดียว และ emoji ประจำตัวยังหยิบไปใช้ต่อได้ (ดู projectileOf)
+ *
+ * ⚠️ melee = การ์ดพุ่ง (fx.lunge) ซึ่งเป็น "ของแพง" ที่สถาปัตยกรรม v3 ตั้งใจกันไว้ —
+ *    ตอนนี้ทุกหมัดที่ไม่ใช่ chip จะขยับการ์ด (วัดแล้ว 45% ของหมัดทั้งหมด)
+ *    จังหวะเวลาไม่เปลี่ยน (TIER_TIMING เท่าเดิม) ไฟต์จึงไม่ยาวขึ้น แต่ภาระ paint สูงขึ้น
+ *    เคสนี้ = preset "เคสหนักสุด" ในห้องแล็บจังหวะไฟต์พอดี ถ้าจะจูนให้ยิงที่นั่น
+ */
+export function atkStyleOf(){ return 'melee'; }
 export function projectileOf(def){ return def?.projectile || '✦'; }
 // passive signature (ปูทาง — รอบนี้ทุกตัวยังไม่มี → null) ดู docs/economy-battle-master-plan.md §5.5
 export function passiveOf(def){ return def?.passive || null; }
