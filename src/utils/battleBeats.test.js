@@ -149,12 +149,15 @@ const PROFILES = {
   'กลาง': {
     A: mk([['dragon', 'epic', 'fist', 3], ['wolf', 'rare', 'fist', 3], ['fox', 'rare', 'scissors', 3], ['owl', 'rare', 'paper', 3]]),
     B: mk([['bahamut', 'legendary', 'fist', 5], ['phoenix', 'legendary', 'scissors', 5], ['whale', 'legendary', 'paper', 5], ['panda', 'epic', 'paper', 5]]),
-    cap: { avg: 19500, worst: 23000, ffAvg: 12500, ffWorst: 14000 },
+    // worst/ffWorst ขยับขึ้นตอนเปิดระบบ passive (27 ส.ค.) — passive สายฟื้นเลือด/กันดาเมจ
+    // (regen · guardian · damageReduction · revive · teamHp) ทำให้ต้องตีมากขึ้นกว่าจะจบไฟต์
+    // เป็นผลโดยธรรมชาติของฟีเจอร์ ไม่ใช่ regression · **ค่าเฉลี่ยคงเดิมโดยตั้งใจ** จะได้ยังจับของที่บวมจริงได้
+    cap: { avg: 19500, worst: 23000, ffAvg: 12500, ffWorst: 14500 },
   },
   'ท็อป': {
     A: mk([['kirin', 'legendary', 'fist', 5], ['trex', 'legendary', 'fist', 5], ['ouroboros', 'legendary', 'scissors', 5], ['mammoth', 'legendary', 'paper', 5]]),
     B: mk([['simurgh', 'legendary', 'scissors', 5], ['qilin', 'legendary', 'paper', 5], ['cerberus', 'epic', 'fist', 5], ['panda', 'epic', 'paper', 5]]),
-    cap: { avg: 26500, worst: 29500, ffAvg: 16000, ffWorst: 18000 },
+    cap: { avg: 26500, worst: 30500, ffAvg: 16000, ffWorst: 18000 },
   },
   'อ่อน': {
     A: mk([['hedgehog', 'common', 'fist', 1], ['cat', 'common', 'scissors', 1], ['turtle', 'common', 'paper', 1], ['hamster', 'common', 'fist', 1]]),

@@ -49,8 +49,12 @@
 
       <!-- ทักษะเฉพาะ — ยังไม่เปิด (ดู economy-battle-master-plan §5.5) -->
       <div class="pd-section">
-        <div class="pd-sec-head"><Emoji char="✨" /> ทักษะเฉพาะ <span class="pd-soon">เร็วๆ นี้</span></div>
-        <div class="pd-note">สัตว์เลี้ยงแต่ละตัวจะมีทักษะพิเศษในการต่อสู้ กำลังจะมาเร็วๆ นี้</div>
+        <div class="pd-sec-head"><Emoji char="✨" /> ทักษะเฉพาะ</div>
+        <template v-if="pdPassive">
+          <div class="pd-passive-name"><Emoji :char="pdPassive.icon" /> {{ pdPassive.name }}</div>
+          <div class="pd-note">{{ pdPassive.desc }}</div>
+        </template>
+        <div v-else class="pd-note">ตัวนี้ยังไม่มีทักษะเฉพาะ</div>
       </div>
 
     </div>
@@ -66,7 +70,7 @@ import { increment } from 'firebase/firestore'
 import { useAuthStore } from '../../stores/auth.js'
 import { useToast } from '../../composables/useToast.js'
 import { useConfirm } from '../../composables/useConfirm.js'
-import { RARITY, GRADE_LABELS, getPetDef, ELEMENTS, EL_NAME } from '../../data/index.js'
+import { RARITY, GRADE_LABELS, getPetDef, ELEMENTS, EL_NAME, passiveOf } from '../../data/index.js'
 import { buildCombatant } from '../../data/battle.js'
 import { petDailyCoins } from '../../utils/petUtils.js'
 import { BATTLE_SLOTS } from '../../data/residence.js'
@@ -84,6 +88,7 @@ const { toast } = useToast()
 const { confirm } = useConfirm()
 const busy = ref(false)
 
+const pdPassive = computed(() => passiveOf({ id: props.petId }))   // passiveOf ใช้ id เป็นกุญแจ
 const pets = computed(() => auth.userData?.pets || [])
 
 // ── Active team ──
@@ -186,6 +191,7 @@ async function evolve() {
 .pd-section { padding: 14px 16px; border-top: 1px solid rgba(0,0,0,.06); margin-top: 8px; }
 .pd-sec-head { font-weight: 800; font-size: .82rem; margin-bottom: 8px; }
 .pd-note { font-size: .7rem; color: rgba(0,0,0,.5); margin-bottom: 8px; }
+.pd-passive-name { font-weight: 800; font-size: .82rem; color: var(--primary); margin-bottom: 2px; }
 .pd-note.small { font-size: .7rem; margin: 6px 0 0; }
 .pd-soon { font-size: .7rem; font-weight: 700; color: #b45309; background: rgba(251,191,36,.18); padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
 .pd-btn { width: 100%; border: 2px solid var(--ink); border-radius: 11px; padding: 10px; font-family: inherit; font-size: .82rem; font-weight: 800; color: #fff; background: #c9c2d4; cursor: pointer; transition: transform .12s, box-shadow .12s; }

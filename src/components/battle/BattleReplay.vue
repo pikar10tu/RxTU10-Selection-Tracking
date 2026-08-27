@@ -301,11 +301,12 @@ function warnTeamMismatch(d) {
 // ไม่งั้น decoding="sync" ครั้งแรกของแต่ละรูป = บล็อกเฟรม
 const preloadedImgs = []
 function preloadCombat(d) {
-  const chars = new Set(['⚡', '🛡️', '💀', '💥'])
+  const chars = new Set(['⚡', '🛡️', '💀', '💥', '✨'])
   for (const p of [...(d?.playerTeam || []), ...(d?.botTeam || [])]) {
     const def = getPetDef(p?.id); if (!def) continue
     if (def.emoji) chars.add(def.emoji)                                  // หน้าเพ็ท (dash sprite)
     const spark = sparkOf(def); if (spark) chars.add(spark)               // ประกายประจำตัวตอนตีโดน
+    const pas = passiveOf(def); if (pas?.icon) chars.add(pas.icon)        // ไอคอน passive (ป้าย + sweep)
   }
   for (const c of chars) {
     const f = fluentFile(c); if (!f) continue
@@ -367,6 +368,31 @@ const handlers = {
   // ตัวที่รอดมาด้วยเลือด ≤25% ไม่เคยถูกสั่งปิดวงแหวน (dangerRing(uid,false) เรียกเฉพาะตอนตาย)
   // → เดิมวงแหวน iterations:Infinity เต้นค้างผ่านหน้าสรุป/ตอน peek ยาวจนกว่าจะ reset() (§5.2 บอกให้ปิดตอนจบไฟต์)
   end() { clearHighlights(); fx?.dangerClearAll() },
+  // passive — timing ZERO จาก battleBeats ⇒ ยิง FX แล้วคืนทันที ไม่กินเวลาไฟต์ (กฎเหล็ก)
+  passive(e) { return applyPassive(e) },
+}
+
+// FX ของ passive: ป้ายชื่อเหนือหัวเสมอ + ประกายตามชนิดผล
+// ⚠️ ห้าม await อะไรที่ยาวกว่าป้าย — handler นี้อยู่นอกงบเวลาของ beat
+function applyPassive(e) {
+  if (!e?.uid) return
+  fx?.banner(e.uid, e.name, e.icon)
+  const on = Array.isArray(e.targets) && e.targets.length ? e.targets : [e.uid]
+  switch (e.kind) {
+    case 'damage':  fx?.sweep(on, e.icon, 60); break        // bahamut สาดไฟใส่ทุกตัว
+    case 'cleave':  fx?.sweep(on, e.icon, 45); break        // เขี้ยว/เปลวไฟลงหลายใบในจังหวะเดียว
+    case 'heal':    fx?.sweep(on, '✨', 70); break
+    case 'guard':   fx?.ring(e.uid, 'windup', 320); break
+    case 'revive':  fx?.sweep(on, e.icon, 0); break
+    case 'save':    fx?.sweep(on, '🛡️', 0); break
+    case 'thorns':  fx?.sweep(on, e.icon, 0); break
+    case 'dodge':   fx?.callout(e.uid, 'weak'); break        // ใช้ป้ายเทาเดิม = "ไม่โดน"
+    case 'chain':
+    case 'buff':    fx?.ring(e.uid, 'windup', 260); break
+    case 'aim':     fx?.ring(e.uid, 'windup', 200); break
+    case 'reduce':  break                                    // ป้ายชื่ออย่างเดียวพอ ไม่งั้นรกทุกหมัด
+    default: break
+  }
 }
 
 // เวลามาตรฐานของอนิเมชันการ์ดเป้าตามสเปก (§4 ชั้น 3–4) — postMs ใช้เป็น "เพดาน" ไม่ใช่ตัวค่าเอง
@@ -781,6 +807,10 @@ onUnmounted(() => {
 .brfx-call.weak { background: rgba(203,213,225,.95); color: #334155; }
 .brfx-puff { width: 1.2rem; height: 1.2rem; }
 .brfx-burst { width: 2rem; height: 2rem; }
+/* ป้ายชื่อ passive — เหนือหัวการ์ด (ไม่ใช่กลางจอ ตาม master plan §5.5) */
+.brfx-banner { font-weight: 800; font-size: .72rem; white-space: nowrap; padding: 3px 9px; border-radius: 9px;
+  background: rgba(15,23,42,.92); color: #fde68a; border: 1px solid rgba(253,230,138,.55); }
+.brfx-sweep { width: 1.7rem; height: 1.7rem; }
 .brfx-proj { width: 1.4rem; height: 1.4rem; }
 .brfx-dash { width: 2rem; height: 2rem; }
 .brfx-ring { width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 18px; }

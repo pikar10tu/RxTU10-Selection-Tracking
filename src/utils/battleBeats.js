@@ -44,7 +44,9 @@ export function buildBeats(log, maxHpByUid) {
   // ── pass 1: คิด dmgPct / hpPctAfter / score ของทุก attack ──
   const info = evts.map((e) => {
     const ev = e || {}
-    if (ev.t !== 'attack') return null
+    // sub = หมัดลูกของ cleave/multiStrike — อยู่ใน beat ของหมัดหลัก ไม่นับเป็นจังหวะใหม่
+    // (ไม่งั้น cerberus ที่โดน 3 ตัว = 3 จังหวะ ⇒ ไฟต์ยืดตามจำนวน passive ในทีม)
+    if (ev.t !== 'attack' || ev.sub) return null
     const max = mh[ev.target] > 0 ? mh[ev.target] : 1
     const dmgPct = (ev.dmg || 0) / max
     return {

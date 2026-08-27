@@ -68,8 +68,8 @@ export function createBattleFx() {
   // ตั้งตำแหน่งฐานด้วย transform (translateZ promote) — dx/dy = offset ในหน่วย px, bake ใน translate
   function baseXform(uid, dx = 0, dy = 0) { const c = centerOf(uid); return c ? `translate(${(c.x + dx).toFixed(1)}px, ${(c.y + dy).toFixed(1)}px) translateZ(0)` : null }
 
-  const pool = { pop: [], call: [], puff: [], ring: [], burst: [], proj: [], dash: [], jab: [], danger: [] }
-  let popIdx = 0, callIdx = 0, puffIdx = 0, jabIdx = 0
+  const pool = { pop: [], call: [], puff: [], ring: [], burst: [], proj: [], dash: [], jab: [], danger: [], banner: [], sweep: [] }
+  let popIdx = 0, callIdx = 0, puffIdx = 0, jabIdx = 0, bannerIdx = 0, sweepIdx = 0
   const dangerOn = new Map()      // uid → element ที่กำลังเต้นอยู่
 
   function buildPools() {
@@ -84,6 +84,8 @@ export function createBattleFx() {
     pool.jab = [mkImg('brfx-jab'), mkImg('brfx-jab')]
     pool.jab.forEach(e => imgSrc(e, '💥'))
     for (let i = 0; i < 8; i++) pool.danger.push(mkEl('brfx-danger'))   // สูงสุด 8 ตัวต่อไฟต์ (4v4)
+    for (let i = 0; i < 3; i++) pool.banner.push(mkEl('brfx-banner'))   // ป้าย passive ซ้อนกันได้ 3 (เกินนั้นทับตัวเก่าสุด)
+    for (let i = 0; i < 4; i++) pool.sweep.push(mkImg('brfx-sweep'))    // อีโมจิลงหลายการ์ดพร้อมกัน (cleave 3 / aoe 4)
     hideAllPools()
   }
   function hideAllPools() {
@@ -326,8 +328,45 @@ export function createBattleFx() {
       { transform: `translate(${b.x}px, ${b.y}px) scale(.9) translateZ(0)`, opacity: 0 },
     ], { duration: 250, easing: 'cubic-bezier(.2,.7,.3,1.1)', fill: 'forwards' }).then(() => { el.style.opacity = '0' })
   }
+  // ── passive: ป้ายชื่อเหนือหัว + อีโมจิลงหลายการ์ด ──
+  // ทั้งคู่เป็น pooled ephemeral · transform+opacity เท่านั้น · ไม่แตะการ์ด (ข้อบังคับ v3)
+  function banner(uid, name, icon, ms = 600) {
+    const c = centerOf(uid); if (!c) return Promise.resolve()
+    const el = pool.banner[bannerIdx = (bannerIdx + 1) % pool.banner.length]
+    el.getAnimations?.().forEach(a => a.cancel())
+    el.textContent = `${icon || ''} ${name || ''}`.trim()
+    el.style.opacity = '1'
+    const base = `translate(${c.x.toFixed(1)}px, ${(c.y - 46).toFixed(1)}px) translateZ(0)`
+    return run(el, [
+      { transform: base + ' translateY(6px) scale(.85)', opacity: 0 },
+      { transform: base + ' scale(1)', opacity: 1, offset: .22 },
+      { transform: base + ' scale(1)', opacity: 1, offset: .74 },
+      { transform: base + ' translateY(-8px) scale(.95)', opacity: 0 },
+    ], { duration: ms, easing: 'ease-out', fill: 'forwards' }).then(() => { el.style.opacity = '0' })
+  }
+
+  /** ยิงอีโมจิเดียวกันลงหลายการ์ดไล่กันทีละ stagger ms (cleave · aoe · คลื่นทีม · ละออง) */
+  function sweep(uids, char, stagger = 70) {
+    if (!F('burst')) return Promise.resolve()
+    const list = (uids || []).slice(0, pool.sweep.length)
+    return Promise.all(list.map((uid, i) => {
+      const base = baseXform(uid, 0, 0); if (!base) return Promise.resolve()
+      const el = pool.sweep[sweepIdx = (sweepIdx + 1) % pool.sweep.length]
+      el.getAnimations?.().forEach(a => a.cancel())
+      imgSrc(el, (char && fluentFile(char)) ? char : '✨')
+      el.style.opacity = '1'
+      return run(el, [
+        { transform: base + ' scale(.5)', opacity: 0, offset: 0 },
+        { transform: base + ' scale(1.15)', opacity: 1, offset: .35 },
+        { transform: base + ' scale(1.3)', opacity: 0, offset: 1 },
+      ], { duration: 420, delay: i * stagger, easing: 'ease-out', fill: 'forwards' })
+        .then(() => { el.style.opacity = '0' })
+    }))
+  }
+
   return {
     attach, reset, cancelAll, setRate, setFlags, setStyle, setReducedOverride, destroy, centerOf, invalidateCenters,
+    banner, sweep,
     pop, callout, koPuff, ring, burst, projectile, dash,
     jab, lunge, squashTarget, targetReacts, shake, ko, dangerRing, dangerClearAll,
   }

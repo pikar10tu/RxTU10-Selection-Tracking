@@ -20,8 +20,10 @@ test('projectileOf: emoji ประจำตัวยังอ่านได้
   withProj.forEach(p => assert.equal(projectileOf(p), p.projectile, `${p.id} projectile`))
 })
 
-test('passive default null', () => {
-  assert.equal(passiveOf(PETS.find(p => p.id === 'wolf')), null)
+test('passiveOf: คืน passive จริงแล้ว (ระบบ passive เปิด 27 ส.ค.) · id ที่ไม่รู้จัก = null', () => {
+  assert.equal(passiveOf(PETS.find(p => p.id === 'wolf')).name, 'สัญชาตญาณฝูง')
+  assert.equal(passiveOf({ id: 'ไม่มีจริง' }), null)
+  assert.equal(passiveOf(null), null)
 })
 
 // ── ประกายประจำตัวตอนตีโดน (คืนเอกลักษณ์รายตัวที่หายไปตอนเลิกใช้ ranged) ──
