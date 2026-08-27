@@ -13,7 +13,9 @@ import {
   nextRating, BOT_RATING_MULT, PVP_DAILY_ATTACKS, PVP_WIN_COIN, PVP_BOT_COIN,
 } from '../utils/pvpRating.js'
 import { currentSeasonId, applySeasonReset } from '../utils/pvpSeason.js'
-import { getPvpBot } from '../utils/pvpBot.js'
+import { getPvpBots } from '../utils/pvpBot.js'
+import { pickHumanOpponents } from '../utils/pvpMatch.js'
+import { hashStr } from '../utils/seededRng.js'
 
 // คีย์วันที่รายวัน (UTC) — ใช้ toISOString ให้ตรงกับ daily-reset อื่นของแอป
 // (quizCoinDate/studyCoinDate/dailyQuest ใช้ UTC เหมือนกันหมด → คงไว้เพื่อความสอดคล้อง)
@@ -43,15 +45,16 @@ export function useArena() {
   const myTeam = computed(() =>
     resolveBattleTeam(auth.userData?.activePets, auth.userData?.pets))
 
-  // พูลคู่ต่อสู้ = คนจริงเรตใกล้ 4 คน + บอท 1 ตัว
-  // seed รายชั่วโมง → บอทเปลี่ยนทุก 1 ชม. ไม่สุ่มใหม่ทุก render
+  // พูลคู่ต่อสู้ = สุ่ม 5 คนจริงย่านเรตใกล้ + บอท 2 ตัว (อ่อน/แกร่ง)
+  // seed = วันที่+uid → นิ่งทั้งวัน (refresh หน้าไม่สุ่มใหม่) · ข้ามวันได้พูลใหม่ · คนละคนได้คนละพูล
   // roster ให้ทีมมาพร้อมสู้แล้ว (เหมือนบอท) จึงไม่ต้องอ่าน doc คู่ต่อสู้เลย
   const opponents = computed(() => {
-    const humans = rosterOpponents(members.rosterRows || {}, auth.currentUser?.uid)
-      .sort((a, b) => Math.abs(a.rating - rating.value) - Math.abs(b.rating - rating.value))
-      .slice(0, 4)
-    const bot = getPvpBot(rating.value, Math.floor(Date.now() / 3600000))
-    return [...humans, bot]
+    const seed = hashStr(todayStr() + (auth.currentUser?.uid || ''))
+    const humans = pickHumanOpponents(
+      rosterOpponents(members.rosterRows || {}, auth.currentUser?.uid),
+      rating.value, seed,
+    )
+    return [...humans, ...getPvpBots(rating.value, seed)]
   })
 
   // เขียนผลการสู้เข้า user doc (optimistic + server patch)
@@ -109,7 +112,8 @@ export function useArena() {
     const { ok, delta, coin } = await applyResult(opp, won)
     // เขียนผลไม่สำเร็จ → toast error + ไม่โชว์ replay (เหมือน useFarm/useDaily)
     if (!ok) { toast('บันทึกผลประลองไม่สำเร็จ', 'error'); return null }
-    const name = opp.isBot ? 'หุ่นซ้อม' : (opp.nickname || 'คู่ต่อสู้')
+    // บอทมี 2 ตัว (อ่อน/แกร่ง) — ต้องบอกให้ชัดว่าเพิ่งสู้กับตัวไหน
+    const name = opp.isBot ? `หุ่นซ้อม${opp.label ? ' (' + opp.label + ')' : ''}` : (opp.nickname || 'คู่ต่อสู้')
     const sign = delta >= 0 ? '+' : ''
     return {
       result, playerTeam: myTeam.value, botTeam: oppTeam, won, opp,

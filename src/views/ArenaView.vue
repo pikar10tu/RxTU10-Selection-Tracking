@@ -30,7 +30,7 @@
         <div v-for="opp in opponents" :key="opp.uid" class="ar-opp">
           <span class="ar-opp-info">
             <span class="ar-opp-name">
-              <Emoji :char="opp.isBot ? '🤖' : '🧑'" /> {{ opp.isBot ? 'หุ่นซ้อม' : (opp.nickname || '?') }}
+              <Emoji :char="opp.isBot ? '🤖' : '🧑'" /> {{ opp.isBot ? ('หุ่นซ้อม' + (opp.label ? ' · ' + opp.label : '')) : (opp.nickname || '?') }}
             </span>
             <span class="ar-opp-rt">{{ (opp.rating || 0).toLocaleString() }} แต้ม<span v-if="opp.isBot"> · ฝึกซ้อม</span></span>
           </span>
