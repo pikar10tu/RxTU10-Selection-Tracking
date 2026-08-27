@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   buildBeats, scaleTiming, beatDuration, totalDuration,
   TIER_TIMING, DANGER_PCT, SURVIVE_PCT, HEAVY_SCORE_FLOOR,
+  PASSIVE_TIMING, OPEN_GROUP_MS, PASSIVE_SPOT_QUOTA,
 } from './battleBeats.js'
 import { simulateBattle } from './battleEngine.js'
 import { buildCombatant } from '../data/battle.js'
@@ -151,18 +152,20 @@ const PROFILES = {
     B: mk([['bahamut', 'legendary', 'fist', 5], ['phoenix', 'legendary', 'scissors', 5], ['whale', 'legendary', 'paper', 5], ['panda', 'epic', 'paper', 5]]),
     // worst/ffWorst ขยับขึ้นตอนเปิดระบบ passive (27 ส.ค.) — passive สายฟื้นเลือด/กันดาเมจ
     // (regen · guardian · damageReduction · revive · teamHp) ทำให้ต้องตีมากขึ้นกว่าจะจบไฟต์
-    // เป็นผลโดยธรรมชาติของฟีเจอร์ ไม่ใช่ regression · **ค่าเฉลี่ยคงเดิมโดยตั้งใจ** จะได้ยังจับของที่บวมจริงได้
-    cap: { avg: 19500, worst: 23000, ffAvg: 12500, ffWorst: 14500 },
+    // ทุกค่าขยับขึ้นอีกครั้งตอนเปิด "โมเมนต์สกิล" (28 ส.ค.) — passive ที่ได้สปอตไลต์/ป้ายผ่าน
+    // กินเวลาเพิ่ม ~5.2 วิ/ไฟต์ ซึ่งเป็นราคาที่ตั้งใจจ่าย ไม่ใช่ของบวมโดยบังเอิญ
+    // ⚠️ ตัวคุมของฟีเจอร์นี้จริง ๆ คือเทส "งบเวลาของ passive" ท้ายไฟล์ (แม่นกว่าเวลารวมที่ปนหมัด)
+    cap: { avg: 24000, worst: 30000, ffAvg: 17500, ffWorst: 21000 },
   },
   'ท็อป': {
     A: mk([['kirin', 'legendary', 'fist', 5], ['trex', 'legendary', 'fist', 5], ['ouroboros', 'legendary', 'scissors', 5], ['mammoth', 'legendary', 'paper', 5]]),
     B: mk([['simurgh', 'legendary', 'scissors', 5], ['qilin', 'legendary', 'paper', 5], ['cerberus', 'epic', 'fist', 5], ['panda', 'epic', 'paper', 5]]),
-    cap: { avg: 26500, worst: 30500, ffAvg: 16000, ffWorst: 18000 },
+    cap: { avg: 32500, worst: 36000, ffAvg: 21000, ffWorst: 23000 },
   },
   'อ่อน': {
     A: mk([['hedgehog', 'common', 'fist', 1], ['cat', 'common', 'scissors', 1], ['turtle', 'common', 'paper', 1], ['hamster', 'common', 'fist', 1]]),
     B: mk([['mouse', 'common', 'scissors', 1], ['butterfly', 'common', 'paper', 1], ['seal', 'rare', 'paper', 2], ['fox', 'rare', 'scissors', 2]]),
-    cap: { avg: 26500, worst: 29500, ffAvg: 16000, ffWorst: 18000 },
+    cap: { avg: 31000, worst: 35500, ffAvg: 20500, ffWorst: 23000 },
   },
 }
 const CHROME = 1100 + 900       // intro READY?/GO! + ค้างสนามท้ายไฟต์
@@ -171,7 +174,7 @@ function measure(prof) {
   const maxHp = {}
   prof.A.forEach((p, i) => { maxHp['A' + i] = Math.round(buildCombatant(p).maxHp) || 1 })
   prof.B.forEach((p, i) => { maxHp['B' + i] = Math.round(buildCombatant(p).maxHp) || 1 })
-  let sum = 0, worst = 0, ffSum = 0, ffWorst = 0, oldSum = 0
+  let sum = 0, worst = 0, ffSum = 0, ffWorst = 0, oldSum = 0, pSum = 0, pWorst = 0
   const cnt = { chip: 0, solid: 0, heavy: 0, finish: 0 }
   for (let s = 1; s <= 200; s++) {
     const beats = buildBeats(simulateBattle(prof.A, prof.B, s).log, maxHp)
@@ -182,10 +185,16 @@ function measure(prof) {
     oldSum += beats.filter(b => b.t === 'attack').length * 1000    // ระบบเดิม ~1 วิ/หมัด
     if (d > worst) worst = d
     if (f > ffWorst) ffWorst = f
+    // งบที่ passive กินไปโดยเฉพาะ — แยกออกมาเพราะเวลารวมปนเวลาหมัดจนจับของบวมไม่เจอ
+    const pv = beats.filter(b => b.pTier)
+      .reduce((a, b) => a + b.timing.windup + b.timing.motion + b.timing.hitstop + b.timing.tail, 0)
+    pSum += pv
+    if (pv > pWorst) pWorst = pv
   }
   const tot = cnt.chip + cnt.solid + cnt.heavy + cnt.finish
   return {
     avg: sum / 200, worst, ffAvg: ffSum / 200, ffWorst, oldAvg: oldSum / 200,
+    pAvg: pSum / 200, pWorst,
     share: { chip: cnt.chip / tot, heavy: cnt.heavy / tot, finish: cnt.finish / tot },
   }
 }
@@ -199,6 +208,13 @@ for (const [name, prof] of Object.entries(PROFILES)) {
     assert.ok(m.ffWorst <= prof.cap.ffWorst, `เร่งยาวสุด ${Math.round(m.ffWorst)}ms ต้องไม่เกิน ${prof.cap.ffWorst}`)
     assert.ok(m.avg < m.oldAvg, `ต้องสั้นกว่าระบบเดิม (ใหม่ ${Math.round(m.avg)} vs เดิม ${Math.round(m.oldAvg)})`)
   })
+  test(`งบเวลาของ passive — ทีม${name}`, () => {
+    const m = measure(prof)
+    // ตัวคุมจริงของ "โมเมนต์สกิล": โควตาต้องกันไม่ให้เวลา passive โตตามจำนวน passive ในทีม
+    // (ถ้าวันหลังเผลอเอาโควตาออกแล้วหยุดทุกตัว ตัวเลขนี้จะพุ่งทันที — เวลารวมจะจับไม่ทัน)
+    assert.ok(m.pAvg <= 6500, `passive กินเฉลี่ย ${Math.round(m.pAvg)}ms ต้องไม่เกิน 6500`)
+    assert.ok(m.pWorst <= 8000, `passive กินสูงสุด ${Math.round(m.pWorst)}ms ต้องไม่เกิน 8000`)
+  })
   test(`สัดส่วนชั้น — ทีม${name}`, () => {
     const { share } = measure(prof)
     // กันการกลับไปเป็นแบบฉบับแรกที่ heavy บวมเป็น 53%
@@ -207,3 +223,102 @@ for (const [name, prof] of Object.entries(PROFILES)) {
     assert.ok(share.finish <= 0.06, `finish ${(share.finish * 100).toFixed(0)}% ต้องไม่เกิน 6%`)
   })
 }
+
+
+// ════════════════════════════════════════════════════════════
+//  โมเมนต์สกิล — ชั้นของ passive (สเปก 2026-08-28-skill-moment)
+// ════════════════════════════════════════════════════════════
+const pas = (o) => ({ t: 'passive', uid: 'A0', side: 'A', effect: 'regenSelf', kind: 'heal', amount: 3, targets: ['A0'], ...o })
+const pTiers = (beats) => beats.filter(b => b.t === 'passive').map(b => b.pTier)
+const dur = (b) => b.timing.windup + b.timing.motion + b.timing.hitstop + b.timing.tail
+
+test('passive — ฮีลตัวเดิมซ้ำ ๆ ครั้งแรกเท่านั้นที่หยุด ที่เหลือเงียบ', () => {
+  const log = [atk({}), ...Array.from({ length: 5 }, () => pas({})), atk({})]
+  const t = pTiers(buildBeats(log, MH))
+  assert.equal(t.length, 5)
+  assert.ok(t[0] === 'spotlight' || t[0] === 'glance', `ครั้งแรกต้องหยุด ได้ ${t[0]}`)
+  assert.deepEqual(t.slice(1), ['mute', 'mute', 'mute', 'mute'])
+})
+
+test('passive — ชั้น mute กินเวลา 0ms (พฤติกรรมเดิมเป๊ะ)', () => {
+  const log = [atk({}), pas({}), pas({})]
+  const b = buildBeats(log, MH).filter(x => x.t === 'passive')
+  assert.equal(dur(b[1]), 0)
+})
+
+test('passive — โควตาสปอตไลต์ไม่เกิน 3 ไม่ว่าจะมี passive กี่ตัว', () => {
+  const log = [atk({})]
+  for (let i = 0; i < 40; i++) log.push(pas({ uid: 'A' + i, effect: 'e' + i, amount: 40 }))
+  const t = pTiers(buildBeats(log, { ...MH }))
+  assert.equal(t.filter(x => x === 'spotlight').length, PASSIVE_SPOT_QUOTA)
+})
+
+test('passive — 1 สกิลของตัวเดียวกันได้สปอตไลต์ครั้งเดียวต่อไฟต์', () => {
+  const log = [atk({})]
+  for (let i = 0; i < 6; i++) log.push(pas({ uid: 'A0', effect: 'revive', kind: 'revive', amount: 50 }))
+  const t = pTiers(buildBeats(log, MH))
+  assert.equal(t.filter(x => x === 'spotlight').length, 1)
+})
+
+test('passive — จังหวะเป็น-ตาย (revive/cheatDeath/saveAlly) ได้สปอตไลต์แม้เบียดกับฮีลใหญ่', () => {
+  const log = [atk({})]
+  for (let i = 0; i < 5; i++) log.push(pas({ uid: 'A1', effect: 'healLowestAlly', amount: 45, targets: ['A1'] }))
+  log.push(pas({ uid: 'B1', effect: 'cheatDeath', kind: 'save', amount: 1, targets: ['B1'] }))
+  const beats = buildBeats(log, MH).filter(b => b.t === 'passive')
+  assert.equal(beats[beats.length - 1].pTier, 'spotlight')
+})
+
+test('passive — ยกแรกได้ openGroup ทุกตัว และมีตัวเดียวที่ถือเวลาค้าง (ตัวสุดท้ายของกลุ่ม)', () => {
+  const log = [
+    pas({ uid: 'A0', effect: 'teamHp', kind: 'aura', amount: 0 }),
+    pas({ uid: 'A1', effect: 'teamCrit', kind: 'aura', amount: 0 }),
+    pas({ uid: 'B0', effect: 'teamAtk', kind: 'aura', amount: 0 }),
+    atk({}), pas({ uid: 'A0', effect: 'regenSelf' }),
+  ]
+  const beats = buildBeats(log, MH)
+  assert.deepEqual(beats.slice(0, 3).map(b => b.pTier), ['openGroup', 'openGroup', 'openGroup'])
+  const holds = beats.slice(0, 3).filter(b => dur(b) > 0)
+  assert.equal(holds.length, 1, 'ต้องค้างครั้งเดียวทั้งกลุ่ม ไม่ใช่ทีละตัว')
+  assert.equal(holds[0], beats[2], 'ตัวที่ถือเวลาค้างต้องเป็นตัวสุดท้ายของกลุ่ม')
+  assert.equal(dur(beats[2]), OPEN_GROUP_MS)
+})
+
+test('passive — ยกแรกยาวเท่าเดิมไม่ว่าจะมี aura กี่ตัว (นี่คือเหตุผลที่รวมกลุ่ม)', () => {
+  const mk = (n) => Array.from({ length: n }, (_, i) => pas({ uid: 'A' + i, effect: 'aura' + i, kind: 'aura', amount: 0 }))
+  const one = buildBeats([...mk(1), atk({})], MH).filter(b => b.t === 'passive')
+  const seven = buildBeats([...mk(7), atk({})], MH).filter(b => b.t === 'passive')
+  assert.equal(one.reduce((a, b) => a + dur(b), 0), seven.reduce((a, b) => a + dur(b), 0))
+})
+
+test('passive — ลมหายใจราชัน (aoeOpener) ในยกแรกได้สปอตไลต์ ไม่ถูกกลืนเข้ากลุ่ม', () => {
+  const log = [
+    pas({ uid: 'A0', effect: 'teamHp', kind: 'aura', amount: 0 }),
+    pas({ uid: 'B0', effect: 'aoeOpener', kind: 'damage', amount: 20, targets: ['A0', 'A1'] }),
+    atk({}),
+  ]
+  const beats = buildBeats(log, MH)
+  assert.equal(beats[0].pTier, 'openGroup')
+  assert.equal(beats[1].pTier, 'spotlight')
+  assert.equal(dur(beats[1]), PASSIVE_TIMING.spotlight.windup + PASSIVE_TIMING.spotlight.hitstop + PASSIVE_TIMING.spotlight.tail)
+})
+
+test('passive — ไฟต์ที่ไม่มี passive เลย ได้ beat เหมือนเดิมทุกประการ', () => {
+  const log = [...ramp(12), { t: 'end', winner: 'A' }]
+  const beats = buildBeats(log, MH)
+  assert.equal(beats.every(b => !b.pTier), true)   // หมัดไม่มี pTier · event อื่นได้ null
+  assert.equal(totalDuration(beats), beats.reduce((a, b) => a + dur(b), 0))
+})
+
+test('passive — beats ยาวเท่า log เสมอ (ข้อบังคับ index ตรงกัน)', () => {
+  const log = [pas({}), pas({ uid: 'A1' }), atk({}), pas({}), { t: 'round', n: 2 }, atk({}), { t: 'end' }]
+  assert.equal(buildBeats(log, MH).length, log.length)
+})
+
+test('passive — กดค้างเร่งย่อได้เฉพาะป้ายผ่าน ห้ามย่อสปอตไลต์/ยกแรก', () => {
+  const spot = { t: 'passive', pTier: 'spotlight', timing: { ...PASSIVE_TIMING.spotlight } }
+  const glance = { t: 'passive', pTier: 'glance', timing: { ...PASSIVE_TIMING.glance } }
+  const open = { t: 'passive', pTier: 'openGroup', timing: { windup: 0, motion: 0, hitstop: OPEN_GROUP_MS, tail: 0 } }
+  assert.equal(beatDuration(spot, { ff: true }), beatDuration(spot))
+  assert.equal(beatDuration(open, { ff: true }), beatDuration(open))
+  assert.ok(beatDuration(glance, { ff: true }) < beatDuration(glance))
+})
