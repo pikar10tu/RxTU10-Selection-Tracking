@@ -4,8 +4,6 @@ export const PVP_RATING_FLOOR = 100    // แต้มต่ำสุด (กั
 export const PVP_K = 32                // ความไวของเรต
 export const BOT_RATING_MULT = 0.5     // บอทให้แต้มครึ่งของคนจริง
 export const PVP_DAILY_ATTACKS = 5     // โควต้าบุก/วัน (รวมคน+บอท)
-export const PVP_WIN_COIN = 200        // เหรียญเมื่อชนะคนจริง
-export const PVP_BOT_COIN = 120        // เหรียญเมื่อชนะบอท
 
 /** โอกาสชนะคาดหวังของ my ต่อ opp (Elo) */
 export function expectedScore(my, opp) {
