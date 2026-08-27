@@ -14,8 +14,10 @@ export function boardSeed(dayStr, uid, nonce) {
 
 /** เหลืออีกกี่ ms ถึงกดรีได้ (0 = กดได้เลย) */
 export function refreshLeftMs(lastAt, now, cooldown = PVP_REFRESH_COOLDOWN_MS) {
+  // ยังไม่เคยกดเลย = กดได้ทันที · เขียนเป็นเงื่อนไขตรงๆ ไม่พึ่งว่า now เป็นเลขใหญ่พอ
+  if (!lastAt) return 0
   // clamp ที่ 0 กันนาฬิกาเครื่องเดินถอยหลังแล้วล็อกปุ่มยาวเกิน cooldown
-  const passed = Math.max(0, now - (lastAt || 0))
+  const passed = Math.max(0, now - lastAt)
   return passed >= cooldown ? 0 : cooldown - passed
 }
 
