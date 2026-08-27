@@ -247,3 +247,17 @@ test('buildRosterRow เรียกซ้ำด้วยแถวที่ต�
   const next = buildRosterRow(user(), prev)
   assert.equal(rosterRowChanged(prev, next), false, 'คีย์ต้องเรียงเหมือนเดิมด้วย (เทียบด้วย JSON.stringify)')
 })
+
+test('buildRosterRow ใส่ ta4/ta15 เฉพาะที่ > 0 (กันแถวบวมด้วยศูนย์)', () => {
+  const r = buildRosterRow(user({ timeAttack: { best4: 23, best15: 0 } }))
+  assert.equal(r.ta4, 23)
+  assert.equal('ta15' in r, false)
+  const empty = buildRosterRow(user())
+  assert.equal('ta4' in empty, false)
+  assert.equal('ta15' in empty, false)
+})
+
+test('buildRosterRow ทน timeAttack เพี้ยน/ไม่ใช่ตัวเลข', () => {
+  assert.equal('ta4' in buildRosterRow(user({ timeAttack: null })), false)
+  assert.equal('ta4' in buildRosterRow(user({ timeAttack: { best4: 'มั่ว' } })), false)
+})

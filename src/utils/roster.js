@@ -50,6 +50,10 @@ export function buildRosterRow(u, prev) {
     .filter(Boolean)
     .slice(0, BATTLE_SLOTS)
 
+  // Time Attack: ใส่เฉพาะที่ทำได้จริง — แถวนี้ทุกคนทั้งรุ่นโหลดทุกเซสชัน
+  const ta4  = num(d.timeAttack?.best4, 0)
+  const ta15 = num(d.timeAttack?.best15, 0)
+
   return {
     s:  d.studentId ?? null,
     n:  stripTrailingEmoji(d.nickname || d.name?.split(' ')[0] || '') || '?',
@@ -63,6 +67,8 @@ export function buildRosterRow(u, prev) {
     r:  num(applySeasonReset(d.pvp, currentSeasonId()).rating, PVP_RATING_START),
     m,
     tm,
+    ...(ta4  ? { ta4 }  : {}),
+    ...(ta15 ? { ta15 } : {}),
     // h ต่อท้ายเสมอ (ตำแหน่งคงที่ = rosterRowChanged เทียบ JSON ได้ตรง ไม่ยิงเขียนเปล่า)
     ...(prev?.h?.length ? { h: prev.h } : {}),
   }

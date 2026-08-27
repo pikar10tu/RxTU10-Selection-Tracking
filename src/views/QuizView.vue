@@ -156,12 +156,13 @@ import Emoji from '../components/shared/Emoji.vue'
 import HelpButton from '../components/help/HelpButton.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { collection, getDocs, getDoc, query, where, orderBy, startAt, limit, doc, addDoc, setDoc, increment, serverTimestamp, writeBatch, deleteField, documentId } from 'firebase/firestore'
+import { collection, getDocs, getDoc, query, where, orderBy, limit, doc, addDoc, setDoc, increment, serverTimestamp, writeBatch, deleteField, documentId } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useUsageStore } from '../stores/usage.js'
 import { useToast } from '../composables/useToast.js'
-import { quizSample } from '../utils/quizSample.js'
+import { shuffle, shuffleChoices } from '../utils/quizShuffle.js'
+import { useQuestionFeed } from '../composables/useQuestionFeed.js'
 import { cleanText, LIMITS } from '../utils/text.js'
 import { reportDocId, buildSnapshot } from '../utils/questionReport.js'
 import { DOMAINS, DOMAIN_KEYS, domainLabel } from '../data/domains.js'
@@ -176,6 +177,7 @@ const authStore = useAuthStore()
 const usage = useUsageStore()
 const { toast } = useToast()
 const route = useRoute()
+const { fetchQuestions: feedQuestions } = useQuestionFeed()
 
 const LETTERS = ['ก', 'ข', 'ค', 'ง', 'จ', 'ฉ']
 const LEN_CHOICES = [5, 10, 15, 20]
@@ -325,48 +327,14 @@ const progress = computed(() => quiz.value.length ? Math.round((idx.value / quiz
 const pct = computed(() => sessionTotal.value ? Math.round((correct.value / sessionTotal.value) * 100) : 0)
 const resultEmoji = computed(() => pct.value >= 80 ? '🏆' : pct.value >= 50 ? '😊' : '📚')
 
-function shuffle(arr) {
-  const a = arr.slice()
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]] }
-  return a
-}
-
-// สลับตำแหน่งตัวเลือกในแต่ละข้อ + remap index เฉลยให้ตรงตำแหน่งใหม่
-// (กันคนจำว่า "เฉลยคือข้อ ก" จากการทำซ้ำ — ให้จำเนื้อหาแทน)
-function shuffleChoices(q) {
-  const order = shuffle(q.choices.map((_, i) => i))
-  return {
-    ...q,
-    choices: order.map(i => q.choices[i]),
-    answer: order.indexOf(q.answer),
-  }
-}
-
 const starting = ref(false)
 
 // ── SRS ข้อที่เคยผิด (study.qcards) — spec 2026-08-20-quiz-srs-wiring ──
 const REDO_BATCH = 20
 const missingQIds = ref([])   // id ในกองที่หาย/ถูกถอนเผยแพร่ → ลบทิ้งตอน finish()
 
-// ดึงข้อสุ่ม n ข้อ (windowed orderBy rand + wrap) — ใช้ร่วมทั้งโหมดทั่วไปและ Zen
-async function fetchQuestions(n) {
-  const R = Math.random()
-  const base = [where('isPublished', '==', true)]
-  // ชุดย้อนหลังมาก่อน (สลับกับหมวด) — ใช้ composite index isPublished+examSets(CONTAINS)+rand
-  if (examSet.value) base.push(where('examSets', 'array-contains', examSet.value))
-  else if (dom.value !== '__all') base.push(where('domain', '==', dom.value))
-  const col = collection(db, 'questions')
-  const firstSnap = await getDocs(query(col, ...base, orderBy('rand'), startAt(R), limit(n)))
-  usage.track(firstSnap.size)
-  const first = firstSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-  let wrap = []
-  if (first.length < n) {
-    const wrapSnap = await getDocs(query(col, ...base, orderBy('rand'), limit(n)))
-    usage.track(wrapSnap.size)
-    wrap = wrapSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-  }
-  return quizSample(first, wrap, n).filter(q => Array.isArray(q.choices) && q.choices.length >= 2)
-}
+// ดึงข้อสุ่ม n ข้อ — ตรรกะการสุ่มอยู่ใน useQuestionFeed (ใช้ร่วมกับ Time Attack)
+const fetchQuestions = (n) => feedQuestions(n, { domain: dom.value, examSet: examSet.value })
 
 async function start() {
   if (starting.value) return

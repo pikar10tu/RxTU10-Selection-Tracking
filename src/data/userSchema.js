@@ -66,6 +66,7 @@ export const USER_DEFAULTS = {
   // ── Expedition (ส่งผจญภัย) ──
   expedition: null,   // { petIds:[3], party:[{id,rarity,element,grade}], missionId, durationId, startedAt, endsAt } | null (1 สายต่อครั้ง)
   minigames: {},   // { [key]: { best, plays } } — คะแนนมินิเกม (ดู data/minigames.js)
+  timeAttack: { best4: 0, best15: 0 },   // คะแนนดีสุดโหมดจับเวลา (ดู utils/timeAttack.js)
   petsMigratedV2: false,                      // one-time: เพ็ทเก่า → species-based model ใหม่ (เกรด I-V)
   seenIntro: false,                           // one-time: เคยดูทัวร์แนะนำแอพแล้ว
   seenStudyCoach: false,                      // one-time: เคยดูวิธีใช้แฟลชการ์ดแล้ว
@@ -152,6 +153,7 @@ export function normalizeUserData(data) {
   d.expedition = isObj(data.expedition) ? data.expedition : null
   d.likedBy   = isObj(data.likedBy) ? data.likedBy : {}
   d.minigames = isObj(data.minigames) ? { ...data.minigames } : {}
+  d.timeAttack = { ...USER_DEFAULTS.timeAttack, ...(isObj(data.timeAttack) ? data.timeAttack : {}) }
 
   return d
 }

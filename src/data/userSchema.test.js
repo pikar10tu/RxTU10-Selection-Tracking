@@ -139,3 +139,14 @@ test('FIX F1: doc migrated ที่มี entry null/ไม่มี id → fil
   const d = normalizeUserData({ petsMigratedV2: true, pets: [null, { grade: 1 }, { id: 'cat', grade: 0, copies: 0 }] })
   assert.equal(d.pets.length, 1); assert.equal(d.pets[0].id, 'cat')
 })
+
+test('normalizeUserData เติม timeAttack ให้ user เก่าที่ยังไม่มีฟิลด์', () => {
+  const d = normalizeUserData({})
+  assert.deepEqual(d.timeAttack, { best4: 0, best15: 0 })
+})
+
+test('normalizeUserData คงสถิติเดิมและเติมคีย์ที่ขาด', () => {
+  const d = normalizeUserData({ timeAttack: { best4: 30 } })
+  assert.equal(d.timeAttack.best4, 30)
+  assert.equal(d.timeAttack.best15, 0)
+})
