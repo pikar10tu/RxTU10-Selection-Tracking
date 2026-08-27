@@ -66,22 +66,12 @@
           </button>
         </div>
 
-        <div class="maint-toggle" style="margin-top:8px">
-          <span class="maint-state" :class="arcadeOpen ? 'on' : 'off'">
-            {{ arcadeOpen ? '🟢 มินิเกม: เปิดให้เล่นแล้ว' : '🔒 มินิเกม: ซ่อนจากนักศึกษา' }}
-          </span>
-          <button
-            class="btn-mini" :class="arcadeOpen ? 'btn-gray' : 'btn-gold'"
-            :disabled="savingFocus" @click="toggleFocus('arcadeOpen')"
-          >
-            {{ savingFocus ? '...' : (arcadeOpen ? 'ซ่อน' : 'เปิด 🎮') }}
-          </button>
-        </div>
-
-        <div class="admin-hint" style="margin-top:8px">
-          ⚠️ มินิเกมที่ปิดคือ 2048 / Stacker / Capsule Rush เท่านั้น —
-          <b>ตัวฝึกคำนวณ CrCl ในหน้าเตรียมสอบไม่ได้ถูกปิดด้วย</b>
-        </div>
+        <!-- ปุ่มเปิด/ซ่อน "มินิเกม" (arcadeOpen) ถูกเอาออกจากหน้านี้ตามที่ user สั่ง 27 ส.ค.
+             — มินิเกมเป็นบทที่ปิดไปแล้ว ไม่ต้องมีให้เห็นบนแผงแอดมินอีก
+             ⚠️ flag `config/app.arcadeOpen` **ยังอยู่และยังกันนักศึกษาอยู่เหมือนเดิม** ไม่ได้ลบ
+                จะเปิดมินิเกมกลับต้องแก้ค่าที่ Firestore console (config/app.arcadeOpen = true)
+                หรือคืนบล็อกนี้ + `arcadeOpen` ใน useAppConfig() ด้านล่างแล้ว deploy ใหม่
+             ⚠️ อย่าเผลอลบ flag ทิ้ง — ตัวฝึกคำนวณ CrCl ฝั่งเรียนใช้โครง minigames.* ร่วมกัน -->
       </section>
 
       <!-- ───── ตรวจข้อสอบ (วิชาการ) ───── -->
@@ -482,7 +472,7 @@ import { FX_PRESETS, PACE_PRESETS, MOTION_STYLES, FX_LABEL, PACE_LABEL, readPref
 const authStore = useAuthStore()
 const members   = useMembersStore()
 const usage     = useUsageStore()
-const { maintenance, pvpOpen, expeditionOpen, arcadeOpen } = useAppConfig()
+const { maintenance, pvpOpen, expeditionOpen } = useAppConfig()   // arcadeOpen ไม่ได้ใช้แล้ว (ปุ่มมินิเกมถูกเอาออก)
 const { toast } = useToast()
 const { confirm } = useConfirm()
 const { addTopics } = useTopics()
@@ -784,12 +774,16 @@ async function togglePvp() {
   }
 }
 
-// ── เปิด/ซ่อน ฟีเจอร์รอง (config/app.expeditionOpen / arcadeOpen) ──
+// ── เปิด/ซ่อน ฟีเจอร์รอง (config/app.*) ──
+// ปุ่มมินิเกม (arcadeOpen) ถูกเอาออก 27 ส.ค. — ถ้าจะคืนปุ่ม ต้องเติมทั้ง FOCUS_REF และ FOCUS_LABEL
+// และ destructure arcadeOpen จาก useAppConfig() กลับมาด้วย ไม่งั้น current เป็น undefined เงียบๆ
 const savingFocus = ref(false)
-const FOCUS_LABEL = { expeditionOpen: 'ส่งผจญภัย', arcadeOpen: 'มินิเกม' }
+const FOCUS_REF   = { expeditionOpen }
+const FOCUS_LABEL = { expeditionOpen: 'ส่งผจญภัย' }
 async function toggleFocus(key) {
-  const current = key === 'expeditionOpen' ? expeditionOpen.value : arcadeOpen.value
-  const next = !current
+  const ref_ = FOCUS_REF[key]
+  if (!ref_) { console.error('[admin focus] ไม่รู้จัก key', key); return }
+  const next = !ref_.value
   savingFocus.value = true
   try {
     // merge → ไม่ทับ maintenance/pvpOpen ที่อยู่ใน doc เดียวกัน
