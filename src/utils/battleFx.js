@@ -35,7 +35,11 @@ export function createBattleFx() {
 
   // ── WAAPI helper: resolve เสมอ (cancel = reject → กลืน) ──
   function run(el, keyframes, opts) {
-    const a = el.animate(keyframes, { duration: opts.duration / rate, easing: opts.easing || 'ease-out', fill: opts.fill || 'none' })
+    // delay หารด้วย rate เหมือน duration — ไม่งั้นตอนกดค้างเร่ง ป้ายที่เข้าคิวจะไม่เร่งตาม
+    const a = el.animate(keyframes, {
+      duration: opts.duration / rate, delay: (opts.delay || 0) / rate,
+      easing: opts.easing || 'ease-out', fill: opts.fill || 'none',
+    })
     anims.add(a)
     return a.finished.catch(() => {}).finally(() => anims.delete(a))
   }
@@ -201,8 +205,7 @@ export function createBattleFx() {
       { transform: `translate(${sx}px, ${sy}px) scale(.3) translateZ(0)`, opacity: .7 },
       { transform: `translate(${ex}px, ${ey}px) scale(.85) translateZ(0)`, opacity: 1, offset: .7 },
       { transform: `translate(${ex}px, ${ey}px) scale(.6) translateZ(0)`, opacity: 0 },
-    ], { duration: ms, delay, easing: 'ease-out', fill: 'forwards' })
-      .then(() => { el.style.opacity = '0'; bannerQueued = Math.max(0, bannerQueued - 1) })
+    ], { duration: ms, easing: 'ease-out', fill: 'forwards' }).then(() => { el.style.opacity = '0' })
   }
 
   // ── การ์ดพุ่ง: 1 animation ครอบ windup+motion+hitstop+tail ทั้งก้อน (ข้อบังคับ v3 — 1 promotion/หมัด) ──
@@ -351,7 +354,8 @@ export function createBattleFx() {
       { transform: base + ' scale(1)', opacity: 1, offset: .22 },
       { transform: base + ' scale(1)', opacity: 1, offset: .74 },
       { transform: base + ' translateY(-8px) scale(.95)', opacity: 0 },
-    ], { duration: ms, easing: 'ease-out', fill: 'forwards' }).then(() => { el.style.opacity = '0' })
+    ], { duration: ms, delay, easing: 'ease-out', fill: 'forwards' })
+      .then(() => { el.style.opacity = '0'; bannerQueued = Math.max(0, bannerQueued - 1) })
   }
 
   /** ยิงอีโมจิเดียวกันลงหลายการ์ดไล่กันทีละ stagger ms (cleave · aoe · คลื่นทีม · ละออง) */

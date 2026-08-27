@@ -532,7 +532,12 @@ async function step() {
   try {
     const b = beats.value[idx.value]
     const h = handlers[b.t]
-    if (h) await h(b)        // attack = รอครบทั้ง beat จริง · round = sync · type ที่ไม่รู้จัก = ข้ามเงียบ
+    // 🛡️ กันไฟต์ค้าง: FX ตัวใดตัวหนึ่งพัง ต้องข้ามหมัดนั้นแล้วเล่นต่อ ห้ามหยุดทั้งไฟต์
+    //    เกิดจริง 27 ส.ค.: jab() มีตัวแปรที่ไม่ได้นิยาม → throw ทุกหมัดชั้น chip (55% ของหมัด)
+    //    → applyAttack reject → step หลุดออกก่อน idx++ → กระดานค้างถาวรกลางไฟต์
+    //    ผู้เล่นไม่มีทางกู้เองได้เลยนอกจากออกจากหน้า จึงต้องกันไว้ที่นี่ไม่ใช่แค่แก้ jab
+    try { if (h) await h(b) }   // attack = รอครบทั้ง beat จริง · round = sync · type ที่ไม่รู้จัก = ข้ามเงียบ
+    catch (e) { console.error('[replay] beat', idx.value, b?.t, e) }
   } finally {
     if (stepGen === g) stepGen = -1   // chain เก่าปลดของ gen ใหม่ไม่ได้
   }
