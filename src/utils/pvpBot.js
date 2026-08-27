@@ -1,25 +1,27 @@
 // src/utils/pvpBot.js
-// PvP bot — pure: หุ่นซ้อมในพูลคู่ต่อสู้ · สเกลตามเรต · deterministic จาก seed (แนวเดียว getFloorTeam)
+// PvP bot — pure: หุ่นซ้อมที่ "เติมช่องว่าง" บนกระดานเมื่อคนจริงไม่ครบ
+// deterministic จาก seed (แนวเดียว getFloorTeam)
+//
+// ⚠️ ของเดิมสเกลบอทตาม "เรต" ทั้งที่ความแกร่งจริงมาจาก "เพ็ท" — วัดจริง 200 ไฟต์/ช่องแล้ว
+//    ได้ 0% หรือ 100% แทบทุกช่อง คือปุ่มเหรียญฟรีกับกำแพง ไม่ใช่ตัวเลือกความยาก
+//    ของใหม่เล็งที่ teamPower ของผู้เล่นโดยตรง
 import { PETS } from '../data/index.js'
 import { BATTLE_SLOTS } from '../data/residence.js'
+import { RARITY_ORDER, MAX_GRADE } from '../data/petPower.js'
 import { mulberry32 } from './seededRng.js'
+import { teamPower } from './pvpCoins.js'
 import { PVP_RATING_FLOOR } from './pvpRating.js'
 
-const RARITY_BY_TIER = ['common', 'rare', 'epic', 'legendary']
 const ELS = ['fist', 'scissors', 'paper']
 
-/** เรต → เกรด/ความหายากคร่าวๆ (เรต ~800 = อ่อน, ~2000 = แกร่งสุด) */
-export function botPowerFor(rating) {
-  const t = Math.max(0, Math.min(1, (rating - 800) / 1200))
-  const grade = Math.round(t * 5)
-  const tier = Math.min(3, Math.floor(t * 4))
-  return { grade, rarity: RARITY_BY_TIER[tier] }
-}
+// อัตราส่วนพลังของบอทเทียบกับทีมผู้เล่น เรียงตามลำดับที่อยากให้โผล่ก่อน
+export const BOT_POWER_RATIOS = [0.75, 1.15, 0.9, 1.3, 1.0]
 
-/** หุ่นซ้อม 3 ตัว สเกลตามเรต + ธาตุผสม · เรตบอท = เรตผู้เล่น (จับคู่สูสี) */
-export function getPvpBot(rating, seed) {
+const labelFor = (r) => (r < 0.95 ? 'อ่อน' : (r > 1.05 ? 'แกร่ง' : 'พอกัน'))
+
+/** ทีมหุ่นซ้อมที่ความหายาก/เกรดกำหนด · ธาตุผสมจาก seed */
+export function botTeamOf(rarity, grade, seed) {
   const rand = mulberry32((seed >>> 0) || 1)
-  const { grade, rarity } = botPowerFor(rating)
   const team = []
   for (let i = 0; i < BATTLE_SLOTS; i++) {
     const element = ELS[((seed >>> 0) + i) % 3]
@@ -29,21 +31,42 @@ export function getPvpBot(rating, seed) {
     const def = src[Math.floor(rand() * src.length)]
     team.push({ id: def.id, rarity: def.rarity, element: def.element, grade })
   }
-  return { uid: 'bot', name: 'หุ่นซ้อม', isBot: true, rating, team }
+  return team
 }
 
-export const BOT_RATING_SPREAD = 300   // ระยะเรตบอทอ่อน/แกร่งจากผู้เล่น (tunable — พลังบอทคงสูตรเดิม)
+/** ทีมที่พลังใกล้ targetPower ที่สุด — ไล่กริด (ความหายาก × เกรด) = 24 แบบ */
+export function botTeamForPower(targetPower, seed) {
+  let bestTeam = null
+  let bestDiff = Infinity
+  for (const rarity of RARITY_ORDER) {
+    for (let grade = 0; grade <= MAX_GRADE; grade++) {
+      const team = botTeamOf(rarity, grade, seed)
+      const diff = Math.abs(teamPower(team) - targetPower)
+      if (diff < bestDiff) { bestDiff = diff; bestTeam = team }
+    }
+  }
+  return bestTeam
+}
 
 /**
- * บอท 2 ตัวในพูล: อ่อน (เรต − spread, ไม่ต่ำกว่า floor) + แกร่ง (เรต + spread)
- * seed ต่างกัน (xor const) กันทีมสองตัวซ้ำกัน — getPvpBot ใช้ seed เลือกธาตุตรงๆ ด้วย
- * ไม่ใช่แค่ผ่าน rand() ⇒ xor เปลี่ยนทั้งธาตุและตัวเพ็ท · uid ต่างกัน = key v-for ไม่ชน
+ * บอทเติมช่องว่างบนกระดาน — เล็งพลังจากทีมผู้เล่น ไม่ใช่จากเรต
+ * count = จำนวนช่องที่คนจริงเติมไม่ครบ (ปกติชั้นปีมีคนเกิน 5 คน ⇒ 0 = ไม่เห็นบอทเลย)
  */
-export function getPvpBots(rating, seed) {
-  const s = seed >>> 0
-  const easy = { ...getPvpBot(Math.max(PVP_RATING_FLOOR, rating - BOT_RATING_SPREAD), s),
-                 uid: 'bot-easy', label: 'อ่อน' }
-  const hard = { ...getPvpBot(rating + BOT_RATING_SPREAD, (s ^ 0x9e3779b9) >>> 0),
-                 uid: 'bot-hard', label: 'แกร่ง' }
-  return [easy, hard]
+export function getFallbackBots(myPower, myRating, seed, count) {
+  const n = Math.max(0, Math.min(count, BOT_POWER_RATIOS.length))
+  const out = []
+  for (let i = 0; i < n; i++) {
+    const ratio = BOT_POWER_RATIOS[i]
+    // seed ต่างกันต่อตัว กันบอทสองตัวได้ทีมซ้ำกัน
+    const s = ((seed >>> 0) ^ Math.imul(0x9e3779b9, i + 1)) >>> 0
+    out.push({
+      uid: `bot-${i}`,
+      name: 'หุ่นซ้อม',
+      label: labelFor(ratio),
+      isBot: true,
+      rating: Math.max(PVP_RATING_FLOOR, Math.round(myRating * ratio)),
+      team: botTeamForPower(myPower * ratio, s),
+    })
+  }
+  return out
 }
