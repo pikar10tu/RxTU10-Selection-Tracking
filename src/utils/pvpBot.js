@@ -17,7 +17,9 @@ const ELS = ['fist', 'scissors', 'paper']
 // อัตราส่วนพลังของบอทเทียบกับทีมผู้เล่น เรียงตามลำดับที่อยากให้โผล่ก่อน
 export const BOT_POWER_RATIOS = [0.75, 1.15, 0.9, 1.3, 1.0]
 
-const labelFor = (r) => (r < 0.95 ? 'อ่อน' : (r > 1.05 ? 'แกร่ง' : 'พอกัน'))
+// ป้ายผูกกับอัตราส่วนแบบหนึ่งต่อหนึ่ง — ห้ามคำนวณจากช่วงค่า เพราะ 0.75 กับ 0.9
+// จะตกช่วงเดียวกันแล้วได้ป้าย "อ่อน" ซ้ำ ⇒ บนกระดานจะมี "หุ่นซ้อม · อ่อน" สองใบที่แยกไม่ออก
+const BOT_LABELS = ['อ่อน', 'แกร่ง', 'อ่อนนิดหน่อย', 'แกร่งมาก', 'พอกัน']
 
 /** ทีมหุ่นซ้อมที่ความหายาก/เกรดกำหนด · ธาตุผสมจาก seed */
 export function botTeamOf(rarity, grade, seed) {
@@ -62,7 +64,7 @@ export function getFallbackBots(myPower, myRating, seed, count) {
     out.push({
       uid: `bot-${i}`,
       name: 'หุ่นซ้อม',
-      label: labelFor(ratio),
+      label: BOT_LABELS[i],
       isBot: true,
       rating: Math.max(PVP_RATING_FLOOR, Math.round(myRating * ratio)),
       team: botTeamForPower(myPower * ratio, s),
