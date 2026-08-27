@@ -57,10 +57,11 @@
         <div v-if="floor >= TOWER_MAX && best >= TOWER_MAX" class="tw-clear"><Emoji char="🏆" /> พิชิตหอคอยครบแล้ว!</div>
       </div>
 
-      <!-- การ์ดเทียบเพื่อน — social hook รอง, best-effort ไม่มีข้อมูล = ซ่อนทั้งใบ -->
+      <!-- อันดับหอคอย — หัวตาราง 3 อันดับ + หน้าต่างรอบตัวเรา (เดิมโชว์แค่ top 3 คนอันดับกลางเลยไม่รู้สึกอะไร)
+           best-effort ทั้งใบ: ไม่มีข้อมูล = ซ่อน -->
       <div v-if="rivals && rivals.total > 0 && !(rivals.total === 1 && rivals.myRank === 1)" class="tw-rival">
         <div class="tw-rival-head">
-          <span><Emoji char="🏁" /> เพื่อนร่วมไต่</span>
+          <span><Emoji char="🏆" /> อันดับหอคอย</span>
           <span class="tw-rival-rank">
             <template v-if="rivals.myRank === null">ยังไม่ติดอันดับ — เริ่มไต่เลย!</template>
             <template v-else-if="rivals.myRank === 1">คุณอยู่อันดับ 1 จาก {{ rivals.total }} <Emoji char="🎉" /></template>
@@ -68,18 +69,23 @@
           </span>
         </div>
         <ol class="tw-rival-list">
-          <li v-for="(u, i) in rivals.top" :key="i" class="tw-rival-row" :class="{ 'tw-rival-me': u.isMe }">
-            <span class="tw-rival-medal">{{ medal(i) }}</span>
-            <span class="tw-rival-name">{{ u.nickname }}<span v-if="u.isMe" class="tw-rival-badge">คุณ</span></span>
-            <span class="tw-rival-floor">ชั้น {{ u.floor }}</span>
-          </li>
+          <template v-for="(u, i) in rankRows" :key="u.kind === 'gap' ? 'gap' + i : u.uid">
+            <li v-if="u.kind === 'gap'" class="tw-rival-gap" aria-hidden="true">⋯</li>
+            <li v-else class="tw-rival-row" :class="{ 'tw-rival-me': u.isMe }">
+              <span class="tw-rival-medal">{{ medal(u.rank) }}</span>
+              <span class="tw-rival-name">{{ u.nickname }}<span v-if="u.isMe" class="tw-rival-badge">คุณ</span></span>
+              <span class="tw-rival-floor">ชั้น {{ u.floor }}</span>
+            </li>
+          </template>
         </ol>
         <div v-if="rivals.chaseName && rivals.chaseGap > 0" class="tw-rival-chase"><Emoji char="🔥" /> ตามหลัง {{ rivals.chaseName }} อยู่ {{ rivals.chaseGap }} ชั้น!</div>
+        <button class="tw-rival-all" @click="rankOpen = true">ดูอันดับทั้งหมด ({{ rivals.total }})</button>
       </div>
     </template>
     <div v-else class="tw-login">เข้าสู่ระบบเพื่อเล่น</div>
 
     <TeamPicker v-model:open="pickOpen" />
+    <TowerRankSheet v-model:open="rankOpen" :rows="rivals ? rivals.all : []" />
     <BattleReplay :data="replay" theme="tower" @close="onReplayClose" />
     <PetDetailModal :pet-id="detailId" @close="detailId = null" />
     <FloorSheet :floor="sheetFloor" :crowd="crowd" :current-floor="floor"
@@ -109,7 +115,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
 import { useMembersStore } from '../stores/members.js'
 import { useTower } from '../composables/useTower.js'
-import { towerRanking } from '../utils/towerRivals.js'
+import { towerRanking, TOP_COUNT } from '../utils/towerRivals.js'
 import { buildFloorCrowd } from '../utils/towerCrowd.js'
 import { getPetDef, ELEMENTS, RARITY, EL_NAME, GRADE_LABELS } from '../data/index.js'
 import { floorZone, BONUS_CAP_FLOOR } from '../data/towerFloors.js'
@@ -121,6 +127,7 @@ import PetThumb from '../components/shared/PetThumb.vue'
 import HelpButton from '../components/help/HelpButton.vue'
 import TowerPath from '../components/tower/TowerPath.vue'
 import FloorSheet from '../components/tower/FloorSheet.vue'
+import TowerRankSheet from '../components/tower/TowerRankSheet.vue'
 
 const authStore = useAuthStore()
 const membersStore = useMembersStore()
@@ -146,9 +153,22 @@ const rivals = computed(() => {
   const r = towerRanking(others, { uid: me, nickname: u.nickname || 'ฉัน', towerBest: best.value })
   return r.total > 0 ? r : null
 })
-const medal = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`)
+const medal = (rank) => (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : String(rank))
+
+// แถวบนการ์ด = หัวตาราง 3 อันดับ + หน้าต่างรอบตัวเรา · ตัวคั่น ⋯ เฉพาะตอนมีช่องว่างจริง
+// ⚠️ ต้องกันแถวซ้ำ: ถ้าเราอยู่อันดับ 1–3 หน้าต่าง around จะทับกับ top พอดี
+const rankRows = computed(() => {
+  const r = rivals.value
+  if (!r) return []
+  const out = r.top.map(u => ({ ...u, kind: 'row' }))
+  const extra = r.around.filter(u => u.rank > TOP_COUNT)
+  if (!extra.length) return out
+  if (extra[0].rank > TOP_COUNT + 1) out.push({ kind: 'gap' })
+  return out.concat(extra.map(u => ({ ...u, kind: 'row' })))
+})
 
 const pickOpen = ref(false)
+const rankOpen = ref(false)
 const replay = ref(null)
 const busy = ref(false)
 const detailId = ref(null)
@@ -261,6 +281,9 @@ function onSheetFight() {
 .tw-rival-name { font-size: .84rem; font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
 .tw-rival-badge { display: inline-block; font-size: .7rem; font-weight: 800; color: #fff; background: var(--primary); padding: 1px 6px; border-radius: 999px; margin-left: 5px; vertical-align: middle; }
 .tw-rival-floor { font-size: .8rem; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.tw-rival-gap { text-align: center; font-size: .8rem; color: rgba(0,0,0,.28); line-height: 1; padding: 2px 0; }
+.tw-rival-all { display: block; width: 100%; margin-top: 10px; border: 2px solid var(--ink); border-radius: 11px; background: #fff; color: var(--ink); font-family: inherit; font-size: .78rem; font-weight: 800; padding: 9px; cursor: pointer; box-shadow: var(--pop); }
+.tw-rival-all:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .tw-rival-chase { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #ffeef1; border: 1.5px solid var(--accent); font-size: .76rem; font-weight: 700; color: var(--ink); }
 
 .tw-scout { position: fixed; inset: 0; z-index: 240; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; padding: 18px; }
