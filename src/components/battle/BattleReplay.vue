@@ -390,6 +390,7 @@ function applyPassive(e) {
     case 'chain':
     case 'buff':    fx?.ring(e.uid, 'windup', 260); break
     case 'aim':     fx?.ring(e.uid, 'windup', 200); break
+    case 'aura':    break                                    // ตอนเริ่มไฟต์มีป้ายหลายอันพร้อมกัน ยิงประกายด้วยจะรกและหนัก
     case 'reduce':  break                                    // ป้ายชื่ออย่างเดียวพอ ไม่งั้นรกทุกหมัด
     default: break
   }
@@ -808,9 +809,12 @@ onUnmounted(() => {
 .brfx-puff { width: 1.2rem; height: 1.2rem; }
 .brfx-burst { width: 2rem; height: 2rem; }
 /* ป้ายชื่อ passive — เหนือหัวการ์ด (ไม่ใช่กลางจอ ตาม master plan §5.5) */
+/* will-change: auto ทับ .brfx โดยตั้งใจ — WAAPI โปรโมต layer ให้เองระหว่างอนิเมชันวิ่งอยู่แล้ว
+   การโปรโมตค้างไว้ตลอดไฟต์คือราคาที่แอนดรอยด์กลางๆ จ่ายฟรีๆ (เจอ fps drop หลังเพิ่มของวันนี้) */
 .brfx-banner { font-weight: 800; font-size: .72rem; white-space: nowrap; padding: 3px 9px; border-radius: 9px;
-  background: rgba(15,23,42,.92); color: #fde68a; border: 1px solid rgba(253,230,138,.55); }
-.brfx-sweep { width: 1.7rem; height: 1.7rem; }
+  background: rgba(15,23,42,.92); color: #fde68a; border: 1px solid rgba(253,230,138,.55);
+  transform-origin: 50% 100%; margin-left: -3.2rem; text-align: center; min-width: 6.4rem; will-change: auto; }
+.brfx-sweep { width: 1.7rem; height: 1.7rem; will-change: auto; }
 .brfx-proj { width: 1.4rem; height: 1.4rem; }
 .brfx-dash { width: 2rem; height: 2rem; }
 .brfx-ring { width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 18px; }

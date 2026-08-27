@@ -35,10 +35,15 @@ function lowestHpAlly(team, exclude) {
  */
 export function applyAuras(team, foes) {
   const ids = new Set(alive(team).map(u => u.id))
+  const out = []
   for (const u of team) {
     const p = passiveFor(u)
     if (!p || p.hook !== 'aura') continue
     const v = p.value || {}
+    // ⚠️ aura ต้องเด้งป้ายตอนเริ่มด้วย — เดิมสเปกเขียนว่า "ไม่มี event เพราะเห็นผลผ่านตัวเลข"
+    //    แต่เทสจอจริงพบว่าทีมที่มี aura ล้วน (เช่น whale+seal) เงียบสนิท ผู้เล่นไม่รู้เลยว่ามี passive
+    //    master plan §5.5 เขียนถูกแล้วว่า "proc ตอนเริ่มเกม → ป้ายขึ้นพร้อมกันตอนเริ่ม"
+    out.push(ev(u, p, { targets: [u.uid], kind: 'aura' }))
     switch (p.effect) {
       case 'teamHp': {
         const add = pctOf(1, v.pct)
@@ -70,6 +75,7 @@ export function applyAuras(team, foes) {
         break
     }
   }
+  return out
 }
 
 // ══════════════════════════════════════════════════════════════

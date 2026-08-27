@@ -46,7 +46,7 @@ export function createBattleFx() {
     window.addEventListener('resize', onResize)
     window.addEventListener('orientationchange', onResize)
   }
-  function reset() { invalidateCenters(); cancelAll() }
+  function reset() { invalidateCenters(); cancelAll(); bannerQueued = 0 }
   function cancelAll() {
     for (const a of anims) a.cancel()          // reject → run() กลืนแล้ว
     anims.clear()
@@ -84,8 +84,10 @@ export function createBattleFx() {
     pool.jab = [mkImg('brfx-jab'), mkImg('brfx-jab')]
     pool.jab.forEach(e => imgSrc(e, '💥'))
     for (let i = 0; i < 8; i++) pool.danger.push(mkEl('brfx-danger'))   // สูงสุด 8 ตัวต่อไฟต์ (4v4)
-    for (let i = 0; i < 3; i++) pool.banner.push(mkEl('brfx-banner'))   // ป้าย passive ซ้อนกันได้ 3 (เกินนั้นทับตัวเก่าสุด)
-    for (let i = 0; i < 4; i++) pool.sweep.push(mkImg('brfx-sweep'))    // อีโมจิลงหลายการ์ดพร้อมกัน (cleave 3 / aoe 4)
+    // ⚠️ พูลเล็กที่สุดเท่าที่พอ — .brfx ตั้ง will-change ถาวร ทุกชิ้นจึงเป็น compositor layer ตลอดเวลา
+    //    แอนดรอยด์กลางๆ รายงาน fps drop หลังเพิ่มของวันนี้ (24 → 31 ชิ้น) จึงตัดกลับให้น้อยที่สุด
+    for (let i = 0; i < 2; i++) pool.banner.push(mkEl('brfx-banner'))   // ป้าย passive ซ้อนกันได้ 2
+    for (let i = 0; i < 3; i++) pool.sweep.push(mkImg('brfx-sweep'))    // cleave มากสุด 3 เป้า
     hideAllPools()
   }
   function hideAllPools() {
@@ -199,7 +201,8 @@ export function createBattleFx() {
       { transform: `translate(${sx}px, ${sy}px) scale(.3) translateZ(0)`, opacity: .7 },
       { transform: `translate(${ex}px, ${ey}px) scale(.85) translateZ(0)`, opacity: 1, offset: .7 },
       { transform: `translate(${ex}px, ${ey}px) scale(.6) translateZ(0)`, opacity: 0 },
-    ], { duration: ms, easing: 'ease-out', fill: 'forwards' }).then(() => { el.style.opacity = '0' })
+    ], { duration: ms, delay, easing: 'ease-out', fill: 'forwards' })
+      .then(() => { el.style.opacity = '0'; bannerQueued = Math.max(0, bannerQueued - 1) })
   }
 
   // ── การ์ดพุ่ง: 1 animation ครอบ windup+motion+hitstop+tail ทั้งก้อน (ข้อบังคับ v3 — 1 promotion/หมัด) ──
@@ -330,8 +333,14 @@ export function createBattleFx() {
   }
   // ── passive: ป้ายชื่อเหนือหัว + อีโมจิลงหลายการ์ด ──
   // ทั้งคู่เป็น pooled ephemeral · transform+opacity เท่านั้น · ไม่แตะการ์ด (ข้อบังคับ v3)
+  // ป้าย passive หลายอันมาพร้อมกันได้ (aura ทุกตัวเด้งตอนเริ่มไฟต์ · timing ZERO ⇒ มาในเสี้ยววินาทีเดียว)
+  // จึงต้องเข้าคิว ไม่งั้นพูล 2 ช่องจะทับกันจนเห็นแค่อันสุดท้าย
+  let bannerQueued = 0
+  const BANNER_GAP = 340        // เว้นให้อันก่อนหน้าใกล้จบ (อายุป้าย 600ms ⇒ ซ้อนกันมากสุด 2 = เท่าพูลพอดี)
   function banner(uid, name, icon, ms = 600) {
     const c = centerOf(uid); if (!c) return Promise.resolve()
+    const slot = bannerQueued++
+    const delay = slot * BANNER_GAP
     const el = pool.banner[bannerIdx = (bannerIdx + 1) % pool.banner.length]
     el.getAnimations?.().forEach(a => a.cancel())
     el.textContent = `${icon || ''} ${name || ''}`.trim()

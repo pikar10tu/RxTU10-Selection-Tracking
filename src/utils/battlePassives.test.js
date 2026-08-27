@@ -254,3 +254,19 @@ test('event passive ไปโผล่ใน log จริงตอนสู้'
   assert.ok(kinds.has('cheatDeath') || kinds.has('healLowestAlly') || kinds.has('dodge'),
     'ต้องมี passive ระหว่างสู้ proc อย่างน้อย 1 อย่าง')
 })
+
+test('aura ต้องเด้ง event ป้ายด้วย — ไม่งั้นทีมที่มี aura ล้วนจะเงียบสนิท', () => {
+  // เจอจากเทสจอจริง 27 ส.ค.: ทีม phoenix/whale/seal มี aura 2 ตัว → ไม่มีป้ายขึ้นเลย
+  const evs = applyAuras([u('whale'), u('seal', { uid: 'A1' })], [])
+  assert.equal(evs.length, 2)
+  assert.ok(evs.every(e => e.t === 'passive' && e.kind === 'aura' && e.name))
+})
+
+test('ทุกทีมต้องมีป้าย passive ขึ้นอย่างน้อย 1 อันเสมอ (ไม่มีไฟต์ที่เงียบสนิท)', () => {
+  const A = team(['phoenix', 'whale', 'seal'], 'legendary', 3)
+  const B = team(['kirin', 'simurgh', 'bahamut'], 'legendary', 3)
+  for (let s = 1; s <= 20; s++) {
+    const mine = simulateBattle(A, B, s).log.filter(e => e.t === 'passive' && e.side === 'A')
+    assert.ok(mine.length > 0, `seed ${s} ไม่มีป้าย passive ฝั่งเราเลย`)
+  }
+})

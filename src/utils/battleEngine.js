@@ -29,8 +29,8 @@ export function simulateBattle(teamA, teamB, seed) {
   const log = []
 
   // ── ลำดับ hook ที่ห้ามสลับ (สเปก §B): aura → onStart → [onRound] → onAttack → onHit → onDeath → onKill ──
-  applyAuras(A, B)
-  applyAuras(B, A)
+  const auraEvents = [...applyAuras(A, B), ...applyAuras(B, A)]
+  for (const e of auraEvents) log.push(e)
   for (const e of [...runOnStart(A, B), ...runOnStart(B, A)]) log.push(e)
 
   const pick = (foes) => { const al = alive(foes); return al.length ? al[Math.floor(rand() * al.length)] : null }
