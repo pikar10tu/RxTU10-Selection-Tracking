@@ -3,6 +3,7 @@
 import { PETS } from '../data/index.js'
 import { BATTLE_SLOTS } from '../data/residence.js'
 import { mulberry32 } from './seededRng.js'
+import { PVP_RATING_FLOOR } from './pvpRating.js'
 
 const RARITY_BY_TIER = ['common', 'rare', 'epic', 'legendary']
 const ELS = ['fist', 'scissors', 'paper']
@@ -29,4 +30,20 @@ export function getPvpBot(rating, seed) {
     team.push({ id: def.id, rarity: def.rarity, element: def.element, grade })
   }
   return { uid: 'bot', name: 'หุ่นซ้อม', isBot: true, rating, team }
+}
+
+export const BOT_RATING_SPREAD = 300   // ระยะเรตบอทอ่อน/แกร่งจากผู้เล่น (tunable — พลังบอทคงสูตรเดิม)
+
+/**
+ * บอท 2 ตัวในพูล: อ่อน (เรต − spread, ไม่ต่ำกว่า floor) + แกร่ง (เรต + spread)
+ * seed ต่างกัน (xor const) กันทีมสองตัวซ้ำกัน — getPvpBot ใช้ seed เลือกธาตุตรงๆ ด้วย
+ * ไม่ใช่แค่ผ่าน rand() ⇒ xor เปลี่ยนทั้งธาตุและตัวเพ็ท · uid ต่างกัน = key v-for ไม่ชน
+ */
+export function getPvpBots(rating, seed) {
+  const s = seed >>> 0
+  const easy = { ...getPvpBot(Math.max(PVP_RATING_FLOOR, rating - BOT_RATING_SPREAD), s),
+                 uid: 'bot-easy', label: 'อ่อน' }
+  const hard = { ...getPvpBot(rating + BOT_RATING_SPREAD, (s ^ 0x9e3779b9) >>> 0),
+                 uid: 'bot-hard', label: 'แกร่ง' }
+  return [easy, hard]
 }
