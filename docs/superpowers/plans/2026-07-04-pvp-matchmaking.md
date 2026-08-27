@@ -1,3 +1,7 @@
+> ⛔ **แผนนี้เลิกใช้แล้ว (27 ส.ค. 2026) — อย่าทำตาม**
+> commit `e818422` (roster doc, 20 ส.ค.) ลบ `src/utils/pvpMatch.js` และห้าม Arena อ่าน `members.fbUsers` แล้ว
+> ⇒ Task 3–4 ในแผนนี้อ้างของที่ไม่มีอยู่จริง · **ใช้ `docs/superpowers/plans/2026-08-27-pvp-matchmaking.md` แทน** (build เสร็จแล้ว)
+
 # PvP Matchmaking Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
