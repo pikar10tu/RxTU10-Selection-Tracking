@@ -104,7 +104,11 @@ async function onReroll(i, o) {
 .fo-title { font-weight: 800; font-size: 1rem; }
 .fo-sub { font-size: .7rem; color: rgba(0,0,0,.45); }
 /* overflow-x อยู่ที่รางเท่านั้น — ห้ามให้ทั้งหน้าเลื่อนแนวนอนได้ */
-.fo-rail { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
+/* ⚠️ min-width:0 จำเป็น — flex item ค่าเริ่มต้นเป็น min-width:auto จึงกางออกเท่าเนื้อหา
+   แทนที่จะยอมหด ทำให้ overflow-x:auto ไม่มีผลและรางไปดัน <main> จนทั้งหน้าเลื่อนออกข้าง
+   (วัดจากจอจริง 27 ส.ค.: ราง 892px ในกล่อง 487px → main ล้น 816/545) */
+.fo-rail { display: flex; gap: 8px; overflow-x: auto; min-width: 0; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
+.fo { min-width: 0; }
 .fo-card { flex: 0 0 172px; scroll-snap-align: start; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; min-height: 118px; border: 1px solid rgba(180,83,9,.2); border-radius: 12px; background: linear-gradient(160deg,#fff,rgba(245,158,11,.06)); padding: 10px; }
 .fo-card.waiting { background: rgba(0,0,0,.03); border-style: dashed; }
 .fo-wait { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 100%; color: rgba(0,0,0,.45); font-size: .75rem; font-weight: 700; }
