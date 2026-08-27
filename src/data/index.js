@@ -79,6 +79,15 @@ export const getPetDef = (id) => PETS.find(p => p.id === id) || null;
  */
 export function atkStyleOf(){ return 'melee'; }
 export function projectileOf(def){ return def?.projectile || '✦'; }
+
+/**
+ * ประกายประจำตัวตอนหมัดโดน — คืน null ถ้าเพ็ทตัวนั้นไม่มี (ผู้เรียกตกกลับไป 💥 กลาง)
+ *
+ * ใช้ฟิลด์ `projectile` เดิมที่เคยเป็นลูกกระสุนของ ranged · ตอนนี้ทุกตัวเป็น melee แล้ว
+ * ฟิลด์นี้จึงเปลี่ยนหน้าที่เป็น "เอกลักษณ์ตอนตีโดน" แทน (🔥 บาฮามุท · 💧 คุณวาฬ · ✨ ภูต ...)
+ * มีแค่ 8 ตัวที่มี — ตัวที่ไม่มีใช้ 💥 กลางเหมือนเดิม จึงยังแยกออกว่าใครมีลายเซ็น
+ */
+export function sparkOf(def){ return def?.projectile || null; }
 // passive signature (ปูทาง — รอบนี้ทุกตัวยังไม่มี → null) ดู docs/economy-battle-master-plan.md §5.5
 export function passiveOf(def){ return def?.passive || null; }
 

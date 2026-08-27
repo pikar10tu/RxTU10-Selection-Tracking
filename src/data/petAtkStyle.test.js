@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { PETS, atkStyleOf, projectileOf, passiveOf } from './index.js'
+import { PETS, atkStyleOf, projectileOf, passiveOf, sparkOf } from './index.js'
 
 // user สั่ง 27 ส.ค.: ทุกตัวเป็น melee ให้หมด อยากเห็นท่าง้างหมัดทุกไฟต์
 // (ranged เดิมคือ legendary ครบทั้ง 3 + epic 4 + owl ⇒ ทีมยิ่งแกร่งยิ่งไม่เห็นท่าง้างเลย)
@@ -22,4 +22,26 @@ test('projectileOf: emoji ประจำตัวยังอ่านได้
 
 test('passive default null', () => {
   assert.equal(passiveOf(PETS.find(p => p.id === 'wolf')), null)
+})
+
+// ── ประกายประจำตัวตอนตีโดน (คืนเอกลักษณ์รายตัวที่หายไปตอนเลิกใช้ ranged) ──
+
+test('sparkOf: เพ็ทที่เคยเป็น ranged มีประกายประจำตัว', () => {
+  const bahamut = PETS.find(p => p.id === 'bahamut')
+  const whale = PETS.find(p => p.id === 'whale')
+  assert.equal(sparkOf(bahamut), '🔥')
+  assert.equal(sparkOf(whale), '💧')
+})
+
+test('sparkOf: เพ็ทที่ไม่มีประกาย คืน null (ให้ผู้เรียกตกกลับไป 💥 กลาง)', () => {
+  assert.equal(sparkOf(PETS.find(p => p.id === 'wolf')), null)
+  assert.equal(sparkOf(null), null)
+  assert.equal(sparkOf({}), null)
+})
+
+test('sparkOf: ประกายทุกตัวในแค็ตตาล็อกต้องมีไฟล์ asset (ไม่งั้นดาวหายกลางไฟต์)', async () => {
+  const { fluentFile } = await import('../utils/emoji.js')
+  const sparks = [...new Set(PETS.map(sparkOf).filter(Boolean))]
+  assert.ok(sparks.length >= 5, `มีประกาย ${sparks.length} แบบ`)
+  sparks.forEach(c => assert.ok(fluentFile(c), `${c} ไม่มี fluentFile`))
 })

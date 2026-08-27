@@ -133,7 +133,7 @@
 import { useEscapeKey } from '../../composables/useEscapeKey.js'
 import Emoji from '../shared/Emoji.vue'
 import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
-import { getPetDef, atkStyleOf, projectileOf, passiveOf, ELEMENTS, EL_NAME, GRADE_LABELS } from '../../data/index.js'
+import { getPetDef, atkStyleOf, projectileOf, passiveOf, sparkOf, ELEMENTS, EL_NAME, GRADE_LABELS } from '../../data/index.js'
 import { RARITY } from '../../data/index.js'
 import { buildCombatant } from '../../data/battle.js'
 import { computeBattleSummary } from '../../utils/battleSummary.js'
@@ -305,7 +305,7 @@ function preloadCombat(d) {
   for (const p of [...(d?.playerTeam || []), ...(d?.botTeam || [])]) {
     const def = getPetDef(p?.id); if (!def) continue
     if (def.emoji) chars.add(def.emoji)                                  // หน้าเพ็ท (dash sprite)
-    if (atkStyleOf(def) === 'ranged') chars.add(projectileOf(def))       // projectile
+    const spark = sparkOf(def); if (spark) chars.add(spark)               // ประกายประจำตัวตอนตีโดน
   }
   for (const c of chars) {
     const f = fluentFile(c); if (!f) continue
@@ -401,10 +401,13 @@ function applyImpact(beat, g, t) {
 
   // ── 2) ของที่ไม่ได้แตะการ์ดเป้า ยิงที่จังหวะ impact ตรงๆ (นี่คือจังหวะที่คนดูรู้สึกว่า "โดน") ──
   // ขนาดดาว/แรงสั่นตามชั้น — ชั้น chip/solid ห้ามสั่นจอเด็ดขาด (§6.2 ของสเปก)
+  // ประกายประจำตัวของ "ผู้ตี" ไปปรากฏบนการ์ด "เป้า" — null = ใช้ 💥 กลาง
+  // ยิงเฉพาะชั้นที่มีดาวอยู่แล้ว (solid+) จึงไม่เพิ่ม element และไม่แตะชั้น chip ที่ล็อกไว้ว่าห้ามแพงขึ้น
+  const spark = sparkOf(defForUid(beat.attacker))
   if (beat.tier === 'chip') { /* ชั้นถากไม่มีดาว ไม่มีสั่น */ }
-  else if (beat.tier === 'solid') fx?.burst(beat.target, 34)
-  else if (beat.tier === 'heavy') { fx?.burst(beat.target, 66); fx?.shake(5, 2) }
-  else { fx?.burst(beat.target, 92); fx?.shake(8, 3, true) }
+  else if (beat.tier === 'solid') fx?.burst(beat.target, 34, spark)
+  else if (beat.tier === 'heavy') { fx?.burst(beat.target, 66, spark); fx?.shake(5, 2) }
+  else { fx?.burst(beat.target, 92, spark); fx?.shake(8, 3, true) }
 
   fx?.pop(beat.target, { dmg: beat.dmg, crit: beat.crit, eff: beat.eff, tier: beat.tier })
   if (beat.eff === 'super' || beat.eff === 'weak') fx?.callout(beat.target, beat.eff)
@@ -447,6 +450,8 @@ async function applyAttack(beat) {
   const g = gen
   const t = scaleTiming(beat, { pace: pace.value, ff: ffActive.value })
   const def = defForUid(beat.attacker)
+  // ⚠️ ตอนนี้ atkStyleOf() คืน 'melee' เสมอ ⇒ ranged เป็น false ตลอด — สาขา ranged ด้านล่าง "หลับ" อยู่
+  //    คงไว้เพื่อให้ย้อนกลับได้ด้วยการแก้ atkStyleOf บรรทัดเดียว (ดู data/index.js) อย่าเข้าใจผิดว่ายังทำงาน
   const ranged = atkStyleOf(def) === 'ranged'
 
   if (beat.tier !== 'chip') {

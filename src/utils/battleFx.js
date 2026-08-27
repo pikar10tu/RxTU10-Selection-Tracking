@@ -167,10 +167,13 @@ export function createBattleFx() {
       { transform: base + ' scale(1.15)', opacity: 0, offset: 1 },
     ], { duration: ms || 250, easing: 'ease-out', fill: 'forwards' })
   }
-  function burst(uid, size) {
+  // char = ประกายประจำตัวของผู้ตี (null = 💥 กลาง) — ไม่เพิ่ม element ใหม่ แค่สลับ src บนตัวเดิมในพูล
+  function burst(uid, size, char) {
     if (!F('burst')) return Promise.resolve()
     const el = pool.burst[burstIdx = (burstIdx + 1) % pool.burst.length]
     el.getAnimations?.().forEach(a => a.cancel())
+    // ⚠️ imgSrc ตั้ง src='' ถ้า emoji ไม่มี asset → ดาวหายทั้งดวง จึงเช็ค fluentFile ก่อนสลับ
+    imgSrc(el, (char && fluentFile(char)) ? char : '💥')
     const base = baseXform(uid, 0, 0); if (!base) return Promise.resolve()
     if (size) { el.style.width = size + 'px'; el.style.height = size + 'px' }   // ทับ .brfx-burst ที่ตั้ง 2rem ไว้
     el.style.opacity = '1'
