@@ -32,8 +32,11 @@ export function buildRosterRow(u) {
   // ⚠️ ต้องเป็น array ของ "object" ไม่ใช่ [[id, grade]] — Firestore ไม่รองรับ array ซ้อน array
   //    (setDoc throw "Nested arrays are not supported") · map ใน array ใช้ได้ปกติ
   const pets = Array.isArray(d.pets) ? d.pets : []
+  // ⚠️ กรอง id ที่ไม่มีในแค็ตตาล็อกทิ้ง — user ที่ยังไม่ได้ล็อกอินหลัง migrate เพ็ท
+  //    ยังมี activePets เป็น id รุ่นเก่า ถ้าคัดลอกมาตรงๆ ทั้งชั้นปีจะเห็นเพ็ท ❓ บนการ์ดเขา
+  //    และร้ายกว่านั้น: ทีมที่ resolve ไม่ได้กลายเป็น common/scissors ล้วน ⇒ พลังทีมผิด ⇒ เหรียญผิด
   const tm = (Array.isArray(d.activePets) ? d.activePets : [])
-    .filter(Boolean)
+    .filter(id => id && getPetDef(id))
     .slice(0, BATTLE_SLOTS)
     .map((id) => {
       const inst = pets.find(p => (p?.id || p?.species) === id) || {}
@@ -106,16 +109,15 @@ export function rosterToMembers(rows) {
 
 /** [{i,g}] → รูปเดียวกับ resolveBattleTeam (utils/petTeam.js) */
 export function rosterTeam(row) {
-  return (row?.tm || []).map((slot) => {
-    const id = slot?.i
-    const def = getPetDef(id) || {}
-    return {
-      id,
-      rarity:  def.rarity  || 'common',
-      element: def.element || 'scissors',
-      grade:   num(slot?.g, 0),
+  // กันอีกชั้นตอนอ่าน: แถวที่เขียนไว้ก่อนแก้ยังมี id เพี้ยนค้างใน Firestore จนกว่าจะสร้าง roster ใหม่
+  // ปล่อยผ่าน = ได้เพ็ทผีสถิติ common/scissors ที่ไม่มีตัวตน (โชว์ ❓ + ทำให้พลังทีมเพี้ยน)
+  return (row?.tm || []).reduce((team, slot) => {
+    const def = getPetDef(slot?.i)
+    if (def) {
+      team.push({ id: slot.i, rarity: def.rarity, element: def.element, grade: num(slot?.g, 0) })
     }
-  })
+    return team
+  }, [])
 }
 
 /** คู่ต่อสู้ที่บุกได้ — มีทีม + ไม่ใช่ตัวเอง · team resolve มาให้แล้ว (เหมือนบอท) */
@@ -124,7 +126,10 @@ export function rosterOpponents(rows, meUid) {
   for (const [uid, row] of Object.entries(rows || {})) {
     if (uid === meUid) continue
     if (!row?.tm?.length) continue
-    out.push({ uid, nickname: row.n, rating: num(row.r, PVP_RATING_START), team: rosterTeam(row) })
+    // เช็คหลังกรอง id เพี้ยนแล้ว — ทีมที่เหลือ 0 ตัว สู้ไม่ได้ (จะได้ไฟต์ที่ศัตรูตายทันที)
+    const team = rosterTeam(row)
+    if (!team.length) continue
+    out.push({ uid, nickname: row.n, rating: num(row.r, PVP_RATING_START), team })
   }
   return out
 }

@@ -37,9 +37,10 @@ test('buildRosterRow เก็บ m เฉพาะเกมที่ best > 0',
 test('buildRosterRow tm = [{i,g}] ข้าม slot ว่าง และ cap ที่ 3', () => {
   // ⚠️ ต้องเป็น array ของ object ไม่ใช่ array ซ้อน array — Firestore ไม่รับ nested array
   assert.deepEqual(buildRosterRow(user()).tm, [{ i: 'fox', g: 3 }, { i: 'owl', g: 0 }])
+  // ต้องเป็น id จริงในแค็ตตาล็อก — id ที่ไม่มีจริงถูกกรองทิ้งตั้งแต่ต้นทางแล้ว (ดูเทสด้านล่าง)
   const four = user({
-    activePets: ['a', 'b', 'c', 'd'],
-    pets: [{ id: 'a', grade: 1 }, { id: 'b', grade: 2 }, { id: 'c', grade: 3 }, { id: 'd', grade: 4 }],
+    activePets: ['cat', 'wolf', 'shark', 'panda'],
+    pets: [{ id: 'cat', grade: 1 }, { id: 'wolf', grade: 2 }, { id: 'shark', grade: 3 }, { id: 'panda', grade: 4 }],
   })
   assert.equal(buildRosterRow(four).tm.length, 3, 'cap ที่ BATTLE_SLOTS')
 })
@@ -168,4 +169,26 @@ test('buildRosterRow: เรตในซีซั่นปัจจุบัน�
 
 test('buildRosterRow: ไม่มี pvp เลย = เรตเริ่มต้น', () => {
   assert.equal(buildRosterRow({ uid: 'u1', nickname: 'เทส' }).r, 1000)
+})
+
+test('buildRosterRow: ตัด activePets ที่ id ไม่มีในแค็ตตาล็อกทิ้ง (ไม่งั้นบอร์ดโชว์เพ็ท ❓ + พลังทีมผิด)', () => {
+  const row = buildRosterRow({
+    uid: 'u1', nickname: 'เทส',
+    activePets: ['bahamut', 'ผีเสื้อรุ่นเก่า', 'kirin'],
+    pets: [{ id: 'bahamut', grade: 3 }, { id: 'ผีเสื้อรุ่นเก่า', grade: 2 }, { id: 'kirin', grade: 1 }],
+  })
+  assert.deepEqual(row.tm.map(t => t.i), ['bahamut', 'kirin'])
+})
+
+test('rosterTeam: แถวที่มี id เพี้ยนหลุดมาแล้ว ต้องไม่กลายเป็นเพ็ท common ผี', () => {
+  // แถวเก่าใน Firestore ที่สร้างก่อนแก้ ยังมี id เพี้ยนอยู่ — ตอนอ่านต้องกันอีกชั้น
+  assert.deepEqual(rosterTeam({ tm: [{ i: 'ไม่มีจริง', g: 5 }, { i: 'kirin', g: 2 }] }).map(p => p.id), ['kirin'])
+})
+
+test('rosterOpponents: คนที่ทีมเหลือ 0 ตัวหลังกรอง ต้องไม่ถูกเอามาเป็นคู่ต่อสู้', () => {
+  const rows = {
+    ghost: { n: 'ผี', r: 1000, tm: [{ i: 'ไม่มีจริง', g: 5 }] },
+    ok:    { n: 'ปกติ', r: 1000, tm: [{ i: 'kirin', g: 2 }] },
+  }
+  assert.deepEqual(rosterOpponents(rows, 'me').map(o => o.uid), ['ok'])
 })
