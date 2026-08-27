@@ -24,8 +24,11 @@
         </RouterLink>
       </div>
 
-      <!-- ── มินิเกม (จาก registry data/minigames.js) — ซ่อนเมื่อ arcadeOpen ปิด ── -->
-      <template v-if="arcadeOpen || authStore.isAdmin">
+      <!-- ── มินิเกม (จาก registry data/minigames.js) — ซ่อนเมื่อ arcadeOpen ปิด ──
+           ⚠️ เดิมมี `|| authStore.isAdmin` ให้แอดมินเห็นเสมอ "ไว้เทสก่อนเปิดให้ทั้งรุ่น"
+              user สั่งเอาออก 27 ส.ค.: มินิเกมเป็นบทที่ปิดแล้ว ไม่ต้องเห็นแม้แต่แอดมิน
+              (route ยังเข้าตรงด้วย URL ได้ถ้าวันหนึ่งจะกลับมาเทส — ดู router/index.js) -->
+      <template v-if="arcadeOpen">
         <SectionTitle><Emoji char="🎮" /> มินิเกม</SectionTitle>
         <div class="soon-grid">
           <template v-for="g in games" :key="g.key">
@@ -58,7 +61,7 @@ import { MINIGAMES } from '../data/minigames.js'
 import { useAppConfig } from '../composables/useAppConfig.js'
 
 const authStore = useAuthStore()
-const { arcadeOpen } = useAppConfig()   // แอดมินเห็นเสมอ — ไว้เทสก่อนเปิดให้ทั้งรุ่น
+const { arcadeOpen } = useAppConfig()   // มินิเกมซ่อนจากทุกคนรวมแอดมิน (27 ส.ค.)
 const farm = useFarm()
 const { exp } = useExpedition()
 
