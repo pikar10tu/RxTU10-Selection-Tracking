@@ -104,7 +104,7 @@ import Emoji from '../components/shared/Emoji.vue'
 import HelpButton from '../components/help/HelpButton.vue'
 import TaBoard from '../components/study/TaBoard.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { collection, addDoc, doc, writeBatch, increment, serverTimestamp, deleteField } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
@@ -153,7 +153,9 @@ const prevBest = ref(0)
 
 let seen = new Set()           // id ที่เคยเข้าคิวแล้ว — กันข้อซ้ำในรอบเดียว
 let emptyStreak = 0            // ดึงแล้วไม่ได้ข้อใหม่ติดกันกี่ครั้ง
-let exhausted = false          // คลังหมดจริง
+let failStreak = 0             // ดึงแล้ว throw ติดกันกี่ครั้ง (เน็ตล่ม) — กันวนยิงรัว
+let exhausted = false          // คลังหมดจริง (หรือโหลดล้มเหลวจนต้องตัดจบ)
+let loadFailed = false         // แยกสาเหตุ: คลังหมด vs เน็ตล่ม (ข้อความบนจอผลคนละอัน)
 let fetching = false
 let waiting = false            // คิวหมดแต่ยังโหลดอยู่
 let endAt = 0
@@ -167,6 +169,7 @@ const endReasonText = computed(() => ({
   time:  'หมดเวลา!',
   quit:  'จบรอบแล้ว',
   empty: 'ทำครบทุกข้อในคลังแล้ว!',
+  error: 'โหลดข้อถัดไปไม่สำเร็จ — จบรอบให้ตรงนี้ (คะแนนที่ทำไว้ยังนับให้)',
 }[endReason.value] || 'จบรอบแล้ว'))
 
 function clearTimers() {
@@ -191,8 +194,11 @@ async function topUp() {
       emptyStreak = 0
       queue.value.push(...fresh.map(shuffleChoices))
     }
+    failStreak = 0
   } catch (e) {
     console.error('[ta feed]', e)
+    // serveNext เรียก topUp ซ้ำเมื่อคิวว่าง ⇒ เน็ตล่มแล้วจะวนยิงรัวถ้าไม่ตัดจบ
+    if (++failStreak >= 3) { exhausted = true; loadFailed = true }
   } finally {
     fetching = false
     if (waiting && stage.value === 'play') serveNext()   // คิวเคยหมดระหว่างรอ
@@ -203,7 +209,7 @@ async function topUp() {
 function serveNext() {
   if (stage.value !== 'play') return
   if (!queue.value.length) {
-    if (exhausted) { finish('empty'); return }
+    if (exhausted) { finish(loadFailed ? 'error' : 'empty'); return }
     waiting = true
     cur.value = null
     topUp()
@@ -247,7 +253,8 @@ async function startRun(m) {
     correct.value = 0; answered.value = 0
     answers.value = []; missed.value = []
     coinsEarned.value = 0; isNewBest.value = false; prevBest.value = 0
-    seen = new Set(); emptyStreak = 0; exhausted = false; fetching = false; waiting = false
+    seen = new Set(); emptyStreak = 0; failStreak = 0
+    exhausted = false; loadFailed = false; fetching = false; waiting = false
     endReason.value = 'time'
 
     await topUp()                       // ล็อตแรกต้องรอ — ไม่งั้นนาฬิกาเดินโดยไม่มีโจทย์
@@ -371,6 +378,9 @@ function onBack() {
   else if (stage.value === 'play') finish('quit')
   else stage.value = 'pick'
 }
+
+// เผลอกดแท็บอื่นกลางรอบ = จบรอบให้ ไม่ปล่อยให้คะแนน 15 นาทีหายเปล่า
+onBeforeRouteLeave(() => { if (stage.value === 'play') finish('quit') })
 
 onMounted(() => { members.loadRoster() })
 </script>
