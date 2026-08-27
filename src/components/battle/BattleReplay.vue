@@ -378,6 +378,16 @@ function applyPassive(e) {
   if (!e?.uid) return
   fx?.banner(e.uid, e.name, e.icon)
   const on = Array.isArray(e.targets) && e.targets.length ? e.targets : [e.uid]
+
+  // ── หลอดเลือด: ฮีล/ฟื้น/รับแทน ทำให้เลือดเปลี่ยนโดยไม่มี attack event
+  //    ถ้าไม่อัปเดตตรงนี้ หลอดจะค้างค่าเดิมทั้งที่เลขเด้งขึ้นแล้ว (ผู้เล่นเห็นขัดกันทันที)
+  if (typeof e.hpPct === 'number' && on[0]) hp.value = { ...hp.value, [on[0]]: e.hpPct }
+  if (e.guardUid && typeof e.guardHpPct === 'number') hp.value = { ...hp.value, [e.guardUid]: e.guardHpPct }
+  // เลขเขียว +N ที่ตัวที่ได้รับ — ใช้เลือดจริงที่ฟื้นได้ ไม่ใช่ % ของสูตร
+  if ((e.kind === 'heal' || e.kind === 'revive') && e.amount > 0) {
+    fx?.pop(on[0], { dmg: e.amount, heal: true, tier: 'solid' })
+  }
+
   switch (e.kind) {
     case 'damage':  fx?.sweep(on, e.icon, 60); break        // bahamut สาดไฟใส่ทุกตัว
     case 'cleave':  fx?.sweep(on, e.icon, 45); break        // เขี้ยว/เปลวไฟลงหลายใบในจังหวะเดียว
@@ -832,6 +842,7 @@ onUnmounted(() => {
 .brfx-pop.crit { color: #fbbf24; font-size: 2rem; }
 .brfx-pop.weak { color: #cbd5e1; font-size: 1.1rem; }
 .brfx-pop.super { color: #fca5a5; }
+.brfx-pop.heal { color: #86efac; font-size: 1.15rem; }   /* ฟื้นเลือด — เขียวและเล็กกว่าดาเมจ ไม่แย่งสายตาหมัดจริง */
 
 /* ชั้น = เจ้าของขนาด — นี่คือช่องทางหลักที่ผู้เล่นอ่านน้ำหนักของหมัดออกขณะดูเร็วๆ
    มาทีหลังด้วย specificity เท่ากัน (สองคลาสเท่ากับ .crit/.weak ด้านบน) จึงชนะเรื่องขนาดด้วยลำดับประกาศ

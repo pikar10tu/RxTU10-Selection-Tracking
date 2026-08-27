@@ -100,13 +100,13 @@ export function createBattleFx() {
 
   // ── effect methods (pooled ephemeral, imperative fire-and-forget) ──
   const POP_TIER_CLS = { chip: 'tier-chip', solid: 'tier-solid', heavy: 'tier-heavy', finish: 'tier-finish' }
-  function pop(uid, { dmg, crit, eff, tier }) {
+  function pop(uid, { dmg, crit, eff, tier, heal }) {
     const el = pool.pop[popIdx = (popIdx + 1) % pool.pop.length]
     el.getAnimations?.().forEach(a => a.cancel())
-    el.textContent = '-' + dmg
+    el.textContent = (heal ? '+' : '-') + dmg
     const tierCls = POP_TIER_CLS[tier]
     el.className = 'brfx brfx-pop' + (tierCls ? ' ' + tierCls : '')
-      + (crit ? ' crit' : eff === 'super' ? ' super' : eff === 'weak' ? ' weak' : '')
+      + (heal ? ' heal' : crit ? ' crit' : eff === 'super' ? ' super' : eff === 'weak' ? ' weak' : '')
     const dx = Math.round(Math.random() * 28 - 14)
     const base = baseXform(uid, dx, -6); if (!base) return
     el.style.opacity = '1'
@@ -125,7 +125,8 @@ export function createBattleFx() {
       { transform: base + ` translateY(-${rise}px)`, opacity: 0, offset: 1 },
     ]
     const a = el.animate(kf, { duration: ms, easing: 'ease-out', fill: 'forwards' })
-    a.finished.catch(() => {}).then(() => { if (el.textContent === '-' + dmg) el.style.opacity = '0' })
+    const txt = el.textContent
+    a.finished.catch(() => {}).then(() => { if (el.textContent === txt) el.style.opacity = '0' })
   }
 
   function callout(uid, kind) {              // kind: 'super' | 'weak' | 'survive'
@@ -197,10 +198,14 @@ export function createBattleFx() {
     const el = pool.jab[jabIdx = (jabIdx + 1) % pool.jab.length]
     el.getAnimations?.().forEach(x => x.cancel())
     el.style.opacity = '1'
-    // reduced-motion: ไม่วิ่งข้ามจอ แค่กะพริบที่เป้า (ยังบอกได้ว่าหมัดลงตรงไหน)
-    const sx = reduced() ? b.x : a.x, sy = reduced() ? b.y : a.y
-    const mx = b.x - (b.x - a.x) * 0.3, my = b.y - (b.y - a.y) * 0.3   // หยุดที่ 70% ของทาง
-    const ex = reduced() ? b.x : mx, ey = reduced() ? b.y : my
+    // ⚠️ เดิมประกายบินจากการ์ดผู้ตีไปหาเป้า 70% ของทาง — user รายงาน 27 ส.ค. ว่า "ยังเห็นเป็น range attack"
+    //    ถูกแล้ว เพราะชั้น chip = 55% ของหมัดทั้งหมด ⇒ เกินครึ่งของไฟต์ดูเหมือนยิงไกลทั้งที่ทุกตัวเป็น melee
+    //    แก้เป็น "ประกายที่จุดปะทะ" — ขยับสั้นๆ ช่วง 82%→95% ของทาง อ่านเป็นหมัดลง ไม่ใช่กระสุน
+    //    (ยังใช้ element/animation เท่าเดิม ราคาไม่เปลี่ยน · การ์ดยังไม่ขยับตามข้อตกลงชั้น chip)
+    const at = (f) => ({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f })
+    const s0 = reduced() ? b : at(0.82), s1 = reduced() ? b : at(0.95)
+    const sx = s0.x, sy = s0.y
+    const ex = s1.x, ey = s1.y
     return run(el, [
       { transform: `translate(${sx}px, ${sy}px) scale(.3) translateZ(0)`, opacity: .7 },
       { transform: `translate(${ex}px, ${ey}px) scale(.85) translateZ(0)`, opacity: 1, offset: .7 },

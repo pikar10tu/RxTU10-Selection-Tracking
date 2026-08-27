@@ -20,6 +20,14 @@ function ev(unit, p, extra = {}) {
   return { t: 'passive', uid: unit.uid, side: unit.side, petId: unit.id, name: p.name, icon: p.icon, effect: p.effect, ...extra }
 }
 
+/** ฟื้นเลือดให้ unit แล้วคืน { amount, hpPct } — amount = เลือดจริงที่ฟื้นได้ (ไม่ใช่ % ของ passive)
+ *  ⚠️ ผู้เล่นต้องเห็นเลขจริง (+15) ไม่ใช่ % ของสูตร และหลอดเลือดต้องขยับตาม */
+function healUnit(u, pct) {
+  const before = u.hp
+  u.hp = Math.min(u.maxHp, u.hp + pctOf(u.maxHp, pct))
+  return { amount: Math.round(u.hp - before), hpPct: Math.round((u.hp / u.maxHp) * 100) }
+}
+
 /** เพื่อนร่วมทีมที่ยังไม่ตายและเลือดพร่องที่สุด (คืน null ถ้าไม่มีใครพร่อง) */
 function lowestHpAlly(team, exclude) {
   let best = null
@@ -114,18 +122,23 @@ export function runOnRound(team) {
   for (const u of alive(team)) {
     const p = passiveFor(u)
     // regen จากคู่หู whale🔗seal ติดมากับ unit ไม่ได้มาจาก passive ของตัวเอง
-    if (u.teamRegenPct && u.hp < u.maxHp) u.hp = Math.min(u.maxHp, u.hp + pctOf(u.maxHp, u.teamRegenPct))
+    // คู่หู whale🔗seal — เดิมฟื้นเงียบไม่มี event เลย ผู้เล่นไม่เห็นว่าคู่หูทำงานอยู่
+    if (u.teamRegenPct && u.hp < u.maxHp) {
+      const h = healUnit(u, u.teamRegenPct)
+      if (h.amount > 0) out.push({ t: 'passive', uid: u.uid, side: u.side, petId: u.id,
+        name: 'คลื่นคู่หู', icon: '💧', effect: 'duoRegen', targets: [u.uid], ...h, kind: 'heal' })
+    }
     if (!p || p.hook !== 'onRound') continue
     const v = valOf(p, u)
     if (p.effect === 'regenSelf') {
       if (u.hp >= u.maxHp) continue                       // เลือดเต็มแล้วไม่ต้องเด้งป้าย
-      u.hp = Math.min(u.maxHp, u.hp + pctOf(u.maxHp, v.pct))
-      out.push(ev(u, p, { targets: [u.uid], amount: v.pct, kind: 'heal' }))
+      const h = healUnit(u, v.pct)
+      out.push(ev(u, p, { targets: [u.uid], ...h, kind: 'heal' }))
     } else if (p.effect === 'healLowestAlly') {
       const t = lowestHpAlly(team, u)
       if (!t || t.hp >= t.maxHp) continue
-      t.hp = Math.min(t.maxHp, t.hp + pctOf(t.maxHp, v.pct))
-      out.push(ev(u, p, { targets: [t.uid], amount: v.pct, kind: 'heal' }))
+      const h = healUnit(t, v.pct)
+      out.push(ev(u, p, { targets: [t.uid], ...h, kind: 'heal' }))
     }
   }
   return out
@@ -206,7 +219,9 @@ export function runOnHit(defender, dmg, attacker, team, rand) {
     const share = pctOf(res.dmg, valOf(gp, g).pct)
     g.hp -= share
     res.dmg -= share
-    res.events.push(ev(g, gp, { targets: [defender.uid], amount: Math.round(share), kind: 'guard' }))
+    // ⚠️ เลือดผู้พิทักษ์ลดโดยไม่มี attack event ⇒ ถ้าไม่ส่ง hpPct หลอดของเขาจะค้างเต็มทั้งที่เลือดหาย
+    res.events.push(ev(g, gp, { targets: [defender.uid], amount: Math.round(share),
+      guardUid: g.uid, guardHpPct: Math.max(0, Math.round((g.hp / g.maxHp) * 100)), kind: 'guard' }))
     break                                              // ผู้พิทักษ์ตัวเดียวพอ
   }
 
@@ -253,14 +268,15 @@ export function runOnDeath(unit, team) {
       unit.passiveUses = (unit.passiveUses || 0) + 1
       unit.hp = pctOf(unit.maxHp, v.pct)
       out.prevented = true
-      out.events.push(ev(unit, p, { targets: [unit.uid], amount: Math.round(unit.hp), kind: 'revive' }))
+      out.events.push(ev(unit, p, { targets: [unit.uid], amount: Math.round(unit.hp),
+        hpPct: Math.round((unit.hp / unit.maxHp) * 100), kind: 'revive' }))
       return out
     }
     if (p.effect === 'cheatDeath') {
       unit.passiveUses = (unit.passiveUses || 0) + 1
       unit.hp = 1
       out.prevented = true
-      out.events.push(ev(unit, p, { targets: [unit.uid], kind: 'revive' }))
+      out.events.push(ev(unit, p, { targets: [unit.uid], hpPct: 1, kind: 'revive' }))
       return out
     }
   }
@@ -274,7 +290,7 @@ export function runOnDeath(unit, team) {
     g.passiveUses = (g.passiveUses || 0) + 1
     unit.hp = 1
     out.prevented = true
-    out.events.push(ev(g, gp, { targets: [unit.uid], kind: 'save' }))
+    out.events.push(ev(g, gp, { targets: [unit.uid], hpPct: 1, kind: 'save' }))
     break
   }
   return out
