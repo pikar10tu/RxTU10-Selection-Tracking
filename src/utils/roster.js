@@ -13,6 +13,7 @@ import { getPetDef } from '../data/index.js'
 import { stripTrailingEmoji } from './text.js'
 import { BATTLE_SLOTS } from '../data/residence.js'
 import { PVP_RATING_START } from './pvpRating.js'
+import { applySeasonReset, currentSeasonId } from './pvpSeason.js'
 
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d)
 
@@ -47,7 +48,9 @@ export function buildRosterRow(u) {
     p:  d.googlePhoto ?? null,      // ⚠️ ไม่เอา customPhoto — data URL ก้อนใหญ่
     g:  d.guestStatus ?? null,
     tb: num(d.towerBest, 0),
-    r:  num(d.pvp?.rating, PVP_RATING_START),
+    // เรต "ของซีซั่นปัจจุบัน" — ไม่ใช่เรตดิบ เพราะ soft-reset จะถูกเขียนจริงต่อเมื่อเจ้าตัวบุกครั้งแรกของเดือน
+    // ถ้าเขียนดิบ วันที่ 1 ของเดือน เจ้าตัวเห็นเรตบีบแล้วแต่ทั้งชั้นปียังเห็นเรตเดือนก่อน (คนเลิกเล่นค้างถาวร)
+    r:  num(applySeasonReset(d.pvp, currentSeasonId()).rating, PVP_RATING_START),
     m,
     tm,
   }

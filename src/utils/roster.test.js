@@ -4,11 +4,12 @@ import {
   buildRosterRow, rosterRowChanged, buildRosterFromUsers,
   rosterToMembers, rosterTeam, rosterOpponents,
 } from './roster.js'
+import { currentSeasonId } from './pvpSeason.js'
 
 const user = (over = {}) => ({
   uid: 'u1', studentId: '6512345678', nickname: 'ปิ๊ก 🌟', track: 'sci',
   residence: { level: 7 }, googlePhoto: 'https://lh3/x', customPhoto: 'data:image/png;base64,AAAA',
-  guestStatus: null, towerBest: 43, pvp: { rating: 1120 },
+  guestStatus: null, towerBest: 43, pvp: { rating: 1120, seasonId: currentSeasonId() },
   minigames: { g2048: { best: 8192, plays: 3 }, stacker: { best: 0, plays: 1 } },
   activePets: ['fox', null, 'owl'], pets: [{ id: 'fox', grade: 3 }, { id: 'owl', grade: 0 }],
   ...over,
@@ -146,4 +147,25 @@ test('rosterOpponents: ตัดตัวเองออก + ตัดคนไ
   assert.deepEqual(out.map(o => o.uid), ['a'])
   assert.equal(out[0].rating, 1120)
   assert.ok(Array.isArray(out[0].team) && out[0].team.length > 0)
+})
+
+test('buildRosterRow: เรตข้ามซีซั่นต้องถูกบีบก่อนขึ้นบอร์ด (ไม่ใช่เรตดิบของเดือนก่อน)', () => {
+  const row = buildRosterRow({
+    uid: 'u1', nickname: 'เทส',
+    pvp: { rating: 1600, wins: 9, losses: 1, seasonId: '2000-01' },   // ซีซั่นเก่าแน่ๆ
+  })
+  assert.ok(row.r < 1600, 'เรตบนบอร์ดยังเป็นของเดือนก่อน')
+  assert.equal(row.r, 1300)   // soft reset: 1000 + (1600-1000)×0.5
+})
+
+test('buildRosterRow: เรตในซีซั่นปัจจุบันไม่ถูกแตะ', () => {
+  const row = buildRosterRow({
+    uid: 'u1', nickname: 'เทส',
+    pvp: { rating: 1600, wins: 9, losses: 1, seasonId: currentSeasonId() },
+  })
+  assert.equal(row.r, 1600)
+})
+
+test('buildRosterRow: ไม่มี pvp เลย = เรตเริ่มต้น', () => {
+  assert.equal(buildRosterRow({ uid: 'u1', nickname: 'เทส' }).r, 1000)
 })
