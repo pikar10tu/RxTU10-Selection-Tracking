@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   buildRosterRow, rosterRowChanged, buildRosterFromUsers,
-  rosterToMembers, rosterTeam, rosterOpponents,
+  rosterToMembers, rosterTeam, rosterOpponents, petSpeciesOf,
 } from './roster.js'
 import { currentSeasonId } from './pvpSeason.js'
 
@@ -37,9 +37,10 @@ test('buildRosterRow เก็บ m เฉพาะเกมที่ best > 0',
 test('buildRosterRow tm = [{i,g}] ข้าม slot ว่าง และ cap ที่ 3', () => {
   // ⚠️ ต้องเป็น array ของ object ไม่ใช่ array ซ้อน array — Firestore ไม่รับ nested array
   assert.deepEqual(buildRosterRow(user()).tm, [{ i: 'fox', g: 3 }, { i: 'owl', g: 0 }])
+  // ต้องเป็น species id จริง — id ที่กู้ไม่ได้ถูกตัดทิ้งตั้งแต่ต้นทาง (ดูเทสท้ายไฟล์)
   const four = user({
-    activePets: ['a', 'b', 'c', 'd'],
-    pets: [{ id: 'a', grade: 1 }, { id: 'b', grade: 2 }, { id: 'c', grade: 3 }, { id: 'd', grade: 4 }],
+    activePets: ['cat', 'wolf', 'shark', 'panda'],
+    pets: [{ id: 'cat', grade: 1 }, { id: 'wolf', grade: 2 }, { id: 'shark', grade: 3 }, { id: 'panda', grade: 4 }],
   })
   assert.equal(buildRosterRow(four).tm.length, 3, 'cap ที่ BATTLE_SLOTS')
 })
@@ -168,4 +169,63 @@ test('buildRosterRow: เรตในซีซั่นปัจจุบัน�
 
 test('buildRosterRow: ไม่มี pvp เลย = เรตเริ่มต้น', () => {
   assert.equal(buildRosterRow({ uid: 'u1', nickname: 'เทส' }).r, 1000)
+})
+
+// ── id เพ็ทใน roster เป็น instId ของคนที่ยังไม่ migrate (วัดจากของจริง 27 ส.ค.: 13 ทีม ใช้ได้แค่ 19/38 ตัว) ──
+
+test('petSpeciesOf: species id ตรงๆ ผ่านทันที', () => {
+  assert.equal(petSpeciesOf('bahamut'), 'bahamut')
+})
+
+test('petSpeciesOf: กู้ species จาก instId แบบ species_timestamp_rand', () => {
+  assert.equal(petSpeciesOf('bahamut_1772192074378_ptd6'), 'bahamut')
+  assert.equal(petSpeciesOf('kirin_1772723692155_qls6'), 'kirin')
+})
+
+test('petSpeciesOf: instId ล้วนไม่มี species นำหน้า = กู้ไม่ได้', () => {
+  assert.equal(petSpeciesOf('1771936427893_s3vjsn'), null)
+})
+
+test('petSpeciesOf: prefix ที่ไม่ใช่สปีชีส์จริง = กู้ไม่ได้ (celestial ถูกถอดออกจากแค็ตตาล็อกแล้ว)', () => {
+  assert.equal(petSpeciesOf('celestial_1772280785098_6qnt'), null)
+  assert.equal(petSpeciesOf(null), null)
+})
+
+test('buildRosterRow: activePets เป็น instId (ยังไม่ migrate) ต้อง map กลับเป็น species จาก pets[].instId', () => {
+  const row = buildRosterRow({
+    uid: 'u1', nickname: 'เทส',
+    activePets: ['1771936427893_s3vjsn', 'kirin_1772723692155_qls6'],
+    pets: [
+      { id: 'bahamut', instId: '1771936427893_s3vjsn', grade: 4 },
+      { id: 'kirin', instId: 'kirin_1772723692155_qls6', grade: 2 },
+    ],
+  })
+  assert.deepEqual(row.tm, [{ i: 'bahamut', g: 4 }, { i: 'kirin', g: 2 }])
+})
+
+test('buildRosterRow: id ที่กู้ไม่ได้เลยถูกตัดทิ้ง (ไม่ปล่อยเป็นเพ็ทผี common/scissors)', () => {
+  const row = buildRosterRow({
+    uid: 'u1', nickname: 'เทส',
+    activePets: ['bahamut', '1772103420786_yx5j1n', 'kirin'],
+    pets: [{ id: 'bahamut', grade: 3 }, { id: 'kirin', grade: 1 }],
+  })
+  assert.deepEqual(row.tm.map(t => t.i), ['bahamut', 'kirin'])
+})
+
+test('rosterTeam: แถวเก่าที่มี instId ค้างใน Firestore ต้องกู้ได้ตอนอ่าน', () => {
+  // แถวที่เขียนไว้ก่อนแก้จะยังเป็น instId จนกว่าเจ้าตัวจะ sync ใหม่/แอดมินสร้าง roster ใหม่
+  const team = rosterTeam({ tm: [{ i: 'phoenix_1772192547567_2vyf', g: 3 }, { i: '1771928463354_ubjiai', g: 5 }] })
+  assert.deepEqual(team.map(p => p.id), ['phoenix'])
+  assert.equal(team[0].rarity, 'legendary')
+  assert.equal(team[0].grade, 3)
+})
+
+test('rosterOpponents: คนที่กู้ทีมไม่ได้เลย ต้องไม่ถูกเอามาเป็นคู่ต่อสู้', () => {
+  const rows = {
+    ghost: { n: 'ทิว', r: 1000, tm: [{ i: '1772103420786_yx5j1n', g: 5 }] },
+    ok:    { n: 'สุ่น', r: 1000, tm: [{ i: 'kirin_1772192470783_1o42', g: 2 }] },
+  }
+  const out = rosterOpponents(rows, 'me')
+  assert.deepEqual(out.map(o => o.nickname), ['สุ่น'])
+  assert.deepEqual(out[0].team.map(p => p.id), ['kirin'])
 })

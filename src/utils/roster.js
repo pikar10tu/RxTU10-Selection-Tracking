@@ -32,13 +32,18 @@ export function buildRosterRow(u) {
   // ⚠️ ต้องเป็น array ของ "object" ไม่ใช่ [[id, grade]] — Firestore ไม่รองรับ array ซ้อน array
   //    (setDoc throw "Nested arrays are not supported") · map ใน array ใช้ได้ปกติ
   const pets = Array.isArray(d.pets) ? d.pets : []
+  // ⚠️ ต้องจับ instId ด้วย — ก่อน migrate activePets เก็บ instId ไม่ใช่ species id
+  //    ถ้าจับแค่ p.id จะหา instance ไม่เจอ → เกรดกลายเป็น 0 และ i ค้างเป็น instId ที่ resolve ไม่ได้
+  //    เก็บลงแถวเป็น "species" เสมอ เพื่อให้ทุกจอที่อ่าน roster ใช้ได้ทันทีโดยไม่ต้องรู้เรื่อง migrate
   const tm = (Array.isArray(d.activePets) ? d.activePets : [])
     .filter(Boolean)
-    .slice(0, BATTLE_SLOTS)
     .map((id) => {
-      const inst = pets.find(p => (p?.id || p?.species) === id) || {}
-      return { i: id, g: num(inst.grade, 0) }
+      const inst = pets.find(p => p?.instId === id || p?.id === id || p?.species === id) || {}
+      const species = petSpeciesOf(inst.id || inst.species || id)
+      return species ? { i: species, g: num(inst.grade, 0) } : null
     })
+    .filter(Boolean)
+    .slice(0, BATTLE_SLOTS)
 
   return {
     s:  d.studentId ?? null,
@@ -104,18 +109,33 @@ export function rosterToMembers(rows) {
   return { byStudentId, guests }
 }
 
+/**
+ * id ที่เจอใน activePets/roster → species id ที่แค็ตตาล็อกรู้จัก (คืน null ถ้ากู้ไม่ได้)
+ *
+ * ⚠️ ที่ต้องมีเพราะ: user ที่ยังไม่ได้ล็อกอินหลัง migrate เพ็ท ยังมี activePets เป็น **instId**
+ *    ไม่ใช่ species id — instId มี 2 รูป `species_ts_rand` (กู้ได้จาก prefix) และ `ts_rand` ล้วน (กู้ไม่ได้)
+ *    ถ้าปล่อยผ่าน getPetDef จะคืน null → ทีมกลายเป็น common/scissors เกรด 0 ทั้งทีม = "ทีมผี"
+ *    ที่โชว์เพ็ท ❓ บนบอร์ด และทำให้ teamPower/เหรียญเพี้ยนทั้งกระดาน
+ *    (วัดจริง 27 ส.ค.: 13 ทีมในชั้นปี ใช้ได้แค่ 19/38 ตัว · กู้ prefix แล้วได้ 30/38)
+ */
+export function petSpeciesOf(id) {
+  if (!id) return null
+  if (getPetDef(id)) return id
+  const head = String(id).split('_')[0]
+  return getPetDef(head) ? head : null
+}
+
 /** [{i,g}] → รูปเดียวกับ resolveBattleTeam (utils/petTeam.js) */
 export function rosterTeam(row) {
-  return (row?.tm || []).map((slot) => {
-    const id = slot?.i
-    const def = getPetDef(id) || {}
-    return {
-      id,
-      rarity:  def.rarity  || 'common',
-      element: def.element || 'scissors',
-      grade:   num(slot?.g, 0),
-    }
-  })
+  // กู้อีกชั้นตอนอ่าน: แถวที่เขียนไว้ก่อนแก้ยังเป็น instId ค้างใน Firestore
+  // จนกว่าเจ้าตัวจะมีกิจกรรมให้ sync ใหม่ หรือแอดมินกดสร้าง roster ใหม่
+  return (row?.tm || []).reduce((team, slot) => {
+    const id = petSpeciesOf(slot?.i)
+    if (!id) return team          // กู้ไม่ได้ = ตัดทิ้ง ดีกว่าปล่อยเป็นเพ็ทผีที่ไม่มีตัวตน
+    const def = getPetDef(id)
+    team.push({ id, rarity: def.rarity, element: def.element, grade: num(slot?.g, 0) })
+    return team
+  }, [])
 }
 
 /** คู่ต่อสู้ที่บุกได้ — มีทีม + ไม่ใช่ตัวเอง · team resolve มาให้แล้ว (เหมือนบอท) */
@@ -124,7 +144,10 @@ export function rosterOpponents(rows, meUid) {
   for (const [uid, row] of Object.entries(rows || {})) {
     if (uid === meUid) continue
     if (!row?.tm?.length) continue
-    out.push({ uid, nickname: row.n, rating: num(row.r, PVP_RATING_START), team: rosterTeam(row) })
+    // เช็คหลังกู้ species แล้ว — ทีมที่เหลือ 0 ตัวสู้ไม่ได้ (ไฟต์จะจบทันทีแบบไร้ความหมาย)
+    const team = rosterTeam(row)
+    if (!team.length) continue
+    out.push({ uid, nickname: row.n, rating: num(row.r, PVP_RATING_START), team })
   }
   return out
 }
