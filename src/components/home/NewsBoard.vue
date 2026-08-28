@@ -1,13 +1,13 @@
 <template>
   <!-- ซ่อนทั้งแถบถ้าไม่มีข่าว (และโหลดเสร็จแล้ว) -->
   <div v-if="loading || items.length" class="news">
-    <!-- collapsed: บรรทัดล่าสุด · กดเพื่อกาง log -->
+    <!-- collapsed: บรรทัดเดียวสลับข่าวเองทุก 3.5 วิ · กดเพื่อกาง log -->
     <button class="news-latest" :aria-expanded="open" @click="open = !open">
-      <span class="news-icon"><Emoji char="📢" /></span>
+      <span class="news-icon"><Emoji :char="open || !current ? '📢' : current.icon" /></span>
       <span class="news-latest-msg">
         <template v-if="loading">กำลังโหลดข่าว…</template>
         <template v-else-if="open">กระดานข่าว</template>
-        <template v-else>{{ items[0].msg }}</template>
+        <span v-else :key="current.id" class="news-tick">{{ current.text }}</span>
       </span>
       <span class="news-chevron" :class="{ open }" aria-hidden="true">▾</span>
     </button>
@@ -15,10 +15,10 @@
     <!-- expanded: log เต็มพร้อมเวลา (accordion กางในหน้า) -->
     <ul v-if="open && items.length" class="news-list">
       <li v-for="n in items" :key="n.id" class="news-item">
-        <span class="news-icon"><Emoji :char="n.icon || '📢'" /></span>
+        <span class="news-icon"><Emoji :char="n.icon" /></span>
         <div class="news-body">
-          <div class="news-msg">{{ n.msg }}</div>
-          <div class="news-time">{{ fmt(n.ts) }}</div>
+          <div class="news-msg">{{ n.text }}</div>
+          <div class="news-time">{{ timeAgo(n.t, now) }}</div>
         </div>
       </li>
     </ul>
@@ -26,33 +26,72 @@
 </template>
 
 <script setup>
+/**
+ * กระดานข่าวหน้า Home — รวม 2 เลน (ดู utils/newsFeed.js)
+ *   เลน roster: ข่าวไหลเร็วจาก rows.<uid>.ev — roster เป็น 1 read ที่จออื่นได้ใช้ต่อทั้งเซสชัน
+ *   เลน news:   ข่าว "ครั้งแรก/ที่หนึ่งของรุ่น" + ประกาศแอดมิน — เหลือ 5 doc (เดิม 10)
+ * รวมแล้ว 6 read ต่อการเข้า Home (เดิม 10) ทั้งที่ข่าวเยอะกว่าเดิมหลายเท่า
+ *
+ * ⚠️ ใช้ {{ }} เท่านั้น ห้าม v-html — ข้อความในเลน news มาจากผู้เล่น (CLAUDE.md ข้อ 8)
+ */
 import Emoji from '../shared/Emoji.vue'
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
 import { db } from '../../firebase/config.js'
 import { useUsageStore } from '../../stores/usage.js'
+import { useMembersStore } from '../../stores/members.js'
+import { useAuthStore } from '../../stores/auth.js'
+import { buildFeed, timeAgo } from '../../utils/newsFeed.js'
 
 const usage = useUsageStore()
-const items = ref([])
+const members = useMembersStore()
+const auth = useAuthStore()
+
+const newsDocs = ref([])
 const loading = ref(true)
-const open = ref(false)   // collapsed by default — กดบรรทัดล่าสุดเพื่อกาง log
+const open = ref(false)     // collapsed by default — กดบรรทัดเพื่อกาง log
+const idx = ref(0)          // บรรทัดที่โชว์อยู่ตอนพับ
+const now = ref(Date.now()) // ให้ "x นาทีที่แล้ว" ขยับตามเวลาจริง
+
+const items = computed(() => buildFeed(members.rosterRows || {}, newsDocs.value,
+  { now: now.value, myUid: auth.currentUser?.uid || null }))
+
+const current = computed(() => items.value[idx.value % (items.value.length || 1)] || null)
+
+// ── ตัวสลับบรรทัด ──
+// ใช้แค่ opacity/transform (ดู style) — ห้าม backdrop-filter/blur เด็ดขาด (iOS Safari paint)
+let timer = null
+const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+
+function stop() { if (timer) { clearInterval(timer); timer = null } }
+function start() {
+  stop()
+  // ไม่สลับเมื่อ: ผู้ใช้ปิดอนิเมชัน · กางกระดานอยู่ · แท็บไม่ได้อยู่หน้าจอ · มีข่าวเดียว
+  if (reduced || open.value || document.hidden || items.value.length < 2) return
+  timer = setInterval(() => {
+    idx.value = (idx.value + 1) % items.value.length
+    now.value = Date.now()
+  }, 3500)
+}
 
 onMounted(async () => {
+  document.addEventListener('visibilitychange', start)
   try {
-    const snap = await getDocs(query(collection(db, 'news'), orderBy('ts', 'desc'), limit(10)))
+    await members.loadRoster()
+    const snap = await getDocs(query(collection(db, 'news'), orderBy('ts', 'desc'), limit(5)))
     usage.track(snap.size)
-    items.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    newsDocs.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
   } catch (e) {
     console.error('[news]', e)
   } finally {
     loading.value = false
+    start()
   }
 })
 
-function fmt(ts) {
-  const d = ts?.toDate ? ts.toDate() : null
-  return d ? d.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : ''
-}
+onUnmounted(() => { stop(); document.removeEventListener('visibilitychange', start) })
+
+watch(open, (v) => { if (v) { stop(); now.value = Date.now() } else start() })
 </script>
 
 <style scoped>
@@ -69,4 +108,9 @@ function fmt(ts) {
 .news-body { flex: 1; min-width: 0; }
 .news-msg { font-size: .8rem; color: rgba(0,0,0,.75); line-height: 1.4; word-break: break-word; }
 .news-time { font-size: .7rem; color: rgba(0,0,0,.4); margin-top: 2px; }
+
+/* สลับบรรทัดเอง — opacity/transform เท่านั้น ห้าม backdrop-filter/blur (iOS Safari paint) */
+.news-tick { display: inline-block; animation: news-in .2s ease-out; }
+@keyframes news-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .news-tick { animation: none; } }
 </style>
