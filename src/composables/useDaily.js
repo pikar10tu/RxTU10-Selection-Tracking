@@ -6,10 +6,16 @@ import { residenceDailyIncome } from '../data/residence.js'
 import { totalPetDaily } from '../utils/petUtils.js'
 import { getTowerBonus } from '../data/towerFloors.js'
 import { questIncomeMult, BUFF_MS } from '../utils/dailyQuest.js'
-import { accruedCoins } from '../utils/idleIncome.js'
+import { accruedCoins, effectiveLastMs } from '../utils/idleIncome.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const BUFF_MULT = 1.5   // ต้องตรงกับ questIncomeMult
+
+// เวลาที่ "กดเก็บสำเร็จ" ครั้งล่าสุดในเซสชันนี้ (module-scope = ใช้ร่วมทุก instance)
+// แนวกันที่สองไม่ให้บาร์เต็มใหม่ถ้า lastDaily ใน doc หาย/ย้อนหลังด้วยเหตุใดก็ตาม
+// (ตัวหลักแก้ที่ auth.js — snapshot อ่านแบบ serverTimestamps:'estimate')
+// ผูก uid ไว้ด้วย: สลับบัญชีในแท็บเดิมต้องไม่เอาเวลาของคนก่อนหน้ามากั้น
+let _lastClaim = { uid: null, ms: 0 }
 
 /**
  * Idle income: residence + stored-pet income accrues hourly, capped at 24h.
@@ -41,12 +47,21 @@ export function useDaily() {
   const ratePerDay = computed(() => Math.round(baseRatePerDay.value * buffMult.value))
   const ratePerHour = computed(() => Math.round(ratePerDay.value / 24))
 
-  function lastMs() {
+  /** เวลาเก็บล่าสุดจาก user doc (ms) — null ถ้าไม่มี/อ่านไม่ออก */
+  function docLastMs() {
     const l = auth.userData?.lastDaily
-    if (!l) return now.value - DAY_MS // never collected → start full
-    if (typeof l.toMillis === 'function') return l.toMillis()
-    if (typeof l.toDate === 'function') return l.toDate().getTime()
-    return new Date(l).getTime()
+    if (!l) return null
+    let ms = null
+    if (typeof l.toMillis === 'function') ms = l.toMillis()
+    else if (typeof l.toDate === 'function') ms = l.toDate().getTime()
+    else ms = new Date(l).getTime()
+    return Number.isFinite(ms) ? ms : null
+  }
+
+  function lastMs() {
+    const mine = _lastClaim.uid === auth.currentUser?.uid ? _lastClaim.ms : 0
+    const eff = effectiveLastMs(docLastMs(), mine)
+    return eff === null ? now.value - DAY_MS : eff   // never collected → start full
   }
 
   const elapsedMs   = computed(() => Math.max(0, Math.min(DAY_MS, now.value - lastMs())))
@@ -68,10 +83,15 @@ export function useDaily() {
     if (!auth.currentUser) return
     const amount = accrued.value
     if (amount < 1) { toast('ยังไม่มีรายได้สะสม รออีกหน่อยนะ', 'info'); return }
+    // จดเวลาเก็บไว้ก่อน (synchronous) → บาร์เป็น 0 ทันทีตั้งแต่กดครั้งแรก
+    // กันทั้งกดรัวๆ และ snapshot ที่มาทีหลังแล้วทำ lastDaily หาย
+    const prevClaim = _lastClaim
+    _lastClaim = { uid: auth.currentUser.uid, ms: Date.now() }
     const ok = await auth.patchUser(
       { coins: (auth.userData?.coins || 0) + amount, lastDaily: new Date() },
       { coins: increment(amount), lastDaily: serverTimestamp() },
     )
+    if (!ok) _lastClaim = prevClaim   // เขียนไม่สำเร็จ = ยังไม่ได้เก็บ คืนสิทธิ์ให้กดใหม่
     toast(ok ? `เก็บรายได้ +${amount.toLocaleString()} เหรียญ` : 'เก็บรายได้ไม่สำเร็จ', ok ? 'success' : 'error')
   }
 

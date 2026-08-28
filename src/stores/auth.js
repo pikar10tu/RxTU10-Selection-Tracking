@@ -288,8 +288,15 @@ export const useAuthStore = defineStore('auth', () => {
                 catch (e) { console.error('[ensureDoc]', e) }
                 if (_unsub) _unsub()
                 _unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
-                    if (_blockSnapshot) { _pendingSnapshot = snap.data() ?? null; return }
-                    applySnapshot(snap.data())
+                    // ⚠️ serverTimestamps:'estimate' — ห้ามอ่าน snap.data() เปล่าๆ
+                    // Firestore ยิง snapshot ท้องถิ่นทันทีที่เขียน (latency compensation) โดย
+                    // serverTimestamp() ที่เซิร์ฟเวอร์ยังไม่ยืนยันจะมาเป็น null → ทับ optimistic
+                    // แล้วฟิลด์เวลา "หายไป" ชั่วคราว · เกิดจริง 28 ส.ค.: lastDaily หาย = บาร์
+                    // รายได้เต็มใหม่ทันที กดเก็บซ้ำได้รัวๆ จนเหรียญพุ่ง · 'estimate' ให้ค่าประมาณ
+                    // จากนาฬิกาเครื่องแทน null (แม่นพอสำหรับทุกจุดที่เราใช้เวลา)
+                    const raw = snap.data({ serverTimestamps: 'estimate' })
+                    if (_blockSnapshot) { _pendingSnapshot = raw ?? null; return }
+                    applySnapshot(raw)
                 }, (err) => {
                     // listener ตาย (rules ปฏิเสธ / เน็ตมหาลัยบล็อก) — เดิมเงียบสนิท
                     // แอปจะค้างข้อมูลเก่าโดยไม่มีสัญญาณอะไรเลย

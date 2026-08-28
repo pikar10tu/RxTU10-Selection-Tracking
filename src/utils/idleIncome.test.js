@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { accruedCoins, DAY_MS } from './idleIncome.js'
+import { accruedCoins, effectiveLastMs, DAY_MS } from './idleIncome.js'
 
 const H = 60 * 60 * 1000
 const RATE = 2400 // เรท/วัน ก่อนบัฟ → 100/ชม.
@@ -41,4 +41,29 @@ test('เรท 0 หรือ now ≤ lastMs → 0', () => {
 
 test('DAY_MS = 24ชม.', () => {
   assert.equal(DAY_MS, 24 * H)
+})
+
+// ── effectiveLastMs: กันบาร์เต็มใหม่เมื่อ lastDaily ใน doc หาย/ย้อนหลัง ──
+// เคสจริง 28 ส.ค.: snapshot latency-compensated ของ Firestore ส่ง serverTimestamp
+// ที่ยังไม่ยืนยันมาเป็น null → ทับ optimistic → บาร์เต็ม → กดเก็บซ้ำได้ทั้งวัน
+test('lastDaily ใน doc หายไป (snapshot ยังไม่ยืนยัน) → ใช้เวลาเก็บล่าสุดในเครื่อง', () => {
+  const claimed = 100 * H
+  assert.equal(effectiveLastMs(null, claimed), claimed)
+  // และต้องสะสมได้ 0 = กดเก็บซ้ำไม่ได้
+  assert.equal(accruedCoins({ baseRatePerDay: RATE, lastMs: effectiveLastMs(null, claimed), now: claimed }), 0)
+})
+
+test('มีทั้งสองค่า → เอาอันใหม่กว่า (เก็บจากอีกเครื่องก็ไม่ย้อน)', () => {
+  assert.equal(effectiveLastMs(10 * H, 8 * H), 10 * H)
+  assert.equal(effectiveLastMs(8 * H, 10 * H), 10 * H)
+})
+
+test('ไม่มีทั้งคู่ = ยังไม่เคยเก็บ → null (ให้ผู้เล่นใหม่เริ่มเต็ม)', () => {
+  assert.equal(effectiveLastMs(null, 0), null)
+  assert.equal(effectiveLastMs(undefined, null), null)
+})
+
+test('ค่าเพี้ยน (NaN/ไม่ใช่ตัวเลข) ถือว่าไม่มี', () => {
+  assert.equal(effectiveLastMs(NaN, 5 * H), 5 * H)
+  assert.equal(effectiveLastMs('x', null), null)
 })

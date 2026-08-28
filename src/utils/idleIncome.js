@@ -21,3 +21,24 @@ export function accruedCoins({ baseRatePerDay, lastMs, now, buffFrom = 0, buffUn
   const weightedMs = (totalMs - buffedMs) + buffMult * buffedMs
   return Math.floor(baseRatePerDay * weightedMs / DAY_MS)
 }
+
+/**
+ * เวลา "เก็บรายได้ล่าสุด" ที่เชื่อถือได้ = ค่าที่ใหม่กว่าระหว่าง doc กับที่จำไว้ในเครื่อง
+ *
+ * ทำไมต้องมี: onSnapshot ของ Firestore ยิง snapshot ท้องถิ่นทันทีที่เขียน (latency
+ * compensation) โดย serverTimestamp() ที่เซิร์ฟเวอร์ยังไม่ยืนยันจะมาเป็น null → ถ้า
+ * snapshot นั้นทับ state ลง lastDaily จะหาย = บาร์รายได้เต็มใหม่ทันที กดเก็บซ้ำได้รัวๆ
+ * (บั๊กจริง 28 ส.ค.) · ตัวหลักแก้ที่ auth.js (อ่าน snapshot แบบ serverTimestamps:'estimate')
+ * ฟังก์ชันนี้เป็นแนวกันที่สอง: เวลาเก็บล่าสุด "เดินหน้าอย่างเดียว" ไม่ย้อนกลับ
+ *
+ * @param docMs เวลาจาก user doc (ms) — null/ไม่ใช่ตัวเลข = ไม่มี
+ * @param localClaimMs เวลาที่กดเก็บสำเร็จในเซสชันนี้ (ms) — 0/null = ยังไม่เคยกด
+ * @returns ms ล่าสุด · null ถ้าไม่มีทั้งคู่ (= ยังไม่เคยเก็บ → ผู้เล่นใหม่เริ่มบาร์เต็ม)
+ */
+export function effectiveLastMs(docMs, localClaimMs) {
+  const a = Number.isFinite(docMs) && docMs > 0 ? docMs : null
+  const b = Number.isFinite(localClaimMs) && localClaimMs > 0 ? localClaimMs : null
+  if (a === null) return b
+  if (b === null) return a
+  return Math.max(a, b)
+}
