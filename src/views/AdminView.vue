@@ -8,32 +8,6 @@
     </div>
 
     <template v-else>
-      <!-- ───── บันทึกถึงแอดมินจากรอบ deploy ล่าสุด (ข้อความคงที่ในโค้ด ไม่แตะ Firestore) ───── -->
-      <section class="admin-card admin-note">
-        <div class="admin-card-head"><span><Emoji char="📌" /> บันทึกรอบ deploy ล่าสุด — 28 ส.ค. 2026</span></div>
-        <div class="note-body">
-          <p><b>1) แก้บั๊ก "กดรับรายได้ประจำวันได้หลายครั้ง"</b> (เพื่อนแจ้งเมื่อเช้า 28 ส.ค.)</p>
-          <p class="note-sub">
-            ต้นเหตุ: ตอนกดเก็บ เราเขียนเวลา <code>lastDaily</code> เป็น serverTimestamp ของ Firestore
-            ซึ่ง snapshot รอบแรกที่เด้งกลับมาในเครื่อง (ก่อนเซิร์ฟเวอร์ยืนยัน) ส่งค่านั้นมาเป็นค่าว่าง
-            พอ snapshot นี้ทับ state (พฤติกรรมที่เพิ่งเปลี่ยนไป 20 ส.ค.) แอปเลยอ่านว่า "ยังไม่เคยเก็บ"
-            → บาร์เต็ม 100% ทันที กดรับซ้ำได้เรื่อยๆ ทุก ~1.5 วิ · เจอบ่อยตอนเน็ตช้า (ตอนเช้า) เพราะเซิร์ฟเวอร์ตอบช้ากว่า 1.5 วิ
-          </p>
-          <p class="note-sub">
-            แก้ 2 ชั้น: (ก) อ่าน snapshot แบบประมาณเวลาให้ ไม่ส่งค่าว่างอีกต่อไป — ครอบทุกฟิลด์เวลา ไม่ใช่แค่รายได้
-            (ข) จำเวลาที่กดเก็บล่าสุดไว้ในเครื่อง บาร์เดินหน้าอย่างเดียว ย้อนไม่ได้
-          </p>
-          <p class="note-sub"><b>เหรียญที่ใครได้ไปแล้ว ไม่ได้ไล่หักคืน</b> ตามที่สั่งไว้ — ยกประโยชน์ให้ทั้งหมด</p>
-          <p><b>2) ปิดการเคารพ "โหมดลดการเคลื่อนไหว" ของเครื่อง</b> — ทุกคนเห็นอนิเมชันชุดเดียวกันแล้ว
-            (ไฟต์ กาชา ฟาร์ม หอคอย กระดานข่าว) · สวิตช์กลับอยู่ที่ <code>src/utils/motionPref.js</code></p>
-          <p class="note-sub">
-            ผลข้างเคียงที่ควรรู้: คนที่ตั้ง Reduce Motion ไว้เพราะเมารถ/ไวต่อการเคลื่อนไหวจะเห็นอนิเมชันเต็มไปด้วย
-            ถ้ามีคนบ่น สั่งกลับได้ในบรรทัดเดียว
-          </p>
-          <p class="note-sub">รอเทสจอจริง: กดเก็บรายได้ตอนเน็ตช้า → บาร์ต้องเป็น 0 แล้วค้างที่ 0 · กดรัวๆ ต้องไม่ได้เหรียญเพิ่ม</p>
-        </div>
-      </section>
-
       <!-- ───── โหมดซ่อมบำรุง (config/app.maintenance) ───── -->
       <section class="admin-card">
         <div class="admin-card-head"><span><Emoji char="🚧" /> โหมดซ่อมบำรุง</span></div>
@@ -1203,11 +1177,4 @@ async function saveEcon(m) {
 .news-admin-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 9px; background: rgba(0,0,0,.03); font-size: .76rem; }
 .news-admin-row span { flex: 1; word-break: break-word; }
 .news-del { border: none; background: none; cursor: pointer; font-size: .9rem; flex-shrink: 0; }
-/* บันทึกถึงแอดมิน — ข้อความคงที่จากรอบ deploy ล่าสุด */
-.admin-note { border-color: var(--primary); }
-.note-body p { margin: 0 0 8px; font-size: .82rem; line-height: 1.65; color: var(--ink); }
-.note-body p:last-child { margin-bottom: 0; }
-.note-body .note-sub { font-size: .78rem; color: rgba(0,0,0,.66); }
-.note-body code { font-size: .76rem; background: rgba(79,70,229,.09); border-radius: 5px; padding: 1px 4px; }
-
 </style>
