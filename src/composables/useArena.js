@@ -8,9 +8,10 @@ import { useToast } from './useToast.js'
 import { simulateBattle } from '../utils/battleEngine.js'
 import { resolveBattleTeam } from '../utils/petTeam.js'
 import { rosterOpponents } from '../utils/roster.js'
+import { rankOfScore } from '../utils/newsFeed.js'
 import { useRosterSync } from './useRosterSync.js'
 import {
-  nextRating, BOT_RATING_MULT, PVP_DAILY_ATTACKS,
+  nextRating, BOT_RATING_MULT, PVP_DAILY_ATTACKS, PVP_RATING_START,
 } from '../utils/pvpRating.js'
 import { currentSeasonId, applySeasonReset } from '../utils/pvpSeason.js'
 import { getFallbackBots } from '../utils/pvpBot.js'
@@ -108,8 +109,15 @@ export function useArena() {
     // → คืน ok=false ให้ fight() ไม่โชว์ replay ลวง
     // เรตเปลี่ยน → อัปแถวตัวเองในบอร์ด · พ่วงประวัติการบุกไปในการเขียนครั้งเดียวกัน
     // บอทข้าม: ไม่มีแถวใน roster และไม่มีใครต้องเห็นฝั่งตั้งรับของบอท
+    // ข่าวกระดาน: อันดับเรตในรุ่นดีขึ้นและติด 10 อันดับแรก — เทียบจาก rosterRows ที่ถืออยู่แล้ว (ไม่มี read เพิ่ม)
+    const rows = members.rosterRows || {}
+    const uid = auth.currentUser?.uid || null
+    const pickRating = (r) => r?.r ?? PVP_RATING_START
+    const prevRank = rankOfScore(rows, uid, pickRating, base.rating)
+    const newRank  = rankOfScore(rows, uid, pickRating, newRating)
     syncRosterRow({
       history: opp.isBot ? null : { u: opp.uid, w: won ? 1 : 0, c: coin, t: Date.now() },
+      event: (newRank < prevRank && newRank <= 10) ? { k: 'pv', v: newRank, t: Date.now() } : null,
     })
     return { ok, newRating, delta: newRating - base.rating, coin }
   }

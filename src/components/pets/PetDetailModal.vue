@@ -152,9 +152,13 @@ async function commit(newPets, coinDelta = 0) {
   const patch = { pets: newPets }
   if (activeChanged) patch.activePets = nextActive
   if (coinDelta) patch.coins = increment(coinDelta)
+  // ข่าวกระดาน: เกรดสูงสุดที่ถืออยู่ขยับขึ้นถึง IV/V — ⚠️ อ่านเกรดเดิม "ก่อน" patchUser (CLAUDE.md ข้อ 9)
+  const topBefore = Math.max(0, ...(auth.userData?.pets || []).map(p => Number(p?.grade) || 0))
+  const topAfter  = Math.max(0, ...newPets.map(p => Number(p?.grade) || 0))
   // throw on failure so the calling action's try/catch shows its error toast
   if (!(await auth.patchUser(optimistic, patch))) throw new Error('user patch failed')
-  syncRosterRow()   // เกรด/ทีมเพ็ทเปลี่ยน → อัปแถวตัวเอง (เขียนเฉพาะตอนค่าเปลี่ยนจริง)
+  // เกรด/ทีมเพ็ทเปลี่ยน → อัปแถวตัวเอง (เขียนเฉพาะตอนค่าเปลี่ยนจริง)
+  syncRosterRow({ event: (topAfter > topBefore && topAfter >= 4) ? { k: 'pg', v: topAfter, t: Date.now() } : null })
 }
 
 async function evolve() {

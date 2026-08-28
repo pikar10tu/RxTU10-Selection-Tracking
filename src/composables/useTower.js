@@ -2,6 +2,7 @@ import { computed } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
 import { useToast } from './useToast.js'
 import { useRosterSync } from './useRosterSync.js'
+import { useNewsPost } from './useNewsPost.js'
 import { simulateBattle } from '../utils/battleEngine.js'
 import { getFloorTeam, getTowerBonus, TOWER_MAX } from '../data/towerFloors.js'
 import { resolveBattleTeam } from '../utils/petTeam.js'
@@ -14,6 +15,7 @@ export function useTower() {
   const auth = useAuthStore()
   const { toast } = useToast()
   const { syncRosterRow } = useRosterSync()
+  const { postNews, myName } = useNewsPost()
 
   const floor = computed(() => auth.userData?.towerFloor || 1)
   const best  = computed(() => auth.userData?.towerBest || 0)
@@ -63,7 +65,11 @@ export function useTower() {
         { towerFloor: nextFloor, towerBest: nextBest },
         { towerFloor: nextFloor, towerBest: nextBest },
       )
-      syncRosterRow()   // อัปแถวตัวเองในบอร์ด (เขียนเฉพาะตอนค่าเปลี่ยนจริง)
+      // ข่าวกระดาน: ชั้นลงท้าย 0 เข้าเลน roster · ชั้นสุดท้ายไปเลน news (อยู่ยาว) และไม่ยิงซ้ำ
+      // ⚠️ ใช้ `cleared` ที่หยิบไว้ก่อน patchUser — floor.value ตอนนี้เป็นชั้นถัดไปแล้ว (CLAUDE.md ข้อ 9)
+      const topFloor = cleared === TOWER_MAX
+      syncRosterRow({ event: (!topFloor && cleared % 10 === 0) ? { k: 'tw', v: cleared, t: Date.now() } : null })
+      if (topFloor) postNews({ type: 'tower100', icon: '🏰', msg: `${myName()} พิชิตหอคอยชั้น ${TOWER_MAX} สำเร็จ` })
     }
     return { result, botTeam: bots, playerTeam: team.value, won, cleared }
   }

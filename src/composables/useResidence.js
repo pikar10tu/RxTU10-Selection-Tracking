@@ -56,7 +56,8 @@ export function useResidence() {
         'residence.upgradedAt': serverTimestamp(),
       },
     )
-    if (saved) syncRosterRow()   // เลเวลบ้านโชว์ในหน้าเพื่อน → อัปแถวตัวเอง
+    // เลเวลบ้านโชว์ในหน้าเพื่อน → อัปแถวตัวเอง · พ่วงข่าวกระดานไปกับ write เดียวกัน (ไม่มี write เพิ่ม)
+    if (saved) syncRosterRow({ event: { k: 'hs', v: newLevel, t: Date.now() } })
     toast(saved ? `อัปเกรดเป็น ${target.art} ${target.tierName} แล้ว!` : 'อัปเกรดไม่สำเร็จ', saved ? 'success' : 'error')
   }
 
