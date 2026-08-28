@@ -26,6 +26,12 @@
              class="br-unit foe" @click="inspect('B'+i)">
           <span class="br-el"><Emoji :char="elEmoji(p)" /></span>
           <span v-if="skillIcon(p)" class="br-skill-dot"><Emoji :char="skillIcon(p)" /></span>
+          <span v-if="statusOf('B'+i).length" class="br-status">
+            <b v-for="st in statusOf('B'+i)" :key="st.key" :class="{ dbf: !st.buff }"><Emoji :char="st.icon" /></b>
+          </span>
+          <span v-if="chipOn['B'+i]" class="br-chip" :class="{ out: chipOn['B'+i].out }">
+            <Emoji :char="chipOn['B'+i].icon" /> {{ chipOn['B'+i].name }}
+          </span>
           <span class="br-face"><Emoji :char="defOf(p.id).emoji" /></span>
           <div class="br-hp">
             <div class="br-hp-ghost" :style="{ transform: 'scaleX(' + hpPct('B'+i) / 100 + ')' }"></div>
@@ -43,6 +49,12 @@
              class="br-unit me" @click="inspect('A'+i)">
           <span class="br-el"><Emoji :char="elEmoji(p)" /></span>
           <span v-if="skillIcon(p)" class="br-skill-dot"><Emoji :char="skillIcon(p)" /></span>
+          <span v-if="statusOf('A'+i).length" class="br-status">
+            <b v-for="st in statusOf('A'+i)" :key="st.key" :class="{ dbf: !st.buff }"><Emoji :char="st.icon" /></b>
+          </span>
+          <span v-if="chipOn['A'+i]" class="br-chip" :class="{ out: chipOn['A'+i].out }">
+            <Emoji :char="chipOn['A'+i].icon" /> {{ chipOn['A'+i].name }}
+          </span>
           <span class="br-face"><Emoji :char="defOf(p.id).emoji" /></span>
           <div class="br-hp">
             <div class="br-hp-ghost" :style="{ transform: 'scaleX(' + hpPct('A'+i) / 100 + ')' }"></div>
@@ -152,14 +164,18 @@ import { useEscapeKey } from '../../composables/useEscapeKey.js'
 import Emoji from '../shared/Emoji.vue'
 import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import { getPetDef, atkStyleOf, projectileOf, passiveOf, sparkOf, ELEMENTS, EL_NAME, GRADE_LABELS } from '../../data/index.js'
-import { passiveText } from '../../data/petPassives.js'
+import {
+  passiveText, STATUS_ICON, STATUS_TEXT, STATUS_MAX,
+  TEAM_AURA_EFFECTS, FOE_AURA_EFFECTS, SELF_STATUS_EFFECTS,
+} from '../../data/petPassives.js'
 import { RARITY } from '../../data/index.js'
 import { buildCombatant } from '../../data/battle.js'
 import { computeBattleSummary } from '../../utils/battleSummary.js'
 import { fluentFile } from '../../utils/emoji.js'
 import { createBattleFx } from '../../utils/battleFx.js'
-import { buildBeats, scaleTiming } from '../../utils/battleBeats.js'
-import { readPrefs, fxFlags, paceMult, motionStyle, FX_LABEL, PACE_LABEL } from '../../utils/battleReplayPrefs.js'
+import { buildBeats, scaleTiming, BEAT } from '../../utils/battleBeats.js'
+import { buildBeatsLegacy, legacyImpact } from '../../utils/battleBeatsLegacy.js'
+import { readPrefs, fxFlags, paceMult, FX_LABEL, PACE_LABEL } from '../../utils/battleReplayPrefs.js'
 import { createFrameMeter, FALLBACK_BASE, DROP_RATIO } from '../../utils/frameMeter.js'
 import { prefersReducedMotion } from '../../utils/motionPref.js'
 
@@ -274,8 +290,6 @@ function ensureFx() {
   // ⚠️ ต้องอยู่นอก if — ยิงไฟต์ใหม่ "โดยไม่ปิด overlay" (ปุ่มยิงซ้ำในห้องแล็บ) จะได้ layer เดิม
   // ของเดิม set flag เฉพาะตอน attach ครั้งแรก → เปลี่ยน preset แล้วกดยิงซ้ำจะยังเล่นด้วยค่าเก่าทั้งไฟต์
   fx.setFlags(fxFlags(prefs.value.fx))
-  fx.setStyle(prefs.value.style)
-  fx.setReducedOverride(prefs.value.motionOverride === true)
 }
 
 // ── การ์ดสไตล์ Hearthstone: ATK/HP เป็นเลข + หลอดเลือดขีดทุก 50 HP ──
@@ -287,10 +301,56 @@ function ticksFor(uid) {
   return out
 }
 
+// ── ป้ายสถานะบนการ์ด (สเปก §5) ──
+//
+// 🔒 กฎเหล็กข้อเดียวของฟีเจอร์นี้: **ห้ามแก้ป้ายขณะการ์ดมีอนิเมชันวิ่งอยู่**
+//    (เปลี่ยน paint กลางอากาศ = re-raster ทั้งการ์ด — ข้อบังคับ v3)
+//    ทำได้เพราะ aura ทั้ง 5 กับ onHit ทั้ง 6 "ไม่เคยเปลี่ยน" ระหว่างไฟต์เลย
+//    ⇒ computed ตัวนี้ขึ้นกับ props.data อย่างเดียว = คำนวณตอนไฟต์เริ่ม แล้วนิ่งยาว
+//    (ตัวที่เปลี่ยนได้ — 🧿 ใช้แล้วหมด, ⬆️ สแต็ก — ยังไม่ทำรอบนี้ ดู §5.5 ของสเปก)
+//
+// ต้นทุน: span static ในการ์ดที่ถูก promote เป็น layer อยู่แล้ว ⇒ 0 layer เพิ่ม 0 ต้นทุนต่อเฟรม
+// (แพทเทิร์นเดียวกับ .br-skill-dot ที่ใช้อยู่จริงในโปรดักชันแล้ว)
+const statusMap = computed(() => {
+  const out = {}
+  const teams = { A: props.data?.playerTeam || [], B: props.data?.botTeam || [] }
+  const auraOf = (team) => {
+    const mine = new Set(), theirs = new Set()
+    for (const p of team) {
+      const eff = passiveOf(getPetDef(p?.id))?.effect
+      if (!eff) continue
+      if (TEAM_AURA_EFFECTS.has(eff)) mine.add(eff)
+      else if (FOE_AURA_EFFECTS.has(eff)) theirs.add(eff)
+    }
+    return { mine, theirs }
+  }
+  const a = auraOf(teams.A), b = auraOf(teams.B)
+  for (const side of ['A', 'B']) {
+    const own = side === 'A' ? a : b
+    const foe = side === 'A' ? b : a
+    teams[side].forEach((p, i) => {
+      const list = [], seen = new Set()
+      const push = (eff, buff) => {
+        if (!eff || seen.has(eff) || !STATUS_ICON[eff]) return
+        seen.add(eff)
+        list.push({ key: eff, icon: STATUS_ICON[eff], label: STATUS_TEXT[eff] || '', buff })
+      }
+      const selfEff = passiveOf(getPetDef(p?.id))?.effect
+      if (selfEff && SELF_STATUS_EFFECTS.has(selfEff)) push(selfEff, true)
+      for (const eff of own.mine) push(eff, true)      // บัฟจากทีมตัวเอง (รวมของตัวเองด้วย)
+      for (const eff of foe.theirs) push(eff, false)   // ดีบัฟที่ศัตรูแผ่ใส่
+      out[side + i] = list.slice(0, STATUS_MAX)
+    })
+  }
+  return out
+})
+function statusOf(uid) { return statusMap.value[uid] || [] }
+
 const rawLog = computed(() => props.data?.result?.log || [])
 // ⚠️ maxHp เป็น plain object ที่ buildMax() เขียนทับ ไม่ใช่ ref — beats จึงไม่ re-compute เองเมื่อ maxHp เปลี่ยน
 // แต่ปลอดภัยเพราะ buildMax(d) ถูกเรียกก่อน reset() ในตัว watcher เดียวกันเสมอ และ rawLog เปลี่ยนพร้อมกัน (props.data ใหม่ทั้งก้อน) ซึ่ง trigger การ compute ใหม่อยู่แล้ว
-const beats = computed(() => buildBeats(rawLog.value, maxHp))
+// prefs.legacyBeats = สวิตช์ในห้องแล็บ (localStorage เครื่องเดียว) — ดู battleBeatsLegacy.js
+const beats = computed(() => (prefs.value.legacyBeats ? buildBeatsLegacy : buildBeats)(rawLog.value, maxHp))
 const done = computed(() => idx.value >= beats.value.length)
 const summary = computed(() => done.value
   ? computeBattleSummary(rawLog.value, props.data?.playerTeam || [], props.data?.botTeam || [])
@@ -354,7 +414,7 @@ function reset() {
   Object.values(els).forEach(el => { if (el) { el.style.transform = ''; el.style.transition = ''; el.style.zIndex = '' } })  // ล้าง lunge ค้างจากไฟต์ก่อน (component ถูก mount ค้างไว้ ใช้ซ้ำ)
   clearHighlights()                                                         // ล้างคลาส windup/acting/flash ค้าง
   idx.value = 0; round.value = 1
-  paused.value = false; inspectUid.value = null; pausedBeforeInspect = false; clearSpot()
+  paused.value = false; inspectUid.value = null; pausedBeforeInspect = false; clearSpot(); clearChips()
   ffActive.value = false; holdHint.value = false                             // เคลียร์โหมดเร่ง/คำใบ้ค้างจากไฟต์ก่อน
   clearTimeout(holdTimer); clearTimeout(hintTimer)
   const h = {}; Object.keys(maxHp).forEach(uid => { h[uid] = 100 }); hp.value = h
@@ -406,20 +466,79 @@ function passiveDescOf(e) {
   return p && p.name === e.name ? passiveText(p) : ''
 }
 
-// ── passive: เดินเวลาเองตามชั้นที่ battleBeats แจกมา ──
-//   spotlight → แบนเนอร์ขึ้น ค้างให้อ่าน แล้ว "ผลค่อยลง" (จังหวะที่ผู้ใช้ขอ อ้างอิง 7DS Grand Cross)
-//   glance    → ป้าย+FX แล้วหยุดสั้น ๆ ให้ตาจับได้
-//   openGroup → ยกแรก ป้ายขึ้นพร้อมกันทุกใบ (ตัวท้ายกลุ่มถือเวลาค้างไว้คนเดียว)
-//   mute      → ครั้งซ้ำของสกิลเดิม กินเวลา 0ms = พฤติกรรมเดิมเป๊ะ
+// ── ประกาศสกิล: "หยุดที่เหตุ ปล่อยผลไหลตาม" (จังหวะที่ user ออกแบบเอง 28 ส.ค.) ──
+//
+//     0ms  ชิปชื่อสกิลเด้งขึ้นบนการ์ด            ◀ ไฟต์หยุด
+//   200ms  ★ ไฟต์เดินต่อทันที — beat ถัดไปเริ่มเงื้อ
+//          │ ชิปเริ่มเลือน (CHIP_OUT_MS)        ┐ ทั้งคู่วิ่งทับ beat ถัดไป
+//          │ ผลของสกิลลง (เลข +N / ประกาย)      ┘ ไม่ถ่วงเวลาอะไรเลย
+//
+// 🔑 ตัวที่ทำให้มันไหลได้คือ "ไม่ await ตอน fade" — พอครบ hold แล้ว return ทันที
+//
+//   skillMoment → หรี่ฉาก + แบนเนอร์ + ผลลงทีหลัง (revive/cheatDeath/saveAlly เท่านั้น)
+//   skill       → ครั้งแรกของสกิลนั้นในไฟต์: หยุด SKILL_PAUSE แล้วปล่อยไหล
+//   skillQuiet  → ครั้งซ้ำ: ผลอย่างเดียว 0ms (ประกาศชื่อไปแล้วครั้งแรก)
+//   openGroup   → ยกแรก ชิปขึ้นพร้อมกันทุกใบ (ตัวท้ายกลุ่มถือเวลาค้างไว้คนเดียว) แล้วจางพร้อมกัน
 async function applyPassive(e) {
   if (!e?.uid) return
   const g = gen
   const t = scaleTiming(e, { pace: pace.value, ff: ffActive.value })
-  if (e.pTier === 'spotlight') { await spotlightPassive(e, t, g); return }
-  firePassiveFx(e)
+
+  if (e.kind === 'skillMoment') { await spotlightPassive(e, t, g); return }
+
   const hold = t.windup + t.motion + t.hitstop + t.tail
-  if (hold > 0) await wait(hold)
+
+  if (e.kind === 'openQuiet' || e.kind === 'openGroup') {
+    showChip(e.uid, e)                             // ยกแรก: ขึ้นค้างไว้ก่อน ยังไม่เลือน
+    openChips.add(e.uid)
+    if (hold > 0) {
+      await wait(hold); if (g !== gen) return
+      for (const uid of openChips) hideChip(uid)   // ตัวท้ายกลุ่มสั่งจางพร้อมกันทั้งชุด
+      openChips.clear()
+      for (const ev of openEvents) firePassiveFx(ev)
+      openEvents.length = 0
+    } else {
+      openEvents.push(e)                           // ผลของยกแรกลงพร้อมกันตอนกลุ่มจบ
+    }
+    return
+  }
+
+  if (e.kind === 'skill') {
+    showChip(e.uid, e)
+    if (hold > 0) { await wait(hold); if (g !== gen) return }
+    // ★ ไม่ await สองบรรทัดนี้ — ชิปเลือนและผลลง ทับ beat ถัดไปได้เลย
+    hideChip(e.uid)
+    firePassiveFx(e)
+    return
+  }
+
+  // skillQuiet (ครั้งซ้ำ) — ผลอย่างเดียว ไม่มีชิป ไม่กินเวลา
+  firePassiveFx(e)
 }
+
+// ── ชิปชื่อสกิลเกาะบนการ์ด ──
+// ⚠️ ใช้ชิปแทนป้ายลอย (fx.banner) เพราะป้ายลอยใช้พูลแค่ 2 ช่อง แล้วถูกยึดไปโผล่ผิดการ์ด
+//    (อาการเดียวกับเลขดาเมจที่ user รายงานว่า "ป้ายขึ้นมั่ว") · ชิปผูกกับการ์ดตรงๆ ไม่มีพูลให้ยึด
+const chipOn = ref({})            // uid → { name, icon, out }
+const openChips = new Set()       // uid ที่ถือชิปยกแรกอยู่ (จางพร้อมกันตอนกลุ่มจบ)
+const openEvents = []             // event ยกแรกที่รอลงผลพร้อมกันตอนกลุ่มจบ
+const CHIP_OUT_MS = 300
+
+function showChip(uid, e) {
+  chipOn.value = { ...chipOn.value, [uid]: { name: e.name || 'ทักษะเฉพาะ', icon: e.icon || '✨', out: false } }
+}
+function hideChip(uid) {
+  const cur = chipOn.value[uid]; if (!cur) return
+  chipOn.value = { ...chipOn.value, [uid]: { ...cur, out: true } }
+  // ถอดออกจาก DOM หลังอนิเมชันจางจบ — later() ผูกกับ pendingTimers จึงถูกล้างตอน reset เสมอ
+  later(() => {
+    const now = chipOn.value[uid]
+    if (!now || !now.out) return          // มีชิปใหม่ขึ้นมาทับแล้ว อย่าไปลบของใหม่
+    const next = { ...chipOn.value }; delete next[uid]
+    chipOn.value = next
+  }, CHIP_OUT_MS)
+}
+function clearChips() { chipOn.value = {}; openChips.clear(); openEvents.length = 0 }
 
 function clearSpot(uid) {
   spot.value = null
@@ -444,15 +563,15 @@ async function spotlightPassive(e, t, g) {
   // ⚠️ หลอดเลือด/เลขเด้ง ต้องอยู่ตรงนี้เท่านั้น ห้ามไปอัปตั้งแต่ต้นฟังก์ชัน
   //    ไม่งั้นเลือดจะขยับตั้งแต่แบนเนอร์ยังไม่ทันขึ้น = คนดูเห็น "ผล" ก่อน "เหตุ" ซึ่งเป็นสิ่งที่ฟีเจอร์นี้ตั้งใจแก้
   spotOut.value = true
-  firePassiveFx(e, false)      // ป้ายเล็กเหนือหัวไม่ต้องแล้ว — แบนเนอร์ใหญ่ทำหน้าที่นั้นไปแล้ว
+  firePassiveFx(e)      // ป้ายเล็กเหนือหัวไม่ต้องแล้ว — แบนเนอร์ใหญ่ทำหน้าที่นั้นไปแล้ว
   await wait(t.tail); if (g !== gen) return clearSpot(e.uid)
   clearSpot(e.uid)
 }
 
 // FX ของ passive: ป้ายชื่อเหนือหัว + ประกายตามชนิดผล + ขยับหลอดเลือด
 // ⚠️ ห้าม await อะไรในนี้ — ตัวเดินเวลาคือ applyPassive/spotlightPassive
-function firePassiveFx(e, banner = true) {
-  if (banner) fx?.banner(e.uid, e.name, e.icon)
+// ป้ายชื่อไม่ได้อยู่ในนี้แล้ว — ชิปบนการ์ด (showChip) ทำหน้าที่นั้นแทน
+function firePassiveFx(e) {
   const on = Array.isArray(e.targets) && e.targets.length ? e.targets : [e.uid]
 
   // ── หลอดเลือด: ฮีล/ฟื้น/รับแทน ทำให้เลือดเปลี่ยนโดยไม่มี attack event
@@ -461,7 +580,7 @@ function firePassiveFx(e, banner = true) {
   if (e.guardUid && typeof e.guardHpPct === 'number') hp.value = { ...hp.value, [e.guardUid]: e.guardHpPct }
   // เลขเขียว +N ที่ตัวที่ได้รับ — ใช้เลือดจริงที่ฟื้นได้ ไม่ใช่ % ของสูตร
   if ((e.kind === 'heal' || e.kind === 'revive') && e.amount > 0) {
-    fx?.pop(on[0], { dmg: e.amount, heal: true, tier: 'solid' })
+    fx?.pop(on[0], { dmg: e.amount, heal: true, weight: 0.45 })
   }
 
   switch (e.kind) {
@@ -485,7 +604,7 @@ function firePassiveFx(e, banner = true) {
 // เวลามาตรฐานของอนิเมชันการ์ดเป้าตามสเปก (§4 ชั้น 3–4) — postMs ใช้เป็น "เพดาน" ไม่ใช่ตัวค่าเอง
 // เหตุที่เคยเอา postMs มาเป็นค่าตรงๆ คือกันอนิเมชันล้นออกนอก beat ตัวเอง ซึ่งเป็นเหตุผลของ "เพดาน" ไม่ใช่ "ค่าแทน"
 // ปล่อยตามเดิม heavy ได้ 850ms / finish ได้ 1320ms — บีบ-ดีดกลับยาว 1.3 วิ อ่านเป็น "เนือย" ไม่ใช่ "หนัก"
-const SQUASH_MS = { solid: 260, heavy: 420, finish: 520 }
+const SQUASH_MS = 300          // เพดานอนิเมชันการ์ดเป้า (งบจริงมาจาก beat ผ่าน Math.min)
 const KO_MS = 520
 const FLASH_MS = 250            // อายุสูงสุดของกรอบแดงตอนโดน (เมื่อไม่มีอนิเมชันการ์ดให้ผูกอายุด้วย)
 const FRAME_MS = 17             // งบ 1 เฟรมที่เลื่อนอนิเมชันการ์ดออกไป (ดู applyImpact) — ต้องหักจากงบเวลาที่เหลือของ beat
@@ -512,17 +631,35 @@ function applyImpact(beat, g, t) {
   highlight(beat.target, 'flash')
   hp.value = { ...hp.value, [beat.target]: Math.max(0, Math.round((beat.targetHpAfter / (maxHp[beat.target] || 1)) * 100)) }
 
-  // ── 2) ของที่ไม่ได้แตะการ์ดเป้า ยิงที่จังหวะ impact ตรงๆ (นี่คือจังหวะที่คนดูรู้สึกว่า "โดน") ──
-  // ขนาดดาว/แรงสั่นตามชั้น — ชั้น chip/solid ห้ามสั่นจอเด็ดขาด (§6.2 ของสเปก)
-  // ประกายประจำตัวของ "ผู้ตี" ไปปรากฏบนการ์ด "เป้า" — null = ใช้ 💥 กลาง
-  // ยิงเฉพาะชั้นที่มีดาวอยู่แล้ว (solid+) จึงไม่เพิ่ม element และไม่แตะชั้น chip ที่ล็อกไว้ว่าห้ามแพงขึ้น
+  // ── 2) ของที่ไม่ได้แตะการ์ดเป้า ยิงที่จังหวะ impact ตรงๆ (จังหวะที่คนดูรู้สึกว่า "โดน") ──
+  //
+  // 🔒 switch ที่ทุกกิ่งเขียนครบ ไม่มี else เปล่ารับของที่หลุดมา
+  //    ⚠️ ของเดิมเป็น if/else chain ปลายทาง `else { burst(92); shake(8,3) }` แล้ว tier=null
+  //       ของหมัดลูก cleave/multiStrike ตกมาที่นั่น ⇒ ได้เอฟเฟกต์ระดับหมัดปิดเกม
+  //       **เฉลี่ย 11.5 ครั้ง/ไฟต์ สูงสุด 16** ยิงที่ 0ms รัวติดกัน — นี่คือ "ตีแรงบ้าง" ที่ user เจอ
+  //    ถ้าวันหลังเพิ่ม kind ใหม่แล้วลืมเขียนกิ่ง จะได้ default (เงียบ) ซึ่งปลอดภัย ไม่ใช่ดังสุด
   const spark = sparkOf(defForUid(beat.attacker))
-  if (beat.tier === 'chip') { /* ชั้นถากไม่มีดาว ไม่มีสั่น */ }
-  else if (beat.tier === 'solid') fx?.burst(beat.target, 34, spark)
-  else if (beat.tier === 'heavy') { fx?.burst(beat.target, 66, spark); fx?.shake(5, 2) }
-  else { fx?.burst(beat.target, 92, spark); fx?.shake(8, 3, true) }
+  const w = beat.weight ?? 0
+  if (beat.legacyTier) {                          // โหมดเทียบจังหวะเดิม — ความดังตามชั้น
+    const L = legacyImpact(beat.legacyTier)
+    if (L.burst) fx?.burst(beat.target, L.burst, spark)
+    if (L.shake) fx?.shake(L.shake)
+  } else switch (beat.kind) {
+    case 'finish':
+      fx?.burst(beat.target, 92, spark); fx?.shake('finish'); break
+    case 'ko':
+      fx?.burst(beat.target, 66, spark); fx?.shake('ko'); break
+    case 'hit':
+      // ขนาดดาวไล่ต่อเนื่องตามความแรงจริง — ไม่มีขั้นบันไดตามชั้นอีกแล้ว · ไม่สั่นจอ
+      fx?.burst(beat.target, Math.round(26 + w * 42), spark); break
+    case 'sub':
+      // หมัดลูกอยู่ในหมัดหลักที่กำลังพุ่งอยู่ — ประกายเล็กพอ ห้ามสั่นจอเด็ดขาด
+      fx?.burst(beat.target, Math.round(22 + w * 24), spark); break
+    default:
+      break
+  }
 
-  fx?.pop(beat.target, { dmg: beat.dmg, crit: beat.crit, eff: beat.eff, tier: beat.tier })
+  fx?.pop(beat.target, { dmg: beat.dmg, crit: beat.crit, eff: beat.eff, weight: w })
   if (beat.eff === 'super' || beat.eff === 'weak') fx?.callout(beat.target, beat.eff)
   if (beat.kill) fx?.dangerRing(beat.target, false)
   else {
@@ -531,29 +668,26 @@ function applyImpact(beat, g, t) {
   }
 
   // ── 3) อนิเมชันการ์ดเป้า ──
-  // beat.kill ตัด squashTarget ทิ้งเสมอ (ไม่ว่าชั้นไหน) เพราะ ko() ครอบการ์ดใบเดียวกันแล้ว
-  // — ยิง animate() 2 ครั้งบนการ์ดใบเดียวกันผิดกฎ "1 หมัด 1 animation/การ์ด" (ข้อบังคับ v3, พบโดยผู้รีวิว Task 3)
-  // ท่าชนแบบ B/C/D ให้ชั้น solid ถอยหลังด้วย → ถามจาก fx ที่เดียว แทน hardcode ชั้นไว้ตรงนี้
-  const wantsCardAnim = beat.kill || (fx ? fx.targetReacts(beat.tier) : (beat.tier === 'heavy' || beat.tier === 'finish'))
+  // beat.kill ตัด squashTarget ทิ้งเสมอ เพราะ ko() ครอบการ์ดใบเดียวกันแล้ว
+  // — ยิง animate() 2 ครั้งบนการ์ดใบเดียวกันผิดกฎ "1 หมัด 1 animation/การ์ด" (ข้อบังคับ v3)
+  // หมัดลูก (sub) ไม่มีงบเวลาของตัวเอง (cardMs = 0) → ไม่ต้องแตะการ์ดเลย
+  const wantsCardAnim = beat.kill || (beat.kind !== 'sub' && (fx ? fx.targetReacts(beat.kind) : true))
   if (!wantsCardAnim) {
-    setDead(beat.target)                        // ไม่มีอนิเมชันการ์ดตามมา = ใส่ได้เลย (ปกติเป็น no-op เพราะยังไม่ตาย)
-    later(flashOff, Math.min(FLASH_MS, postMs)) // ⚠️ ผูกกับ beat: 250ms ตายตัวจะล้นเข้า beat ถัดไป (chip ทั้ง beat 320ms)
+    setDead(beat.target)                        // ไม่มีอนิเมชันการ์ดตามมา = ใส่ได้เลย (ปกติ no-op เพราะยังไม่ตาย)
+    later(flashOff, Math.min(FLASH_MS, Math.max(postMs, 120)))
     return
   }
   const myIdx = idx.value                       // beat ที่กำลังเล่นอยู่ตอนนี้ (idx ขยับตอนจบ beat เท่านั้น)
   nextFrame(() => {
     if (g !== gen) return                       // reset/ไฟต์ใหม่แทรกระหว่างรอเฟรม
-    setDead(beat.target)                        // ต้องอยู่ตรงนี้เท่านั้น — ก่อน animate() และไม่เร็วกว่านั้น (ดูหมายเหตุข้อ 2 ด้านบน)
-    // ⚠️ rAF หยุดสนิทเมื่อแท็บถูกพับไปหลัง แต่ setTimeout ยังเดิน (แค่ถูกหรี่) → กลับมาแล้วเฟรมนี้อาจมาช้าไปหลาย beat
-    // ปล่อยให้ยิงต่อ = อนิเมชันเก่าไปซ้อนการ์ดที่กำลังพุ่งอยู่ใน beat อื่น (เคสต้องห้ามข้อ "1 หมัด 1 animation/การ์ด")
-    // แต่ setDead ด้านบนต้องลงเสมอ เพราะมันคือ "สถานะตาย" ไม่ใช่เอฟเฟกต์ — อ่านจาก hp ปัจจุบันจึงถูกต้องเสมอ
+    setDead(beat.target)                        // ต้องอยู่ตรงนี้เท่านั้น — ก่อน animate() และไม่เร็วกว่านั้น
+    // ⚠️ rAF หยุดสนิทเมื่อแท็บถูกพับไปหลัง แต่ setTimeout ยังเดิน → กลับมาแล้วเฟรมนี้อาจมาช้าไปหลาย beat
     if (idx.value !== myIdx) { flashOff(); return }
-    let targetAnim = null                       // null = ไม่มีอนิเมชันจริง (preset ปิด/ไม่มี el) — ไม่ใช่ promise ที่ resolve แล้ว
+    let targetAnim = null                       // null = ไม่มีอนิเมชันจริง (preset ปิด/ไม่มี el)
     if (beat.kill) targetAnim = fx?.ko(beat.target, tgtEl, Math.min(KO_MS, cardMs))
-    else targetAnim = fx?.squashTarget(tgtEl, beat.tier, Math.min(SQUASH_MS[beat.tier] ?? 420, cardMs), beat.attacker, beat.target)
-    // การ์ดเป้ามี animate() ต่อ ก็รอมันจบก่อนถอด flash กัน border-color ชนกลางอากาศ (ข้อบังคับ v3)
+    else targetAnim = fx?.squashTarget(tgtEl, beat.kind, w, Math.min(SQUASH_MS, cardMs), beat.attacker, beat.target)
     if (targetAnim) targetAnim.then(flashOff)
-    else later(flashOff, Math.min(FLASH_MS, cardMs))
+    else later(flashOff, Math.min(FLASH_MS, Math.max(cardMs, 120)))
   })
 }
 
@@ -564,36 +698,37 @@ async function applyAttack(beat) {
   const t = scaleTiming(beat, { pace: pace.value, ff: ffActive.value })
   const def = defForUid(beat.attacker)
   // ⚠️ ตอนนี้ atkStyleOf() คืน 'melee' เสมอ ⇒ ranged เป็น false ตลอด — สาขา ranged ด้านล่าง "หลับ" อยู่
-  //    คงไว้เพื่อให้ย้อนกลับได้ด้วยการแก้ atkStyleOf บรรทัดเดียว (ดู data/index.js) อย่าเข้าใจผิดว่ายังทำงาน
   const ranged = atkStyleOf(def) === 'ranged'
+  const w = beat.weight ?? 0
 
-  if (beat.tier !== 'chip') {
+  // หมัดลูก: ไม่มีงบเวลาของตัวเอง (อยู่ในหมัดหลักที่กำลังพุ่งอยู่) → ลง impact แล้วออกทันที
+  if (beat.kind === 'sub') { applyImpact(beat, g, t); return }
+
+  // โหมดเทียบจังหวะเดิม: ชั้นถากไม่ขยับการ์ดเลย ใช้ประกายที่จุดปะทะแทน (พฤติกรรมเดิมเป๊ะ)
+  const chipLegacy = beat.legacyTier === 'chip'
+  const doLunge = () => { if (!ranged && !chipLegacy) fx?.lunge(els[beat.attacker], beat.attacker, beat.target, t, beat.kind, w) }
+
+  if (t.windup > 0) {
     highlight(beat.attacker, 'windup')                       // เปลี่ยน class ให้เสร็จ "ก่อน" สั่ง animate (ข้อบังคับ v3)
     fx?.ring(beat.attacker, 'windup', t.windup)
-    if (!ranged) fx?.lunge(els[beat.attacker], beat.attacker, beat.target, t, beat.tier)
+    doLunge()
     await wait(t.windup); if (g !== gen) return
     highlight(beat.attacker, 'windup', false)
+  } else {
+    doLunge()
   }
+  if (chipLegacy) fx?.jab(beat.attacker, beat.target, t.motion)
   // ⚠️ จุดสลับคลาส windup → acting นี้อยู่ "กลาง" fx.lunge() ที่ยังพุ่งอยู่บนการ์ดใบเดียวกัน
   // ปลอดภัยได้เพราะ .windup กับ .acting ตั้ง border-color ค่าเดียวกัน (#fde68a) เป๊ะ = ไม่มี paint เปลี่ยนจริง
-  // ⛔ วันไหนแยกสีสองคลาสนี้ = เปลี่ยน paint ระหว่างการ์ดมี animation วิ่ง = ผิดข้อบังคับ v3 ทันที (เคสเดียวกับบั๊ก flash 250ms)
-  //    ถ้าจำเป็นต้องแยกสีจริง ต้องย้ายจุดสลับไปหลัง lunge จบ ไม่ใช่แค่แก้สีแล้วจบ
+  // ⛔ วันไหนแยกสีสองคลาสนี้ = เปลี่ยน paint ระหว่างการ์ดมี animation วิ่ง = ผิดข้อบังคับ v3 ทันที
   highlight(beat.attacker, 'acting')
 
   if (ranged) fx?.projectile(beat.attacker, beat.target, projectileOf(def), t.motion)
-  else if (beat.tier === 'chip') {
-    // ชั้นถากไม่มี windup (t.windup = 0) → จุดนี้คือ "ต้น beat" พอดี lunge จึงยังครอบทั้ง beat ตามข้อบังคับ v3
-    // แบบ A คืนทันทีเพราะ chipReach = 0 (การ์ดไม่ขยับเลย เหมือนเดิมเป๊ะ)
-    fx?.lunge(els[beat.attacker], beat.attacker, beat.target, t, 'chip')
-    fx?.jab(beat.attacker, beat.target, t.motion)
-  }
-  // melee ชั้นอื่น: การ์ดพุ่งอยู่แล้วจาก lunge() ด้านบน ไม่ต้องยิงอะไรเพิ่ม
 
   await wait(t.motion); if (g !== gen) return
   applyImpact(beat, g, t)
   await wait(t.hitstop); if (g !== gen) return
-  // acting ถอดหลัง tail เท่านั้น — fx.lunge() ของผู้โจมตียังพุ่งอยู่ตลอด windup+motion+hitstop+tail (1 animation ครอบทั้ง beat)
-  // ถอด class ระหว่างที่มันยังวิ่งอยู่ = border-color เปลี่ยนกลางอากาศ ชน re-raster (ข้อบังคับ v3, พบโดยผู้รีวิว)
+  // acting ถอดหลัง tail เท่านั้น — fx.lunge() ยังพุ่งอยู่ตลอด windup+motion+hitstop+tail (1 animation ครอบทั้ง beat)
   await wait(t.tail); if (g !== gen) return
   highlight(beat.attacker, 'acting', false)
 }
@@ -692,8 +827,9 @@ const showFps = computed(() => new URLSearchParams(location.search).has('fps') |
 // (ไม่งั้น "ทุกแบบเหมือนกันหมด" จะถูกตีความว่าท่าชนไม่ต่างกัน ทั้งที่ระบบตัดทิ้งไปก่อนแล้ว)
 const labTag = computed(() => {
   const p = prefs.value
-  const cut = prefersReducedMotion() && !p.motionOverride
-  return `${motionStyle(p.style).label} · ${FX_LABEL[p.fx] || p.fx} · ${PACE_LABEL[p.pace] || p.pace}${cut ? ' · ⚠️ Reduce Motion ตัดการเคลื่อนไหวอยู่' : ''}`
+  const cut = prefersReducedMotion()
+  const beats = p.legacyBeats ? 'จังหวะเดิม 4 ชั้น' : `จังหวะใหม่ ${BEAT}ms`
+  return `${beats} · ${FX_LABEL[p.fx] || p.fx} · ${PACE_LABEL[p.pace] || p.pace}${cut ? ' · ⚠️ Reduce Motion ตัดการเคลื่อนไหวอยู่' : ''}`
 })
 const fpsWorst = ref(0)     // เฟรมแย่สุดในหน้าต่าง ~1 วิ (ป้ายสดมุมจอ)
 const fpsDropAt = ref(FALLBACK_BASE * DROP_RATIO)   // เกณฑ์ "สะดุด" ที่คำนวณจากจอเครื่องนี้
@@ -849,7 +985,11 @@ onUnmounted(() => {
 .br-result { font-size: 1.2rem; font-weight: 800; color: #fff; }
 .br-result.win { color: #34d399; }
 
-.br-card-passdesc { font-size: .74rem; line-height: 1.45; color: rgba(0,0,0,.62); margin: 2px 0 8px; text-align: left; }
+/* ⚠️ การ์ด inspect พื้นเข้ม (#1e293b) — ตัวอักษรต้องสว่าง
+   ของเดิมเป็น rgba(0,0,0,.62) = ดำบนกรมท่า contrast ~1.4:1 อ่านไม่ออกเลย
+   (สไตล์นี้ถูกก๊อปมาจาก .br-spot-desc ซึ่งอยู่บนการ์ด 'พื้นขาว' จึงถูกที่นั่นแต่ผิดที่นี่)
+   เกิดจริง 28 ส.ค. — user รายงานว่าตรงสกิลในหน้าข้อมูลเพ็ทอ่านยาก */
+.br-card-passdesc { font-size: .74rem; line-height: 1.45; color: rgba(255,255,255,.78); margin: 2px 0 8px; text-align: left; }
 .br-inspect { position: fixed; inset: 0; z-index: 430; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.5); }
 .br-card { background: #1e293b; color: #fff; border: 2px solid #fff; border-radius: 18px; padding: 16px 18px; width: 250px; display: flex; flex-direction: column; gap: 7px; }
 .br-card-emoji { font-size: 2.8rem; text-align: center; }
@@ -932,6 +1072,34 @@ onUnmounted(() => {
 
 /* จุดไอคอนสกิลมุมการ์ด — บอกว่าตัวนี้มีทักษะเฉพาะ (เดิมต้องไล่แตะทีละใบถึงจะรู้) */
 .br-skill-dot { position: absolute; top: 2px; right: 4px; font-size: .72rem; line-height: 1; opacity: .85; pointer-events: none; }
+
+/* ── ป้ายสถานะที่ติดอยู่บนการ์ดใบนี้ (สเปก §5) ──
+   static ล้วน: ไม่มี will-change ไม่มี animation ไม่มี transition
+   วาดตอนไฟต์เริ่มแล้วไม่แตะอีก ⇒ ไม่มีทางไปเปลี่ยน paint ระหว่างการ์ดพุ่ง (ข้อบังคับ v3) */
+.br-status { position: absolute; left: 3px; bottom: 3px; display: flex; gap: 3px; pointer-events: none; z-index: 2; }
+.br-status b { font-size: .72rem; line-height: 1; font-weight: 400; padding-bottom: 1px; border-bottom: 1.5px solid #34d399; }
+.br-status b.dbf { border-bottom-color: #f87171; }
+
+/* ── ชิปชื่อสกิลตอนโปรก ──
+   ขึ้นเร็ว (110ms) ค้างระหว่าง SKILL_PAUSE แล้ว .out สั่งให้เลือน 300ms
+   ⚠️ การเลือนเกิด "หลัง" ไฟต์เดินต่อแล้ว = ทับ beat ถัดไปโดยตั้งใจ (จังหวะที่ user ออกแบบ)
+   อยู่บน fx layer ของตัวเอง (position:absolute + transform) จึงไม่ทำให้การ์ด re-raster */
+.br-chip {
+  position: absolute; left: 50%; top: -11px; white-space: nowrap; z-index: 6;
+  background: #0d9488; color: #fff; font-size: .7rem; font-weight: 800;
+  padding: 1px 7px; border-radius: 999px; pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  animation: br-chip-in .11s ease-out both;
+}
+.br-chip.out { animation: br-chip-out .3s ease-out both; }
+@keyframes br-chip-in {
+  from { opacity: 0; transform: translate(-50%, 5px) scale(.85); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+@keyframes br-chip-out {
+  from { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, -9px) scale(.95); }
+}
 .brfx { position: absolute; left: 0; top: 0; will-change: transform; }
 .brfx-call { font-weight: 800; font-size: .7rem; white-space: nowrap; padding: 2px 6px; border-radius: 7px; }
 .brfx-call.super { background: #ef4444; color: #fff; }
@@ -962,10 +1130,7 @@ onUnmounted(() => {
 /* ชั้น = เจ้าของขนาด — นี่คือช่องทางหลักที่ผู้เล่นอ่านน้ำหนักของหมัดออกขณะดูเร็วๆ
    มาทีหลังด้วย specificity เท่ากัน (สองคลาสเท่ากับ .crit/.weak ด้านบน) จึงชนะเรื่องขนาดด้วยลำดับประกาศ
    ส่วนสีปล่อยให้ crit/super/weak คุมต่อ (ไม่แตะ color ในกลุ่มนี้เลย) */
-.brfx-pop.tier-chip   { font-size: .9rem; }
-.brfx-pop.tier-solid  { font-size: 1.15rem; }
-.brfx-pop.tier-heavy  { font-size: 1.7rem; }
-.brfx-pop.tier-finish { font-size: 2.3rem; }
+/* ขนาดเลขมาจาก battleFx.pop() (0.86 + weight × 1.0 rem) แบบต่อเนื่อง — ไม่มีคลาสตามชั้นแล้ว */
 
 .brfx-call.survive { background: #34d399; color: #06371f; }
 

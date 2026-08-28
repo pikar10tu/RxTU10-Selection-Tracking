@@ -186,3 +186,40 @@ export function passiveText(p, level = 1) {
   const v = passiveValueAt(p, level)
   return String(p.desc || '').replace(/\{(\w+)\}/g, (m, key) => (v[key] ?? m))
 }
+
+// ════════════════════════════════════════════════════════════════════
+//  ป้ายสถานะบนการ์ดในหน้าต่อสู้ (สเปก 2026-08-28-battle-rhythm-redesign §5)
+//
+//  🔑 ป้ายบอก "ได้อะไร" ไม่ใช่ "ใครให้" — จึงใช้ไอคอนของ *ผล* ไม่ใช่ไอคอนประจำตัวสัตว์
+//     (user สั่งตรงๆ 28 ส.ค.: "ปรับสัญลักษณ์บัฟให้เหมาะกับสกิล ไม่จำเป็นต้องหน้าตาเหมือนเจ้าของสกิล")
+//  🔑 ป้ายไปอยู่ที่ "ปลายทางของผล" ไม่ใช่ที่เจ้าของสกิล — นกฮูกอยู่ทีมศัตรู แต่ 🎯 โผล่บนทีมเรา
+//
+//  ✅ ไอคอนทุกตัวมีไฟล์ Fluent ครบแล้วใน public/emoji/fluent/ (เช็ค 28 ส.ค.)
+//     ถ้าเพิ่มตัวใหม่ ต้องรัน `node scripts/fetch-fluent.mjs` ไม่งั้น <Emoji> ตกกลับเป็น emoji ของเครื่อง
+//     (🪨 ของ mammoth เป็นเคสนั้นอยู่ตอนนี้ — ไม่พัง แต่หน้าตาไม่เหมือนกันทุกเครื่อง)
+// ════════════════════════════════════════════════════════════════════
+export const STATUS_ICON = {
+  teamHp: '❤️', teamAtk: '⚔️', teamAtkPerElement: '⚔️', teamCrit: '💥', enemyVuln: '🎯',
+  guardian: '🛡️', damageReduction: '🧱', dodge: '💨', thorns: '⚡',
+  revive: '🧿', saveAlly: '🧿', cheatDeath: '🧿', stackAtk: '⬆️',
+}
+
+/** ความหมายสั้นๆ ของป้าย — ใช้ใน aria-label และหน้า inspect */
+export const STATUS_TEXT = {
+  teamHp: 'เลือดสูงสุดเพิ่ม', teamAtk: 'พลังโจมตีเพิ่ม', teamAtkPerElement: 'พลังโจมตีเพิ่ม',
+  teamCrit: 'โอกาสคริเพิ่ม', enemyVuln: 'รับดาเมจเพิ่ม',
+  guardian: 'มีเพื่อนรับแทนให้', damageReduction: 'ลดดาเมจที่ได้รับ', dodge: 'มีโอกาสหลบ',
+  thorns: 'ตีแล้วเจ็บกลับ', revive: 'กันตายได้ 1 ครั้ง', saveAlly: 'กันเพื่อนตายได้ 1 ครั้ง',
+  cheatDeath: 'กันตายได้ 1 ครั้ง', stackAtk: 'ยิ่งฆ่ายิ่งแรง',
+}
+
+/** aura ที่แผ่ใส่ "ทีมตัวเอง" — ป้ายลงทุกใบในทีมนั้น */
+export const TEAM_AURA_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'teamCrit'])
+/** aura ที่แผ่ใส่ "ทีมศัตรู" — ป้ายลงฝั่งตรงข้าม (ดีบัฟ) */
+export const FOE_AURA_EFFECTS = new Set(['enemyVuln'])
+/** สถานะติดตัวที่ไม่ต้องพึ่งใคร — ป้ายลงเฉพาะเจ้าตัว */
+export const SELF_STATUS_EFFECTS = new Set([
+  'guardian', 'damageReduction', 'dodge', 'thorns', 'revive', 'saveAlly', 'cheatDeath', 'stackAtk',
+])
+/** สูงสุดกี่ป้ายต่อการ์ด — วัดจากทีมสุ่ม 5,000 คู่: เฉลี่ย 1.09 · ชนเพดาน 3 แค่ 4.7% */
+export const STATUS_MAX = 3

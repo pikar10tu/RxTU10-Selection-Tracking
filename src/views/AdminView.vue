@@ -417,22 +417,17 @@
                   :class="{ on: fxPrefs.pace === n }" @click="pickPace(n)">{{ PACE_LABEL[n] }}</button>
         </div>
 
-        <div class="admin-hint"><b>ท่าชน</b> — ยิงไฟต์เดิมทีละแบบแล้วบอกว่าชอบตัวไหน</div>
+        <!-- สวิตช์กู้จังหวะเดิมไว้เทียบรสนิยม 1 รอบ (สเปก 2026-08-28 §6) — ลบทิ้งหลังเทสจอจริงผ่าน
+             กู้เฉพาะ "จังหวะ" ไม่กู้บั๊ก: หมัดลูกยิงจอสั่นเต็มสูตร / สุ่มเยื้องเลข / พูลถูกยึด แก้ในทั้งสองโหมด -->
+        <div class="admin-hint"><b>จังหวะหมัด</b> — เทียบของใหม่กับของเดิม (เฉพาะเครื่องนี้)</div>
         <div class="fxlab-row">
-          <button v-for="n in styleNames" :key="n" class="btn-mini"
-                  :class="{ on: fxPrefs.style === n }" @click="pickStyle(n)">{{ MOTION_STYLES[n].label }}</button>
+          <button class="btn-mini" :class="{ on: !fxPrefs.legacyBeats }" @click="pickBeats(false)">ใหม่ · จังหวะเดียว</button>
+          <button class="btn-mini" :class="{ on: fxPrefs.legacyBeats }" @click="pickBeats(true)">เดิม · 4 ชั้น</button>
         </div>
-        <div class="admin-hint fxlab-note">{{ MOTION_STYLES[fxPrefs.style].hint }}</div>
-
-        <!-- เครื่องที่เปิด Reduce Motion จะไม่เห็นการ์ดพุ่งเลยไม่ว่าเลือกแบบไหน — ถ้าไม่บอกตรงนี้
-             คนเทสจะสรุปว่า "ทุกแบบเหมือนกันหมด/ไม่มีอะไรขยับ" ซึ่งเป็นคนละเรื่องกับท่าชน -->
-        <div v-if="reduceMotionOn" class="fxlab-warn">
-          ⚠️ เครื่องนี้เปิด <b>Reduce Motion</b> อยู่ (iOS: Settings → Accessibility → Motion) —
-          ระบบจะตัดการ์ดพุ่ง/จอสั่น/ดาวทิ้งทั้งหมด ทำให้ทุกแบบดูเหมือนกัน
-          <label class="fxlab-check">
-            <input type="checkbox" :checked="fxPrefs.motionOverride" @change="toggleMotionOverride">
-            เทสท่าชนโดยไม่สนค่านี้ (เฉพาะเครื่องนี้ · นักศึกษาที่เปิด Reduce Motion ยังได้แบบตัดการเคลื่อนไหวเหมือนเดิม)
-          </label>
+        <div class="admin-hint fxlab-note">
+          {{ fxPrefs.legacyBeats
+            ? 'ของเดิม: chip 320 / solid 600 / heavy 1300 / finish 2000ms · ชั้นถากการ์ดไม่ขยับ'
+            : 'ของใหม่: ทุกหมัด 520ms ขยับเท่ากัน · KO 1040 · ปิดเกม 2080 · สกิลครั้งแรกหยุด 200ms' }}
         </div>
 
         <button class="btn-mini" @click="runTestFight">▶ ยิงไฟต์ทดสอบ</button>
@@ -468,8 +463,7 @@ import { distinctCategories } from '../utils/questionsFilter.js'
 import { useTopics } from '../composables/useTopics.js'
 import BattleReplay from '../components/battle/BattleReplay.vue'
 import { simulateBattle } from '../utils/battleEngine.js'
-import { FX_PRESETS, PACE_PRESETS, MOTION_STYLES, FX_LABEL, PACE_LABEL, readPrefs, writePrefs } from '../utils/battleReplayPrefs.js'
-import { prefersReducedMotion } from '../utils/motionPref.js'
+import { FX_PRESETS, PACE_PRESETS, FX_LABEL, PACE_LABEL, readPrefs, writePrefs } from '../utils/battleReplayPrefs.js'
 
 const authStore = useAuthStore()
 const members   = useMembersStore()
@@ -484,13 +478,10 @@ const { addTopics } = useTopics()
 const fxPrefs = ref(readPrefs())
 const fxNames = Object.keys(FX_PRESETS)
 const paceNames = Object.keys(PACE_PRESETS)
-const styleNames = Object.keys(MOTION_STYLES)
 function pickFx(name) { fxPrefs.value = writePrefs({ ...fxPrefs.value, fx: name }) }
 function pickPace(name) { fxPrefs.value = writePrefs({ ...fxPrefs.value, pace: name }) }
-function pickStyle(name) { fxPrefs.value = writePrefs({ ...fxPrefs.value, style: name }) }
-function toggleMotionOverride(e) { fxPrefs.value = writePrefs({ ...fxPrefs.value, motionOverride: e.target.checked }) }
+function pickBeats(v) { fxPrefs.value = writePrefs({ ...fxPrefs.value, legacyBeats: v }) }
 // อ่านครั้งเดียวตอนเปิดหน้า — คนไปสลับใน Settings แล้วกลับมาต้องรีเฟรช ซึ่งเป็นสิ่งที่เขาทำอยู่แล้วตอนเทส
-const reduceMotionOn = prefersReducedMotion()
 
 // ไฟต์ทดสอบ: เคสหนักสุดเท่าที่ทำได้ — เพ็ททั้ง 8 ตัวเป็น melee ล้วน (ไม่มี atkStyle:"ranged" ซึ่งไม่แตะการ์ดเลย)
 // ธาตุคละกันโดยตั้งใจ → เกิดแพ้ทางบ่อย → หมัดชั้น heavy เยอะ → จอสั่น+เป้าบีบตัวถี่สุด

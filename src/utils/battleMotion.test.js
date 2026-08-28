@@ -1,127 +1,154 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { lungeKeyframes, squashKeyframes, targetReactsIn, LUNGE_POSE } from './battleMotion.js'
-import { MOTION_STYLES } from './battleReplayPrefs.js'
-import { TIER_TIMING, scaleTiming, FF_SCALE } from './battleBeats.js'
+import {
+  lungeKeyframes, squashKeyframes, targetReactsIn, lungesIn, shakeFor,
+  LUNGE, DEPTH, SQUASH, SHAKE,
+} from './battleMotion.js'
+import { timingOf } from './battleBeats.js'
 
-const TIERS = ['chip', 'solid', 'heavy', 'finish']
-const STYLES = Object.keys(MOTION_STYLES)
-const VEC = { x: 0, y: 140 }        // ระยะจริงระหว่างแถวศัตรูกับแถวเรา ~140px บนกล่อง 440px
+const VEC = { x: 60, y: -120 }
+const HIT_KINDS = ['hit', 'ko', 'finish']
+const num = (s, re) => Number(String(s).match(re)?.[1] ?? NaN)
 
-// จำลองทุกค่าจังหวะที่เกิดขึ้นได้จริง: pace 3 ระดับ × กดค้างเร่ง/ไม่เร่ง
-function allTimings(tier) {
-  const out = []
-  for (const pace of [1.25, 1, 0.8]) for (const ff of [false, true]) {
-    out.push({ label: `pace ${pace}${ff ? ' +เร่ง' : ''}`, t: scaleTiming({ tier, timing: TIER_TIMING[tier] }, { pace, ff }) })
-  }
-  return out
-}
-
-test('offset ของ keyframes ห้ามถอยหลัง — ทุกแบบ × ทุกชั้น × ทุกจังหวะ', () => {
-  // WAAPI โยน TypeError ทิ้งทั้งอนิเมชันถ้า offset ไม่เรียงขึ้น = การ์ดนิ่งสนิทโดยไม่มีอะไรฟ้อง
-  for (const s of STYLES) for (const tier of TIERS) for (const { label, t } of allTimings(tier)) {
-    const kf = lungeKeyframes(s, tier, t, VEC)
-    if (!kf) continue
-    const offs = kf.map(k => k.offset)
-    assert.ok(offs.every(o => o !== undefined), `${s}/${tier}/${label}: มีเฟรมที่ไม่ระบุ offset`)
-    assert.equal(offs[0], 0, `${s}/${tier}/${label}: ต้องเริ่มที่ 0`)
-    assert.equal(offs[offs.length - 1], 1, `${s}/${tier}/${label}: ต้องจบที่ 1`)
-    for (let i = 1; i < offs.length; i++) {
-      assert.ok(offs[i] >= offs[i - 1], `${s}/${tier}/${label}: offset ถอยหลังที่เฟรม ${i} (${offs[i - 1]} → ${offs[i]})`)
-      assert.ok(offs[i] <= 1, `${s}/${tier}/${label}: offset เกิน 1`)
+// ── ข้อบังคับ v3: offset ต้องเรียงขึ้นเสมอ ───────────────────────────
+// WAAPI โยนทั้งอนิเมชันทิ้ง "เงียบๆ" ถ้า offset ถอยหลัง = การ์ดนิ่งสนิททั้งไฟต์
+// โดยไม่มี error ให้เห็นบนมือถือ → ต้องมีเทสจับ ไม่ใช่ไล่อ่านเอา
+test('offset ของ keyframes ต้องไม่ถอยหลัง ทุก kind ทุก weight', () => {
+  for (const kind of HIT_KINDS) {
+    for (const w of [0, 0.25, 0.5, 0.75, 1]) {
+      const kf = lungeKeyframes(kind, w, timingOf(kind), VEC)
+      assert.ok(kf, `${kind}/${w} ต้องได้ keyframes`)
+      let prev = -1
+      for (const f of kf) {
+        assert.ok(f.offset >= prev, `${kind}/${w} offset ถอยหลัง: ${f.offset} < ${prev}`)
+        prev = f.offset
+      }
+      assert.equal(kf[0].offset, 0)
+      assert.equal(kf[kf.length - 1].offset, 1)
     }
   }
 })
 
-test('เฟรมแรกกับเฟรมสุดท้ายต้องเป็นท่าพัก — ไม่งั้นการ์ดค้างเบี้ยวหลัง fill:none คืนค่า', () => {
-  for (const s of STYLES) for (const tier of TIERS) {
-    const kf = lungeKeyframes(s, tier, scaleTiming({ tier, timing: TIER_TIMING[tier] }, {}), VEC)
-    if (!kf) continue
-    assert.equal(kf[0].transform, 'translate(0,0) scale(1)', `${s}/${tier}`)
-    assert.equal(kf[kf.length - 1].transform, 'translate(0,0) scale(1)', `${s}/${tier}`)
+test('offset ไม่ถอยหลังแม้ timing ถูกย่อด้วยกดค้างเร่ง (tail สั้นกว่า backMs)', () => {
+  const t = timingOf('hit')
+  const tiny = { windup: t.windup * 0.45, motion: t.motion * 0.45, hitstop: t.hitstop * 0.45, tail: t.tail * 0.45 }
+  const kf = lungeKeyframes('hit', 0.5, tiny, VEC)
+  let prev = -1
+  for (const f of kf) { assert.ok(f.offset >= prev); prev = f.offset }
+})
+
+// ── ข้อที่ user สั่งตรงๆ: การ์ดทุกใบต้องขยับ ────────────────────────
+
+test('🔑 ทุก kind ที่เป็นหมัดจริง ต้องได้ keyframes ไม่ใช่ null', () => {
+  // กัน chipReach:0 กลับมาเงียบๆ — ของเดิม 41.8% ของหมัดทั้งไฟต์การ์ดไม่ขยับเลย
+  for (const kind of HIT_KINDS) {
+    assert.ok(lungeKeyframes(kind, 0, timingOf(kind), VEC), `${kind} ที่ weight 0 ก็ต้องขยับ`)
   }
 })
 
-test('แบบ A ให้ keyframes เดิมเป๊ะ (ของที่ deploy ไปแล้วต้องไม่ขยับ)', () => {
-  const t = TIER_TIMING.heavy
-  const total = t.windup + t.motion + t.hitstop + t.tail
-  const P = LUNGE_POSE.heavy
-  assert.deepEqual(lungeKeyframes('A', 'heavy', t, VEC), [
-    { transform: 'translate(0,0) scale(1)', offset: 0 },
-    { transform: `translate(0, ${P.pull.toFixed(1)}px) scale(${P.psx}, ${P.psy})`, offset: t.windup / total },
-    { transform: `translate(0.0px, 140.0px) scale(${P.sx}, ${P.sy})`, offset: (t.windup + t.motion) / total },
-    { transform: `translate(0.0px, 140.0px) scale(${P.sx}, ${P.sy})`, offset: (t.windup + t.motion + t.hitstop) / total },
-    { transform: 'translate(0,0) scale(1)', offset: 1 },
-  ])
-  // ชั้นถากในแบบ A ต้องไม่แตะการ์ดเลย — นี่คือของที่ทำให้ 55% ของหมัดถูกสุด
-  assert.equal(lungeKeyframes('A', 'chip', TIER_TIMING.chip, VEC), null)
+test('🔑 weight ต่างกัน → ระยะพุ่งต้องเท่ากันเป๊ะ (weight คุมแค่ความลึก)', () => {
+  const t = timingOf('hit')
+  const at = (w) => {
+    const kf = lungeKeyframes('hit', w, t, VEC)
+    const hit = kf.find(f => f.transform.includes('translate(') && !f.transform.startsWith('translate(0,'))
+    return { x: num(hit.transform, /translate\((-?[\d.]+)px/), y: num(hit.transform, /,\s*(-?[\d.]+)px\)/) }
+  }
+  const a = at(0), b = at(1)
+  assert.equal(a.x, b.x, 'ระยะแนวนอนต้องเท่ากัน')
+  assert.equal(a.y, b.y, 'ระยะแนวตั้งต้องเท่ากัน')
+  assert.equal(a.x, Number((VEC.x * LUNGE.reach).toFixed(1)))
 })
 
-test('แบบ B/C/D ทำให้ชั้นถากขยับ และหยุดก่อนถึงกลางเป้า (เห็นการ์ดทั้งคู่ตอนปะทะ)', () => {
-  for (const s of ['B', 'C', 'D']) {
-    assert.ok(lungeKeyframes(s, 'chip', TIER_TIMING.chip, VEC), `${s}: ชั้นถากต้องขยับ`)
-    const kf = lungeKeyframes(s, 'heavy', TIER_TIMING.heavy, VEC)
-    const hit = kf.find(k => k.transform.includes('140') || /translate\(0\.0px, (\d+)/.test(k.transform))
-    const dist = parseFloat(kf[2].transform.match(/translate\(0\.0px, ([\d.]+)px/)[1])
-    assert.ok(hit, `${s}: ต้องมีเฟรมปะทะ`)
-    assert.ok(dist > 0 && dist < 140, `${s}: ต้องหยุดก่อนถึงกลางเป้า (ได้ ${dist} จาก 140)`)
+test('weight มากขึ้น → เงื้อลึกขึ้น (แต่ยังเป็นท่าเดียวกัน)', () => {
+  const t = timingOf('hit')
+  const pullOf = (w) => {
+    const kf = lungeKeyframes('hit', w, t, VEC)
+    return num(kf[1].transform, /translate\(0,\s*([\d.]+)px/)
+  }
+  assert.ok(pullOf(1) > pullOf(0))
+  assert.equal(pullOf(0), Number(LUNGE.pullBase.toFixed(1)))
+})
+
+test('kind ที่แรงกว่าเงื้อลึกกว่า ที่ weight เท่ากัน — แต่ระยะยังเท่าเดิม', () => {
+  const pullOf = (kind) => {
+    const kf = lungeKeyframes(kind, 0.5, timingOf(kind), VEC)
+    return num(kf[1].transform, /translate\(0,\s*([\d.]+)px/)
+  }
+  assert.ok(pullOf('finish') > pullOf('ko'))
+  assert.ok(pullOf('ko') > pullOf('hit'))
+  assert.equal(DEPTH.hit, 1)
+})
+
+test('หมัดลูกไม่ขยับการ์ด (มันอยู่ในหมัดหลักที่กำลังพุ่งอยู่แล้ว)', () => {
+  assert.equal(lungesIn('sub'), false)
+  assert.equal(lungeKeyframes('sub', 0.5, timingOf('hit'), VEC), null)
+})
+
+test('kind ที่ไม่ใช่หมัด / timing ศูนย์ → null ไม่ throw', () => {
+  for (const k of ['skill', 'skillMoment', 'openGroup', 'ไม่มีอันนี้', null, undefined]) {
+    assert.equal(lungeKeyframes(k, 0.5, timingOf('hit'), VEC), null, String(k))
+  }
+  assert.equal(lungeKeyframes('hit', 0.5, { windup: 0, motion: 0, hitstop: 0, tail: 0 }, VEC), null)
+})
+
+test('vec ที่ขาด/เป็นศูนย์ ต้องไม่ทำให้เกิด NaN ใน transform', () => {
+  for (const v of [null, undefined, { x: 0, y: 0 }, {}]) {
+    const kf = lungeKeyframes('hit', 0.5, timingOf('hit'), v)
+    assert.ok(kf)
+    for (const f of kf) assert.ok(!f.transform.includes('NaN'), `${JSON.stringify(v)} → ${f.transform}`)
   }
 })
 
-test('เอียงตัวตามทิศ: ตีลงซ้าย/ขวา เครื่องหมายองศาต้องกลับกัน (แบบ C เท่านั้นที่เอียง)', () => {
-  const right = lungeKeyframes('C', 'heavy', TIER_TIMING.heavy, { x: 100, y: 140 })
-  const left  = lungeKeyframes('C', 'heavy', TIER_TIMING.heavy, { x: -100, y: 140 })
-  assert.ok(right[2].transform.includes('rotate(7.0deg)'))
-  assert.ok(left[2].transform.includes('rotate(-7.0deg)'))
-  // แบบอื่นไม่เอียงเลย
-  for (const s of ['A', 'B', 'D']) {
-    assert.ok(!lungeKeyframes(s, 'heavy', TIER_TIMING.heavy, VEC)[2].transform.includes('rotate'), s)
+test('เอียงเข้าหาเป้าตามทิศจริง — ตีขึ้นบนกับตีลงล่างต้องคนละทาง', () => {
+  const t = timingOf('hit')
+  const up = lungeKeyframes('hit', .5, t, { x: 0, y: -100 })
+  const down = lungeKeyframes('hit', .5, t, { x: 0, y: 100 })
+  const yOf = (kf) => num(kf[2].transform, /,\s*(-?[\d.]+)px\)/)
+  assert.ok(yOf(up) < 0 && yOf(down) > 0)
+})
+
+// ── การ์ดเป้า ───────────────────────────────────────────────────────
+
+test('การ์ดเป้ามีปฏิกิริยาทุกหมัดจริง (เดิมชั้น solid ไม่มีเลย)', () => {
+  for (const kind of HIT_KINDS) assert.equal(targetReactsIn(kind), true, kind)
+  assert.equal(targetReactsIn('sub'), false)
+  assert.equal(targetReactsIn('skill'), false)
+})
+
+test('squash: แรงขึ้นตาม weight · offset เรียงขึ้น · ไม่มี NaN', () => {
+  const amtOf = (w) => {
+    const kf = squashKeyframes('hit', w, { x: 0.5, y: -0.87 })
+    return num(kf[1].transform, /scale\(([\d.]+)/)
   }
+  assert.ok(amtOf(1) > amtOf(0))
+  const kf = squashKeyframes('hit', 0.5, null)
+  let prev = -1
+  for (const f of kf) { if (f.offset != null) { assert.ok(f.offset >= prev); prev = f.offset } }
+  for (const f of kf) assert.ok(!f.transform.includes('NaN'))
+  assert.ok(SQUASH.amtBase > 0)
 })
 
-test('แบบ snap/fast กลับเข้าที่แล้วนิ่งก่อน beat จบ · แบบ tail ลอยกลับยาวจนสุด', () => {
-  // D (fast, tail 1070ms ของชั้น finish) → ต้องมีเฟรม "ถึงที่แล้ว" ก่อน offset 1 ชัดเจน
-  const d = lungeKeyframes('D', 'finish', TIER_TIMING.finish, VEC)
-  const settled = d[d.length - 2].offset
-  assert.ok(settled < 0.75, `แบบ D ควรกลับเข้าที่เร็ว (ได้ offset ${settled})`)
-  // A (tail) → เฟรมก่อนสุดท้ายคือจังหวะปะทะ ไม่ใช่จังหวะกลับถึงที่
-  const a = lungeKeyframes('A', 'finish', TIER_TIMING.finish, VEC)
-  assert.ok(a[a.length - 2].transform.includes('140.0px'))
+test('squash คืน null สำหรับ kind ที่ไม่ใช่หมัด', () => {
+  for (const k of ['sub', 'skill', 'openGroup', null]) assert.equal(squashKeyframes(k, .5, null), null, String(k))
 })
 
-test('ชั้นที่การ์ดเป้ามีปฏิกิริยา: แบบ A = heavy/finish เท่านั้น · B/C/D รวม solid ด้วย · ไม่มีแบบไหนแตะชั้นถาก', () => {
-  assert.equal(targetReactsIn('A', 'solid'), false)
-  assert.equal(targetReactsIn('A', 'heavy'), true)
-  assert.equal(targetReactsIn('A', 'finish'), true)
-  for (const s of STYLES) assert.equal(targetReactsIn(s, 'chip'), false, `${s}: ชั้นถากห้ามแตะการ์ดเป้า (แพงเกิน 55% ของหมัด)`)
-  for (const s of ['B', 'C', 'D']) assert.equal(targetReactsIn(s, 'solid'), true, s)
+// ── จอสั่น ─────────────────────────────────────────────────────────
+
+test('🔒 จอสั่นเฉพาะโมเมนต์ — หมัดปกติและหมัดลูกห้ามสั่นเด็ดขาด', () => {
+  assert.equal(shakeFor('hit'), null)
+  assert.equal(shakeFor('sub'), null)
+  assert.equal(shakeFor('skill'), null)
+  assert.equal(shakeFor('ไม่มีอันนี้'), null)
+  assert.equal(shakeFor(undefined), null)
+  assert.deepEqual(shakeFor('ko'), SHAKE.ko)
+  assert.deepEqual(shakeFor('finish'), SHAKE.finish)
+  assert.ok(SHAKE.finish[0] > SHAKE.ko[0], 'ปิดเกมต้องแรงกว่า KO')
 })
 
-test('squashKeyframes: ไม่มีปฏิกิริยา → null · มีแล้วต้องเริ่ม/จบที่ท่าพัก', () => {
-  assert.equal(squashKeyframes('A', 'solid', { x: 0, y: 1 }), null)
-  assert.equal(squashKeyframes('A', 'chip', { x: 0, y: 1 }), null)
-  for (const s of STYLES) for (const tier of ['heavy', 'finish']) {
-    const kf = squashKeyframes(s, tier, { x: 0, y: 1 })
-    assert.equal(kf[0].transform, 'translate(0,0) scale(1)', `${s}/${tier}`)
-    assert.equal(kf[kf.length - 1].transform, 'translate(0,0) scale(1)', `${s}/${tier}`)
-  }
-  // แบบ A ไม่กระแทกถอย (translate ต้องเป็น 0 ทุกเฟรม) — ของเดิมบีบอย่างเดียว
-  for (const k of squashKeyframes('A', 'heavy', { x: 0, y: 1 })) {
-    assert.ok(k.transform.startsWith('translate(0,0)') || k.transform.startsWith('translate(0.0px, 0.0px)'), k.transform)
-  }
-  // แบบ C กระแทกถอยตามแนวหมัดจริง
-  assert.ok(squashKeyframes('C', 'heavy', { x: 0, y: 1 })[1].transform.startsWith('translate(0.0px, 20.0px)'))
-})
+// ── deterministic ───────────────────────────────────────────────────
 
-test('ชื่อแบบมั่ว → ตกกลับแบบเริ่มต้น ไม่ throw', () => {
-  assert.deepEqual(lungeKeyframes('ไม่มีอันนี้', 'heavy', TIER_TIMING.heavy, VEC),
-    lungeKeyframes('A', 'heavy', TIER_TIMING.heavy, VEC))
-})
-
-test('ชั้นที่ไม่รู้จัก / เวลาเป็นศูนย์ → null ไม่ throw', () => {
-  assert.equal(lungeKeyframes('B', 'ไม่มีชั้นนี้', TIER_TIMING.heavy, VEC), null)
-  assert.equal(lungeKeyframes('B', 'heavy', { windup: 0, motion: 0, hitstop: 0, tail: 0 }, VEC), null)
-  // FF_SCALE ต้องไม่ทำให้ heavy/finish หายไป (ข้อบังคับ: กดค้างไม่ย่อสองชั้นบน)
-  assert.equal(FF_SCALE.heavy, 1)
-  assert.equal(FF_SCALE.finish, 1)
+test('input เดิม → keyframes เหมือนเดิมเป๊ะ (ไม่มีสุ่มในนี้)', () => {
+  const t = timingOf('ko')
+  assert.deepEqual(lungeKeyframes('ko', .6, t, VEC), lungeKeyframes('ko', .6, t, VEC))
+  assert.deepEqual(squashKeyframes('ko', .6, { x: 1, y: 0 }), squashKeyframes('ko', .6, { x: 1, y: 0 }))
 })

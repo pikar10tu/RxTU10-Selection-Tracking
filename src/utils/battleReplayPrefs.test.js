@@ -1,8 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  FX_PRESETS, PACE_PRESETS, REDUCED_FLAGS, DEFAULT_PREFS, MOTION_STYLES,
-  readPrefs, writePrefs, fxFlags, paceMult, motionStyle,
+  FX_PRESETS, PACE_PRESETS, REDUCED_FLAGS, DEFAULT_PREFS,
+  readPrefs, writePrefs, fxFlags, paceMult,
 } from './battleReplayPrefs.js'
 
 // localStorage ปลอมสำหรับ node (ไม่มี window)
@@ -55,53 +55,27 @@ test('readPrefs: JSON เสีย → ค่าเริ่มต้น ไม�
 })
 
 test('readPrefs: ค่าที่ไม่รู้จักถูกแทนที่ทีละฟิลด์', () => {
-  const s = fakeStorage({ 'rxtu10.battleReplayPrefs': JSON.stringify({ fx: 'ระเบิด', pace: 'tight', style: 'Z' }) })
+  const s = fakeStorage({ 'rxtu10.battleReplayPrefs': JSON.stringify({ fx: 'ระเบิด', pace: 'tight' }) })
   assert.deepEqual(readPrefs(s), { ...DEFAULT_PREFS, pace: 'tight' })
 })
 
-test('readPrefs: prefs รุ่นเก่าที่ยังไม่มี style/motionOverride → เติมค่าเริ่มต้นให้ ไม่ทิ้ง pace ที่เลือกไว้', () => {
-  const s = fakeStorage({ 'rxtu10.battleReplayPrefs': JSON.stringify({ fx: 'mid', pace: 'tight' }) })
-  assert.deepEqual(readPrefs(s), { fx: 'mid', pace: 'tight', style: DEFAULT_PREFS.style, motionOverride: false })
+test('prefs รุ่นเก่าที่มี style/motionOverride ค้างอยู่ → ทิ้งฟิลด์ที่เลิกใช้ แต่ไม่ทิ้ง pace ที่เลือกไว้', () => {
+  // ⚠️ เครื่องที่เคยเทสท่าชน A/B/C/D จะมีค่าเก่าค้างใน localStorage — ต้องอ่านผ่านได้ ไม่ throw
+  const s = fakeStorage({ 'rxtu10.battleReplayPrefs': JSON.stringify({ fx: 'mid', pace: 'tight', style: 'C', motionOverride: true }) })
+  assert.deepEqual(readPrefs(s), { fx: 'mid', pace: 'tight', legacyBeats: false })
 })
 
 test('writePrefs แล้ว readPrefs ได้ค่าเดิมกลับมา', () => {
   const s = fakeStorage()
-  writePrefs({ fx: 'low', pace: 'grand', style: 'C', motionOverride: true }, s)
-  assert.deepEqual(readPrefs(s), { fx: 'low', pace: 'grand', style: 'C', motionOverride: true })
+  writePrefs({ fx: 'low', pace: 'grand', legacyBeats: true }, s)
+  assert.deepEqual(readPrefs(s), { fx: 'low', pace: 'grand', legacyBeats: true })
 })
 
-test('ท่าชนครบ 4 แบบ และทุกแบบมีฟิลด์ที่ battleFx อ่านครบ', () => {
-  assert.deepEqual(Object.keys(MOTION_STYLES), ['A', 'B', 'C', 'D'])
-  for (const [name, s] of Object.entries(MOTION_STYLES)) {
-    for (const k of ['label', 'hint', 'reach', 'pull', 'chipReach', 'spin', 'back', 'bounce', 'recoil', 'squash']) {
-      assert.ok(s[k] !== undefined, `${name} ขาดฟิลด์ ${k}`)
-    }
-    assert.ok(['tail', 'snap', 'fast'].includes(s.back), `${name}.back ต้องเป็นค่าที่ lunge() รู้จัก`)
-    for (const tier of ['solid', 'heavy', 'finish']) {
-      assert.equal(typeof s.recoil[tier], 'number')
-      assert.equal(typeof s.squash[tier], 'number')
-    }
-  }
-})
-
-test('แบบ A = พฤติกรรมเดิมเป๊ะ (ไม่มีอะไรขยับเพิ่มจากของที่ deploy ไปแล้ว)', () => {
-  const A = MOTION_STYLES.A
-  assert.equal(A.reach, 1)            // พุ่งทับกลางเป้า
-  assert.equal(A.chipReach, 0)        // ชั้นถากไม่แตะการ์ด
-  assert.equal(A.bounce, 0)
-  assert.equal(A.spin, 0)
-  assert.equal(A.back, 'tail')
-  assert.equal(A.recoil.solid + A.recoil.heavy + A.recoil.finish, 0)
-  assert.equal(A.squash.solid, 0)     // ชั้น solid ไม่เคยมีปฏิกิริยาที่การ์ดเป้า
-  assert.equal(A.squash.heavy, 0.36)  // ค่าเดิมใน squashTarget()
-  assert.equal(A.squash.finish, 0.5)
-  assert.equal(DEFAULT_PREFS.style, 'A')   // ของที่ส่งถึงนักศึกษายังไม่เปลี่ยนจนกว่าจะเลือกแบบใหม่
-})
-
-test('motionStyle: ชื่อมั่ว/undefined → ตกกลับแบบเริ่มต้น ไม่คืน undefined', () => {
-  assert.equal(motionStyle('C'), MOTION_STYLES.C)
-  assert.equal(motionStyle('ไม่มีอันนี้'), MOTION_STYLES[DEFAULT_PREFS.style])
-  assert.equal(motionStyle(undefined), MOTION_STYLES[DEFAULT_PREFS.style])
+test('legacyBeats: ค่าเริ่มต้นที่ส่งถึงนักศึกษาต้องเป็นจังหวะใหม่', () => {
+  assert.equal(DEFAULT_PREFS.legacyBeats, false)
+  // ต้องเป็น true เป๊ะเท่านั้นถึงจะเปิดโหมดเดิม — ค่าขยะไม่ควรพาไปโหมดเดิมโดยบังเอิญ
+  const s = fakeStorage({ 'rxtu10.battleReplayPrefs': JSON.stringify({ legacyBeats: 'yes' }) })
+  assert.equal(readPrefs(s).legacyBeats, false)
 })
 
 test('ไม่มี storage เลย (SSR/โหมดปิดคุกกี้) → ไม่ throw', () => {

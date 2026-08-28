@@ -176,7 +176,11 @@ async function evolve() {
 </script>
 
 <style scoped>
-.pd-ov { position: fixed; inset: 0; z-index: 230; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; padding: 18px; }
+/* ⚠️ z410 ไม่ใช่ 230 — โมดัลนี้ถูกเปิดจาก 'ข้างใน' BottomSheet (z400) ที่หน้าจัดทีม
+   ทั้งคู่ Teleport ไป body = เป็นพี่น้องกันที่ root → z ต่ำกว่าจะไปโผล่ 'ใต้' แผ่นจัดทีม
+   คนเล่นกด ⋯ แล้วเห็นแค่จอมืดลง (เกิดจริง 28 ส.ค. ที่หอคอยและสนามประลอง)
+   บันไดชั้น: sheet/modal ฐาน = 400 · อะไรที่เปิดจากในนั้น = 410 (ดู SeedPicker, SpendCopiesModal) */
+.pd-ov { position: fixed; inset: 0; z-index: 410; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; padding: 18px; }
 .pd-box { background: #fff; width: 100%; max-width: 380px; border: 2px solid var(--ink); border-radius: 20px; box-shadow: var(--pop-lg); overflow: hidden; max-height: 90vh; overflow-y: auto; }
 .pd-hero { position: relative; padding: 20px 16px 16px; text-align: center; color: #fff; }
 .pd-x { position: absolute; left: 12px; top: 12px; border: none; background: rgba(255,255,255,.25); color: #fff; border-radius: 8px; width: 40px; height: 40px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }

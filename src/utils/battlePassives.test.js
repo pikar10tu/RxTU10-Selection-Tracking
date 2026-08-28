@@ -7,7 +7,7 @@ import {
 import { PET_PASSIVES, passiveValueAt, passiveText, PASSIVE_MAX_LEVEL } from '../data/petPassives.js'
 import { PETS } from '../data/index.js'
 import { simulateBattle } from './battleEngine.js'
-import { buildBeats } from './battleBeats.js'
+import { buildBeats, beatDuration } from './battleBeats.js'
 
 const u = (id, over = {}) => ({ id, uid: over.uid || 'A0', side: 'A', atk: 100, maxHp: 1000, hp: 1000, element: 'fist', ...over })
 const seq = (...vals) => { let i = 0; return () => vals[Math.min(i++, vals.length - 1)] }
@@ -230,8 +230,11 @@ test('🔒 กฎเหล็ก: cleave/multiStrike ไม่เพิ่มจ
   assert.ok(subs.length > 0, 'ต้องมีหมัดลูกเกิดขึ้นจริงถึงจะเทสได้')
   for (const [i, e] of log.entries()) {
     if (e.t === 'attack' && e.sub) {
-      assert.equal(beats[i].tier, null, 'หมัดลูกต้องไม่มีชั้น')
+      // 28 ส.ค.: ฟิลด์เปลี่ยนจาก tier → kind (กฎเหล็กเหมือนเดิม) — และ kind ต้องมีค่าเสมอ
+      // ไม่ใช่ null/undefined เพราะ renderer switch(kind) จะได้ไม่มีอะไรตกลง default โดยบังเอิญ
+      assert.equal(beats[i].kind, 'sub', 'หมัดลูกต้องเป็น kind sub')
       assert.equal(beats[i].timing.motion, 0, 'หมัดลูกต้องไม่กินเวลา')
+      assert.equal(beatDuration(beats[i]), 0, 'หมัดลูกต้องไม่กินเวลาทั้ง beat')
     }
   }
 })
