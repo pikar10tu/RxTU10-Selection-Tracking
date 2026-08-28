@@ -126,3 +126,28 @@ single-file component + scoped style · สีธีมหลัก indigo (#4f4
    บล็อก CSS `@media (prefers-reduced-motion: reduce)` ถูกลบออกหมดแล้ว
    **อย่าเติม `matchMedia('(prefers-reduced-motion: reduce)')` ตรงๆ กลับเข้าไป** — เรียก `prefersReducedMotion()` แทน
    จะกลับไปเคารพ OS: ตั้ง `RESPECT_REDUCED_MOTION = true` แล้วเอาบล็อก CSS กลับจาก git
+
+12. **overlay ที่เปิดจาก "ข้างใน" overlay อื่น ต้องมี z-index สูงกว่าตัวที่เปิดมัน** — Teleport อย่างเดียวไม่พอ
+   ข้อ 6 แก้เรื่อง "overlay สู้ bottom-nav ไม่ได้" ไปแล้ว แต่พอทุกตัว Teleport ไป body หมด
+   มันกลายเป็น **พี่น้องกันที่ root** ⇒ ใครโผล่ข้างบนตัดสินด้วย z-index ล้วนๆ
+   เกิดจริง 28 ส.ค. 2026: กด ⋯ ในหน้าจัดทีม (หอคอย/สนามประลอง) แล้ว `PetDetailModal` (z230)
+   ไปอยู่ **ใต้** `BottomSheet` (z400) — ผู้เล่นเห็นแค่จอมืดลงเฉยๆ นึกว่าปุ่มเสีย
+   **บันไดชั้นที่ใช้อยู่ (ยึดตามนี้):**
+   ```
+   200  #bottom-nav
+   220  ProfileModal      → 250 PetStatPopup → 260 AchievementDetailModal   (ห่วงโซ่ที่ถูกอยู่แล้ว)
+   300–330  onboarding gates (MigrationWelcome / ConsentGate / IntroTour)
+   400  sheet/modal ฐาน   (BottomSheet · HelpModal · ShopView)
+   410  อะไรที่เปิด "จากใน" ตัว 400  (SeedPicker · SpendCopiesModal · PetDetailModal)
+   420–430  BattleReplay (overlay ไฟต์ · peek · inspect)
+   500+ toast / balloon / WelcomeBox
+   ```
+   ⚠️ เพิ่ม overlay ใหม่ = ถามก่อนว่า "มันถูกเปิดจากในอะไร" แล้วเลือกชั้นให้สูงกว่านั้น
+   ไม่ใช่หยิบเลขจากตัวที่หน้าตาคล้ายกัน (นี่คือทางที่ PetDetailModal ได้ z230 มาแต่แรก)
+
+13. **สีตัวอักษรบนการ์ดพื้นเข้ม — อย่าก๊อปสไตล์ข้ามพื้นหลัง**
+   เกิดจริง 28 ส.ค. 2026: `.br-card-passdesc` (หน้าข้อมูลเพ็ทใน replay, พื้น `#1e293b`)
+   ใช้ `color: rgba(0,0,0,.62)` = ดำบนกรมท่า contrast ~1.4:1 อ่านไม่ออกเลย
+   ต้นเหตุคือก๊อปมาจาก `.br-spot-desc` ซึ่งอยู่บนการ์ด **พื้นขาว** จึงถูกที่นั่นแต่ผิดที่นี่
+   ตรวจเร็วก่อน commit: `grep -n "color: rgba(0,0,0" src/components/battle/BattleReplay.vue`
+   แล้วไล่ดูทีละจุดว่าพื้นหลังของ element นั้นสว่างหรือเข้ม
