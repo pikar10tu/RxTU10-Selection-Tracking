@@ -111,3 +111,18 @@ single-file component + scoped style · สีธีมหลัก indigo (#4f4
    แต่ log มีแค่ B0 → ตีตายตัวเดียว log จบ = ผู้เล่นเห็นเป็น "เกมจบทั้งที่ศัตรูยังเหลือ" (แก้ commit ถัดจาก a94a2b0)
    ⚠️ ชั้น 3+ จำนวนบอทเท่ากันเลยไม่สะดุดตา แต่สปีชีส์/ธาตุ/maxHp ที่วาดก็ผิดตัวอยู่ดี (หลอดเลือดหดผิดสัดส่วนเงียบๆ)
    BattleReplay มี `warnTeamMismatch()` (dev only) เตือนไว้แล้วถ้าทีมที่วาดไม่ตรงกับ uid ใน log
+
+10. **อ่าน snapshot ของ user doc ต้องใช้ `snap.data({ serverTimestamps: 'estimate' })` เสมอ — `snap.data()` เปล่าๆ ส่งฟิลด์ `serverTimestamp()` ที่ยังไม่ยืนยันมาเป็น `null`**
+   Firestore ยิง snapshot ท้องถิ่นทันทีที่เขียน (latency compensation) โดยเวลาที่เซิร์ฟเวอร์ยังไม่ประทับจะเป็น null
+   → ฟิลด์เวลา "หายไป" ชั่วคราวจนกว่าเซิร์ฟเวอร์จะ ack · เดิมไม่พังเพราะ blockSnapshot **ทิ้ง** snapshot ช่วงนั้น
+   แต่ `bef0f25` (20 ส.ค.) เปลี่ยนเป็น **พักไว้ apply ตอนปลดบล็อก 1.5 วิ** → ถ้าเน็ตช้ากว่านั้น ค่าว่างจะทับ optimistic
+   เกิดจริง 28 ส.ค. 2026: `lastDaily` หาย → `useDaily` อ่านว่า "ยังไม่เคยเก็บ" → บาร์รายได้เต็ม 100% ทันที
+   **กดรับรายได้ประจำวันซ้ำได้รัวๆ ทุก ~1.5 วิ เหรียญพุ่ง** (ยกเหรียญที่ได้ไปแล้วให้ ไม่ไล่หัก)
+   ⚠️ ระวังเป็นพิเศษเมื่อ **เวลาเป็นเงื่อนไขของรางวัล** — ค่าว่างต้องไม่แปลว่า "ผ่านมานานแล้ว"
+   แนวกันที่สองของรายได้: `effectiveLastMs()` (`utils/idleIncome.js`) + `_lastClaim` ใน `useDaily` = เวลาเก็บล่าสุดเดินหน้าอย่างเดียว
+
+11. **โหมดลดการเคลื่อนไหว (prefers-reduced-motion) ถูก bypass ทั้งเว็บแล้ว (28 ส.ค. 2026 — user สั่ง "ทุกคนจะไปเห็นอนิเมชั่นเดียวกัน")**
+   ฝั่ง JS อ่านผ่าน `prefersReducedMotion()` ใน `utils/motionPref.js` ตัวเดียว (ตอนนี้คืน `false` เสมอ) ·
+   บล็อก CSS `@media (prefers-reduced-motion: reduce)` ถูกลบออกหมดแล้ว
+   **อย่าเติม `matchMedia('(prefers-reduced-motion: reduce)')` ตรงๆ กลับเข้าไป** — เรียก `prefersReducedMotion()` แทน
+   จะกลับไปเคารพ OS: ตั้ง `RESPECT_REDUCED_MOTION = true` แล้วเอาบล็อก CSS กลับจาก git
