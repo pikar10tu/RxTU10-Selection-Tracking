@@ -113,6 +113,8 @@ import { useUsageStore } from '../stores/usage.js'
 import { useToast } from '../composables/useToast.js'
 import { useQuestionFeed } from '../composables/useQuestionFeed.js'
 import { useRosterSync } from '../composables/useRosterSync.js'
+import { useNewsPost } from '../composables/useNewsPost.js'
+import { rankOfScore } from '../utils/newsFeed.js'
 import { shuffleChoices } from '../utils/quizShuffle.js'
 import { DOMAIN_KEYS } from '../data/domains.js'
 import { bumpDailyQuest } from '../utils/dailyQuest.js'
@@ -131,6 +133,7 @@ const router = useRouter()
 const { toast } = useToast()
 const { fetchQuestions } = useQuestionFeed()
 const { syncRosterRow } = useRosterSync()
+const { postNews, myName } = useNewsPost()
 
 const LETTERS = ['ก', 'ข', 'ค', 'ง', 'จ', 'ฉ']
 
@@ -370,7 +373,20 @@ async function finish(reason) {
   )
   if (!ok) { toast('บันทึกผลไม่สำเร็จ — ลองใหม่อีกครั้ง', 'error'); return }
   if (grant) toast(`ได้ ${grant.toLocaleString()}🪙 จาก Time Attack`, 'success')
-  if (isNew) syncRosterRow()   // สถิติใหม่เท่านั้นที่ต้องขึ้นกระดาน
+  // สถิติใหม่เท่านั้นที่ต้องขึ้นกระดาน · ที่ 1 ของรุ่นไปเลนข่าวอยู่ยาว อันดับ 2-3 อยู่เลน roster
+  // อันดับคำนวณจาก rosterRows ที่กระดานบนจอนี้โหลดไว้แล้ว — ไม่มีในมือ = ไม่ยิงข่าว (ห้ามอ่านเพิ่ม)
+  if (isNew) {
+    const rows = members.rosterRows || {}
+    const rank = Object.keys(rows).length
+      ? rankOfScore(rows, auth.currentUser?.uid, (r) => r?.[m.rowKey] || 0, best)
+      : 0
+    if (rank === 1) {
+      postNews({ type: 'record1', icon: '⏱️', msg: `${myName()} ขึ้นเป็นที่ 1 ของรุ่นใน Time Attack ${m.label} ด้วย ${best} ข้อ` })
+      syncRosterRow()
+    } else {
+      syncRosterRow({ event: (rank === 2 || rank === 3) ? { k: 'ta', g: m.key, v: rank, t: Date.now() } : null })
+    }
+  }
 }
 
 function onBack() {

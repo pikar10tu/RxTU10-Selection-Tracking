@@ -50,10 +50,15 @@ import { grantCoins } from '../utils/minigameCore.js'
 import { useRosterSync } from '../composables/useRosterSync.js'
 import { fluentFile } from '../utils/emoji.js'
 import { useAuthStore } from '../stores/auth.js'
+import { useMembersStore } from '../stores/members.js'
+import { useNewsPost } from '../composables/useNewsPost.js'
+import { rankOfScore } from '../utils/newsFeed.js'
 import { reportCheat } from '../composables/useGuard.js'
 
 const GAME = getMinigame('capsuleRush')
 const auth = useAuthStore()
+const members = useMembersStore()
+const { postNews, myName } = useNewsPost()
 const { syncRosterRow } = useRosterSync()
 const canvasEl = ref(null)
 const phase = ref('pick') // 'pick' | 'play' | 'over'
@@ -117,7 +122,20 @@ async function saveResult() {
     },
   )
   saveState.value = ok ? 'saved' : 'failed'
-  if (ok) syncRosterRow()   // best ใหม่ → อัปแถวตัวเองในบอร์ด (เขียนเฉพาะตอนค่าเปลี่ยนจริง)
+  // best ใหม่ → อัปแถวตัวเองในบอร์ด (เขียนเฉพาะตอนค่าเปลี่ยนจริง) + ข่าวกระดานถ้าติดอันดับรุ่น
+  // อันดับคำนวณจาก rosterRows ที่กระดานบนจอนี้โหลดไว้แล้ว — ไม่มี roster ในมือ = ไม่ยิงข่าว (ห้ามอ่านเพิ่ม)
+  if (ok) {
+    const rows = members.rosterRows || {}
+    const rank = Object.keys(rows).length
+      ? rankOfScore(rows, auth.currentUser?.uid, (r) => r?.m?.capsuleRush || 0, newBest)
+      : 0
+    if (rank === 1) {
+      postNews({ type: 'record1', icon: '🎮', msg: `${myName()} ขึ้นเป็นที่ 1 ของรุ่นใน Capsule Rush ด้วย ${newBest.toLocaleString()} คะแนน` })
+      syncRosterRow()
+    } else {
+      syncRosterRow({ event: (rank === 2 || rank === 3) ? { k: 'mg', g: 'capsuleRush', v: rank, t: Date.now() } : null })
+    }
+  }
 }
 
 onBeforeUnmount(() => { stop(); dispose() })
