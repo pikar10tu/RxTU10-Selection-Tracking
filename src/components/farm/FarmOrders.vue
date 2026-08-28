@@ -125,7 +125,4 @@ async function onReroll(i, o) {
 .fo-dot { width: 5px; height: 5px; border-radius: 999px; background: rgba(0,0,0,.14); }
 .fo-dot.on { background: #b45309; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-@media (prefers-reduced-motion: reduce) {
-  .fo-rail { scroll-behavior: auto; }
-}
 </style>

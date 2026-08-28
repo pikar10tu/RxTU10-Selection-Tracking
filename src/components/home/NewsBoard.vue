@@ -42,6 +42,7 @@ import { useUsageStore } from '../../stores/usage.js'
 import { useMembersStore } from '../../stores/members.js'
 import { useAuthStore } from '../../stores/auth.js'
 import { buildFeed, timeAgo } from '../../utils/newsFeed.js'
+import { prefersReducedMotion } from '../../utils/motionPref.js'
 
 const usage = useUsageStore()
 const members = useMembersStore()
@@ -61,7 +62,7 @@ const current = computed(() => items.value[idx.value % (items.value.length || 1)
 // ── ตัวสลับบรรทัด ──
 // ใช้แค่ opacity/transform (ดู style) — ห้าม backdrop-filter/blur เด็ดขาด (iOS Safari paint)
 let timer = null
-const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+const reduced = prefersReducedMotion()
 
 function stop() { if (timer) { clearInterval(timer); timer = null } }
 function start() {
@@ -112,5 +113,4 @@ watch(open, (v) => { if (v) { stop(); now.value = Date.now() } else start() })
 /* สลับบรรทัดเอง — opacity/transform เท่านั้น ห้าม backdrop-filter/blur (iOS Safari paint) */
 .news-tick { display: inline-block; animation: news-in .2s ease-out; }
 @keyframes news-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .news-tick { animation: none; } }
 </style>

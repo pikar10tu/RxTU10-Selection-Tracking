@@ -161,6 +161,7 @@ import { createBattleFx } from '../../utils/battleFx.js'
 import { buildBeats, scaleTiming } from '../../utils/battleBeats.js'
 import { readPrefs, fxFlags, paceMult, motionStyle, FX_LABEL, PACE_LABEL } from '../../utils/battleReplayPrefs.js'
 import { createFrameMeter, FALLBACK_BASE, DROP_RATIO } from '../../utils/frameMeter.js'
+import { prefersReducedMotion } from '../../utils/motionPref.js'
 
 const props = defineProps({
   data: { type: Object, default: null },
@@ -691,7 +692,7 @@ const showFps = computed(() => new URLSearchParams(location.search).has('fps') |
 // (ไม่งั้น "ทุกแบบเหมือนกันหมด" จะถูกตีความว่าท่าชนไม่ต่างกัน ทั้งที่ระบบตัดทิ้งไปก่อนแล้ว)
 const labTag = computed(() => {
   const p = prefs.value
-  const cut = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches && !p.motionOverride
+  const cut = prefersReducedMotion() && !p.motionOverride
   return `${motionStyle(p.style).label} · ${FX_LABEL[p.fx] || p.fx} · ${PACE_LABEL[p.pace] || p.pace}${cut ? ' · ⚠️ Reduce Motion ตัดการเคลื่อนไหวอยู่' : ''}`
 })
 const fpsWorst = ref(0)     // เฟรมแย่สุดในหน้าต่าง ~1 วิ (ป้ายสดมุมจอ)
@@ -899,11 +900,6 @@ onUnmounted(() => {
    หลอดผีไม่แตะที่นี่โดยตั้งใจ — มัน "ไล่ตามหลัง" ด้วยแค่การ transition แถบบางๆ ไม่ถึง 0.5 วิ
    ไม่ใช่การเคลื่อนไหวแบบที่ prefers-reduced-motion กันไว้ (จอสั่น/หมุน/พุ่งข้ามจอ) แถมยังบอกดาเมจ
    ที่เพิ่งกิน — ตัดออกจะเสียข้อมูล ไม่ใช่แค่ลดความหวือหวา จึงปล่อยให้ทำงานปกติทั้งสอง mode */
-@media (prefers-reduced-motion: reduce) {
-  .br-intro-txt.ready, .br-intro-txt.go { animation: none; }
-  .br-modal { animation: none; }
-  .br-hold-hint { animation: none; }
-}
 </style>
 
 <style>
@@ -931,11 +927,7 @@ onUnmounted(() => {
 @keyframes br-spot-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-10px) scale(.96); } }
 /* การ์ดเจ้าของสกิล — ยกขึ้นเหนือฉากหรี่ให้เห็นว่าใครเป็นคนออกท่า */
 .br-unit.spotlit { z-index: 5; border-color: #fbbf24; box-shadow: 0 0 0 3px rgba(251,191,36,.35); }
-/* จอที่ขอให้ลดการเคลื่อนไหว: ตัดการเลื่อน/ย่อ เหลือ fade — แต่ **เวลายังเท่าเดิม** เพราะจุดประสงค์คือให้อ่านทัน */
-@media (prefers-reduced-motion: reduce) {
-  .br-spot-card { animation: br-spot-fade-in var(--spot-in, 240ms) linear var(--spot-delay, 180ms) both; }
-  .br-spot.out .br-spot-card { animation: br-spot-dim-out var(--spot-out, 230ms) linear forwards; }
-}
+/* fade สำรองของสปอตไลต์ (เดิมใช้ตอนเครื่องขอลดการเคลื่อนไหว — ตอนนี้ bypass แล้ว ดู utils/motionPref.js) */
 @keyframes br-spot-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 /* จุดไอคอนสกิลมุมการ์ด — บอกว่าตัวนี้มีทักษะเฉพาะ (เดิมต้องไล่แตะทีละใบถึงจะรู้) */

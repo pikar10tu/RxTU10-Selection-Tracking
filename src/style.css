@@ -62,16 +62,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   outline-offset: 2px;
   border-radius: 6px;
 }
-/* เคารพ prefers-reduced-motion */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: .001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: .001ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
 @keyframes pulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.08) } }
 
 .btn-out { background: none; border: 1.5px solid #fca5a5; color: #ef4444; padding: 7px 14px; border-radius: 9px; font-family: inherit; font-size: .82rem; cursor: pointer; width: 100%; }

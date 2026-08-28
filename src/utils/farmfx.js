@@ -10,8 +10,10 @@
 //   • ขับด้วย WAAPI เปลี่ยนแค่ transform/opacity (แนวคิดเดียวกับ battlefx.js แต่แยกไฟล์
 //     ไม่ import และไม่แก้ของ battle — เคสกระตุก iOS ของนั้นเพิ่งปิด)
 //   • ของที่ลอยเป็น element ชั่วคราวนอก Vue → Vue ไม่ต้อง re-render ระหว่างอนิเมชัน
-//   • prefers-reduced-motion = ไม่สร้างอะไรเลย เรียก onArrive ทันที (ผลลัพธ์ต้องเหมือนกัน)
+//   • prefersReducedMotion() = ไม่สร้างอะไรเลย เรียก onArrive ทันที (ผลลัพธ์ต้องเหมือนกัน)
+//     — ตอนนี้ bypass ทั้งเว็บแล้ว ทุกคนเห็นอนิเมชันเดียวกัน (ดู utils/motionPref.js)
 import { fluentFile } from './emoji.js'
+import { prefersReducedMotion } from './motionPref.js'
 
 const BASE = import.meta.env.BASE_URL
 const MAX_PIECES = 6          // กันสั่งลอยทีละเยอะจนมือถือเก่ากระตุก
@@ -20,7 +22,7 @@ let layer = null
 const live = new Set()        // WAAPI ที่ยังวิ่งอยู่ (ไว้ cancel ตอนออกจากหน้า)
 
 function prefersReduced() {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+  return prefersReducedMotion()
 }
 
 function ensureLayer() {

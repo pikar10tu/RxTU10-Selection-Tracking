@@ -151,7 +151,6 @@ function pick(id) {
 /* เคอร์เซอร์ = ช่องที่กำลังเล็ง · ใช้ outline เพราะไม่กินพื้นที่ layout จึงไม่ดันการ์ดข้างๆ ขยับ */
 .tp-slot.cur { outline: 3px solid var(--primary); outline-offset: 2px; border-color: var(--primary); animation: tp-pulse 1.4s ease-in-out infinite; }
 @keyframes tp-pulse { 0%, 100% { outline-color: var(--primary); } 50% { outline-color: rgba(79,70,229,.35); } }
-@media (prefers-reduced-motion: reduce) { .tp-slot.cur { animation: none; } }
 .tp-slotno { position: absolute; top: -6px; left: -4px; font-size: .78rem; color: var(--ink); background: #fff; border-radius: 999px; line-height: 1; padding: 1px; pointer-events: none; }
 .tp-more { position: absolute; bottom: -6px; right: -6px; width: 26px; height: 26px; border-radius: 999px; border: 2px solid var(--ink); background: #fff; color: var(--ink); font-family: inherit; font-size: .8rem; font-weight: 800; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--pop); }
 .tp-more:active { transform: translate(1px,1px); box-shadow: 0 0 0 var(--ink); }

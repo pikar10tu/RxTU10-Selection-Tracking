@@ -79,6 +79,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import Emoji from '../shared/Emoji.vue'
 import { floorZone, TOWER_BONUS_FLOORS, getTowerBonus } from '../../data/towerFloors.js'
 import { letterAvatar, fallbackAvatar } from '../../utils/avatar.js'
+import { prefersReducedMotion } from '../../utils/motionPref.js'
 
 const ROW_H  = 60
 const MARKER = 30
@@ -156,7 +157,7 @@ const markerStyle = computed(() => ({
 // ── scroll ให้ชั้นปัจจุบันอยู่กลางกล่อง ──────────────────
 // คำนวณตรงจากสูตร ไม่ใช้ scrollIntoView → ตั้งได้ก่อนเฟรมแรก ไม่มีอาการวาบจากชั้นบนสุด
 function reduceMotion() {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+  return prefersReducedMotion()
 }
 function centerOnCurrent(smooth = false) {
   const box = boxEl.value
@@ -440,14 +441,6 @@ onBeforeUnmount(clearTimers)
 /* จอง compositor layer เฉพาะช่วงกำลังไต่ — ใส่ค้างไว้ = กินแรมตลอดเวลา */
 .tp-marker.climbing, .tp-marker.climbing .tp-marker-in { will-change: transform; }
 
-@media (prefers-reduced-motion: reduce) {
-  .tp-row.pop .tp-node,
-  .tp-row.fill::before,
-  .tp-row.fillUp::after,
-  .tp-marker.climbing .tp-marker-in { animation: none; }
-  .tp-marker { transition: none; }
-}
-
 /* ── วงแหวนปลดล็อกหมุดโบนัส ────────────────────────────
    วางทับแถวของหมุดนั้น จัดกึ่งกลางตรงกับโหนด · pointer-events:none ไม่ขวางการกด
    ป้าย +N/วัน ลอยขึ้นเหนือโหนด (keyframe tp-gain เลื่อนขึ้นอยู่แล้ว) — บังเลขชั้น
@@ -482,7 +475,4 @@ onBeforeUnmount(clearTimers)
   to   { transform: translateY(-20px); opacity: 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .tp-ring, .tp-gain { animation: none; opacity: 0; }
-}
 </style>

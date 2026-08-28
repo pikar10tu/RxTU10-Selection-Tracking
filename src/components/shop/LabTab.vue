@@ -171,8 +171,4 @@ async function onConfirm(allocation) {
 @keyframes cb-fly { 0% { opacity: 0; transform: translateY(12px) scale(.4); } 22% { opacity: 1; } 100% { opacity: 0; transform: translateY(-74px) scale(1.1); } }
 @keyframes cb-amt { 0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(.7); } 28% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } 100% { opacity: 0; transform: translateX(-50%) translateY(-22px); } }
 
-@media (prefers-reduced-motion: reduce) {
-  .rv-box, .rv-emoji, .fuse-aura, .cb-coin, .cb-amt { animation: none !important; }
-  .cb-ov { display: none; }
-}
 </style>

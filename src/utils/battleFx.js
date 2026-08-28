@@ -3,6 +3,7 @@
 import { fluentFile } from './emoji.js'
 import { fxFlags, REDUCED_FLAGS, DEFAULT_PREFS } from './battleReplayPrefs.js'
 import { lungeKeyframes, squashKeyframes, targetReactsIn } from './battleMotion.js'
+import { prefersReducedMotion } from './motionPref.js'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -13,8 +14,7 @@ export function createBattleFx() {
   let flags = fxFlags(undefined)                    // ค่าเริ่มต้นจาก DEFAULT_PREFS จนกว่า component จะเรียก setFlags
   let styleName = DEFAULT_PREFS.style               // ท่าชน (แบบ A/B/C/D) — ดู MOTION_STYLES
   let ignoreReduced = false                         // ⚠️ ห้องแล็บเท่านั้น: เทียบท่าชนบนเครื่องที่เปิด Reduce Motion ไว้
-  const reducedMQ = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null
-  const reduced = () => !ignoreReduced && !!(reducedMQ && reducedMQ.matches)
+  const reduced = () => !ignoreReduced && prefersReducedMotion()
   // อ่าน flag ผ่านตัวนี้เสมอ — reduced-motion ทับ preset ที่ user เลือกได้ตลอด
   const F = (k) => (reduced() ? REDUCED_FLAGS[k] : flags[k])
   function setFlags(f) { flags = { ...flags, ...(f || {}) } }

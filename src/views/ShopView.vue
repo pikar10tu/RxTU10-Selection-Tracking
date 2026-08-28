@@ -150,6 +150,7 @@ import { bumpDailyQuest } from '../utils/dailyQuest.js'
 import { rollMany, resolvePullPayment, GACHA_RATES, PULL_COST, TEN_PULL_COST, TEN_PULL_N, HARD_PITY } from '../utils/gacha.js'
 import { mergeRolls } from '../utils/gachaMerge.js'
 import { useNewsPost } from '../composables/useNewsPost.js'
+import { prefersReducedMotion } from '../utils/motionPref.js'
 
 const authStore = useAuthStore()
 const { toast } = useToast()
@@ -185,7 +186,7 @@ const ownedLegendaryIds = () => pets.value.filter((p) => p.rarity === 'legendary
 
 // reveal animation: จังหวะ "ลุ้น" (anticipate, สีลูกแก้ว = rarity สูงสุด) → "เผย" (show)
 const RANK = { common: 0, rare: 1, epic: 2, legendary: 3 }
-const reduceMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+const reduceMotion = () => prefersReducedMotion()
 let revealTimer = null
 function showReveal(summary, multi) {
   const best = summary.reduce((b, s) => (RANK[s.rarity] > RANK[b] ? s.rarity : b), 'common')
@@ -338,10 +339,6 @@ async function chooseTarget(id) {
 @keyframes cell-pop { 0% { transform: scale(.4); opacity: 0; } 62% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes ray-spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 @keyframes ray-fade { from { opacity: .85; } to { opacity: .4; } }
-
-@media (prefers-reduced-motion: reduce) {
-  .orb, .orb::before, .orb-core, .rv-box, .rv-cell, .legend-rays { animation: none !important; }
-}
 
 .shop-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
 .shop-tab { flex: 1; border: 2px solid var(--ink); border-radius: 11px; padding: 9px; font-family: inherit; font-weight: 800; font-size: .82rem; background: #fff; color: var(--ink); cursor: pointer; }

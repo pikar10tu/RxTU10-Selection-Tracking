@@ -250,10 +250,4 @@ const invList = computed(() =>
   45%  { transform: scale(1.12); }
   100% { transform: scale(1); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .plot.ready { animation: none; }
-  .plot-emoji.ripe { animation: none; }
-  .inv-head.pop { animation: none; }
-  .plot-emoji, .plot-fill, .plot, .inv-item, .plot-empty { transition: none; }
-}
 </style>

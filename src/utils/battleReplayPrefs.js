@@ -11,7 +11,8 @@ export const FX_PRESETS = {
   low:  { cardLunge: false, targetSquash: false, screenShake: false, burst: true, ko: true },
 }
 
-/** ใช้เมื่อเครื่องตั้ง prefers-reduced-motion — คงจังหวะ 4 ชั้นไว้ ตัดแต่การเคลื่อนไหว */
+/** ใช้เมื่อ prefersReducedMotion() = true — คงจังหวะ 4 ชั้นไว้ ตัดแต่การเคลื่อนไหว
+ *  (28 ส.ค. 2026 bypass ทั้งเว็บแล้ว → ปกติไม่ถูกใช้ เหลือไว้เผื่อเปิดกลับ ดู utils/motionPref.js) */
 export const REDUCED_FLAGS = { cardLunge: false, targetSquash: false, screenShake: false, burst: false, ko: false }
 
 export const PACE_PRESETS = { grand: 1.25, normal: 1, tight: 0.8 }
