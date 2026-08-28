@@ -100,7 +100,7 @@
           (เดิมเสีย N reads ต่อคน — 170 คนจะทะลุโควตาฟรี) ·
           <b>ต้องกดครั้งแรกหนึ่งครั้ง</b> ไม่งั้นหน้าเพื่อน/บอร์ดจะว่าง ·
           หลังจากนั้นแต่ละคนอัปเดตแถวตัวเองอัตโนมัติ · กดซ้ำได้ ปลอดภัย (สร้างใหม่จากของจริง) ·
-          <b>ยกเว้นประวัติการบุกในสนามประลองของทุกคนจะถูกล้าง</b> (เก็บอยู่ในแถว roster ไม่ได้อยู่ใน user doc)
+          ประวัติการบุกและข่าวกระดานของทุกคนถูกพ่วงต่อให้ ไม่หาย
         </div>
         <button class="btn-mini" :disabled="rebuildingRoster" @click="rebuildRoster">
           {{ rebuildingRoster ? 'กำลังสร้าง…' : '🔄 สร้าง roster ใหม่' }}
@@ -441,7 +441,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { doc, updateDoc, setDoc, collection, getDocs, query, orderBy, limit, addDoc, deleteDoc, serverTimestamp, writeBatch, deleteField, runTransaction } from 'firebase/firestore'
+import { doc, updateDoc, setDoc, getDoc, collection, getDocs, query, orderBy, limit, addDoc, deleteDoc, serverTimestamp, writeBatch, deleteField, runTransaction } from 'firebase/firestore'
 import { buildRosterFromUsers } from '../utils/roster.js'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
@@ -711,9 +711,14 @@ async function rebuildRoster() {
   if (rebuildingRoster.value) return
   rebuildingRoster.value = true
   try {
+    // อ่านแถวเดิมก่อน 1 read — `h` (ประวัติบุก) กับ `ev` (ข่าวกระดาน) อยู่ในแถว roster เท่านั้น
+    // ไม่ได้อยู่ใน user doc ⇒ ไม่พ่วงต่อ = กดปุ่มทีนึงล้างประวัติ+ข่าวทั้งรุ่น
+    const prev = await getDoc(doc(db, 'roster', 'current'))
+    usage.track(1)
+    const prevRows = prev.exists() ? (prev.data().rows || {}) : {}
     const snap = await getDocs(collection(db, 'users'))
     usage.track(snap.size)
-    const rows = buildRosterFromUsers(snap.docs.map(d => ({ uid: d.id, data: d.data() })))
+    const rows = buildRosterFromUsers(snap.docs.map(d => ({ uid: d.id, data: d.data() })), prevRows)
     await setDoc(doc(db, 'roster', 'current'), { rows, updatedAt: serverTimestamp() })
     usage.track(0, 1)
     toast(`สร้าง roster แล้ว ${Object.keys(rows).length} คน`, 'success')

@@ -84,13 +84,16 @@ export function rosterRowChanged(oldRow, newRow) {
 }
 
 /** สร้าง rows ทั้งก้อนจาก users ทั้ง collection (ใช้เฉพาะปุ่มแอดมิน)
- *  ⚠️ ประวัติบุก (`h`) หายทั้งรุ่น — ไม่ได้อยู่ใน user doc · ปุ่มแอดมินต้องเตือนก่อนกด */
-export function buildRosterFromUsers(docs) {
+ *  @param prevRows rows ของ `roster/current` เดิม — พ่วง `h` (ประวัติบุก) กับ `ev` (ข่าวกระดาน)
+ *         ต่อให้ เพราะสองอย่างนี้อยู่ในแถว roster เท่านั้น ไม่ได้อยู่ใน user doc
+ *         ⚠️ ไม่ส่งมา = กดปุ่มแล้วประวัติ+ข่าวหายทั้งรุ่น (เคยเป็นแบบนั้นจนถึง 28 ส.ค.)
+ *  หมายเหตุ: แถวเดิมของคนที่ไม่มี user doc แล้วจะไม่ถูกอุ้มกลับมา — rows สร้างจาก users เสมอ */
+export function buildRosterFromUsers(docs, prevRows) {
   const rows = {}
   for (const { uid, data } of docs || []) {
     if (!data) continue
     if (!data.studentId && !data.nickname) continue   // ตรรกะเดิมของ members store
-    rows[uid] = buildRosterRow(data)
+    rows[uid] = buildRosterRow(data, prevRows?.[uid])
   }
   return rows
 }

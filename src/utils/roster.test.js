@@ -112,6 +112,37 @@ test('buildRosterFromUsers ข้าม doc ที่ไม่มีทั้ง
   assert.deepEqual(Object.keys(rows).sort(), ['g1', 'u1'])
 })
 
+// ── ปุ่ม "สร้าง roster ใหม่" ต้องไม่ล้างของที่ไม่ได้อยู่ใน user doc (h = ประวัติบุก · ev = ข่าวกระดาน) ──
+
+test('buildRosterFromUsers พ่วง h/ev ของแถวเดิมมาให้ (กดปุ่มแอดมินแล้วประวัติต้องไม่หาย)', () => {
+  const prevRows = {
+    u1: { n: 'ปิ๊ก', h: [{ u: 'bob', w: 1, c: 250, t: 111 }], ev: [{ k: 'tw', v: 40, t: 123 }] },
+  }
+  const rows = buildRosterFromUsers([{ uid: 'u1', data: user() }], prevRows)
+  assert.deepEqual(rows.u1.h, prevRows.u1.h)
+  assert.deepEqual(rows.u1.ev, prevRows.u1.ev)
+})
+
+test('buildRosterFromUsers: ไม่ส่ง prevRows = ทำงานเหมือนเดิม (ไม่มีคีย์ h/ev โผล่มาเปล่าๆ)', () => {
+  const rows = buildRosterFromUsers([{ uid: 'u1', data: user() }])
+  assert.equal('h' in rows.u1, false)
+  assert.equal('ev' in rows.u1, false)
+})
+
+test('buildRosterFromUsers: คนที่ไม่มีแถวเดิมยังสร้างได้ปกติ', () => {
+  const rows = buildRosterFromUsers(
+    [{ uid: 'u1', data: user() }, { uid: 'u2', data: user({ uid: 'u2', studentId: '6500000000' }) }],
+    { u1: { h: [{ u: 'bob', w: 1, c: 250, t: 111 }] } },
+  )
+  assert.deepEqual(Object.keys(rows).sort(), ['u1', 'u2'])
+  assert.equal('h' in rows.u2, false)
+})
+
+test('buildRosterFromUsers: แถวเดิมของคนที่ไม่มี user doc แล้ว ต้องไม่ถูกอุ้มกลับมา', () => {
+  const rows = buildRosterFromUsers([{ uid: 'u1', data: user() }], { gone: { n: 'ผี', h: [{ u: 'x', w: 1, c: 1, t: 1 }] } })
+  assert.deepEqual(Object.keys(rows), ['u1'])
+})
+
 test('rosterToMembers แยกนักศึกษา/guest ตาม g', () => {
   const rows = {
     u1: buildRosterRow(user()),
