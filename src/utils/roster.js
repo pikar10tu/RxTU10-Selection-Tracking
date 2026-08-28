@@ -20,8 +20,9 @@ const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d)
 /**
  * userData (doc เต็ม) → แถวย่อสำหรับ roster
  * @param prev แถวเดิมของคนนี้ (ถ้ามี) — ใช้พ่วงข้อมูลที่ **ไม่ได้อยู่ใน user doc** ติดมาด้วย
- *             ตอนนี้มีอย่างเดียวคือ `h` (ประวัติบุก · ดู utils/pvpHistory.js)
- *             ⚠️ ไม่พ่วง = ประวัติหายทุกครั้งที่ sync (เปลี่ยนชื่อ/อัปบ้าน/จบมินิเกมก็ sync)
+ *             ตอนนี้มี 2 อย่าง: `h` (ประวัติบุก · ดู utils/pvpHistory.js)
+ *             และ `ev` (ข่าวกระดาน · ดู utils/newsFeed.js)
+ *             ⚠️ ไม่พ่วง = ของหายทุกครั้งที่ sync (เปลี่ยนชื่อ/อัปบ้าน/จบมินิเกมก็ sync)
  */
 export function buildRosterRow(u, prev) {
   const d = u || {}
@@ -71,6 +72,8 @@ export function buildRosterRow(u, prev) {
     ...(ta15 ? { ta15 } : {}),
     // h ต่อท้ายเสมอ (ตำแหน่งคงที่ = rosterRowChanged เทียบ JSON ได้ตรง ไม่ยิงเขียนเปล่า)
     ...(prev?.h?.length ? { h: prev.h } : {}),
+    // ev ต่อหลัง h ด้วยเหตุผลเดียวกัน — ข่าวกระดาน (ดู utils/newsFeed.js)
+    ...(prev?.ev?.length ? { ev: prev.ev } : {}),
   }
 }
 

@@ -5,6 +5,7 @@ import { useMembersStore } from '../stores/members.js'
 import { useUsageStore } from '../stores/usage.js'
 import { buildRosterRow, rosterRowChanged } from '../utils/roster.js'
 import { pushHistory } from '../utils/pvpHistory.js'
+import { pushEvent } from '../utils/newsFeed.js'
 
 /**
  * เขียนแถวของตัวเองลง `roster/current` — **จุดเดียว**ที่ฝั่งนักศึกษาเขียน doc นี้
@@ -26,8 +27,10 @@ export function useRosterSync() {
   /**
    * @param opts.history รายการประวัติบุก 1 รายการ ({u,w,c,t}) หรือ null
    *        — พ่วงไปกับ write ที่เกิดหลังไฟต์อยู่แล้ว (เรตเปลี่ยน) ⇒ ไม่มี write เพิ่ม
+   * @param opts.event ข่าวกระดาน 1 รายการ ({k,v,g?,t}) หรือ null (ดู utils/newsFeed.js)
+   *        — พ่วงไปกับ write ที่เกิดอยู่แล้วเช่นกัน ⇒ ข่าวหอคอย/สนาม/บ้าน/เพ็ท/มินิเกม ไม่มี write เพิ่ม
    */
-  async function syncRosterRow({ history = null } = {}) {
+  async function syncRosterRow({ history = null, event = null } = {}) {
     const uid = auth.currentUser?.uid
     const u = auth.userData
     if (!uid || !u) return
@@ -37,6 +40,7 @@ export function useRosterSync() {
     const prev = members.rosterRows?.[uid]
     const next = buildRosterRow({ ...u, uid }, prev)   // prev = พ่วง h เดิมไว้ ไม่ให้ถูกล้างทุกครั้งที่ sync
     if (history) next.h = pushHistory(prev?.h, history)
+    if (event) next.ev = pushEvent(prev?.ev, event)
     if (!rosterRowChanged(prev, next)) return
 
     try {

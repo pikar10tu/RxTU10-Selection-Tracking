@@ -261,3 +261,13 @@ test('buildRosterRow ทน timeAttack เพี้ยน/ไม่ใช่ต�
   assert.equal('ta4' in buildRosterRow(user({ timeAttack: null })), false)
   assert.equal('ta4' in buildRosterRow(user({ timeAttack: { best4: 'มั่ว' } })), false)
 })
+
+test('buildRosterRow พ่วง ev เดิมไว้ (ไม่งั้นข่าวหายทุกครั้งที่ sync)', () => {
+  const prev = { ev: [{ k: 'tw', v: 40, t: 123 }] }
+  assert.deepEqual(buildRosterRow(user(), prev).ev, prev.ev)
+})
+
+test('มี ev อยู่แล้วและไม่มีอะไรเปลี่ยน → ไม่ต้องเขียน (คีย์ต้องเรียงคงที่)', () => {
+  const prev = buildRosterRow(user(), { h: [{ u: 'bob', w: 1, c: 5, t: 1 }], ev: [{ k: 'tw', v: 40, t: 123 }] })
+  assert.equal(rosterRowChanged(prev, buildRosterRow(user(), prev)), false)
+})
