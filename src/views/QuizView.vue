@@ -159,6 +159,7 @@ import { useRoute } from 'vue-router'
 import { collection, getDocs, getDoc, query, where, orderBy, limit, doc, addDoc, setDoc, increment, serverTimestamp, writeBatch, deleteField, documentId } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
+import { useRosterSync } from '../composables/useRosterSync.js'
 import { useUsageStore } from '../stores/usage.js'
 import { useToast } from '../composables/useToast.js'
 import { shuffle, shuffleChoices } from '../utils/quizShuffle.js'
@@ -174,6 +175,7 @@ import { QUIZ_COIN_PER_CORRECT } from '../data/index.js'
 import { applyQuizResults, buildQcardsPatch, dueQuestionIds } from '../utils/srsQuestions.js'
 
 const authStore = useAuthStore()
+const { syncRosterRow } = useRosterSync()
 const usage = useUsageStore()
 const { toast } = useToast()
 const route = useRoute()
@@ -254,6 +256,9 @@ const quiz = ref([])
 const idx = ref(0)
 const picked = ref(null)
 const correct = ref(0)
+// ถูกติดกัน — นับในหน่วยความจำเท่านั้น ปิดแอปแล้วหาย (ตั้งใจ ไม่แตะ schema)
+const streak = ref(0)
+const bestStreak = ref(0)
 const answered = ref(0)
 const coinsEarned = ref(0)
 const answers = ref([])
@@ -435,6 +440,7 @@ async function startRedo() {
 // รีเซ็ต state รอบใหม่
 function resetRound() {
   picked.value = null; correct.value = 0; answered.value = 0; coinsEarned.value = 0
+  streak.value = 0; bestStreak.value = 0
   answers.value = []
 }
 
@@ -443,7 +449,11 @@ function pick(i) {
   picked.value = i
   answered.value++
   const isCorrect = i === current.value.answer
-  if (isCorrect) correct.value++
+  if (isCorrect) {
+    correct.value++
+    streak.value++
+    if (streak.value > bestStreak.value) bestStreak.value = streak.value
+  } else streak.value = 0
   answers.value.push({ id: current.value.id, domain: current.value.domain || null, correct: isCorrect })
 }
 function choiceClass(i) {
@@ -557,6 +567,11 @@ async function finish() {
   if (ok) missingQIds.value = []
   else toast('บันทึกผลไม่สำเร็จ — ลองใหม่อีกครั้ง', 'error')
   if (grant) toast(`ได้ ${grant}🪙 จากการทำข้อสอบ`, 'success')
+
+  // ข่าวกระดาน: ยิงครั้งเดียวต่อรอบ ที่ขั้นสูงสุดที่ถึง (10/20/30)
+  // เลนนี้เป็น write เพิ่มจริง (ควิซไม่เคย sync roster) จึงคุมให้ถี่ต่ำด้วยเกณฑ์ 10 ข้อติด
+  const tier = bestStreak.value >= 30 ? 30 : bestStreak.value >= 20 ? 20 : bestStreak.value >= 10 ? 10 : 0
+  if (ok && tier) syncRosterRow({ event: { k: 'qz', v: tier, t: Date.now() } })
 }
 </script>
 

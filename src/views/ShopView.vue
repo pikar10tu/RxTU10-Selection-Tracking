@@ -149,6 +149,7 @@ import { passiveText } from '../data/petPassives.js'
 import { bumpDailyQuest } from '../utils/dailyQuest.js'
 import { rollMany, resolvePullPayment, GACHA_RATES, PULL_COST, TEN_PULL_COST, TEN_PULL_N, HARD_PITY } from '../utils/gacha.js'
 import { mergeRolls } from '../utils/gachaMerge.js'
+import { useNewsPost } from '../composables/useNewsPost.js'
 
 const authStore = useAuthStore()
 const { toast } = useToast()
@@ -156,6 +157,7 @@ const { toast } = useToast()
 // ร้านค้าเปิดให้นักศึกษาแล้ว (21 มิ.ย. 2026) — flip false เพื่อปิดปรับปรุง (admin เห็นร้านปกติเสมอ)
 const SHOP_OPEN = true
 const shopOpen = computed(() => SHOP_OPEN || authStore.isAdmin)
+const { postNews, myName } = useNewsPost()
 const tab = ref('gacha') // 'gacha' | 'lab'
 
 const coins   = computed(() => authStore.userData?.coins || 0)
@@ -226,7 +228,15 @@ async function pull(n) {
   }
   const ok = await authStore.patchUser(optimistic, server)
   buying.value = false
-  if (ok) showReveal(summary, rolls > 1)
+  if (ok) {
+    showReveal(summary, rolls > 1)
+    // ข่าวกระดาน (เลนอยู่ยาว): เปิด 10 ครั้งได้ legendary 2 ตัว = ข่าวเดียว ยิงตัวแรกที่เจอ
+    const leg = results.find((r) => r.rarity === 'legendary')
+    if (leg) {
+      const petName = PETS.find((p) => p.id === leg.id)?.name || 'เพ็ทระดับตำนาน'
+      postNews({ type: 'legendary', icon: '✨', msg: `${myName()} เปิดแคปซูลได้ ${petName}` })
+    }
+  }
   else toast('สุ่มไม่สำเร็จ', 'error')
 }
 

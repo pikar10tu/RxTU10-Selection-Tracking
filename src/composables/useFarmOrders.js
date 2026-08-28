@@ -2,11 +2,12 @@ import { computed, ref } from 'vue'
 import { increment } from 'firebase/firestore'
 import { useAuthStore } from '../stores/auth.js'
 import { useToast } from './useToast.js'
+import { useRosterSync } from './useRosterSync.js'
 import { reportCheat } from './useGuard.js'
 import { cropsForLevel } from '../data/crops.js'
 import { createdAtMs, implausibleDelivery } from '../utils/farmPlausibility.js'
 import {
-  REFILL_MS, REROLL_MS, buildOrder, canDeliver, normalizeOrders, dueSlots,
+  REFILL_MS, REROLL_MS, MAX_KINDS, buildOrder, canDeliver, normalizeOrders, dueSlots,
 } from '../data/farmOrders.js'
 
 /**
@@ -17,6 +18,7 @@ import {
 export function useFarmOrders() {
   const auth = useAuthStore()
   const { toast } = useToast()
+  const { syncRosterRow } = useRosterSync()
 
   const level     = computed(() => auth.userData?.residence?.level || 1)
   const inventory = computed(() => auth.userData?.farm?.inventory || {})
@@ -87,6 +89,11 @@ export function useFarmOrders() {
     busyId.value = null
     if (ok) toast(`ส่งออเดอร์แล้ว +${gain.toLocaleString()} เหรียญ`, 'success')
     else toast('ส่งออเดอร์ไม่สำเร็จ', 'error')
+    // ข่าวกระดาน: ออเดอร์ครบ 3 ชนิด = ออเดอร์ใหญ่
+    // ใช้เกณฑ์เชิงโครงสร้าง ไม่ผูกกับเหรียญ เพราะเหรียญเฟ้อตามเลเวลบ้าน (พืชแพงขึ้น)
+    if (ok && Object.keys(o.items || {}).length >= MAX_KINDS) {
+      syncRosterRow({ event: { k: 'fo', v: gain, t: Date.now() } })
+    }
     return ok
   }
 
