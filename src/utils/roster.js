@@ -55,6 +55,11 @@ export function buildRosterRow(u, prev) {
   const ta4  = num(d.timeAttack?.best4, 0)
   const ta15 = num(d.timeAttack?.best15, 0)
 
+  // เรต+ชนะ+แพ้ "ของซีซั่นปัจจุบัน" — ต้องคำนวณครั้งเดียวแล้วใช้ทั้งก้อน
+  // ⚠️ ห้ามเรียก applySeasonReset ซ้ำแยกกันต่อฟิลด์ ไม่งั้นวันข้ามเดือนจะได้
+  //    เรตของเดือนใหม่คู่กับชนะ/แพ้ของเดือนเก่า
+  const pvp = applySeasonReset(d.pvp, currentSeasonId())
+
   return {
     s:  d.studentId ?? null,
     n:  stripTrailingEmoji(d.nickname || d.name?.split(' ')[0] || '') || '?',
@@ -65,11 +70,15 @@ export function buildRosterRow(u, prev) {
     tb: num(d.towerBest, 0),
     // เรต "ของซีซั่นปัจจุบัน" — ไม่ใช่เรตดิบ เพราะ soft-reset จะถูกเขียนจริงต่อเมื่อเจ้าตัวบุกครั้งแรกของเดือน
     // ถ้าเขียนดิบ วันที่ 1 ของเดือน เจ้าตัวเห็นเรตบีบแล้วแต่ทั้งชั้นปียังเห็นเรตเดือนก่อน (คนเลิกเล่นค้างถาวร)
-    r:  num(applySeasonReset(d.pvp, currentSeasonId()).rating, PVP_RATING_START),
+    r:  num(pvp.rating, PVP_RATING_START),
     m,
     tm,
     ...(ta4  ? { ta4 }  : {}),
     ...(ta15 ? { ta15 } : {}),
+    // ชนะ/แพ้ซีซั่นนี้ — ใช้แยก "เคยลงสนามจริง" ออกจากคนที่ยังเป็นค่าเริ่มต้น 1000 (กระดานอันดับ)
+    // ใส่เฉพาะเมื่อ > 0 ตามแพทเทิร์นเดียวกับ m/ta4 · ต้องอยู่ก่อน h/ev เสมอ
+    ...(num(pvp.wins, 0)   ? { pw: num(pvp.wins, 0) }   : {}),
+    ...(num(pvp.losses, 0) ? { pl: num(pvp.losses, 0) } : {}),
     // h ต่อท้ายเสมอ (ตำแหน่งคงที่ = rosterRowChanged เทียบ JSON ได้ตรง ไม่ยิงเขียนเปล่า)
     ...(prev?.h?.length ? { h: prev.h } : {}),
     // ev ต่อหลัง h ด้วยเหตุผลเดียวกัน — ข่าวกระดาน (ดู utils/newsFeed.js)

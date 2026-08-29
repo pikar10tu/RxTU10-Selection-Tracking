@@ -302,3 +302,32 @@ test('มี ev อยู่แล้วและไม่มีอะไรเ�
   const prev = buildRosterRow(user(), { h: [{ u: 'bob', w: 1, c: 5, t: 1 }], ev: [{ k: 'tw', v: 40, t: 123 }] })
   assert.equal(rosterRowChanged(prev, buildRosterRow(user(), prev)), false)
 })
+
+test('buildRosterRow pw/pl = ชนะ-แพ้ของซีซั่นปัจจุบัน ใส่เฉพาะเมื่อ > 0', () => {
+  const season = currentSeasonId()
+  const r = buildRosterRow(user({ pvp: { rating: 1120, wins: 12, losses: 8, seasonId: season } }))
+  assert.equal(r.pw, 12)
+  assert.equal(r.pl, 8)
+
+  // ยังไม่เคยสู้ = ไม่มีคีย์เลย (กันแถวบวมด้วยศูนย์ เหมือน m/ta4 — ทั้งรุ่นโหลด doc นี้ทุกเซสชัน)
+  const zero = buildRosterRow(user({ pvp: { rating: 1000, wins: 0, losses: 0, seasonId: season } }))
+  assert.equal('pw' in zero, false)
+  assert.equal('pl' in zero, false)
+})
+
+test('buildRosterRow pw/pl ต้องมาจาก applySeasonReset ก้อนเดียวกับ r', () => {
+  // ข้ามเดือน: เรตถูกบีบเข้ากลาง ชนะ/แพ้ถูกล้าง
+  // ถ้าคำนวณแยกกัน จะได้เรตของเดือนนี้คู่กับชนะ/แพ้ของเดือนก่อน = ตัวเลขคนละเรื่อง
+  const r = buildRosterRow(user({ pvp: { rating: 1400, wins: 20, losses: 3, seasonId: '2000-01' } }))
+  assert.equal(r.r, 1200, 'บีบครึ่ง: 1000 + (1400-1000)*0.5')
+  assert.equal('pw' in r, false)
+  assert.equal('pl' in r, false)
+})
+
+test('buildRosterRow pw/pl ต้องอยู่ก่อน h/ev — rosterRowChanged เทียบ JSON ตามลำดับคีย์', () => {
+  const prev = { h: [{ u: 'x', w: 1, c: 5, t: 1 }], ev: [{ k: 'pv', v: 3, t: 1 }] }
+  const row = buildRosterRow(user({ pvp: { rating: 1120, wins: 1, losses: 1, seasonId: currentSeasonId() } }), prev)
+  const keys = Object.keys(row)
+  assert.ok(keys.indexOf('pw') < keys.indexOf('h'), 'pw ต้องมาก่อน h')
+  assert.ok(keys.indexOf('pl') < keys.indexOf('ev'), 'pl ต้องมาก่อน ev')
+})
