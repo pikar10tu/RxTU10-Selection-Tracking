@@ -516,7 +516,9 @@ function runTestFight() {
 }
 
 // ซิงก์ระบบตรวจข้อสอบ: เติม reviewStatus ให้ข้อเก่า (ก่อนมีระบบตรวจ — query หน้า /review
-// มองไม่เห็นข้อที่ไม่มี field นี้) + ซ่อมสถานะที่ drift (รวมข้อค้าง 1 เสียง pending → half)
+// มองไม่เห็นข้อที่ไม่มี field นี้) + ซ่อมสถานะที่ drift
+// ⚠️ 29 ส.ค. 2026 เกณฑ์ลดเหลือ 1 คน/ข้อ → ข้อที่ค้างค่า 'half' ไว้จะถูกเขียนเป็น passed/failed
+//    ที่นี่ (computeStatus เปลี่ยนนิยาม) · ต้องกดหนึ่งครั้งหลัง deploy รอบนั้น
 // + ล้าง reviewVerdicts โครงเก่า + เติม categories ให้ข้อเก่าที่มีแค่ category เดี่ยว
 // + เติม rand ให้ข้อที่ยังไม่มี (ข้อที่ไม่มี field นี้จะไม่ถูก orderBy('rand') ที่ /review ใช้
 //   เลือกคิว pending คืนมาเลย — มองไม่เห็นถาวรถ้าไม่ซ่อม · ไม่ re-roll ข้อที่มี rand เป็นตัวเลขอยู่แล้ว)
@@ -528,7 +530,7 @@ async function syncReviewSystem() {
   try {
     const snap = await getDocs(collection(db, 'questions'))
     const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    // ข้อที่ต้องแก้: สถานะไม่ตรงกับที่คำนวณได้ (รวมข้อค้าง 1 เสียงที่ยังเป็น pending → half)
+    // ข้อที่ต้องแก้: สถานะไม่ตรงกับที่คำนวณได้ (รวมข้อค้างค่า 'half' จากเกณฑ์ 2 คนเดิม)
     // หรือยังมี map โครงเก่า หรือยังไม่มี categories ทั้งที่มี category เดี่ยว
     const stale = all.filter(q =>
       (q.reviewStatus || null) !== computeStatus(q)
@@ -552,7 +554,8 @@ async function syncReviewSystem() {
     }
     // ตัวนับใหม่จากคลังจริง — ชื่อคงของเดิมไว้ (ชื่อมาจาก snapshot ตอน submit)
     // progress คำนวณใหม่ทั้งก้อน = ซ่อม drift จากการสร้างข้อใหม่/import/ล้างผลตรวจ/นำออก
-    const progress = { pending: 0, half: 0, passed: 0, failed: 0, conflict: 0, retired: 0 }
+    // ไม่มีคีย์ 'half' แล้ว และ tx.set ข้างล่างเขียนทับทั้งก้อน (ไม่ merge) → ซากตัวนับเก่าหายไปเอง
+    const progress = { pending: 0, passed: 0, failed: 0, conflict: 0, retired: 0 }
     for (const q of all) {
       const key = reviewStatusKey(q)
       if (key in progress) progress[key]++

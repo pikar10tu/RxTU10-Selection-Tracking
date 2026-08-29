@@ -13,7 +13,7 @@
       <!-- ── แถบสรุปคิว ── -->
       <div class="rv-summary">
         <div v-if="progress.total" class="rv-sum-line">
-          <Emoji char="📋" /> ผ่านแล้ว <b>{{ progress.passed }}</b> · ค้าง 1 เสียง <b>{{ progress.half }}</b> ·
+          <Emoji char="📋" /> ผ่านแล้ว <b>{{ progress.passed }}</b> ·
           รอตรวจ <b>{{ progress.pending }}</b><span v-if="progress.conflict"> · ขัดแย้ง <b>{{ progress.conflict }}</b></span><span v-if="progress.failed"> · ไม่ผ่าน <b>{{ progress.failed }}</b></span>
         </div>
         <div v-else class="rv-sum-line">ยังไม่มีตัวเลขสรุป — รอแอดมินกด "🔄 ซิงก์ระบบตรวจ" ในหน้า Admin ครั้งแรกก่อน</div>
@@ -145,7 +145,7 @@ import { useUsageStore } from '../stores/usage.js'
 import { useToast } from '../composables/useToast.js'
 import { cleanText, LIMITS } from '../utils/text.js'
 import { domainLabel } from '../data/domains.js'
-import { computeStatus, nextReviewQueue, buildLeaderboard, VERDICT_LABEL, pickWeighted } from '../utils/questionReview.js'
+import { computeStatus, nextReviewQueue, buildLeaderboard, VERDICT_LABEL, pickRandom } from '../utils/questionReview.js'
 import { getCategories, normalizeCategories } from '../utils/questionCategories.js'
 import { quizSample } from '../utils/quizSample.js'
 import TopicSelect from '../components/questions/TopicSelect.vue'
@@ -185,7 +185,7 @@ const amendRef = ref('')
 
 const myUid = computed(() => authStore.currentUser?.uid || null)
 
-const HALF_LIMIT = 200      // ข้อค้าง 1 เสียง + ขัดแย้ง — ดึงมาให้ครบ (ปกติมีไม่เยอะ)
+const CONFLICT_LIMIT = 200  // ข้อขัดแย้ง (ของเก่าสมัยเกณฑ์ 2 คน) — ดึงมาให้ครบ ปกติมีไม่เยอะ
 const PENDING_WINDOW = 40   // ข้อที่ยังไม่มีใครตรวจ — สุ่มหน้าต่างเล็กพอ ต้นทุนคงที่
 
 const currentId = ref(null)
@@ -195,22 +195,24 @@ const queue = computed(() =>
 // ข้อปัจจุบัน = ข้อที่สุ่มไว้ (ตรึงไว้จนกว่าจะส่ง/ข้าม — ห้ามผูกกับ queue[0] ไม่งั้นข้อจะเด้งเอง)
 const current = computed(() => queue.value.find(q => q.id === currentId.value) || null)
 
-// สุ่มข้อถัดไปตามน้ำหนัก: ขัดแย้ง ×8 · ค้าง 1 เสียง ×4 · ยังไม่มีใครตรวจ ×1
+// สุ่มข้อถัดไปแบบเท่ากันหมด (เกณฑ์ 1 คน/ข้อ = ไม่มีข้อ "ค้างครึ่งทาง" ให้ต้องเร่งอีกแล้ว)
 function pickNext() {
-  const q = pickWeighted(queue.value)
+  const q = pickRandom(queue.value)
   currentId.value = q ? q.id : null
 }
 const currentStatus = computed(() => current.value ? computeStatus(current.value) : null)
 
 // ความคืบหน้าทั้งคลัง — มาจากตัวนับใน reviewMeta (ไม่เปลือง read)
-// half/conflict เป็นเลขสดจากคิวที่โหลดมาจริงได้ก็จริง แต่ใช้ค่าจาก meta ให้เป็นชุดเดียวกันทั้งแถบ
+// conflict เป็นเลขสดจากคิวที่โหลดมาจริงได้ก็จริง แต่ใช้ค่าจาก meta ให้เป็นชุดเดียวกันทั้งแถบ
+// ตัวนับ 'half' เป็นซากของเกณฑ์ 2 คน — บวกรวมเข้า "รอตรวจ" ไว้กันยอดรวมหายดื้อๆ ก่อนแอดมิน
+// กด "🔄 คำนวณ meta ใหม่" · หลังกดแล้ว half เป็น 0 เอง บรรทัดนี้กลายเป็น no-op
 const progress = computed(() => {
   const p = meta.value.progress || {}
   const num = k => Math.max(0, p[k] || 0)
   const passed = num('passed'), failed = num('failed')
-  const half = num('half'), conflict = num('conflict'), pending = num('pending')
-  const total = passed + failed + half + conflict + pending
-  return { passed, failed, half, conflict, pending, total, pct: total ? Math.round((passed / total) * 100) : 0 }
+  const conflict = num('conflict'), pending = num('pending') + num('half')
+  const total = passed + failed + conflict + pending
+  return { passed, failed, conflict, pending, total, pct: total ? Math.round((passed / total) * 100) : 0 }
 })
 // จำนวนข้อที่ต้องให้ฉันตรวจ "ในคิวรอบนี้" (เท่าที่โหลดมา ไม่ใช่ทั้งคลัง)
 const myQueueCount = computed(() => nextReviewQueue(list.value, myUid.value).length)
@@ -245,21 +247,23 @@ onMounted(() => {
 })
 
 // โหลดคิว 2 ก้อนแยกกัน — ต้นทุน read คงที่ไม่โตตามขนาดคลัง
-//  ก้อน A: ข้อค้าง 1 เสียง + ขัดแย้ง → ดึงมาให้ครบ (นี่คือข้อที่เราอยากเร่งให้จบ)
+//  ก้อน A: ข้อขัดแย้ง → ดึงมาให้ครบ (นี่คือข้อที่ค้างจริง รอคนที่ 3 ตัดสิน)
 //  ก้อน B: ข้อที่ยังไม่มีใครตรวจ → สุ่มหน้าต่างด้วย field rand (pattern เดียวกับ QuizView)
 //  ข้อเก่าก่อนระบบตรวจไม่มี field reviewStatus จะไม่ติด query —
 //  แอดมินต้องกด "🔄 ซิงก์ระบบตรวจ" ในหน้า Admin หนึ่งครั้งก่อนเริ่มใช้
+//  ⚠️ ไม่ถามหา 'half' แล้ว: เกณฑ์ 1 คน/ข้อ ทำให้ข้อ 1 เสียงจบไปแล้ว (passed/failed)
+//  doc ที่ยังเก็บค่า 'half' ค้างอยู่จึงไม่ต้องดึงมาให้เปลือง read — ปุ่มซิงก์จะเขียนทับให้เอง
 async function load() {
   loading.value = true
   try {
     const col = collection(db, 'questions')
     const R = Math.random()
-    const [halfSnap, firstSnap, metaSnap] = await Promise.all([
-      getDocs(query(col, where('reviewStatus', 'in', ['half', 'conflict']), limit(HALF_LIMIT))),
+    const [conflictSnap, firstSnap, metaSnap] = await Promise.all([
+      getDocs(query(col, where('reviewStatus', '==', 'conflict'), limit(CONFLICT_LIMIT))),
       getDocs(query(col, where('reviewStatus', '==', 'pending'), orderBy('rand'), startAt(R), limit(PENDING_WINDOW))),
       getDoc(doc(db, 'reviewMeta', 'main')),
     ])
-    let reads = halfSnap.size + firstSnap.size + 1
+    let reads = conflictSnap.size + firstSnap.size + 1
     // สุ่มไปชนปลายลิสต์ → วนอ่านต้นลิสต์เติมให้เต็มหน้าต่าง
     let wrap = []
     if (firstSnap.size < PENDING_WINDOW) {
@@ -269,7 +273,7 @@ async function load() {
     }
     usage.track(reads)
     const pending = quizSample(firstSnap.docs.map(d => ({ id: d.id, ...d.data() })), wrap, PENDING_WINDOW)
-    list.value = [...halfSnap.docs.map(d => ({ id: d.id, ...d.data() })), ...pending]
+    list.value = [...conflictSnap.docs.map(d => ({ id: d.id, ...d.data() })), ...pending]
     if (metaSnap.exists()) meta.value = metaSnap.data()
     pickNext()
   } catch (e) { console.error('[review load]', e); toast('โหลดข้อสอบไม่สำเร็จ', 'error') }
@@ -326,7 +330,7 @@ async function submit() {
   const v = verdict.value
   const isPass = v === 'correct'
   let newPass = 0, newFail = 0, newStatus = 'pending', already = false
-  let wasResolved = false      // ข้อปิดไปแล้วตอนเราส่ง = เราเป็นเสียงที่ 3
+  let wasResolved = false      // ข้อปิดไปแล้วตอนเราส่ง = มีคนตรวจชนเราพอดี (เสียงเรายังนับ)
   let oldStatusLocal = 'pending'   // สถานะก่อนหน้า — Task 13 ใช้ขยับแถบความคืบหน้าในเครื่อง
   let committedCats = null, committedNote = null   // ค่าที่ "เขียนจริง" ไปยัง Firestore รอบที่ commit สำเร็จ — ใช้ sync local ให้ตรงเป๊ะ
   try {
@@ -347,7 +351,9 @@ async function submit() {
       newPass = (cur.reviewPass || 0) + (isPass ? 1 : 0)
       newFail = (cur.reviewFail || 0) + (isPass ? 0 : 1)
       newStatus = computeStatus({ reviewPass: newPass, reviewFail: newFail })
-      wasResolved = oldStatus === 'passed' || oldStatus === 'failed'   // ข้อปิดไปแล้ว = เราเป็นเสียงที่ 3
+      // ข้อปิดไปแล้วก่อนเราส่ง — เกิดได้จากตรวจชนกันพอดี (เกณฑ์ 1 คน/ข้อ = เสียงแรกปิดข้อทันที)
+      // หรือมีคนตัดสิน conflict ไปก่อนเรา · เสียงเรายังถูกนับ แค่ไม่ใช่คนตัดสิน
+      wasResolved = oldStatus === 'passed' || oldStatus === 'failed'
       // 1) รายละเอียดเต็มใน subcollection (doc id = uid → กันตรวจซ้ำ)
       tx.set(doc(db, 'questions', q.id, 'reviews', uid), {
         reviewerUid: uid,
@@ -421,7 +427,7 @@ async function submit() {
     if (already) {
       toast('คุณตรวจข้อนี้ไปแล้ว', 'info')
     } else if (wasResolved) {
-      toast('มีคนตรวจข้อนี้พร้อมกัน — นับเสียงคุณเป็นเสียงที่ 3 ด้วยแล้ว', 'success')
+      toast('มีคนตรวจข้อนี้ตัดกันพอดี — นับเสียงคุณเข้าไปด้วยแล้ว', 'success')
     } else {
       toast('ส่งผลตรวจแล้ว ขอบคุณ!', 'success')
     }

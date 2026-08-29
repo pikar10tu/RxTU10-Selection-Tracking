@@ -13,10 +13,6 @@
       <div v-if="loading" class="qv-empty">กำลังโหลดข้อสอบ…</div>
       <div v-else-if="!publishedTotal" class="qv-empty">ยังไม่มีข้อสอบที่เผยแพร่ — รอทีมวิชาการเพิ่มก่อนนะ <Emoji char="📚" /></div>
       <template v-else>
-        <div class="qv-notice">
-          <Emoji char="ℹ️" />
-          <span>ข้อสอบชุดนี้นำเข้าจากคลังเก่า ยังไม่ผ่านการตรวจ อาจมีบางข้อคลาดเคลื่อน — กำลังเปิดรับทีมวิชาการมาช่วยตรวจสอบความถูกต้องอยู่นะ</span>
-        </div>
         <div class="qv-info">มีข้อสอบให้ทำ <b>{{ activeCount }}</b> ข้อ</div>
 
         <template v-if="domainChips.length">
@@ -583,8 +579,6 @@ async function finish() {
 .qv-empty { text-align: center; color: rgba(0,0,0,.45); padding: 40px 16px; font-size: .85rem; line-height: 1.6; }
 
 .qv-info { font-size: .9rem; color: #334155; margin-bottom: 14px; }
-.qv-notice { display: flex; gap: 8px; align-items: flex-start; font-size: .78rem; line-height: 1.45; font-weight: 600;
-  color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
 .qv-redo-tag { display: inline-flex; align-items: center; gap: 6px; font-size: .72rem; font-weight: 800;
   color: #92400e; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 999px; padding: 4px 12px; margin-bottom: 10px; }
 .qv-label { font-size: .7rem; font-weight: 700; color: #64748b; margin: 12px 0 6px; }

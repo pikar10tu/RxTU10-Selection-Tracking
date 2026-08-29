@@ -297,7 +297,6 @@
         <select v-model="reviewFilter" class="qz-input qz-filter-rv" aria-label="กรองตามสถานะตรวจ">
           <option value="">สถานะตรวจ: ทั้งหมด</option>
           <option value="pending">รอตรวจ</option>
-          <option value="half">ตรวจแล้ว 1 คน</option>
           <option value="passed">ผ่านตรวจ</option>
           <option value="conflict">ขัดแย้ง</option>
           <option value="failed">ไม่ผ่าน</option>
@@ -444,7 +443,7 @@ const search = ref('')
 const statusFilter = ref('all')   // all | published | draft
 const catFilter = ref('__all')
 const domainFilter = ref('__all')
-const reviewFilter = ref('')      // '' | pending | half | passed | conflict | failed | retired
+const reviewFilter = ref('')      // '' | pending | passed | conflict | failed | retired
 const visibleCount = ref(PAGE)
 const selected = ref(new Set())   // เก็บ id ที่เลือก (Vue 3 track Set ได้)
 const batchBusy = ref(false)
@@ -1269,7 +1268,6 @@ async function resolveReports(g, verdict) {
 
 /* ── ป้ายสถานะตรวจ ── */
 .qz-badge.rv.pending { background: #eef2ff; color: #4f46e5; }
-.qz-badge.rv.half { background: rgba(245,158,11,.15); color: #b45309; }
 .qz-badge.rv.passed { background: rgba(34,197,94,.15); color: #15803d; }
 .qz-badge.rv.conflict { background: #fff7ed; color: #c2410c; }
 .qz-badge.rv.failed { background: #fef2f2; color: #b91c1c; }

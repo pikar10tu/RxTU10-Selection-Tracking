@@ -2,21 +2,21 @@
 // รัน: node --test src/utils/questionReview.test.js
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { computeStatus, needsReviewBy, reviewContentChanged, REVIEW_RESET, tallyReviewCounts, nextReviewQueue, buildLeaderboard, reviewStatusKey, REVIEW_STATUS_LABEL, VERDICT_LABEL, reviewWeight, pickWeighted, REVIEW_WEIGHTS } from './questionReview.js'
+import { computeStatus, needsReviewBy, reviewContentChanged, REVIEW_RESET, tallyReviewCounts, nextReviewQueue, buildLeaderboard, reviewStatusKey, REVIEW_STATUS_LABEL, VERDICT_LABEL, pickRandom } from './questionReview.js'
 
-// ── computeStatus (นับจาก reviewPass/reviewFail บน doc) ──
+// ── computeStatus (นับจาก reviewPass/reviewFail บน doc) — เกณฑ์ 1 คน/ข้อ ──
 test('ยังไม่มีเสียง → pending', () => {
   assert.equal(computeStatus({}), 'pending')
   assert.equal(computeStatus(null), 'pending')
 })
-test('1 เสียง (ยังไม่ครบ 2) → half', () => {
-  assert.equal(computeStatus({ reviewPass: 1 }), 'half')
-  assert.equal(computeStatus({ reviewFail: 1 }), 'half')
+test('1 เสียงตัดสินได้เลย — 1-0 → passed · 0-1 → failed', () => {
+  assert.equal(computeStatus({ reviewPass: 1 }), 'passed')
+  assert.equal(computeStatus({ reviewFail: 1 }), 'failed')
 })
-test('pass 2 → passed', () => {
+test('pass 2 (ของเก่าสมัยเกณฑ์ 2 คน) → passed', () => {
   assert.equal(computeStatus({ reviewPass: 2, reviewFail: 0 }), 'passed')
 })
-test('pass 1 + fail 1 → conflict', () => {
+test('pass 1 + fail 1 (ของเก่า) → conflict', () => {
   assert.equal(computeStatus({ reviewPass: 1, reviewFail: 1 }), 'conflict')
 })
 test('fail 2 (fix+wrong หรือ wrong+wrong) → failed', () => {
@@ -46,14 +46,15 @@ test('ข้อใหม่ ยังไม่มีใครตรวจ → �
   assert.equal(needsReviewBy({ reviewedBy: [] }, 'me'), true)
   assert.equal(needsReviewBy({}, 'me'), true)
 })
-test('มี 1 เสียงจากคนอื่น → ยังต้องตรวจ (หาให้ครบ 2)', () => {
-  assert.equal(needsReviewBy({ reviewedBy: ['x'], reviewPass: 1 }, 'me'), true)
+test('มี 1 เสียงจากคนอื่นแล้ว → จบ ไม่ต้องตรวจอีก (เกณฑ์ 1 คน/ข้อ)', () => {
+  assert.equal(needsReviewBy({ reviewedBy: ['x'], reviewPass: 1 }, 'me'), false)
+  assert.equal(needsReviewBy({ reviewedBy: ['x'], reviewFail: 1 }, 'me'), false)
 })
-test('ครบ 2 เสียง passed → ไม่ต้องตรวจ', () => {
+test('ครบ 2 เสียง passed (ของเก่า) → ไม่ต้องตรวจ', () => {
   const q = { reviewedBy: ['x', 'y'], reviewPass: 2, reviewFail: 0 }
   assert.equal(needsReviewBy(q, 'me'), false)
 })
-test('ครบ 2 เสียง failed → ไม่ต้องตรวจ', () => {
+test('ครบ 2 เสียง failed (ของเก่า) → ไม่ต้องตรวจ', () => {
   const q = { reviewedBy: ['x', 'y'], reviewPass: 0, reviewFail: 2 }
   assert.equal(needsReviewBy(q, 'me'), false)
 })
@@ -133,9 +134,10 @@ test('คืนเฉพาะข้อที่ฉันต้องตรว�
     { id: '2', reviewedBy: ['me'] },                                     // ตรวจแล้ว
     { id: '3', reviewedBy: ['x', 'y'], reviewPass: 2, reviewFail: 0 },   // passed
     { id: '4', reviewedBy: [] },                                         // ใหม่ → ต้องตรวจ
-    { id: '5', reviewedBy: ['x'], reviewPass: 1 },                       // 1 เสียง → ต้องตรวจ
+    { id: '5', reviewedBy: ['x'], reviewPass: 1 },                       // 1 เสียง = จบแล้ว
+    { id: '6', reviewedBy: ['x', 'y'], reviewPass: 1, reviewFail: 1 },   // conflict → รอคนตัดสิน
   ]
-  assert.deepEqual(nextReviewQueue(qs, 'me').map(q => q.id), ['4', '5'])
+  assert.deepEqual(nextReviewQueue(qs, 'me').map(q => q.id), ['4', '6'])
 })
 test('ไม่มี myUid → คิวว่าง', () => {
   assert.deepEqual(nextReviewQueue([{ reviewedBy: [] }], null), [])
@@ -159,15 +161,22 @@ test('count เท่ากัน → tiebreak ด้วยชื่อ', () => 
   assert.deepEqual(rows.map(r => r.name), ['Alpha', 'Beta'])
 })
 
-// ── สถานะ half + น้ำหนักคิว ──
-test("1 เสียง → half (แยกจาก pending เพื่อให้คิวเร่งข้อค้างได้)", () => {
-  assert.equal(computeStatus({ reviewPass: 1, reviewFail: 0 }), 'half')
-  assert.equal(computeStatus({ reviewPass: 0, reviewFail: 1 }), 'half')
-})
-
+// ── เกณฑ์ 1 คน/ข้อ: สถานะ half ต้องไม่มีทางเกิดขึ้นอีก ──
 test('ไม่มีเสียงเลย → pending', () => {
   assert.equal(computeStatus({}), 'pending')
   assert.equal(computeStatus({ reviewPass: 0, reviewFail: 0 }), 'pending')
+})
+
+test("computeStatus ไม่คืน 'half' อีกแล้วไม่ว่าเสียงเท่าไหร่", () => {
+  for (let pass = 0; pass <= 3; pass++) {
+    for (let fail = 0; fail <= 3; fail++) {
+      assert.notEqual(computeStatus({ reviewPass: pass, reviewFail: fail }), 'half')
+    }
+  }
+})
+
+test("ป้ายสถานะไม่มี half แล้ว", () => {
+  assert.equal(REVIEW_STATUS_LABEL.half, undefined)
 })
 
 test('เสียงที่ 3 นับด้วย — เสียงข้างมากตัดสิน', () => {
@@ -176,27 +185,21 @@ test('เสียงที่ 3 นับด้วย — เสียงข้
   assert.equal(computeStatus({ reviewPass: 3, reviewFail: 0 }), 'passed')
 })
 
-test('reviewWeight — conflict 8 · half 4 · pending 1', () => {
-  assert.equal(reviewWeight({ reviewPass: 1, reviewFail: 1 }), 8)
-  assert.equal(reviewWeight({ reviewPass: 1, reviewFail: 0 }), 4)
-  assert.equal(reviewWeight({}), 1)
+// ── pickRandom (สุ่มคิวแบบเท่ากันหมด แทนการถ่วงน้ำหนักเดิม) ──
+test('pickRandom — แบ่งช่วงเท่ากันตามจำนวนข้อ', () => {
+  const list = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }]
+  assert.equal(pickRandom(list, () => 0).id, 'a')
+  assert.equal(pickRandom(list, () => 0.3).id, 'b')
+  assert.equal(pickRandom(list, () => 0.5).id, 'c')
+  assert.equal(pickRandom(list, () => 0.99).id, 'd')
 })
 
-test('pickWeighted — เลือกตามช่วงน้ำหนักสะสม', () => {
-  const pending = { id: 'p' }                               // น้ำหนัก 1
-  const half = { id: 'h', reviewPass: 1, reviewFail: 0 }    // น้ำหนัก 4
-  const list = [pending, half]                              // รวม 5
-  assert.equal(pickWeighted(list, () => 0).id, 'p')         // 0.0 × 5 = 0   → ช่วงแรก
-  assert.equal(pickWeighted(list, () => 0.1).id, 'p')       // 0.5           → ช่วงแรก
-  assert.equal(pickWeighted(list, () => 0.5).id, 'h')       // 2.5           → ช่วงสอง
-  assert.equal(pickWeighted(list, () => 0.999).id, 'h')     // ~5            → ช่วงสอง
+test('pickRandom — rnd คืน 1.0 พอดี ต้องไม่หลุดขอบ array', () => {
+  const list = [{ id: 'a' }, { id: 'b' }]
+  assert.equal(pickRandom(list, () => 1).id, 'b')
 })
 
-test('pickWeighted — ลิสต์ว่างคืน null', () => {
-  assert.equal(pickWeighted([], () => 0), null)
-  assert.equal(pickWeighted(undefined, () => 0), null)
-})
-
-test('ป้ายสถานะมี half', () => {
-  assert.equal(REVIEW_STATUS_LABEL.half, 'ตรวจแล้ว 1 คน')
+test('pickRandom — ลิสต์ว่างคืน null', () => {
+  assert.equal(pickRandom([], () => 0), null)
+  assert.equal(pickRandom(undefined, () => 0), null)
 })

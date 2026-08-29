@@ -93,7 +93,7 @@ spec `docs/superpowers/specs/2026-07-10-pet-arena-battle-polish-design.md` (brai
 - **Nav: ย้าย Study ไปกลาง + วงกลมลอยเน้นเรียน** ✅ deploy (spec `2026-07-03-study-center-nav-design.md`)
 - **งานแทรก user สั่ง 4 ก.ค. ✅ deploy ครบ 4:**
   1. Battle: เพิ่มปุ่มปิดตอน peek สนามหลังจบ
-  2. Quiz: แบนเนอร์แจ้ง "ข้อสอบนำเข้าจากคลังเก่า รอทีมวิชาการตรวจ" (blanket, `.qv-notice` — ลบเมื่อมีข้อผ่านตรวจ)
+  2. Quiz: แบนเนอร์แจ้ง "ข้อสอบนำเข้าจากคลังเก่า รอทีมวิชาการตรวจ" (blanket, `.qv-notice`) — **ถอดออกแล้ว 29 ส.ค. 2026** (ข้อที่ปล่อยให้เพื่อนทำผ่านมือวิชาการแล้ว)
   3. **Daily quest rework**: quiz5/study5/gacha1 → **quiz5/ปลูกพืช3/กาชา2** · รางวัลคง buff ×1.5 + **ตั๋ว 1→3 ใบ** (field `dailyQuest.farm` แทน study)
   4. **Admin econ editor**: ปุ่ม 💰 รายคนใน AdminView ปรับ **เหรียญ + เลเวลบ้าน** (rules `isAdmin()` อนุญาตอยู่แล้ว) — แอดมินไว้ลดเลเวลบ้านตัวเองตอนเปิดเซิฟ
 

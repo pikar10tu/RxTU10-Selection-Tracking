@@ -1,8 +1,12 @@
 // ════════════════════════════════════════════════════════════
 //  Peer-review ข้อสอบ — ตรรกะล้วน (ไม่แตะ Firestore/Vue)
 //  verdict: 'correct' (ผ่าน) | 'fix' | 'wrong' (ทั้งคู่นับเป็น fail)
-//  reviewStatus: pending | half | passed | conflict | failed
+//  reviewStatus: pending | passed | conflict | failed
 //  คุมคิว pull-model + leaderboard "ใครตรวจกี่ข้อ"
+//
+//  ⚠️ เกณฑ์ = 1 คนตรวจ/ข้อ (ลดจาก 2 คน เมื่อ 29 ส.ค. 2026 — user สั่ง)
+//  สถานะ 'half' (ค้าง 1 เสียง) ถูกลบทิ้งแล้ว เกิดใหม่ไม่ได้อีก
+//  'conflict' เหลือไว้เฉพาะของเก่าที่ 2 คนตรวจแล้วผลไม่ตรงกัน — ยังรอคนที่ 3 ตัดสิน
 //
 //  aggregate บนเอกสารข้อสอบเก็บแค่ตัวนับ reviewPass/reviewFail —
 //  ห้ามเก็บ map uid→verdict บน doc เพราะข้อ published นักศึกษาอ่านได้ทั้งใบ
@@ -10,22 +14,22 @@
 // ════════════════════════════════════════════════════════════
 
 // สรุปสถานะจากตัวนับเสียงบนเอกสารข้อสอบ
-//  0 เสียง → pending · 1 เสียง → half (ค้างครึ่งทาง คิวจะเร่งให้)
-//  ≥2 เสียง: pass>fail → passed · fail>pass → failed · เสมอ → conflict (รอคนตัดสิน)
-//  เสียงที่ 3 นับด้วย (เกิดตอนหลายคนตรวจชนกัน) — เสียงข้างมากตัดสิน ไม่มีทางเสมอที่เลขคี่
+//  0 เสียง → pending
+//  ≥1 เสียง: pass>fail → passed · fail>pass → failed · เสมอ → conflict (รอคนตัดสิน)
+//  1 เสียงจึงจบข้อได้เลย (1-0 = passed · 0-1 = failed) — นี่คือเกณฑ์ 1 คน/ข้อ
+//  เสมอเกิดได้เฉพาะเลขคู่ = ของเก่าสมัยเกณฑ์ 2 คน (1-1) เท่านั้น
+//  เสียงที่ 3 นับด้วย (คนตัดสิน conflict / ตรวจชนกัน) — เสียงข้างมากตัดสิน
 export function computeStatus(question) {
   const pass = question?.reviewPass || 0
   const fail = question?.reviewFail || 0
-  const votes = pass + fail
-  if (votes === 0) return 'pending'
-  if (votes === 1) return 'half'
+  if (pass + fail === 0) return 'pending'
   if (pass > fail) return 'passed'
   if (fail > pass) return 'failed'
   return 'conflict'
 }
 
 // ข้อนี้ "ต้องให้ฉันตรวจ" ไหม
-//  กันตรวจข้อตัวเอง · กันตรวจซ้ำ · ครบ 2 แล้วหยุด (ยกเว้น conflict ที่รอคนที่ 3)
+//  กันตรวจข้อตัวเอง · กันตรวจซ้ำ · มีคนตรวจแล้วหยุด (ยกเว้น conflict ที่รอคนที่ 3)
 //  ข้อ import ไม่นับเป็น "ข้อตัวเอง" — createdBy คือคนกด import ไม่ใช่คนแต่งโจทย์
 export function needsReviewBy(question, myUid) {
   if (!myUid || !question) return false
@@ -33,7 +37,7 @@ export function needsReviewBy(question, myUid) {
   if (question.createdBy === myUid && question.source !== 'import') return false
   const reviewedBy = question.reviewedBy || []
   if (reviewedBy.includes(myUid)) return false
-  return reviewedBy.length < 2 || computeStatus(question) === 'conflict'
+  return reviewedBy.length < 1 || computeStatus(question) === 'conflict'
 }
 
 // เนื้อหาที่ผลตรวจผูกอยู่เปลี่ยนไหม (โจทย์/ตัวเลือก/เฉลย/คำอธิบาย)
@@ -65,7 +69,7 @@ export function nextReviewQueue(questions, myUid) {
 // ป้าย verdict / สถานะตรวจ — ใช้ร่วมหน้า Review + Questions
 export const VERDICT_LABEL = { correct: 'ถูกต้อง', fix: 'ต้องแก้', wrong: 'ผิด' }
 export const REVIEW_STATUS_LABEL = {
-  pending: 'รอตรวจ', half: 'ตรวจแล้ว 1 คน', passed: 'ผ่านตรวจ', conflict: 'ขัดแย้ง', failed: 'ไม่ผ่าน', retired: 'นำออก',
+  pending: 'รอตรวจ', passed: 'ผ่านตรวจ', conflict: 'ขัดแย้ง', failed: 'ไม่ผ่าน', retired: 'นำออก',
 }
 
 // key ป้ายสถานะของข้อ — 'retired' (นำออก) ทับสถานะที่คำนวณจากตัวนับ
@@ -73,24 +77,16 @@ export function reviewStatusKey(question) {
   return question?.retired ? 'retired' : computeStatus(question)
 }
 
-// น้ำหนักคิวสุ่ม — ข้อที่ "ใกล้จบ" ต้องถูกหยิบบ่อยกว่า เพื่อให้มีข้อที่ตรวจครบ 2 เยอะขึ้น
-export const REVIEW_WEIGHTS = { conflict: 8, half: 4, pending: 1 }
-export function reviewWeight(question) {
-  return REVIEW_WEIGHTS[computeStatus(question)] || 1
-}
-
-// สุ่ม 1 ข้อจากคิวตามน้ำหนัก (rnd ฉีดได้เพื่อเทส)
+// สุ่ม 1 ข้อจากคิวแบบเท่ากันหมด (rnd ฉีดได้เพื่อเทส)
 //  ผลพลอยได้: ต่างคนได้คนละข้อ → ลดการตรวจชนกันเทียบกับการเรียงแบบเดิม
-export function pickWeighted(list, rnd = Math.random) {
+//  เคยถ่วงน้ำหนัก conflict×8 / half×4 / pending×1 เพื่อเร่งข้อค้างให้ครบ 2 เสียง —
+//  พอเหลือ 1 คน/ข้อ "ข้อค้างครึ่งทาง" ไม่มีแล้ว น้ำหนักจึงหมดเหตุผล
+//  ข้อ conflict ยังเจอบ่อยกว่าสัดส่วนจริงอยู่ดี เพราะ ReviewView.load() ดึงก้อน conflict มาครบ
+//  แต่ดึง pending มาแค่หน้าต่างสุ่ม — ความถี่มาจากโครงการโหลด ไม่ต้องพึ่งน้ำหนัก
+export function pickRandom(list, rnd = Math.random) {
   const items = list || []
   if (!items.length) return null
-  const total = items.reduce((sum, q) => sum + reviewWeight(q), 0)
-  let r = rnd() * total
-  for (const q of items) {
-    r -= reviewWeight(q)
-    if (r < 0) return q
-  }
-  return items[items.length - 1]   // กันปัดเศษทศนิยมจนหลุดลูป
+  return items[Math.min(items.length - 1, Math.floor(rnd() * items.length))]
 }
 
 // leaderboard เรียงมาก→น้อย (tiebreak ชื่อ) แมพ uid→ชื่อจริงผ่าน nameMap
