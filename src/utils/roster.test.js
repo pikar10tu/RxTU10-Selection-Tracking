@@ -8,7 +8,7 @@ import { currentSeasonId } from './pvpSeason.js'
 
 const user = (over = {}) => ({
   uid: 'u1', studentId: '6512345678', nickname: 'ปิ๊ก 🌟', track: 'sci',
-  residence: { level: 7 }, googlePhoto: 'https://lh3/x', customPhoto: 'data:image/png;base64,AAAA',
+  residence: { level: 7 }, googlePhoto: 'https://lh3/x', customPhoto: 'data:image/png;base64,AAAA', photoMini: 'data:image/jpeg;base64,MINI',
   guestStatus: null, towerBest: 43, pvp: { rating: 1120, seasonId: currentSeasonId() },
   minigames: { g2048: { best: 8192, plays: 3 }, stacker: { best: 0, plays: 1 } },
   activePets: ['fox', null, 'owl'], pets: [{ id: 'fox', grade: 3 }, { id: 'owl', grade: 0 }],
@@ -26,7 +26,15 @@ test('buildRosterRow map ฟิลด์ครบ และไม่เอา cu
   assert.equal(r.tb, 43)
   assert.equal(r.r, 1120)
   assert.equal(r.customPhoto, undefined)
-  assert.equal(JSON.stringify(r).includes('base64'), false, 'ห้ามมี data URL หลุดเข้าแถว')
+  // data URL เดียวที่ยอมให้อยู่ในแถวคือ pm (ตัวจิ๋วที่ utils/photo.js คุมขนาดไว้แล้ว)
+  // — customPhoto ตัวเต็มหลุดเข้ามาเมื่อไหร่ = doc ทั้งรุ่นบวมจนชนเพดาน 1 MiB
+  const { pm, ...rest } = r
+  assert.equal(JSON.stringify(rest).includes('base64'), false, 'ห้ามมี data URL อื่นหลุดเข้าแถว')
+})
+
+test('แถวต้องไม่พา customPhoto ตัวเต็มมาด้วย แม้ user doc จะมี', () => {
+  const r = buildRosterRow(user({ customPhoto: 'data:image/png;base64,' + 'A'.repeat(20000) }))
+  assert.equal(JSON.stringify(r).length < 2000, true, 'แถวต้องเล็ก — ทั้งรุ่นโหลด doc นี้ทุกเซสชัน')
 })
 
 test('buildRosterRow เก็บ m เฉพาะเกมที่ best > 0', () => {
@@ -330,4 +338,21 @@ test('buildRosterRow pw/pl ต้องอยู่ก่อน h/ev — rosterR
   const keys = Object.keys(row)
   assert.ok(keys.indexOf('pw') < keys.indexOf('h'), 'pw ต้องมาก่อน h')
   assert.ok(keys.indexOf('pl') < keys.indexOf('ev'), 'pl ต้องมาก่อน ev')
+})
+
+// ── รูปที่ผู้ใช้อัปเอง — ตัวจิ๋วเท่านั้นที่ขี่มากับแถว (ดู utils/photo.js) ──
+test('buildRosterRow เอา photoMini ลงฟิลด์ pm แต่ยังไม่เอา customPhoto ตัวเต็ม', () => {
+  const r = buildRosterRow(user())
+  assert.equal(r.pm, 'data:image/jpeg;base64,MINI')
+  assert.equal(r.customPhoto, undefined)
+  assert.equal(r.p, 'https://lh3/x')     // รูป Google ยังอยู่ครบ ไม่ถูกแทนที่
+})
+
+test('buildRosterRow: ไม่เคยอัปรูปเอง → pm เป็น null ไม่ใช่ undefined (Firestore ไม่รับ undefined)', () => {
+  assert.equal(buildRosterRow(user({ photoMini: undefined })).pm, null)
+})
+
+test('rosterToMembers ส่ง photoMini กลับออกมาให้ view ใช้', () => {
+  const { byStudentId } = rosterToMembers({ u1: buildRosterRow(user()) })
+  assert.equal(byStudentId['6512345678'].photoMini, 'data:image/jpeg;base64,MINI')
 })

@@ -54,3 +54,20 @@ export function fallbackAvatar(e, name, size = 96) {
   const el = e?.target
   if (el && el.getAttribute('src') !== fb) el.src = fb
 }
+
+/**
+ * รูปโปรไฟล์ที่ควรแสดง — **จุดเดียวที่ตัดสินลำดับ** ห้ามเขียน `a || b || c` ซ้ำที่อื่น
+ *
+ * customPhoto (ตัวเต็ม 256px · มีเฉพาะตอนอ่าน user doc เต็ม เช่น ProfileModal/MeView)
+ *   → photoMini (ตัวจิ๋ว 48px · ตัวที่ขี่มากับแถว roster ⇒ จอที่อ่าน roster ใช้ตัวนี้)
+ *   → googlePhoto → ตัวอักษรย่อ
+ *
+ * ⚠️ เดิมแต่ละจอเขียนลำดับเอง แล้วหน้าที่อ่าน roster ไปเช็ก `customPhoto` ซึ่งแถว
+ *    roster ไม่เคยมี — เป็นโค้ดตายที่ทำให้บั๊ก "รูปที่อัปเองไม่ขึ้น" ซ่อนตัวได้นาน
+ */
+export function avatarUrl(u, name, size = 96) {
+  return (
+    u?.customPhoto || u?.photoMini || u?.googlePhoto ||
+    letterAvatar(name ?? u?.nickname, size)
+  )
+}

@@ -56,7 +56,7 @@ export function newBest(prev, score) {
 export function taBoard(rows, me, rowKey, max = 10) {
   const list = []
   for (const [uid, row] of Object.entries(rows || {})) {
-    list.push({ uid, name: row?.n || '?', photo: row?.p || null, best: Number(row?.[rowKey]) || 0, isMe: false })
+    list.push({ uid, name: row?.n || '?', photo: row?.pm || row?.p || null, best: Number(row?.[rowKey]) || 0, isMe: false })
   }
   if (me?.uid) {
     const mineRow = list.find(r => r.uid === me.uid)

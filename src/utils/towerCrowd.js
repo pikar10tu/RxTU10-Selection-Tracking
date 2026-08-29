@@ -10,7 +10,7 @@ export const CROWD_SHOWN = 3
 
 /**
  * @param {Object} rows   `roster/current`.rows = { [uid]: row }
- *                        row.n ชื่อเล่น · row.p googlePhoto · row.tb towerBest
+ *                        row.n ชื่อเล่น · row.pm/row.p รูป · row.tb towerBest
  * @param {string} meUid  uid ตัวเอง — ตัดออกจากราง (ตัวเองมี marker แยกอยู่แล้ว)
  * @returns {Map<number, {shown: Friend[], extra: number, all: Friend[]}>}
  *          Friend = { uid, name, photo }
@@ -22,7 +22,8 @@ export function buildFloorCrowd(rows, meUid) {
     const tb = Math.floor(row.tb || 0)
     if (tb < 1) continue                       // ยังไม่เคยชนะสักชั้น = ไม่ปักหมุด
     const list = byFloor.get(tb)
-    const friend = { uid, name: row.n || '?', photo: row.p || null }
+    // pm = รูปที่อัปเองตัวจิ๋ว มาก่อน googlePhoto (ลำดับเดียวกับ utils/avatar.js avatarUrl)
+    const friend = { uid, name: row.n || '?', photo: row.pm || row.p || null }
     if (list) list.push(friend)
     else byFloor.set(tb, [friend])
   }

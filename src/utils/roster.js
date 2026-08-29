@@ -65,7 +65,10 @@ export function buildRosterRow(u, prev) {
     n:  stripTrailingEmoji(d.nickname || d.name?.split(' ')[0] || '') || '?',
     t:  d.track ?? null,
     l:  num(d.residence?.level, 1),
-    p:  d.googlePhoto ?? null,      // ⚠️ ไม่เอา customPhoto — data URL ก้อนใหญ่
+    p:  d.googlePhoto ?? null,      // ⚠️ ไม่เอา customPhoto ตัวเต็ม — data URL ก้อนใหญ่
+    // รูปที่อัปเอง = ตัวจิ๋ว 48px เท่านั้น (utils/photo.js คุมไว้ ≤3KB/คน)
+    // ตัวเต็ม 256px อยู่ใน user doc ให้ ProfileModal อ่านตอนกดดูรายคน
+    pm: d.photoMini ?? null,
     g:  d.guestStatus ?? null,
     tb: num(d.towerBest, 0),
     // เรต "ของซีซั่นปัจจุบัน" — ไม่ใช่เรตดิบ เพราะ soft-reset จะถูกเขียนจริงต่อเมื่อเจ้าตัวบุกครั้งแรกของเดือน
@@ -118,6 +121,7 @@ function toMember(uid, row) {
     track: row.t,
     residence: { level: row.l },
     googlePhoto: row.p,
+    photoMini: row.pm ?? null,
     guestStatus: row.g,
     towerBest: row.tb,
     pvp: { rating: row.r },

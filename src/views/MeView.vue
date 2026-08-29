@@ -7,7 +7,7 @@
     <template v-else>
       <!-- identity (ดันขึ้นบนสุด) -->
       <div class="me-avatar-row">
-        <img class="me-avatar" :src="previewPhoto" alt="me" @error="(e) => fallbackAvatar(e, auth.userData?.nickname)" />
+        <img class="me-avatar" :src="previewPhoto" alt="me" referrerpolicy="no-referrer" @error="(e) => fallbackAvatar(e, auth.userData?.nickname)" />
         <div class="me-av-actions">
           <div class="me-nick">{{ auth.userData?.nickname || 'ฉัน' }}</div>
           <button class="me-btn-sm" @click="fileEl?.click()"><Emoji char="📷" /> เปลี่ยนรูป</button>
@@ -75,22 +75,26 @@
 <script setup>
 import { useEscapeKey } from '../composables/useEscapeKey.js'
 import Emoji from '../components/shared/Emoji.vue'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { doc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useToast } from '../composables/useToast.js'
-import { letterAvatar, fallbackAvatar } from '../utils/avatar.js'
+import { avatarUrl, fallbackAvatar } from '../utils/avatar.js'
+import { makePhotoMini } from '../utils/photo.js'
+import { useRosterSync } from '../composables/useRosterSync.js'
 import { cleanText, LIMITS } from '../utils/text.js'
 import TagChips from '../components/shared/TagChips.vue'
 import AchievementGrid from '../components/shared/AchievementGrid.vue'
 
 const auth = useAuthStore()
 const { toast } = useToast()
+const { syncRosterRow } = useRosterSync()
 
 const fileEl = ref(null)
-const newPhoto = ref(null)   // freshly picked (base64) before save
+const newPhoto = ref(null)      // freshly picked (base64) before save
+const newPhotoMini = ref(null)  // ตัวจิ๋วของรูปเดียวกัน — ตัวที่จะไปโผล่หน้าเพื่อน/หอคอย
 const phone = ref(''); const ig = ref(''); const line = ref('')
 const saving = ref(false)
 
@@ -104,8 +108,7 @@ function fill(u) {
 watch(() => auth.userData, fill, { immediate: true })
 
 const previewPhoto = computed(() =>
-  newPhoto.value || auth.userData?.customPhoto || auth.userData?.googlePhoto ||
-  letterAvatar(auth.userData?.nickname)
+  newPhoto.value || avatarUrl(auth.userData, auth.userData?.nickname)
 )
 
 // ── dev feedback → Firestore `feedback` (admin reads in Admin tab) ──
@@ -145,6 +148,22 @@ async function sendFeedback() {
   }
 }
 
+// ── Backfill: คนที่อัปรูปไว้ก่อนมีฟิลด์ photoMini ──
+// ตัวเต็มอยู่ใน doc อยู่แล้ว แค่ไม่เคยมีตัวจิ๋ว ⇒ เพื่อนเลยเห็นเป็นตัวอักษรย่อมาตลอด
+// ย่อจากตัวเต็มในเครื่องแล้วเขียนกลับครั้งเดียว — ไม่ต้องให้เจ้าตัวอัปรูปใหม่
+// ทำครั้งเดียวต่อการเปิดหน้า (รูปที่ย่อยังไงก็ไม่ลอดเพดานจะได้ไม่วนเขียนรัวๆ)
+let backfilled = false
+async function backfillMini() {
+  const u = auth.userData
+  if (backfilled || !u || !u.customPhoto || u.photoMini) return
+  backfilled = true
+  const mini = await makePhotoMini(u.customPhoto)
+  if (!mini) return
+  if (await auth.patchUser({ photoMini: mini })) syncRosterRow()
+}
+onMounted(backfillMini)
+watch(() => auth.userData?.customPhoto, backfillMini)
+
 function onFile(e) {
   const file = e.target.files?.[0]
   if (!file) return
@@ -158,7 +177,10 @@ function onFile(e) {
       const c = document.createElement('canvas')
       c.width = w; c.height = h
       c.getContext('2d').drawImage(img, 0, 0, w, h)
-      newPhoto.value = c.toDataURL('image/jpeg', 0.82)
+      const full = c.toDataURL('image/jpeg', 0.82)
+      newPhoto.value = full
+      // ตัวจิ๋วสำหรับแถว roster — ตัวเต็มใหญ่เกินกว่าที่ทั้งรุ่นจะโหลดไหว (utils/photo.js)
+      makePhotoMini(full).then((mini) => { newPhotoMini.value = mini })
     }
     img.src = reader.result
   }
@@ -175,13 +197,19 @@ async function save() {
       line: cleanText(line.value, LIMITS.contact),
     },
   }
-  if (newPhoto.value) patch.customPhoto = newPhoto.value
+  if (newPhoto.value) {
+    patch.customPhoto = newPhoto.value
+    // เขียนคู่กันเสมอ — ตัวจิ๋วคือตัวเดียวที่เพื่อนจะได้เห็นในตารางสมาชิก/หอคอย
+    patch.photoMini = newPhotoMini.value ?? await makePhotoMini(newPhoto.value)
+  }
 
   auth.blockSnapshot()
   auth.setUserDataOptimistic(patch)
   try {
     await updateDoc(doc(db, 'users', auth.currentUser.uid), patch)
     newPhoto.value = null
+    newPhotoMini.value = null
+    syncRosterRow()   // แถว roster ถือรูปจิ๋วอยู่ → เปลี่ยนรูปแล้วเพื่อนต้องเห็นทันที
     toast('บันทึกโปรไฟล์แล้ว', 'success')
   } catch (e) {
     console.error('[me save]', e)

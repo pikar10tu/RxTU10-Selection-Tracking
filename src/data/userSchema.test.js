@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { USER_DEFAULTS, normalizeUserData, WELCOME_GIFT_COINS, WELCOME_GIFT_TICKETS, hydratePet, slimPet } from './userSchema.js'
+import { USER_DEFAULTS, normalizeUserData, WELCOME_GIFT_COINS, WELCOME_GIFT_TICKETS, hydratePet, slimPet, photoRefreshPatch } from './userSchema.js'
 
 test('USER_DEFAULTS has gacha fields', () => {
   assert.equal(USER_DEFAULTS.gachaPity, 0)
@@ -149,4 +149,26 @@ test('normalizeUserData คงสถิติเดิมและเติม�
   const d = normalizeUserData({ timeAttack: { best4: 30 } })
   assert.equal(d.timeAttack.best4, 30)
   assert.equal(d.timeAttack.best15, 0)
+})
+
+// ── photoRefreshPatch — รูป Google ต้องตามเจ้าตัวไปเรื่อยๆ ──
+//    เดิม googlePhoto ถูกเขียนครั้งเดียวตอนสมัคร (newUserDoc) แล้วไม่เคยอัปเดตอีก
+//    ใครเปลี่ยนรูป Google หลังจากนั้น URL เดิมตาย → หน้าเพื่อน/หอคอยตกไปเป็นตัวอักษรย่อ
+test('photoRefreshPatch: รูปเปลี่ยน → ได้ patch', () => {
+  const p = photoRefreshPatch({ photoURL: 'https://lh3/new' }, { googlePhoto: 'https://lh3/old' })
+  assert.deepEqual(p, { googlePhoto: 'https://lh3/new' })
+})
+
+test('photoRefreshPatch: รูปเดิม → null (ไม่เขียนซ้ำทุกครั้งที่ล็อกอิน)', () => {
+  assert.equal(photoRefreshPatch({ photoURL: 'https://lh3/x' }, { googlePhoto: 'https://lh3/x' }), null)
+})
+
+test('photoRefreshPatch: doc เก่ายังไม่มีฟิลด์ → เติมให้', () => {
+  assert.deepEqual(photoRefreshPatch({ photoURL: 'https://lh3/x' }, {}), { googlePhoto: 'https://lh3/x' })
+})
+
+test('photoRefreshPatch: Auth ไม่ส่งรูปมา → null (ห้ามลบรูปเดิมทิ้ง)', () => {
+  assert.equal(photoRefreshPatch({ photoURL: null }, { googlePhoto: 'https://lh3/x' }), null)
+  assert.equal(photoRefreshPatch({}, { googlePhoto: 'https://lh3/x' }), null)
+  assert.equal(photoRefreshPatch(null, { googlePhoto: 'https://lh3/x' }), null)
 })

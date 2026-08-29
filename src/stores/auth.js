@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore'
 import { auth, db, provider, ADMIN_EMAIL, SNAPSHOT_DELAY, CONSENT_VERSION } from '../firebase/config.js'
 import { incomeBonusFromTags, effectiveTags } from '../data/tags.js'
-import { newUserDoc, normalizeUserData, slimPet } from '../data/userSchema.js'
+import { newUserDoc, normalizeUserData, slimPet, photoRefreshPatch } from '../data/userSchema.js'
 import { buildWelcomeGiftMail } from '../utils/mailbox.js'
 import { useToast } from '../composables/useToast.js'
 import { useUsageStore } from './usage.js'
@@ -99,7 +99,13 @@ export const useAuthStore = defineStore('auth', () => {
         const snap = await getDoc(ref)
         if (!snap.exists()) {
             await setDoc(ref, newUserDoc(user, serverTimestamp()))
+            return
         }
+        // รูป Google เปลี่ยนได้ตลอด แล้ว URL เดิมตาย — เดิมเขียนครั้งเดียวตอนสมัคร
+        // จึงค่อยๆ กลายเป็นตัวอักษรย่อทีละคน · เขียนต่อเมื่อ "เปลี่ยนจริง" เท่านั้น
+        // (ไม่ใช่ทุกครั้งที่ล็อกอิน) · แถว roster ฟิลด์ p ตามมาเองที่ useRosterSync
+        const patch = photoRefreshPatch(user, snap.data())
+        if (patch) await updateDoc(ref, patch)
     }
 
     // Block snapshot guard (matches existing app's __blockSnapshot pattern)

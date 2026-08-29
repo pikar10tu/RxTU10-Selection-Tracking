@@ -15,6 +15,7 @@ import { getPetDef } from './index.js'
 // applied only when SEEDING a brand-new account (see newUserDoc).
 export const USER_DEFAULTS = {
   customPhoto: null,
+  photoMini: null,     // ตัวจิ๋วของ customPhoto — ตัวเดียวที่ขี่ไปกับ roster ได้ (utils/photo.js)
   coins: 0,
   pets: [],
   activePets: [null, null, null],
@@ -115,6 +116,23 @@ export function newUserDoc(user, createdAt) {
     googlePhoto: user.photoURL,
     createdAt,
   }
+}
+
+/**
+ * Patch ที่ต้องเขียนกลับ เมื่อรูป Google ของเจ้าตัวเปลี่ยนไปจากที่เก็บไว้ใน doc
+ *
+ * ⚠️ เดิม `googlePhoto` ถูกเขียน "ครั้งเดียว" ตอนสมัคร (newUserDoc) แล้วไม่เคยแตะอีก
+ *    URL ของ lh3.googleusercontent.com ผูกกับรูปปัจจุบัน — พอเจ้าตัวเปลี่ยนรูป
+ *    URL เดิมตาย (404) → ทุกจอที่โชว์รูปเพื่อน (หน้าสมาชิก/หอคอย) ตกไปเป็นตัวอักษรย่อ
+ *    และคนกลุ่มนี้เพิ่มขึ้นเรื่อยๆ ตามเวลา
+ *
+ * คืน `null` เมื่อไม่ต้องเขียน — รวมถึงกรณี Auth ไม่ส่ง photoURL มา
+ * (บัญชีที่ไม่มีรูป / provider ไม่คืนค่า) ซึ่งต้อง "ไม่ทำอะไร" ไม่ใช่ลบของเดิมทิ้ง
+ */
+export function photoRefreshPatch(authUser, existing) {
+  const next = authUser?.photoURL || null
+  if (!next) return null
+  return next === (existing?.googlePhoto ?? null) ? null : { googlePhoto: next }
 }
 
 /**

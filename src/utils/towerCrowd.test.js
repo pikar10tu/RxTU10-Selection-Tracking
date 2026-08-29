@@ -76,6 +76,11 @@ test('photo มาจาก row.p · ไม่มีก็เป็น null (ใ
   assert.equal(byUid.b, null)
 })
 
+test('รูปที่อัปเอง (row.pm) มาก่อน googlePhoto (row.p)', () => {
+  const m = buildFloorCrowd({ a: row('เอ', 2, { p: 'https://x/y.jpg', pm: 'data:image/jpeg;base64,MINI' }) }, 'me')
+  assert.equal(m.get(2).all[0].photo, 'data:image/jpeg;base64,MINI')
+})
+
 test('ไม่มีชื่อ → ใช้ "?" ไม่ใช่ undefined', () => {
   const m = buildFloorCrowd({ a: { tb: 3 } }, 'me')
   assert.equal(m.get(3).all[0].name, '?')

@@ -7,7 +7,7 @@
       <div class="pf-hero" :style="heroStyle">
         <button class="pf-x" @click="$emit('close')">✕</button>
         <div class="pf-hero-art"><Emoji :char="tier.art" /></div>
-        <img class="pf-avatar" :src="avatar" :alt="view.nickname" @error="(e) => fallbackAvatar(e, view?.nickname)" />
+        <img class="pf-avatar" :src="avatar" :alt="view.nickname" referrerpolicy="no-referrer" @error="(e) => fallbackAvatar(e, view?.nickname)" />
         <div v-if="view.realName" class="pf-real">{{ view.realName }}</div>
         <div class="pf-name">{{ view.nickname }}</div>
         <div class="pf-residence"><Emoji :char="tier.art" /> {{ tier.tierName }} · Lv.{{ lvl }}</div>
@@ -53,7 +53,7 @@ import { computed, ref, watch } from 'vue'
 import { useMembersStore } from '../../stores/members.js'
 import Emoji from '../shared/Emoji.vue'
 import { getTier } from '../../data/residence.js'
-import { letterAvatar, fallbackAvatar } from '../../utils/avatar.js'
+import { avatarUrl, fallbackAvatar } from '../../utils/avatar.js'
 import TagChips from '../shared/TagChips.vue'
 import AchievementGrid from '../shared/AchievementGrid.vue'
 import PetStatPopup from '../pets/PetStatPopup.vue'
@@ -82,10 +82,7 @@ const petPopup = ref(null)
 const lvl  = computed(() => view.value?.residence?.level || 1)
 const tier = computed(() => getTier(lvl.value))
 
-const avatar = computed(() =>
-  view.value?.customPhoto || view.value?.googlePhoto ||
-  letterAvatar(view.value?.nickname)
-)
+const avatar = computed(() => avatarUrl(view.value, view.value?.nickname))
 const heroStyle = computed(() => ({
   background: `linear-gradient(135deg, ${tier.value.frameColor}, ${tier.value.frameColor}99)`,
 }))

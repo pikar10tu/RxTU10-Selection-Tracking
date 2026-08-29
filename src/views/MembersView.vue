@@ -47,7 +47,7 @@
         @click="m.registered && (selected = m)"
       >
         <div class="mv-av-wrap" :style="{ '--ring': trackColor(m.track) }">
-          <img class="mv-avatar" :src="avatarOf(m)" :alt="m.nickname" loading="lazy" @error="(e) => fallbackAvatar(e, m.nickname)" />
+          <img class="mv-avatar" :src="avatarOf(m)" :alt="m.nickname" loading="lazy" referrerpolicy="no-referrer" @error="(e) => fallbackAvatar(e, m.nickname)" />
           <span v-if="m.registered" class="mv-lv" :style="{ background: tierColor(m) }">{{ m.residence?.level || 1 }}</span>
         </div>
         <div class="mv-nick">{{ m.nickname }}</div>
@@ -69,7 +69,7 @@ import { useMembersStore } from '../stores/members.js'
 import { useRosterSync } from '../composables/useRosterSync.js'
 import { useAuthStore } from '../stores/auth.js'
 import { getTier } from '../data/residence.js'
-import { letterAvatar, fallbackAvatar } from '../utils/avatar.js'
+import { avatarUrl, fallbackAvatar } from '../utils/avatar.js'
 import { sortMembers } from '../utils/sortMembers.js'
 import ProfileModal from '../components/members/ProfileModal.vue'
 
@@ -129,7 +129,7 @@ const TRACK = { sci: ['Sci', '#22c55e'], care: ['Care', '#3b82f6'], guest: ['Gue
 const trackLabel = (t) => TRACK[t]?.[0] || 'สมาชิก'
 const trackColor = (t) => TRACK[t]?.[1] || '#6366f1'
 const tierColor = (m) => getTier(m.residence?.level || 1).frameColor
-const avatarOf = (m) => m.customPhoto || m.googlePhoto || letterAvatar(m.nickname)
+const avatarOf = (m) => avatarUrl(m, m.nickname)
 </script>
 
 <style scoped>

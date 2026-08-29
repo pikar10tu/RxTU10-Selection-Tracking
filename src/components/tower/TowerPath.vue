@@ -51,7 +51,7 @@
                   @click="$emit('pick', n)">
             <img v-for="f in crowdOf(n).shown" :key="f.uid" class="tp-face"
                  :src="f.photo || letterAvatar(f.name, 52)" :alt="''"
-                 width="26" height="26" loading="lazy" decoding="async"
+                 width="26" height="26" loading="lazy" decoding="async" referrerpolicy="no-referrer"
                  @error="fallbackAvatar($event, f.name, 52)" />
             <span v-if="crowdOf(n).extra" class="tp-more">+{{ crowdOf(n).extra }}</span>
           </button>

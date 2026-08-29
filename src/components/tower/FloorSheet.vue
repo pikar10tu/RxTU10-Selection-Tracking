@@ -21,7 +21,7 @@
       <ul v-if="friends.length" class="fs-friends">
         <li v-for="f in friends" :key="f.uid" class="fs-friend">
           <img class="fs-face" :src="f.photo || letterAvatar(f.name, 52)" :alt="''"
-               width="28" height="28" loading="lazy" decoding="async"
+               width="28" height="28" loading="lazy" decoding="async" referrerpolicy="no-referrer"
                @error="fallbackAvatar($event, f.name, 52)" />
           <span class="fs-name">{{ f.name }}</span>
         </li>
