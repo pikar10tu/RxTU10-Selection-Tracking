@@ -262,7 +262,7 @@ test('aura ต้องเด้ง event ป้ายด้วย — ไม่
   // เจอจากเทสจอจริง 27 ส.ค.: ทีม phoenix/whale/seal มี aura 2 ตัว → ไม่มีป้ายขึ้นเลย
   const evs = applyAuras([u('whale'), u('seal', { uid: 'A1' })], [])
   assert.equal(evs.length, 2)
-  assert.ok(evs.every(e => e.t === 'passive' && e.kind === 'aura' && e.name))
+  assert.ok(evs.every(e => e.t === 'passive' && e.fxKind === 'aura' && e.name))
 })
 
 test('ทุกทีมต้องมีป้าย passive ขึ้นอย่างน้อย 1 อันเสมอ (ไม่มีไฟต์ที่เงียบสนิท)', () => {
@@ -325,4 +325,24 @@ test('ขั้น 3 ต้องแรงกว่าขั้น 1 จริ�
     const a = passiveValueAt(p, 1), b = passiveValueAt(p, PASSIVE_MAX_LEVEL)
     assert.ok(Object.keys(p.step).some(k => b[k] > a[k]), `${id} ขั้น 3 ไม่แรงขึ้นเลย`)
   }
+})
+
+// user เทสจอจริง 29 ส.ค.: ทีม seal+whale เลือดขึ้นแต่ "เลขไม่ขึ้น"
+// เหตุ: buildBeats ใส่ kind (= เวลา) ทับ kind (= ชนิดผล) ที่ passive ส่งมา
+// → renderer มองไม่เห็น 'heal' อีกเลย · ชนิดผลจึงต้องอยู่คนละฟิลด์กับเวลา
+test('🔑 ชนิดผลของ passive ต้องรอด buildBeats — ไม่ถูก kind (เวลา) ทับ', () => {
+  const A = team(['whale', 'seal', 'turtle'], 'legendary', 5)
+  const B = team(['kirin', 'simurgh', 'bahamut'], 'legendary', 5)
+  let checked = 0
+  for (let s = 1; s <= 20; s++) {
+    const { log } = simulateBattle(A, B, s)
+    const beats = buildBeats(log, {})
+    for (const [i, e] of log.entries()) {
+      if (e.t !== 'passive' || e.effect !== 'duoRegen') continue
+      checked++
+      assert.equal(beats[i].fxKind, 'heal', `seed ${s} beat ${i}: ชนิดผลหาย`)
+      assert.ok(beats[i].amount > 0, 'ต้องมีเลือดที่ฟื้นจริงติดมาด้วย (เลข +N)')
+    }
+  }
+  assert.ok(checked > 0, 'ต้องมี duoRegen โปรกจริงถึงจะเทสได้')
 })

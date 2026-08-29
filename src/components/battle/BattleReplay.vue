@@ -579,11 +579,13 @@ function firePassiveFx(e) {
   if (typeof e.hpPct === 'number' && on[0]) hp.value = { ...hp.value, [on[0]]: e.hpPct }
   if (e.guardUid && typeof e.guardHpPct === 'number') hp.value = { ...hp.value, [e.guardUid]: e.guardHpPct }
   // เลขเขียว +N ที่ตัวที่ได้รับ — ใช้เลือดจริงที่ฟื้นได้ ไม่ใช่ % ของสูตร
-  if ((e.kind === 'heal' || e.kind === 'revive') && e.amount > 0) {
+  // ⚠️ อ่าน fxKind (ชนิดผล) ไม่ใช่ kind — kind ของ beat คือ "เวลา" (skill/skillQuiet/openGroup/…)
+  //    ทับชนิดผลไปตั้งแต่ f32b519 ⇒ ทั้งบล็อกนี้เงียบสนิท (user: "ตอนฮีล เลขไม่ขึ้น")
+  if ((e.fxKind === 'heal' || e.fxKind === 'revive') && e.amount > 0) {
     fx?.pop(on[0], { dmg: e.amount, heal: true, weight: 0.45 })
   }
 
-  switch (e.kind) {
+  switch (e.fxKind) {
     case 'damage':  fx?.sweep(on, e.icon, 60); break        // bahamut สาดไฟใส่ทุกตัว
     case 'cleave':  fx?.sweep(on, e.icon, 45); break        // เขี้ยว/เปลวไฟลงหลายใบในจังหวะเดียว
     case 'heal':    fx?.sweep(on, '✨', 70); break

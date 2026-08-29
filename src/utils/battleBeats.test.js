@@ -76,7 +76,7 @@ test('weight ไม่แตะเวลา · kind ไม่แตะ weight (�
 
 test('🔑 ไม่มี beat ไหนได้ kind = undefined (ตัวที่กันบั๊กหมัดลูกยิงเอฟเฟกต์เต็มสูตร)', () => {
   const log = [
-    pas({ effect: 'teamAtk', kind: 'aura' }),
+    pas({ effect: 'teamAtk', fxKind: 'aura' }),
     atk(), atk({ sub: true, dmg: 4 }), pas(), { t: 'round', n: 2 },
     atk({ dmg: 90, targetHpAfter: 0, dead: true }),
     { t: 'end', winner: 'A' },
@@ -136,8 +136,8 @@ test('จังหวะเป็น-ตาย ได้โมเมนต์เ
 
 test('ยกแรก: ทุกตัวเวลา 0 ยกเว้นตัวท้ายกลุ่มที่ถือเวลาค้างไว้คนเดียว', () => {
   const log = [
-    pas({ uid: 'A0', effect: 'teamAtk', kind: 'aura' }),
-    pas({ uid: 'A1', effect: 'teamCrit', kind: 'aura' }),
+    pas({ uid: 'A0', effect: 'teamAtk', fxKind: 'aura' }),
+    pas({ uid: 'A1', effect: 'teamCrit', fxKind: 'aura' }),
     atk(),
   ]
   const bs = buildBeats(log, MH)
@@ -150,8 +150,8 @@ test('ยกแรก: ทุกตัวเวลา 0 ยกเว้นตั
 test('🔑 สกิล onAttack ของตัวที่ตีคนแรก ต้องไม่ถูกกลืนเข้ายกแรก (บั๊ก 6)', () => {
   // engine push event ของ runOnAttack ก่อน log ของหมัดเสมอ
   const log = [
-    pas({ uid: 'B0', effect: 'teamAtk', kind: 'aura' }),      // ยกแรกจริง
-    pas({ uid: 'A0', effect: 'cleave', kind: 'cleave' }),     // โปรกตอนตีหมัดแรก ไม่ใช่ยกแรก
+    pas({ uid: 'B0', effect: 'teamAtk', fxKind: 'aura' }),      // ยกแรกจริง
+    pas({ uid: 'A0', effect: 'cleave', fxKind: 'cleave' }),     // โปรกตอนตีหมัดแรก ไม่ใช่ยกแรก
     atk(),
   ]
   const bs = buildBeats(log, MH)
@@ -195,12 +195,12 @@ test('pace คูณทุกเฟสเท่ากัน และไม่�
 // ── สัญญาโครงสร้าง ─────────────────────────────────────────────────
 
 test('1 event = 1 beat เสมอ (index ต้องตรงกับ log)', () => {
-  const log = [pas({ kind: 'aura', effect: 'teamAtk' }), atk(), atk({ sub: true }), { t: 'round', n: 2 }, { t: 'end' }]
+  const log = [pas({ fxKind: 'aura', effect: 'teamAtk' }), atk(), atk({ sub: true }), { t: 'round', n: 2 }, { t: 'end' }]
   assert.equal(buildBeats(log, MH).length, log.length)
 })
 
 test('deterministic: log เดิม → beat เหมือนเดิมทุกฟิลด์', () => {
-  const log = [pas({ kind: 'aura', effect: 'teamAtk' }), atk(), pas(), atk({ dmg: 99, targetHpAfter: 0, dead: true })]
+  const log = [pas({ fxKind: 'aura', effect: 'teamAtk' }), atk(), pas(), atk({ dmg: 99, targetHpAfter: 0, dead: true })]
   assert.deepEqual(buildBeats(log, MH), buildBeats(log, MH))
 })
 
@@ -214,7 +214,7 @@ test('input พัง (null / ไม่ใช่ array / event เป็น null
 
 test('totalDuration: ไฟต์ตัวอย่างอยู่ในงบที่สเปกอ้างไว้', () => {
   // 20 หมัดปกติ + 2 ko + 1 finish + ยกแรก + สกิลครั้งแรก 1 ตัว
-  const log = [pas({ kind: 'aura', effect: 'teamAtk' })]
+  const log = [pas({ fxKind: 'aura', effect: 'teamAtk' })]
   for (let i = 0; i < 20; i++) log.push(atk())
   log.push(pas())
   log.push(atk({ dmg: 99, targetHpAfter: 0, dead: true }))
@@ -222,4 +222,12 @@ test('totalDuration: ไฟต์ตัวอย่างอยู่ในง�
   log.push(atk({ dmg: 99, targetHpAfter: 0, dead: true, target: 'B1' }))
   const want = 20 * BEAT + 2 * BEAT * KO_MULT + BEAT * FINISH_MULT + OPEN_GROUP_MS + SKILL_PAUSE
   assert.equal(Math.round(totalDuration(buildBeats(log, MH))), want)
+})
+
+test('🔑 beat.kind (เวลา) ต้องไม่ทับ fxKind (ชนิดผล) ที่ passive ส่งมา', () => {
+  const log = [atk(), pas({ effect: 'duoRegen', fxKind: 'heal', amount: 12, hpPct: 74 })]
+  const bs = buildBeats(log, MH)
+  assert.equal(bs[1].kind, 'skill', 'kind = เวลา')
+  assert.equal(bs[1].fxKind, 'heal', 'ชนิดผลต้องรอดมาถึง renderer')
+  assert.equal(bs[1].amount, 12, 'เลข +N ต้องรอดมาด้วย')
 })

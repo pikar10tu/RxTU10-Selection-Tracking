@@ -173,6 +173,8 @@ export function buildBeats(log, maxHpByUid) {
 
     if (!inf) {
       const kind = pKind.get(i) || null
+      // 🔴 `kind` ที่ใส่ตรงนี้ทับฟิลด์ชื่อเดียวกันของ event เดิมเสมอ — ชนิดผลของ passive
+      //    จึงต้องชื่อ `fxKind` (ดู battlePassives.js) ห้ามมีใครส่ง `kind` มากับ event อีก
       return {
         ...ev, kind, weight: 0, timing: timingOf(kind),
         dmgPct: 0, hpPctAfter: 1, kill: false, danger: false, survive: false,
