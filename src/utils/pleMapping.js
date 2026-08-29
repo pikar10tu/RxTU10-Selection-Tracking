@@ -12,7 +12,7 @@
 //     แต่แตะ pleGroup/pleSub ไม่ได้ (ไม่มีในโค้ดมัน) ⇒ แหล่งความจริงรอดเสมอ
 //     แล้วปุ่มซิงก์ของแอดมิน re-derive categories กลับมาให้ถูกในรอบถัดไป
 // ════════════════════════════════════════════════════════════
-import { groupByKey, groupLabel, isPleGroupKey, isValidSub } from '../data/plecc.js'
+import { PLE_GROUPS, groupByKey, groupLabel, isPleGroupKey, isValidSub, subsOf } from '../data/plecc.js'
 import { getCategories } from './questionCategories.js'
 
 // ── ตารางแมพชื่อหมวดเดิม (82 หมวดในทะเบียน ณ 29 ส.ค. 2026) → key กลุ่มใหม่ ──
@@ -119,20 +119,33 @@ export const LEGACY_SUB_MAP = {
 
 const norm = (s) => (s || '').trim()
 
-// เดากลุ่มจากชื่อหมวดเดิมของข้อ — คืน key แรกที่แมพได้ (null = แมพไม่ได้ ต้องให้คนเคาะ)
-//  ข้อเก่ามีได้หลายหมวด: ตัวที่ชี้ชัดกว่ามักถูกใส่ทีหลัง แต่เราไม่เดาลำดับ — เอาตัวแรกที่รู้จัก
+// ป้ายกลุ่มแบบ canonical ("Endocrine (ต่อมไร้ท่อ)") → key
+//  จำเป็นเพราะ categories ที่ระบบเราเขียนเองใช้ป้ายพวกนี้ ไม่ใช่ชื่อเดิม —
+//  ถ้าไม่รู้จัก ข้อที่ import มาพร้อมป้าย canonical จะตกกอง "ไม่มีกลุ่มโรค" ทั้งที่ระบุมาถูกแล้ว
+const CANONICAL_LABEL_MAP = Object.fromEntries(
+  PLE_GROUPS.map(g => [groupLabel(g.key), g.key]).filter(([label]) => !!label)
+)
+
+// เดากลุ่มจากชื่อหมวดของข้อ — คืน key แรกที่แมพได้ (null = แมพไม่ได้ ต้องให้คนเคาะ)
+//  ลองป้าย canonical ก่อน แล้วค่อยตกไปตารางชื่อเดิม
+//  ข้อเก่ามีได้หลายหมวด: ไม่เดาลำดับ — เอาตัวแรกที่รู้จัก
 export function inferGroup(categories) {
   for (const c of (Array.isArray(categories) ? categories : [])) {
-    const key = LEGACY_GROUP_MAP[norm(c)]
+    const name = norm(c)
+    const key = CANONICAL_LABEL_MAP[name] || LEGACY_GROUP_MAP[name]
     if (key && isPleGroupKey(key)) return key
   }
   return null
 }
 
-// เดาโรคย่อยจากชื่อหมวดเดิม — ต้องอยู่ในกลุ่มที่ส่งมาด้วย ไม่งั้นทิ้ง (กันข้ามกลุ่ม)
+// เดาโรคย่อยจากชื่อหมวด — ต้องอยู่ในกลุ่มที่ส่งมาด้วย ไม่งั้นทิ้ง (กันข้ามกลุ่ม)
+//  ชื่อที่ตรงกับโรคย่อย canonical อยู่แล้ว (เช่น "Diabetes mellitus") ใช้ได้ตรงๆ
 export function inferSub(categories, groupKey) {
+  const canonical = new Set(subsOf(groupKey))
   for (const c of (Array.isArray(categories) ? categories : [])) {
-    const sub = LEGACY_SUB_MAP[norm(c)]
+    const name = norm(c)
+    if (canonical.has(name)) return name
+    const sub = LEGACY_SUB_MAP[name]
     if (sub && isValidSub(groupKey, sub)) return sub
   }
   return null

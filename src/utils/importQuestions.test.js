@@ -17,8 +17,65 @@ test('นำเข้าข้อที่ถูกต้อง 1 ข้อ → 
   assert.equal(r.rows.length, 1)
   assert.deepEqual(r.rows[0], {
     question: 'ยาใดเป็น first-line', choices: ['A', 'B', 'C', 'D'], answer: 2,
-    categories: ['ยาปฏิชีวนะ'], explanation: 'เพราะ X', domain: null, isPublished: false, examSets: [],
+    // หมวดที่ไม่รู้จัก → เก็บชื่อไว้ แต่ไม่มีกลุ่ม (ไปโผล่ในกอง "ไม่มีกลุ่มโรค" ให้วิชาการเคาะ)
+    pleGroup: null, pleSub: null, categories: ['ยาปฏิชีวนะ'],
+    explanation: 'เพราะ X', domain: null, isPublished: false, examSets: [],
   })
+})
+
+// ── กลุ่มโรคตามเกณฑ์สภาฯ (pleGroup/pleSub) ──
+test('pleGroup + pleSub ที่ถูกต้อง → เก็บครบ + derive categories ให้เอง', () => {
+  const r = parseImport(one({
+    question: 'Q', choices: ['a', 'b'], answer: 0,
+    pleGroup: 'endo', pleSub: 'Diabetes mellitus',
+  }))
+  assert.equal(r.warnings.length, 0)
+  assert.equal(r.rows[0].pleGroup, 'endo')
+  assert.equal(r.rows[0].pleSub, 'Diabetes mellitus')
+  assert.deepEqual(r.rows[0].categories, ['Endocrine (ต่อมไร้ท่อ)', 'Diabetes mellitus'])
+})
+test('pleGroup ถูก แต่ไม่ระบุ pleSub → ได้แค่ป้ายกลุ่ม ไม่มี warning', () => {
+  const r = parseImport(one({ question: 'Q', choices: ['a', 'b'], pleGroup: 'pulm' }))
+  assert.equal(r.rows[0].pleSub, null)
+  assert.deepEqual(r.rows[0].categories, ['Pulmonary (ปอด)'])
+  assert.equal(r.warnings.length, 0)
+})
+test('pleGroup มั่ว → ไม่ทิ้งข้อ แต่ต้องเตือน', () => {
+  const r = parseImport(one({ question: 'Q', choices: ['a', 'b'], pleGroup: 'ไม่มีกลุ่มนี้' }))
+  assert.equal(r.rows.length, 1)
+  assert.equal(r.rows[0].pleGroup, null)
+  assert.equal(r.warnings.length, 1)
+  assert.match(r.warnings[0].reason, /pleGroup/)
+})
+test('pleSub ข้ามกลุ่ม → ตัด sub ทิ้ง + เตือน (กลุ่มยังใช้ได้)', () => {
+  const r = parseImport(one({ question: 'Q', choices: ['a', 'b'], pleGroup: 'pulm', pleSub: 'Obesity' }))
+  assert.equal(r.rows[0].pleGroup, 'pulm')
+  assert.equal(r.rows[0].pleSub, null)
+  assert.equal(r.warnings.length, 1)
+  assert.match(r.warnings[0].reason, /pleSub/)
+})
+test('ไม่มี pleGroup แต่ category เป็นชื่อเดิมที่รู้จัก → เดากลุ่มให้', () => {
+  const r = parseImport(one({ question: 'Q', choices: ['a', 'b'], category: 'โรคหืด' }))
+  assert.equal(r.rows[0].pleGroup, 'pulm')
+  assert.equal(r.rows[0].pleSub, 'Asthma')
+  assert.equal(r.warnings.length, 0)
+})
+test('ไม่มี pleGroup แต่ category เป็นป้าย canonical → เดากลุ่มให้', () => {
+  const r = parseImport(one({
+    question: 'Q', choices: ['a', 'b'], categories: ['Renal (ไต)', 'Chronic kidney diseases (CKD)'],
+  }))
+  assert.equal(r.rows[0].pleGroup, 'renal')
+  assert.equal(r.rows[0].pleSub, 'Chronic kidney diseases (CKD)')
+})
+test('warnings แยกจาก skipped — ข้อยังนำเข้าได้ปกติ', () => {
+  const r = parseImport(JSON.stringify([
+    { question: 'Q1', choices: ['a', 'b'], pleGroup: 'มั่ว' },
+    { question: 'Q2', choices: ['a', 'b'], pleGroup: 'renal' },
+  ]))
+  assert.equal(r.rows.length, 2)
+  assert.equal(r.skipped.length, 0)
+  assert.equal(r.warnings.length, 1)
+  assert.equal(r.warnings[0].index, 0)
 })
 
 test('บังคับ isPublished:false เสมอ แม้ JSON ส่ง true มา', () => {
@@ -125,6 +182,15 @@ test('domain มั่ว (ไม่อยู่ใน Care/Sci/Law) → null', 
   assert.equal(r.rows[0].domain, null)
 })
 
+test('ไม่ส่ง domain แต่มี pleGroup → เดา domain จากกลุ่ม', () => {
+  assert.equal(parseImport(one({ question: 'Q', choices: ['a', 'b'], pleGroup: 'renal' })).rows[0].domain, 'care')
+  assert.equal(parseImport(one({ question: 'Q', choices: ['a', 'b'], pleGroup: 'other' })).rows[0].domain, 'law')
+  assert.equal(parseImport(one({ question: 'Q', choices: ['a', 'b'], pleGroup: 'sci_chem' })).rows[0].domain, 'sci')
+})
+test('domain ที่ส่งมาชนะการเดาจากกลุ่ม', () => {
+  const r = parseImport(one({ question: 'Q', choices: ['a', 'b'], pleGroup: 'renal', domain: 'law' }))
+  assert.equal(r.rows[0].domain, 'law')
+})
 test('domain ไม่ส่งมา → null', () => {
   const r = parseImport(one({ question: 'Q', choices: ['a', 'b'], answer: 0 }))
   assert.equal(r.rows[0].domain, null)

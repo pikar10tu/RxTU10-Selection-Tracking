@@ -49,6 +49,13 @@
           <div v-if="importError" class="qz-import-err"><Emoji char="⚠️" /> {{ importError }}</div>
           <div v-else-if="importText.trim()" class="qz-import-hint">
             พร้อมนำเข้า <b>{{ importCount }}</b> ข้อ<span v-if="importSkipped"> · ข้าม {{ importSkipped }} ข้อ (ผิดรูปแบบ)</span>
+            <div v-if="importWarnings.length" class="qz-import-warn">
+              <Emoji char="⚠️" /> กลุ่มโรคมีปัญหา {{ importWarnings.length }} ข้อ (ยังนำเข้าได้ แต่จะไปอยู่ในกอง "ไม่มีกลุ่มโรค"):
+              <ul class="qz-import-warn-list">
+                <li v-for="w in importWarnings.slice(0, 5)" :key="w.index">ข้อที่ {{ w.index + 1 }} — {{ w.reason }}</li>
+                <li v-if="importWarnings.length > 5">…และอีก {{ importWarnings.length - 5 }} ข้อ</li>
+              </ul>
+            </div>
           </div>
 
           <div class="qz-import-sets">
@@ -661,6 +668,7 @@ async function onFile(e) {
 const importParsed = computed(() => parseImport(importText.value))
 const importCount = computed(() => importParsed.value.rows.length)
 const importSkipped = computed(() => importParsed.value.skipped.length)
+const importWarnings = computed(() => importParsed.value.warnings || [])
 const importError = computed(() => (importText.value.trim() ? importParsed.value.error : null))
 
 async function runImport() {
@@ -1138,6 +1146,8 @@ async function resolveReports(g, verdict) {
 .qz-tab.on { background: var(--primary); color: #fff; box-shadow: var(--pop); }
 .qz-tab:active { transform: translate(1px,1px); }
 
+.qz-import-warn { margin-top: 8px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 8px 11px; font-size: .74rem; line-height: 1.5; color: #92400e; font-weight: 600; }
+.qz-import-warn-list { list-style: disc; margin: 5px 0 0; padding-left: 18px; font-weight: 500; }
 .qz-import { background: #fff; border: 2px dashed var(--ink); border-radius: 16px; padding: 4px 14px; margin-bottom: 16px; }
 .qz-import[open] { padding-bottom: 14px; }
 .qz-import-sum { cursor: pointer; font-weight: 800; font-size: .9rem; padding: 11px 0; list-style: none; user-select: none; }
