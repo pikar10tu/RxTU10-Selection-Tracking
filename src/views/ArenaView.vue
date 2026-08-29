@@ -13,12 +13,11 @@
     </div>
 
     <template v-if="authStore.isLoggedIn">
-      <!-- สรุปแต้ม -->
-      <div class="ar-card ar-me">
-        <div class="ar-rating"><Emoji char="🏆" /> แต้มประลอง <b>{{ rating.toLocaleString() }}</b></div>
-        <div class="ar-sub">ชนะ {{ wins }} · แพ้ {{ losses }} · โจมตีได้อีก <b>{{ attacksLeft }}</b> ครั้งวันนี้</div>
-        <button class="ar-edit" @click="pickOpen = true"><Emoji char="🛡️" /> จัดทีม</button>
-      </div>
+      <ArenaStatus
+        :rating="rating" :wins="wins" :losses="losses" :attacks-left="attacksLeft"
+        :my-rank="rivals.myRank" :total="rivals.total" :team="myTeam"
+        @pick="pickOpen = true"
+      />
 
       <!-- กระดานคู่ต่อสู้ -->
       <div class="ar-board-head">
@@ -67,13 +66,16 @@ import { useArena } from '../composables/useArena.js'
 import TeamPicker from '../components/battle/TeamPicker.vue'
 import BattleReplay from '../components/battle/BattleReplay.vue'
 import PvpHistory from '../components/battle/PvpHistory.vue'
+import ArenaStatus from '../components/battle/ArenaStatus.vue'
+import { arenaRanking } from '../utils/arenaRivals.js'
+import { PVP_RATING_START } from '../utils/pvpRating.js'
 import PetThumb from '../components/shared/PetThumb.vue'
 import HelpButton from '../components/help/HelpButton.vue'
 
 const authStore = useAuthStore()
 const members = useMembersStore()
 const { pvpOpen } = useAppConfig()
-const { rating, wins, losses, attacksLeft, opponents, fight, refreshBoard, refreshLeft, coinPreview } = useArena()
+const { rating, wins, losses, attacksLeft, myTeam, opponents, fight, refreshBoard, refreshLeft, coinPreview } = useArena()
 
 const pickOpen = ref(false)
 const replay = ref(null)
@@ -88,6 +90,27 @@ onMounted(() => { if (!canFight.value) router.replace('/play') })
 watch(canFight, (ok) => { if (!ok) router.replace('/play') })   // admin ปิดสนามระหว่างมีคนอยู่ในหน้า
 
 const oppPreview = (opp) => opp.team   // roster/บอท ให้ทีมมาพร้อมแล้ว
+
+// อันดับแต้มประลองทั้งรุ่น — อ่าน rosterRows ดิบ (rosterUsers key ด้วย studentId แล้วตก guest)
+// ค่าสดของเราจาก useArena ทับแถวตัวเองใน roster ซึ่งอาจเก่ากว่าหนึ่งไฟต์
+// ⚠️ ไม่มี Firestore read เพิ่ม — roster โหลดไว้แล้วตอน onMounted
+const rivals = computed(() => {
+  const meUid = authStore.currentUser?.uid || 'me'
+  const others = Object.entries(members.rosterRows || {})
+    .filter(([uid, r]) => r && uid !== meUid)
+    .map(([uid, r]) => ({
+      uid,
+      nickname: r.n || '?',
+      rating: typeof r.r === 'number' ? r.r : PVP_RATING_START,
+      wins: r.pw || 0,
+      losses: r.pl || 0,
+    }))
+  return arenaRanking(others, {
+    uid: meUid,
+    nickname: authStore.userData?.nickname || 'ฉัน',
+    rating: rating.value, wins: wins.value, losses: losses.value,
+  })
+})
 
 async function onFight(opp) {
   if (busy.value) return
@@ -109,12 +132,6 @@ onMounted(() => { members.loadRoster() })
 .ar-head { display: flex; align-items: center; justify-content: space-between; }
 .ar-head-r { display: flex; align-items: center; gap: 8px; }
 .ar-back { font-size: .8rem; color: var(--muted); text-decoration: none; }
-.ar-card { background: #fff; border: 2px solid var(--ink); border-radius: 16px; box-shadow: var(--pop); padding: 14px 16px; margin-bottom: 12px; }
-.ar-rating { font-size: 1rem; font-weight: 700; }
-.ar-rating b { color: var(--primary); font-size: 1.15rem; }
-.ar-sub { font-size: .72rem; color: rgba(0,0,0,.55); margin-top: 4px; }
-.ar-edit { margin-top: 10px; border: 2px solid var(--ink); background: #fff; border-radius: 11px; padding: 9px 14px; font-family: inherit; font-weight: 800; font-size: .78rem; cursor: pointer; box-shadow: var(--pop); display: inline-flex; align-items: center; gap: 5px; }
-.ar-edit:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .ar-list { display: flex; flex-direction: column; gap: 8px; }
 .ar-opp { display: flex; align-items: center; gap: 8px; background: #fff; border: 2px solid var(--ink); border-radius: 14px; box-shadow: var(--pop); padding: 8px 10px; }
 .ar-opp-info { display: flex; flex-direction: column; gap: 2px; min-width: 84px; }
