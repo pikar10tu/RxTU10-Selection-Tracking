@@ -4,17 +4,22 @@
      ⚠️ ฝั่งตั้งรับห้ามโชว์เหรียญและห้ามให้รางวัล — ผู้บุกเป็นคนจดผลเอง (ดูสเปก) -->
 <template>
   <div class="ph">
-    <div class="ph-head">
+    <!-- พับไว้เป็นค่าเริ่มต้น — ของย้อนหลังไม่ควรกินพื้นที่ตอนเปิดหน้า
+         แต่หัวข้อต้องบอกว่าข้างในมีอะไร ไม่งั้นไม่มีใครกด -->
+    <button class="ph-toggle" :aria-expanded="open" @click="open = !open">
       <span class="ph-title"><Emoji char="📜" /> ประวัติ</span>
-      <div class="ph-tabs" role="tablist">
-        <button class="ph-tab" :class="{ on: tab === 'def' }" role="tab" :aria-selected="tab === 'def'"
-          @click="tab = 'def'">ตั้งรับ</button>
-        <button class="ph-tab" :class="{ on: tab === 'atk' }" role="tab" :aria-selected="tab === 'atk'"
-          @click="tab = 'atk'">เราไปบุก</button>
-      </div>
+      <span v-if="defSummary" class="ph-sum">{{ defSummary }}</span>
+      <span class="ph-caret" :class="{ open }">▸</span>
+    </button>
+
+    <div v-if="open" class="ph-tabs" role="tablist">
+      <button class="ph-tab" :class="{ on: tab === 'def' }" role="tab" :aria-selected="tab === 'def'"
+        @click="tab = 'def'">ตั้งรับ</button>
+      <button class="ph-tab" :class="{ on: tab === 'atk' }" role="tab" :aria-selected="tab === 'atk'"
+        @click="tab = 'atk'">เราไปบุก</button>
     </div>
 
-    <template v-if="tab === 'def'">
+    <template v-if="open && tab === 'def'">
       <div v-if="!defense.length" class="ph-empty">ยังไม่มีใครมาบุกเลย — ทีมที่จัดไว้กำลังเฝ้าอยู่</div>
       <div v-for="(r, i) in defense" :key="'d' + i" class="ph-row">
         <span class="ph-who"><Emoji char="🛡️" /> {{ r.name }} บุกเรา</span>
@@ -23,7 +28,7 @@
       </div>
     </template>
 
-    <template v-else>
+    <template v-else-if="open">
       <div v-if="!attacks.length" class="ph-empty">ยังไม่ได้ออกบุกใครเลย — เลือกสักคนจากกระดานด้านบน</div>
       <div v-for="(r, i) in attacks" :key="'a' + i" class="ph-row">
         <span class="ph-who"><Emoji char="⚔️" /> บุก {{ r.name }}</span>
@@ -33,7 +38,7 @@
       </div>
     </template>
 
-    <div class="ph-note">เก็บ 5 รายการล่าสุดของแต่ละคน · ทั้งรุ่นเห็นประวัติของกันและกันได้</div>
+    <div v-if="open" class="ph-note">เก็บ 5 รายการล่าสุดของแต่ละคน · ทั้งรุ่นเห็นประวัติของกันและกันได้</div>
   </div>
 </template>
 
@@ -48,18 +53,30 @@ const auth = useAuthStore()
 const members = useMembersStore()
 
 const tab = ref('def')
+const open = ref(false)
 const now = Date.now()   // แช่ไว้ตอน mount — ป้ายเวลาไม่ต้องเดินสด (เลี่ยง re-render ทั้งลิสต์)
 
 const uid = computed(() => auth.currentUser?.uid)
 const attacks = computed(() => myAttacks(members.rosterRows || {}, uid.value))
 const defense = computed(() => defenseLog(members.rosterRows || {}, uid.value))
+
+// บรรทัดสรุปบนหัวข้อ — นับจาก defenseLog ที่ computed อยู่แล้ว ไม่ได้สแกน roster ซ้ำ
+const defSummary = computed(() => {
+  const list = defense.value
+  if (!list.length) return ''
+  const held = list.filter(r => r.won).length
+  return `โดนบุก ${list.length} ครั้ง (รอด ${held})`
+})
 </script>
 
 <style scoped>
 .ph { background: #fff; border: 2px solid var(--ink); border-radius: 16px; box-shadow: var(--pop); padding: 12px 14px; margin-top: 14px; }
-.ph-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-.ph-title { font-size: .88rem; font-weight: 800; }
-.ph-tabs { display: flex; gap: 6px; }
+.ph-toggle { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none; padding: 0; font-family: inherit; cursor: pointer; text-align: left; color: inherit; }
+.ph-title { font-size: .88rem; font-weight: 800; flex-shrink: 0; }
+.ph-sum { flex: 1; font-size: .74rem; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ph-caret { margin-left: auto; font-size: .8rem; color: var(--muted); transition: transform .15s ease; }
+.ph-caret.open { transform: rotate(90deg); }
+.ph-tabs { display: flex; gap: 6px; margin: 10px 0 4px; }
 .ph-tab { border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 4px 12px; font-family: inherit; font-weight: 800; font-size: .72rem; cursor: pointer; }
 .ph-tab.on { background: var(--primary); color: #fff; }
 .ph-row { display: flex; align-items: center; gap: 6px; padding: 7px 0; border-top: 1px dashed rgba(0,0,0,.12); font-size: .76rem; }
