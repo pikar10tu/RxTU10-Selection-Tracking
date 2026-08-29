@@ -90,6 +90,18 @@
         <button class="btn-mini" :disabled="reviewSyncBusy" @click="syncReviewSystem">
           {{ reviewSyncBusy ? 'กำลังซิงก์…' : '🔄 ซิงก์ระบบตรวจ' }}
         </button>
+
+        <div class="admin-hint" style="margin-top:12px">
+          <b>แมพหมวดเข้าเกณฑ์สภาฯ</b> — ย้ายหมวดเดิม (free text) ไปเป็น <code>pleGroup</code>/<code>pleSub</code>
+          ตามภาคผนวก ๑ ของประกาศศูนย์สอบฯ · กดซ้ำได้ ปลอดภัย ·
+          <b>ไม่แตะผลตรวจและไม่ล้างคิวของใคร</b> (ไม่ยุ่งกับ qhash)
+          <br />⚠️ กดตอนที่ไม่มีเพื่อนนั่งตรวจค้างอยู่จะดีที่สุด — ถ้ามีคนส่งผลด้วยหน้าเว็บเวอร์ชันเก่า
+          ระหว่างนี้ ป้ายหมวดของข้อนั้นอาจกลับไปเป็นชื่อเดิมชั่วคราว กดปุ่มนี้ซ้ำก็หายเอง
+        </div>
+        <button class="btn-mini" :disabled="pleMigrateBusy" @click="migratePleGroups">
+          {{ pleMigrateBusy ? 'กำลังแมพ…' : '🏷️ แมพหมวดเข้าเกณฑ์สภาฯ' }}
+        </button>
+        <div v-if="pleReport" class="admin-hint" style="margin-top:8px">{{ pleReport }}</div>
       </section>
 
       <!-- ───── Roster (doc สรุปรวมทั้งรุ่น) ───── -->
@@ -459,6 +471,13 @@ import { ACHIEVEMENTS } from '../data/achievements.js'
 import { usageStatus, DAILY_READ_LIMIT, DAILY_WRITE_LIMIT } from '../utils/usageMeter.js'
 import { computeStatus, reviewStatusKey, tallyReviewCounts } from '../utils/questionReview.js'
 import { getCategories } from '../utils/questionCategories.js'
+import { migrationPlan, plePatch } from '../utils/pleMapping.js'
+
+// categories ของข้อนี้หลุดจากที่ควรเป็นตาม pleGroup ไหม (= ร่องรอย client เก่าเขียนทับ)
+function pleCatsDrifted(q) {
+  const d = plePatch(q?.pleGroup, q?.pleSub)
+  return !!d && JSON.stringify(getCategories(q)) !== JSON.stringify(d.categories)
+}
 import { distinctCategories } from '../utils/questionsFilter.js'
 import { useTopics } from '../composables/useTopics.js'
 import BattleReplay from '../components/battle/BattleReplay.vue'
@@ -535,6 +554,7 @@ async function syncReviewSystem() {
     const stale = all.filter(q =>
       (q.reviewStatus || null) !== computeStatus(q)
       || q.reviewVerdicts !== undefined
+      || pleCatsDrifted(q)
       || (!Array.isArray(q.categories) && !!q.category)
       || typeof q.rand !== 'number')
     for (let i = 0; i < stale.length; i += 500) {
@@ -547,6 +567,11 @@ async function syncReviewSystem() {
           reviewVerdicts: deleteField(),
         }
         if (!Array.isArray(q.categories) && q.category) patch.categories = getCategories(q)
+        // ข้อที่มี pleGroup แล้วแต่ categories ไม่ตรง = ถูก client เวอร์ชันเก่าเขียนทับ → ซ่อมกลับ
+        const rederived = plePatch(q.pleGroup, q.pleSub)
+        if (rederived && JSON.stringify(getCategories(q)) !== JSON.stringify(rederived.categories)) {
+          patch.categories = rederived.categories
+        }
         if (typeof q.rand !== 'number') patch.rand = Math.random()
         batch.update(doc(db, 'questions', q.id), patch)
       }
@@ -585,6 +610,36 @@ async function syncReviewSystem() {
     toast(`ซิงก์แล้ว — อัปเดต ${stale.length} ข้อ · ความคืบหน้าตั้งต้นใหม่แล้ว${topicTail}`, 'success')
   } catch (e) { console.error('[review sync]', e); toast('ซิงก์ไม่สำเร็จ', 'error') }
   finally { reviewSyncBusy.value = false }
+}
+
+// แมพหมวดเดิม → pleGroup/pleSub ตามเกณฑ์สภาฯ (data/plecc.js)
+//  idempotent: migrationPlan คืนเฉพาะข้อที่ค่าต่างจริง กดซ้ำแล้วไม่มีอะไรให้เขียนก็จบ
+//  ⚠️ patch มีแค่ pleGroup/pleSub/categories — ไม่แตะ qhash/โจทย์/ผลตรวจ
+//     ⇒ รีวิวที่ค้างอยู่ในมือเพื่อนไม่กลายเป็น __stale และไม่มีใครเสียงานที่ตรวจไปแล้ว
+const pleMigrateBusy = ref(false)
+const pleReport = ref('')
+async function migratePleGroups() {
+  if (pleMigrateBusy.value) return
+  pleMigrateBusy.value = true
+  pleReport.value = ''
+  try {
+    const snap = await getDocs(collection(db, 'questions'))
+    const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    const { updates, unmapped } = migrationPlan(all)
+    for (let i = 0; i < updates.length; i += 450) {
+      const batch = writeBatch(db)
+      for (const u of updates.slice(i, i + 450)) batch.update(doc(db, 'questions', u.id), u.patch)
+      await batch.commit()
+    }
+    usage.track(snap.size, updates.length)
+    const names = unmapped.slice(0, 5).map(q => getCategories(q).join('/') || '(ไม่มีหมวด)')
+    pleReport.value = updates.length || unmapped.length
+      ? `แมพแล้ว ${updates.length} ข้อ · แมพไม่ได้ ${unmapped.length} ข้อ` +
+        (unmapped.length ? ` — ต้องเข้าไปเลือกกลุ่มเองในหน้าคลัง เช่น ${names.join(', ')}` : '')
+      : 'ทุกข้ออยู่ในเกณฑ์สภาฯ อยู่แล้ว ไม่มีอะไรต้องแก้'
+    toast(`แมพหมวดแล้ว ${updates.length} ข้อ`, 'success')
+  } catch (e) { console.error('[ple migrate]', e); toast('แมพหมวดไม่สำเร็จ', 'error') }
+  finally { pleMigrateBusy.value = false }
 }
 
 // สถิติการสู้ราย species (อ่านทั้ง collection — admin คนเดียว cost ไม่สำคัญ)

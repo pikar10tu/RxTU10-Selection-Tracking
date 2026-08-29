@@ -214,9 +214,11 @@ service cloud.firestore {
       }
       // ชุด key ที่ยอมให้แตะตอน "ส่งผลตรวจ" = review keys + หมวด + หมายเหตุผู้ตรวจ
       // (ผู้ตรวจติดแท็กหมวดและเขียนหมายเหตุไปพร้อมกับการส่งผลได้ในทรานแซกชันเดียว)
+      //  pleGroup/pleSub = กลุ่มโรคตามเกณฑ์สภาฯ (data/plecc.js) ผู้ตรวจยืนยัน/แก้ได้ตอนส่งผล
+      //  categories เป็นค่าที่ derive จากสองตัวนั้น — ยังต้องอยู่ในชุดนี้เพราะเขียนไปพร้อมกัน
       function reviewSubmitKeys() {
         return ['reviewedBy', 'reviewPass', 'reviewFail', 'reviewStatus', 'reviewVerdicts',
-                'category', 'categories', 'reviewNote'].toSet();
+                'category', 'categories', 'reviewNote', 'pleGroup', 'pleSub'].toSet();
       }
       // ส่งผลตรวจจริง: แตะเฉพาะ review fields + ไม่เคยตรวจ + ไม่ใช่ข้อตัวเอง (ยกเว้น import)
       // + เสียงรวม +1 พอดี + transaction เดียวกันต้องเขียน reviews/{uid} ของตัวเองด้วย

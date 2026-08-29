@@ -64,8 +64,8 @@
             >{{ v.label }}</button>
           </div>
 
-          <label class="rv-label">หมวด / กลุ่มโรค (เลือกได้หลายกลุ่ม — ใช้ทำสถิติรายหัวข้อ)</label>
-          <TopicSelect v-model="topics" />
+          <label class="rv-label">กลุ่มโรค / หมวด (ตามเกณฑ์สภาฯ — ยืนยันหรือแก้ให้ถูกก่อนส่งผล)</label>
+          <TopicSelect v-model="ple" />
 
           <label class="rv-label">เหตุผล (บังคับเมื่อ "ต้องแก้ / ผิด")</label>
           <textarea v-model="reason" :maxlength="LIMITS.reviewReason" class="rv-input" rows="3" placeholder="อธิบายว่าทำไมตัดสินแบบนี้…"></textarea>
@@ -146,17 +146,17 @@ import { useToast } from '../composables/useToast.js'
 import { cleanText, LIMITS } from '../utils/text.js'
 import { domainLabel } from '../data/domains.js'
 import { computeStatus, nextReviewQueue, buildLeaderboard, VERDICT_LABEL, pickRandom } from '../utils/questionReview.js'
-import { getCategories, normalizeCategories } from '../utils/questionCategories.js'
+import { getCategories } from '../utils/questionCategories.js'
+import { pleFields, plePatch } from '../utils/pleMapping.js'
+import { isPleGroupKey } from '../data/plecc.js'
 import { quizSample } from '../utils/quizSample.js'
 import TopicSelect from '../components/questions/TopicSelect.vue'
-import { useTopics } from '../composables/useTopics.js'
 import { useConfirm } from '../composables/useConfirm.js'
 
 const authStore = useAuthStore()
 const usage = useUsageStore()
 const { toast } = useToast()
 const { confirm } = useConfirm()
-const { addTopics } = useTopics()
 
 const LETTERS = ['ก', 'ข', 'ค', 'ง', 'จ', 'ฉ']
 const VERDICTS = [
@@ -172,7 +172,7 @@ const verdict = ref(null)
 const reason = ref('')
 const refText = ref('')
 const priorReviews = ref([])
-const topics = ref([])        // หมวด/กลุ่มโรคของข้อปัจจุบัน (ตั้งต้นจากของเดิม แก้ได้ระหว่างตรวจ)
+const ple = ref({ group: null, sub: null })   // กลุ่มโรค/โรคย่อยของข้อปัจจุบัน (prefill ด้วยค่าที่เดาให้ คนตรวจยืนยัน)
 const note = ref('')          // หมายเหตุผู้ตรวจ (นักศึกษาเห็นท้ายเฉลย) — ต่อเติมจากของเดิมได้
 const hadNote = ref(false)    // ข้อนี้มีหมายเหตุจากคนก่อนไหม (ใช้โชว์ป้ายเตือนไม่ให้ลบทิ้ง)
 
@@ -218,7 +218,12 @@ const progress = computed(() => {
 const myQueueCount = computed(() => nextReviewQueue(list.value, myUid.value).length)
 
 // เหตุผลบังคับเฉพาะ verdict ที่ไม่ผ่าน — "ถูกต้อง" ไม่ต้องพิมพ์ (ลด friction กันเหตุผลขยะ)
-const canSubmit = computed(() => !!verdict.value && (verdict.value === 'correct' || !!reason.value.trim()))
+// กลุ่มโรคบังคับ — picker prefill ค่าที่เดาให้อยู่แล้ว ปกติจึงเป็น 0 คลิก
+// แต่ข้อที่เดาไม่ออกต้องให้คนตรวจเลือก ไม่งั้นมันจะค้างไม่มีหมวดไปตลอด
+const canSubmit = computed(() =>
+  !!verdict.value
+  && (verdict.value === 'correct' || !!reason.value.trim())
+  && isPleGroupKey(ple.value.group))
 
 // ตัดโจทย์ให้สั้นไว้โชว์ในแถบ "เพิ่งส่ง" — เติม … เฉพาะตอนตัดจริง กันจุดไข่ปลาโผล่ต่อท้ายข้อความสั้น
 function truncate60(text) {
@@ -283,7 +288,7 @@ async function load() {
 // เปลี่ยนข้อปัจจุบัน → ล้างฟอร์ม + โหลดรีวิวเดิมถ้าเป็นข้อ conflict (ให้คนที่ 3 เห็น)
 watch(current, async (q) => {
   verdict.value = null; reason.value = ''; refText.value = ''; priorReviews.value = []
-  topics.value = getCategories(q)
+  ple.value = pleFields(q)
   note.value = q?.reviewNote || ''
   hadNote.value = !!q?.reviewNote
   if (q && currentStatus.value === 'conflict') {
@@ -332,7 +337,7 @@ async function submit() {
   let newPass = 0, newFail = 0, newStatus = 'pending', already = false
   let wasResolved = false      // ข้อปิดไปแล้วตอนเราส่ง = มีคนตรวจชนเราพอดี (เสียงเรายังนับ)
   let oldStatusLocal = 'pending'   // สถานะก่อนหน้า — Task 13 ใช้ขยับแถบความคืบหน้าในเครื่อง
-  let committedCats = null, committedNote = null   // ค่าที่ "เขียนจริง" ไปยัง Firestore รอบที่ commit สำเร็จ — ใช้ sync local ให้ตรงเป๊ะ
+  let committedCats = null, committedNote = null, committedPle = null   // ค่าที่ "เขียนจริง" ไปยัง Firestore รอบที่ commit สำเร็จ — ใช้ sync local ให้ตรงเป๊ะ
   try {
     // transaction: อ่านค่าสดก่อนคำนวณ → reviewStatus บน doc เชื่อถือได้แม้ 2 คนส่งพร้อมกัน
     // (จำเป็น เพราะ load() query จาก reviewStatus ตรงๆ — ถ้าค่าเพี้ยนข้อจะหลุดคิวถาวร)
@@ -371,8 +376,16 @@ async function submit() {
         reviewStatus: newStatus,
         reviewVerdicts: deleteField(),   // ล้าง map โครงเก่า (ถ้ามี)
       }
-      const newCats = normalizeCategories(topics.value)
-      if (JSON.stringify(newCats) !== JSON.stringify(getCategories(cur))) qPatch.categories = newCats
+      // หมวดใหม่: เขียน pleGroup/pleSub/categories เป็นชุดเดียว (plePatch คุมให้สอดคล้องกันเสมอ)
+      // เขียนก็ต่อเมื่อค่าต่างจากบน doc จริง — ไม่งั้นเปลือง write ทุกครั้งที่มีคนตรวจ
+      const plePatchOut = plePatch(ple.value.group, ple.value.sub)
+      const newCats = plePatchOut ? plePatchOut.categories : getCategories(cur)
+      if (plePatchOut && (
+            cur.pleGroup !== plePatchOut.pleGroup
+            || (cur.pleSub || null) !== plePatchOut.pleSub
+            || JSON.stringify(getCategories(cur)) !== JSON.stringify(newCats))) {
+        Object.assign(qPatch, plePatchOut)
+      }
       const newNote = cleanText(note.value, LIMITS.reviewNote)
       const baseNote = cleanText(q.reviewNote || '', LIMITS.reviewNote)   // ค่าที่เราโหลดมาเห็นตอนเปิดข้อ
       if (newNote !== baseNote) {
@@ -381,6 +394,9 @@ async function submit() {
       }
       // เก็บค่าที่ "เขียนจริง" ไว้ sync local ทีหลัง — ถ้า key ไหนไม่ได้แตะ ให้ยึดค่าปัจจุบันบน doc (cur) แทน กันจอเพี้ยนจากเซิร์ฟเวอร์
       committedCats = 'categories' in qPatch ? newCats : getCategories(cur)
+      committedPle = 'pleGroup' in qPatch
+        ? { group: qPatch.pleGroup, sub: qPatch.pleSub }
+        : { group: cur.pleGroup ?? null, sub: cur.pleSub ?? null }
       committedNote = 'reviewNote' in qPatch ? qPatch.reviewNote : (cur.reviewNote || null)
       tx.update(qRef, qPatch)
       // 3) ตัวนับ leaderboard + ชื่อ snapshot + ความคืบหน้าคลัง (collection แยก นักศึกษาอ่านไม่ได้)
@@ -395,16 +411,14 @@ async function submit() {
     })
     usage.track(1, already ? 0 : 3)
     // หมวดที่ติดมากับข้ออาจไม่เคยขึ้นทะเบียนกลาง (มาจาก bulk import / category เดี่ยวของข้อเก่า)
-    // ผู้ตรวจยืนยันแล้ว = ของจริง → เก็บเข้า dropdown ให้ข้ออื่นเลือกตามได้ · ล้มได้ ไม่ล้มการส่งผล
-    if (!already && committedCats?.length) {
-      try { await addTopics(committedCats) } catch (e) { console.error('[topics register review]', e) }
-    }
     // อัปเดต local ให้คิว/leaderboard เลื่อนทันที (ไม่ reload) — ใช้ค่าที่ "เขียนจริง" เป๊ะ ไม่คำนวณซ้ำจากฟอร์ม
     const idx = list.value.findIndex(x => x.id === q.id)
     if (idx >= 0) {
       const patch = already ? {} : {
         reviewPass: newPass, reviewFail: newFail, reviewStatus: newStatus,
         categories: committedCats,
+        pleGroup: committedPle?.group ?? null,
+        pleSub: committedPle?.sub ?? null,
         reviewNote: committedNote,
       }
       list.value[idx] = { ...q, reviewedBy: [...(q.reviewedBy || []), uid], ...patch }

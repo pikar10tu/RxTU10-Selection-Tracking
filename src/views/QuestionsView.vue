@@ -207,8 +207,8 @@
         </div>
         <button class="qz-add-choice" type="button" :disabled="draft.choices.length >= 6" @click="draft.choices.push('')">+ เพิ่มตัวเลือก</button>
 
-        <label class="qz-label">หมวด / กลุ่มโรค (เลือกได้หลายกลุ่ม)</label>
-        <TopicSelect v-model="draft.categories" />
+        <label class="qz-label">กลุ่มโรค / หมวด (ตามเกณฑ์สภาเภสัชกรรม)</label>
+        <TopicSelect v-model="draft.ple" />
 
         <label class="qz-label">ชุดข้อสอบย้อนหลัง (ไม่บังคับ — 1 ข้ออยู่ได้หลายชุด)</label>
         <ExamSetSelect v-model="draft.examSets" />
@@ -414,7 +414,9 @@ import { useExamSets } from '../composables/useExamSets.js'
 import { useTopics } from '../composables/useTopics.js'
 import { buildMeta } from '../utils/questionsMeta.js'
 import { filterQuestions, distinctCategories } from '../utils/questionsFilter.js'
-import { getCategories, normalizeCategories } from '../utils/questionCategories.js'
+import { getCategories } from '../utils/questionCategories.js'
+import { pleFields, plePatch } from '../utils/pleMapping.js'
+import { isPleGroupKey } from '../data/plecc.js'
 import { topicRows, mergeTopicsPlan } from '../utils/topicMerge.js'
 import { groupReports, resolvePayload } from '../utils/questionReport.js'
 import { buildReportRewardMail } from '../utils/mailbox.js'
@@ -585,7 +587,7 @@ async function publishAllFilteredDrafts() {
 }
 
 function blankDraft() {
-  return { id: null, question: '', choices: ['', '', '', ''], answer: 0, categories: [], reviewNote: '', explanation: '', isPublished: false, domain: null, examSets: [] }
+  return { id: null, question: '', choices: ['', '', '', ''], answer: 0, ple: { group: null, sub: null }, reviewNote: '', explanation: '', isPublished: false, domain: null, examSets: [] }
 }
 const draft = ref(blankDraft())
 // รีวิวของข้อที่กำลังแก้ (ประกาศก่อน resetDraft — กัน TDZ ถ้าอนาคตมีใครเรียกตอน setup)
@@ -595,7 +597,8 @@ function resetDraft() { draft.value = blankDraft(); editReviews.value = [] }
 const valid = computed(() => {
   const d = draft.value
   const filled = d.choices.filter(c => c.trim()).length
-  return d.question.trim() && filled >= 2 && d.choices[d.answer]?.trim()
+  // กลุ่มโรคบังคับ — ทะเบียนตายตัวแล้ว ปล่อยข้อไม่มีกลุ่มออกไปคือที่มาของคลังที่จัดหมวดไม่ได้
+  return d.question.trim() && filled >= 2 && d.choices[d.answer]?.trim() && isPleGroupKey(d.ple?.group)
 })
 
 function removeChoice(i) {
@@ -897,7 +900,7 @@ async function save() {
     question: cleanText(d.question, LIMITS.question),
     choices: d.choices.map(c => cleanText(c, LIMITS.choice)).filter(Boolean),
     answer: d.answer,
-    categories: normalizeCategories(d.categories),
+    ...plePatch(d.ple.group, d.ple.sub),   // เขียน pleGroup/pleSub/categories พร้อมกันเสมอ
     reviewNote: cleanText(d.reviewNote, LIMITS.reviewNote) || null,
     explanation: cleanText(d.explanation, LIMITS.explanation) || null,
     isPublished: !!d.isPublished,
@@ -937,8 +940,8 @@ async function save() {
       } catch (e) { console.error('[reviewMeta progress bump]', e) }
       toast(payload.isPublished && payload.examSets.length ? 'เพิ่มข้อสอบแล้ว · กด 🔄 คำนวณ meta ใหม่ ให้ชุดขึ้นในควิซ' : 'เพิ่มข้อสอบแล้ว', 'success')
     }
-    // ข้อเก่าที่ถูกแก้อาจพก category เดิมที่ไม่เคยขึ้นทะเบียนมาด้วย — เก็บเข้าทะเบียนตอนนี้
-    await registerTopics(payload.categories, 'save')
+    // ไม่ต้องลงทะเบียนหมวดอีกแล้ว — categories มาจากทะเบียนตายตัวใน data/plecc.js
+    // (ทะเบียน config/topics.list หยุดโตตั้งแต่ 29 ส.ค. 2026 เหลือไว้ให้กล่องจัดการหมวดล้างซาก)
     resetDraft()
     await load()
   } catch (e) { console.error('[questions save]', e); toast('บันทึกไม่สำเร็จ', 'error') }
@@ -994,7 +997,7 @@ function edit(q) {
     question: q.question || '',
     choices: (q.choices && q.choices.length >= 2) ? [...q.choices] : ['', ''],
     answer: q.answer || 0,
-    categories: getCategories(q),
+    ple: pleFields(q),
     reviewNote: q.reviewNote || '',
     explanation: q.explanation || '',
     isPublished: !!q.isPublished,

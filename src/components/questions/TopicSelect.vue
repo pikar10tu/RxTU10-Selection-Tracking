@@ -1,89 +1,80 @@
-<!-- src/components/questions/TopicSelect.vue — เลือกหมวด/กลุ่มโรคได้หลายค่า (สูงสุด MAX_CATEGORIES) -->
+<!-- src/components/questions/TopicSelect.vue — เลือกกลุ่มโรค/หมวดตามเกณฑ์สภาฯ (2 ชั้น)
+     v-model = { group, sub }  (group = key จาก data/plecc.js · sub = ชื่อโรคย่อย หรือ null)
+
+     ⚠️ เดิมเป็นช่องพิมพ์หัวข้อใหม่อิสระ ซึ่งเป็นต้นเหตุที่ทะเบียนงอกเป็น 82 หมวดซ้ำซ้อน
+        (29 ส.ค. 2026) — ตอนนี้เลือกได้เฉพาะจากทะเบียนตายตัวเท่านั้น ห้ามเติมช่องพิมพ์กลับมา
+        ถ้าต้องเพิ่มกลุ่ม/โรคย่อยจริง ให้ไปแก้ที่ data/plecc.js แล้ว deploy -->
 <template>
   <div class="ts">
-    <!-- หมวดที่เลือกไว้ (ชิป) -->
-    <div v-if="modelValue.length" class="ts-chips">
-      <span v-for="name in modelValue" :key="name" class="ts-chip">
-        {{ name }}
-        <button type="button" class="ts-chip-x" @click="removeTopic(name)" aria-label="ถอดหมวดนี้">✕</button>
+    <!-- ค่าที่เลือกอยู่ (ชิป) -->
+    <div v-if="group" class="ts-chips">
+      <span class="ts-chip">
+        {{ groupLabel(group) }}
+        <span v-if="inferred" class="ts-guess" title="ระบบเดาให้จากหมวดเดิม ยังไม่มีคนยืนยัน">เดาให้</span>
       </span>
+      <span v-if="sub" class="ts-chip ts-chip-sub">{{ sub }}</span>
     </div>
 
-    <select class="ts-input" :value="''" :disabled="full" @change="onSelect">
-      <option value="">{{ full ? `เลือกได้สูงสุด ${MAX_CATEGORIES} หมวด` : '+ เลือกหมวด / กลุ่มโรค…' }}</option>
-      <option v-for="t in available" :key="t" :value="t">{{ t }}</option>
-      <option value="__add">➕ เพิ่มหัวข้อใหม่…</option>
+    <label class="ts-lbl">กลุ่มโรค / หมวด <span class="ts-req">*</span></label>
+    <select class="ts-input" :value="group || ''" @change="onGroup">
+      <option value="">— เลือกกลุ่ม —</option>
+      <optgroup v-for="d in DOMAIN_ORDER" :key="d.key" :label="d.label">
+        <option v-for="g in groupsOfDomain(d.key)" :key="g.key" :value="g.key">
+          {{ g.n ? `${g.n}. ` : '' }}{{ groupLabel(g.key) }}
+        </option>
+      </optgroup>
     </select>
 
-    <div v-if="adding" class="ts-add">
-      <input v-model="newName" :maxlength="LIMITS.category" class="ts-input" placeholder="ชื่อหัวข้อใหม่ เช่น ยาปฏิชีวนะ" @keydown.enter.prevent="confirmAdd" />
-      <button type="button" class="ts-btn" :disabled="busy || !newName.trim()" @click="confirmAdd">เพิ่ม</button>
-      <button type="button" class="ts-btn ts-cancel" @click="cancelAdd">ยกเลิก</button>
-    </div>
+    <template v-if="group">
+      <label class="ts-lbl">โรคย่อย <span class="ts-opt">(ไม่บังคับ)</span></label>
+      <select class="ts-input" :value="sub || ''" @change="onSub">
+        <option value="">— ไม่ระบุโรคย่อย —</option>
+        <option v-for="s in subs" :key="s" :value="s">{{ s }}</option>
+      </select>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useTopics } from '../../composables/useTopics.js'
-import { useToast } from '../../composables/useToast.js'
-import { LIMITS } from '../../utils/text.js'
-import { MAX_CATEGORIES } from '../../utils/questionCategories.js'
+import { computed } from 'vue'
+import { groupLabel, groupsOfDomain, subsOf, isValidSub, isPleGroupKey } from '../../data/plecc.js'
 
-const props = defineProps({ modelValue: { type: Array, default: () => [] } })
+// modelValue = { group, sub, inferred? } — inferred เป็นแค่ป้ายบอกผู้ใช้ ไม่ถูกเขียนลง Firestore
+const props = defineProps({ modelValue: { type: Object, default: () => ({ group: null, sub: null }) } })
 const emit = defineEmits(['update:modelValue'])
-const { topics, loadTopics, addTopic } = useTopics()
-const { toast } = useToast()
-const adding = ref(false)
-const newName = ref('')
-const busy = ref(false)
 
-onMounted(loadTopics)
+// เรียง Care ก่อนเสมอ — เป็นฝั่งที่ข้อสอบเยอะสุด (สัดส่วนสภาฯ 50:40:10)
+const DOMAIN_ORDER = [
+  { key: 'care', label: 'ด้านผู้ป่วย (Care) — ตามภาคผนวก ๑ สภาฯ' },
+  { key: 'sci', label: 'ด้านผลิตภัณฑ์ (Sci)' },
+  { key: 'law', label: 'ด้านกฎหมาย (Law)' },
+]
 
-const full = computed(() => props.modelValue.length >= MAX_CATEGORIES)
-// หัวข้อที่ยังไม่ถูกเลือก (ค่าที่เลือกแล้วไม่ต้องโผล่ซ้ำ) — เรียง ก-ฮ เพราะทะเบียนยาวขึ้นมาก
-// หลังลงทะเบียนหมวดจาก bulk import ย้อนหลัง (ลำดับที่เขียนเข้าไปไม่มีความหมายกับคนอ่าน)
-const available = computed(() =>
-  topics.value.filter(t => !props.modelValue.includes(t)).sort((a, b) => a.localeCompare(b, 'th')))
+const group = computed(() => (isPleGroupKey(props.modelValue?.group) ? props.modelValue.group : null))
+const sub = computed(() => (isValidSub(group.value, props.modelValue?.sub) ? (props.modelValue?.sub || null) : null))
+const inferred = computed(() => !!props.modelValue?.inferred && !!group.value)
+const subs = computed(() => subsOf(group.value))
 
-function add(name) {
-  if (!name || props.modelValue.includes(name) || full.value) return
-  emit('update:modelValue', [...props.modelValue, name])
+// เปลี่ยนกลุ่ม = ล้างโรคย่อยทิ้งเสมอ (โรคย่อยของกลุ่มเก่าไม่มีทางถูกในกลุ่มใหม่)
+// และล้าง inferred ด้วย — พอคนเลือกเองแล้วมันไม่ใช่ค่าที่ระบบเดาอีกต่อไป
+function onGroup(e) {
+  const g = e.target.value || null
+  emit('update:modelValue', { group: isPleGroupKey(g) ? g : null, sub: null, inferred: false })
 }
-function removeTopic(name) {
-  emit('update:modelValue', props.modelValue.filter(n => n !== name))
-}
-function onSelect(e) {
-  const v = e.target.value
-  e.target.value = ''                    // reset ไม่ให้ค้างค่าใน select
-  if (v === '__add') { adding.value = true; return }
-  add(v)
-}
-function cancelAdd() { adding.value = false; newName.value = '' }
-
-async function confirmAdd() {
-  if (busy.value) return
-  busy.value = true
-  try {
-    const name = await addTopic(newName.value)
-    if (!name) { toast('ชื่อหัวข้อใช้ไม่ได้ ลองพิมพ์ใหม่', 'error'); return }   // cleanText strip จนว่าง
-    add(name)
-    cancelAdd()
-  } catch (e) { console.error('[topic add]', e); toast('เพิ่มหัวข้อไม่สำเร็จ', 'error') }
-  finally { busy.value = false }
+function onSub(e) {
+  emit('update:modelValue', { group: group.value, sub: e.target.value || null, inferred: false })
 }
 </script>
 
 <style scoped>
-.ts-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 7px; }
-.ts-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--primary-light, #eef2ff); color: #4f46e5; border-radius: 999px; padding: 4px 6px 4px 11px; font-size: .74rem; font-weight: 700; }
-.ts-chip-x { border: none; background: rgba(0,0,0,.08); border-radius: 50%; width: 18px; height: 18px; cursor: pointer; color: #4f46e5; font-size: .7rem; line-height: 1; }
+.ts-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.ts-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--primary-light, #eef2ff); color: #4f46e5; border-radius: 999px; padding: 4px 11px; font-size: .74rem; font-weight: 700; }
+.ts-chip-sub { background: #f1f5f9; color: #334155; }
+.ts-guess { background: #fef3c7; color: #92400e; border-radius: 999px; padding: 1px 7px; font-size: .7rem; font-weight: 800; }
+.ts-lbl { display: block; font-size: .74rem; font-weight: 800; color: #334155; margin: 8px 0 4px; }
+.ts-lbl:first-of-type { margin-top: 0; }
+.ts-req { color: #dc2626; }
+.ts-opt { font-weight: 600; color: rgba(0,0,0,.45); }
 .ts-input { width: 100%; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 10px; padding: 9px 11px; font-family: inherit; font-size: .82rem; background: #fff; }
 .ts-input:focus { outline: none; box-shadow: var(--pop); }
-.ts-input:disabled { background: #f1f5f9; color: rgba(0,0,0,.45); }
-.ts-add { display: flex; gap: 6px; margin-top: 6px; }
-.ts-add .ts-input { flex: 1; }
-.ts-btn { flex-shrink: 0; border: 2px solid var(--ink); border-radius: 9px; padding: 6px 12px; font-family: inherit; font-size: .75rem; font-weight: 800; background: var(--primary); color: #fff; cursor: pointer; }
-.ts-btn:disabled { background: #cbd5e1; cursor: default; }
-.ts-cancel { background: #fff; color: var(--ink); }
 </style>

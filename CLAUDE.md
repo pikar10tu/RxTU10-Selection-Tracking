@@ -151,3 +151,16 @@ single-file component + scoped style · สีธีมหลัก indigo (#4f4
    ต้นเหตุคือก๊อปมาจาก `.br-spot-desc` ซึ่งอยู่บนการ์ด **พื้นขาว** จึงถูกที่นั่นแต่ผิดที่นี่
    ตรวจเร็วก่อน commit: `grep -n "color: rgba(0,0,0" src/components/battle/BattleReplay.vue`
    แล้วไล่ดูทีละจุดว่าพื้นหลังของ element นั้นสว่างหรือเข้ม
+
+14. **`questions.categories` เป็นค่า derive ห้ามเขียนมือ — แหล่งความจริงคือ `pleGroup`/`pleSub`**
+   หมวด/กลุ่มโรคย้ายไปทะเบียนตายตัว `data/plecc.js` แล้ว (29 ส.ค. 2026 ตามภาคผนวก ๑ ประกาศศูนย์สอบฯ ๕/๒๕๖๖)
+   เขียนหมวดเมื่อไหร่ให้ผ่าน `plePatch(group, sub)` เสมอ — มันคืน `{pleGroup, pleSub, categories}` เป็นชุดเดียว
+   ⚠️ **เหตุผลที่ต้อง derive ไม่ใช่แค่ความสวยงาม — มันคือกลไกกันพังตอน deploy**
+   ตอนปล่อยของ เพื่อนอาจเปิดหน้า `/review` ค้างไว้ด้วยโค้ดเวอร์ชันเก่า ซึ่งยัง submit `categories`
+   ชุด free text เดิมทับได้ · แต่โค้ดเก่า**ไม่รู้จัก `pleGroup`/`pleSub` จึงแตะไม่ได้เลย**
+   ⇒ แหล่งความจริงรอดเสมอ · แล้วปุ่ม "🔄 ซิงก์ระบบตรวจ" re-derive `categories` กลับมาให้ถูก (`pleCatsDrifted`)
+   ⇒ worst case = ป้ายหมวดเพี้ยนชั่วคราว ไม่ใช่ data loss
+   **ลำดับ deploy ห้ามสลับ:** `firebase deploy --only firestore:rules` (เพิ่ม `pleGroup`/`pleSub` ใน
+   `reviewSubmitKeys`) → `git push` → แล้วค่อยกดปุ่มแมพ · สลับลำดับ = client ใหม่ส่งผลตรวจไม่ผ่าน permission
+   ⚠️ `config/topics.list` เลิกเป็นทะเบียนหลักแล้ว (โตเองจนงอก 82 หมวดซ้ำซ้อน) — **ห้ามเติมช่อง
+   "เพิ่มหัวข้อใหม่" กลับเข้า `TopicSelect`** จะเพิ่มกลุ่มจริงต้องไปแก้ `data/plecc.js` แล้ว deploy
