@@ -19,13 +19,14 @@
         @pick="pickOpen = true"
       />
 
-      <!-- กระดานคู่ต่อสู้ -->
+      <!-- กระดานคู่ต่อสู้ — โซน "ของกดได้" หัวโซนชัดเพื่อแยกจากแผงสถานะด้านบน -->
       <div class="ar-board-head">
-        <span class="ar-board-hint">ตีเสร็จได้คู่ใหม่ทันที</span>
+        <span class="ar-board-title"><Emoji char="⚔️" /> เลือกคู่ต่อสู้</span>
         <button class="ar-refresh" :disabled="busy || refreshLeft > 0" @click="onRefresh">
           <Emoji char="🔄" /> {{ refreshLeft > 0 ? `อีก ${Math.ceil(refreshLeft / 60000)} นาที` : 'เปลี่ยนคู่' }}
         </button>
       </div>
+      <div class="ar-board-hint">ตีเสร็จได้คู่ใหม่ทันที</div>
       <div class="ar-list">
         <div v-for="opp in opponents" :key="opp.uid" class="ar-opp">
           <span class="ar-opp-info">
@@ -33,6 +34,7 @@
               <Emoji :char="opp.isBot ? '🤖' : '🧑'" /> {{ opp.isBot ? ('หุ่นซ้อม' + (opp.label ? ' · ' + opp.label : '')) : (opp.nickname || '?') }}
             </span>
             <span class="ar-opp-rt">
+              <span v-if="rankOf(opp)" class="ar-opp-rank">{{ rankBadge(rankOf(opp)) }}</span>
               {{ (opp.rating || 0).toLocaleString() }} แต้ม<span v-if="opp.isBot"> · ฝึกซ้อม</span>
               <span class="ar-opp-coin"><Emoji char="🪙" /> {{ coinPreview(opp).toLocaleString() }}</span>
             </span>
@@ -115,6 +117,16 @@ const rivals = computed(() => {
   })
 })
 
+// อันดับของคู่ต่อสู้ — Map สร้างครั้งเดียวต่อการเปลี่ยนกระดาน ไม่ใช่ find() ต่อการ์ด
+const rankByUid = computed(() => {
+  const m = new Map()
+  for (const r of (rivals.value?.all || [])) m.set(r.uid, r.rank)
+  return m
+})
+// บอทไม่มีแถวใน roster · คนจริงที่ยังไม่เคยบุกก็ยังไม่ติดอันดับ → ทั้งคู่คืน null = ไม่ขึ้นป้าย
+const rankOf = (opp) => (opp?.isBot ? null : (rankByUid.value.get(opp?.uid) ?? null))
+const rankBadge = (rank) => (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`)
+
 async function onFight(opp) {
   if (busy.value) return
   busy.value = true
@@ -146,8 +158,10 @@ onMounted(() => { members.loadRoster() })
 .ar-fight:active:not(:disabled) { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .ar-fight:disabled { background: #cbd5e1; cursor: default; box-shadow: none; }
 .ar-login { text-align: center; color: rgba(0,0,0,.4); padding: 30px 0; font-size: .85rem; }
-.ar-board-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.ar-board-hint { font-size: .72rem; color: rgba(0,0,0,.5); }
+.ar-board-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+.ar-board-title { font-size: .88rem; font-weight: 800; }
+.ar-board-hint { font-size: .72rem; color: rgba(0,0,0,.5); margin-bottom: 8px; }
+.ar-opp-rank { font-weight: 800; color: var(--primary); margin-right: 3px; }
 .ar-refresh { border: 2px solid var(--ink); background: #fff; border-radius: 11px; padding: 6px 12px; font-family: inherit; font-weight: 800; font-size: .74rem; cursor: pointer; box-shadow: var(--pop); display: inline-flex; align-items: center; gap: 5px; }
 .ar-refresh:active:not(:disabled) { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .ar-refresh:disabled { opacity: .5; cursor: default; }
