@@ -1,4 +1,4 @@
-// เทส questionTriage — กองงานค้างของทีมวิชาการ
+// เทส questionTriage — กอง "ข้อที่รอดำเนินการ" ของทีมวิชาการ
 // รัน: node --test src/utils/questionTriage.test.js
 import { test } from 'node:test'
 import assert from 'node:assert/strict'

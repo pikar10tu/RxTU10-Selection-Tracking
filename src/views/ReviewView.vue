@@ -120,6 +120,67 @@
         </div>
       </div>
 
+      <!-- ── 🗂️ ข้อที่รอดำเนินการ — โหลด on-demand ห้ามยิงตอนเปิดหน้า (ดู loadTriage) ── -->
+      <section class="rv-triage">
+        <div class="rv-triage-head"><Emoji char="🗂️" /> ข้อที่รอดำเนินการ</div>
+
+        <div v-if="!triageLoaded" class="rv-triage-intro">
+          <p class="rv-triage-p">
+            ข้อที่ต้องมีคนเข้าไปจัดการ — ไม่ผ่านตรวจ · ขัดแย้ง · ยังไม่มีกลุ่มโรค
+            <span v-if="metaHint">· ตอนนี้มี <b>{{ metaHint }}</b></span>
+          </p>
+          <button class="rv-btn rv-gray" :disabled="triageLoading" @click="loadTriage">
+            {{ triageLoading ? 'กำลังโหลด…' : 'ดูรายการ' }}
+          </button>
+          <p class="rv-triage-note">อ่านคลังข้อสอบทั้งหมด 1 ครั้ง — จึงไม่โหลดให้อัตโนมัติ</p>
+        </div>
+
+        <template v-else>
+          <div v-if="!triage.total" class="rv-triage-clear">
+            <Emoji char="🎉" /> ไม่มีข้อที่รอดำเนินการ — คลังสะอาด
+          </div>
+          <template v-else>
+            <div class="rv-triage-sum">
+              มีข้อที่ต้องจัดการ <b>{{ triage.total }}</b> ข้อ<span v-if="triage.urgent">
+                · <b class="rv-triage-urgent">{{ triage.urgent }}</b> ข้อในนั้น<b>เผยแพร่อยู่</b> นักศึกษาเห็นตอนนี้เลย</span>
+            </div>
+
+            <details v-for="k in BUCKET_KEYS" :key="k" class="rv-bucket" :open="openBucket === k">
+              <summary class="rv-bucket-sum" @click.prevent="openBucket = openBucket === k ? null : k">
+                <span>{{ BUCKET_META[k].icon }} {{ BUCKET_META[k].label }}</span>
+                <span class="rv-bucket-n" :class="{ zero: !buckets[k].length }">{{ buckets[k].length }}</span>
+              </summary>
+              <div class="rv-bucket-body">
+                <p class="rv-bucket-hint">{{ BUCKET_META[k].hint }}</p>
+                <div v-if="!buckets[k].length" class="rv-empty rv-bucket-empty">ไม่มีข้อในกองนี้ <Emoji char="🎉" /></div>
+                <ul v-else class="rv-bucket-list">
+                  <li v-for="q in buckets[k].slice(0, bucketShown[k] || BUCKET_PAGE)" :key="q.id" class="rv-bucket-item">
+                    <div class="rv-bucket-q">
+                      <span v-if="q.isPublished" class="rv-bucket-live">เผยแพร่</span>
+                      <span v-else class="rv-bucket-draft">ร่าง</span>
+                      {{ truncate60(q.question) }}
+                    </div>
+                    <div class="rv-bucket-acts">
+                      <button
+                        v-if="k === 'failed'" class="rv-mini"
+                        :disabled="requeuingId === q.id" @click="requeue(q)"
+                      >{{ requeuingId === q.id ? 'กำลังส่ง…' : '↩️ ส่งกลับเข้าคิวตรวจ' }}</button>
+                      <button v-if="k === 'conflict'" class="rv-mini" @click="jumpTo(q)">ตรวจข้อนี้เลย</button>
+                      <RouterLink v-if="k === 'nogroup'" to="/questions" class="rv-mini">แก้ในคลังข้อสอบ ›</RouterLink>
+                    </div>
+                  </li>
+                </ul>
+                <button
+                  v-if="buckets[k].length > (bucketShown[k] || BUCKET_PAGE)"
+                  class="rv-mini rv-bucket-more" @click="bucketShown[k] = (bucketShown[k] || BUCKET_PAGE) + BUCKET_PAGE"
+                >ดูเพิ่ม (เหลืออีก {{ buckets[k].length - (bucketShown[k] || BUCKET_PAGE) }})</button>
+              </div>
+            </details>
+            <button class="rv-mini rv-triage-reload" :disabled="triageLoading" @click="loadTriage">↻ โหลดรายการใหม่</button>
+          </template>
+        </template>
+      </section>
+
       <!-- ── leaderboard ── -->
       <section class="rv-board">
         <div class="rv-board-head"><Emoji char="🏅" /> ใครตรวจไปกี่ข้อ</div>
@@ -138,14 +199,15 @@
 <script setup>
 import Emoji from '../components/shared/Emoji.vue'
 import { ref, computed, watch, onMounted } from 'vue'
-import { collection, getDocs, getDoc, doc, runTransaction, arrayUnion, increment, deleteField, serverTimestamp, query, where, orderBy, startAt, limit } from 'firebase/firestore'
+import { collection, getDocs, getDoc, doc, updateDoc, runTransaction, arrayUnion, increment, deleteField, serverTimestamp, query, where, orderBy, startAt, limit } from 'firebase/firestore'
 import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useUsageStore } from '../stores/usage.js'
 import { useToast } from '../composables/useToast.js'
 import { cleanText, LIMITS } from '../utils/text.js'
 import { domainLabel } from '../data/domains.js'
-import { computeStatus, nextReviewQueue, buildLeaderboard, VERDICT_LABEL, pickRandom } from '../utils/questionReview.js'
+import { computeStatus, nextReviewQueue, needsReviewBy, buildLeaderboard, VERDICT_LABEL, pickRandom, REVIEW_RESET } from '../utils/questionReview.js'
+import { triageBuckets, triageSummary, BUCKET_KEYS, BUCKET_META } from '../utils/questionTriage.js'
 import { getCategories } from '../utils/questionCategories.js'
 import { pleFields, plePatch } from '../utils/pleMapping.js'
 import { isPleGroupKey } from '../data/plecc.js'
@@ -240,6 +302,74 @@ function openAmend() {
 // เหตุผลบังคับเฉพาะผลที่ไม่ผ่าน (เหมือนฟอร์มหลัก)
 const canAmend = computed(() =>
   !!amendVerdict.value && (amendVerdict.value === 'correct' || !!amendReason.value.trim()))
+
+// ── 🗂️ ข้อที่รอดำเนินการ ──
+//  ⚠️ ต้องอ่านทั้ง collection ถึงจะรู้ว่าข้อไหนมีปัญหา ซึ่งขัดกับหลักของหน้านี้
+//     (คิว 2 ก้อน = ต้นทุน read คงที่) → โหลดเฉพาะตอนผู้ใช้กด "ดูรายการ" เท่านั้น
+//     ห้ามย้ายไปเรียกใน onMounted เด็ดขาด
+const BUCKET_PAGE = 10
+const triageRows = ref([])
+const triageLoaded = ref(false)
+const triageLoading = ref(false)
+const openBucket = ref(null)
+const bucketShown = ref({})
+const requeuingId = ref(null)
+const buckets = computed(() => triageBuckets(triageRows.value))
+const triage = computed(() => triageSummary(triageRows.value))
+
+// เลขคร่าวๆ ก่อนกดโหลด — มาจาก reviewMeta ที่หน้านี้อ่านอยู่แล้ว (ฟรี ไม่มี read เพิ่ม)
+// ไม่รวมกอง "ไม่มีกลุ่มโรค" เพราะ meta ไม่ได้นับไว้ จึงเขียนว่า "อย่างน้อย"
+const metaHint = computed(() => {
+  const parts = []
+  if (progress.value.failed) parts.push(`ไม่ผ่านตรวจ ${progress.value.failed}`)
+  if (progress.value.conflict) parts.push(`ขัดแย้ง ${progress.value.conflict}`)
+  return parts.length ? parts.join(' · ') : ''
+})
+
+async function loadTriage() {
+  if (triageLoading.value) return
+  triageLoading.value = true
+  try {
+    const snap = await getDocs(collection(db, 'questions'))
+    usage.track(snap.size)
+    triageRows.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    triageLoaded.value = true
+    bucketShown.value = {}
+  } catch (e) { console.error('[triage load]', e); toast('โหลดรายการไม่สำเร็จ', 'error') }
+  finally { triageLoading.value = false }
+}
+
+// ส่งข้อที่แก้แล้วกลับเข้าคิวตรวจ — rules อนุญาต canEditQuestions() ผ่าน isReviewReset()
+async function requeue(q) {
+  if (requeuingId.value) return
+  if (!(await confirm(`ส่ง "${truncate60(q.question)}" กลับเข้าคิวตรวจใหม่?`))) return
+  requeuingId.value = q.id
+  try {
+    await updateDoc(doc(db, 'questions', q.id), { ...REVIEW_RESET, reviewVerdicts: deleteField() })
+    usage.track(0, 1)
+    patchTriageRow(q.id, REVIEW_RESET)
+    toast('ส่งกลับเข้าคิวตรวจแล้ว', 'success')
+  } catch (e) { console.error('[requeue]', e); toast('ส่งกลับไม่สำเร็จ', 'error') }
+  finally { requeuingId.value = null }
+}
+
+// อัปเดตแถวใน 2 ที่ที่ถือข้อเดียวกันอยู่ — รายการรอดำเนินการ + คิวตรวจที่โหลดไว้
+function patchTriageRow(id, patch) {
+  const ti = triageRows.value.findIndex(x => x.id === id)
+  if (ti >= 0) triageRows.value[ti] = { ...triageRows.value[ti], ...patch }
+  const li = list.value.findIndex(x => x.id === id)
+  if (li >= 0) list.value[li] = { ...list.value[li], ...patch }
+}
+
+// กระโดดไปตรวจข้อขัดแย้งที่เลือก — ทำได้เฉพาะข้อที่อยู่ในคิวรอบนี้และเรายังไม่เคยตรวจ
+function jumpTo(q) {
+  if (!queue.value.some(x => x.id === q.id)) {
+    toast(needsReviewBy(q, myUid.value) ? 'ข้อนี้ไม่ได้อยู่ในคิวรอบนี้ — กดโหลดรอบใหม่ก่อน' : 'คุณตรวจข้อนี้ไปแล้ว', 'info')
+    return
+  }
+  currentId.value = q.id
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 // leaderboard จาก reviewMeta doc (ตัวนับ + ชื่อ snapshot ตอน submit) — 1 read
 // ไม่ต้องอ่านทั้งคลัง/users collection และไม่พึ่ง members store (บางคนไม่มี studentId)
@@ -550,6 +680,33 @@ async function submitAmend() {
 .rv-cat { font-size: .7rem; color: #4f46e5; font-weight: 700; }
 .rv-cat-sub { color: rgba(0,0,0,.45); }
 .rv-draft { font-size: .7rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,.07); color: rgba(0,0,0,.5); }
+/* ── 🗂️ ข้อที่รอดำเนินการ ── */
+.rv-triage { border: 2px solid var(--ink); border-radius: 14px; padding: 12px; margin-top: 14px; background: #fff; }
+.rv-triage-head { font-size: .88rem; font-weight: 800; margin-bottom: 9px; }
+.rv-triage-p { margin: 0 0 9px; font-size: .78rem; line-height: 1.55; color: #334155; }
+.rv-triage-note { margin: 7px 0 0; font-size: .72rem; color: rgba(0,0,0,.45); }
+.rv-triage-clear { text-align: center; padding: 16px 10px; font-size: .84rem; font-weight: 700; color: #15803d; }
+.rv-triage-sum { font-size: .78rem; line-height: 1.5; color: #334155; background: #f8fafc; border-radius: 10px; padding: 8px 11px; margin-bottom: 10px; }
+.rv-triage-urgent { color: #b91c1c; }
+.rv-triage-reload { margin-top: 10px; }
+
+.rv-bucket { border: 1px solid #e2e8f0; border-radius: 11px; margin-bottom: 7px; overflow: hidden; }
+.rv-bucket-sum { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; list-style: none; padding: 9px 11px; font-size: .81rem; font-weight: 800; background: #f8fafc; }
+.rv-bucket-sum::-webkit-details-marker { display: none; }
+.rv-bucket-n { flex-shrink: 0; min-width: 24px; text-align: center; background: #fef2f2; color: #b91c1c; border-radius: 999px; padding: 2px 9px; font-size: .75rem; font-weight: 800; }
+.rv-bucket-n.zero { background: rgba(34,197,94,.15); color: #15803d; }
+.rv-bucket-body { padding: 10px 11px 12px; }
+.rv-bucket-hint { margin: 0 0 9px; font-size: .74rem; line-height: 1.5; color: rgba(0,0,0,.55); }
+.rv-bucket-empty { padding: 10px 0; }
+.rv-bucket-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.rv-bucket-item { border-top: 1px solid #f1f5f9; padding-top: 9px; }
+.rv-bucket-item:first-child { border-top: none; padding-top: 0; }
+.rv-bucket-q { font-size: .77rem; line-height: 1.5; color: #1e293b; margin-bottom: 6px; }
+.rv-bucket-live { display: inline-block; background: rgba(34,197,94,.15); color: #15803d; border-radius: 999px; padding: 1px 8px; font-size: .7rem; font-weight: 800; margin-right: 5px; }
+.rv-bucket-draft { display: inline-block; background: rgba(0,0,0,.08); color: rgba(0,0,0,.55); border-radius: 999px; padding: 1px 8px; font-size: .7rem; font-weight: 800; margin-right: 5px; }
+.rv-bucket-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.rv-bucket-more { margin-top: 10px; }
+
 .rv-conflict-badge { font-size: .7rem; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: #fff7ed; color: #c2410c; }
 .rv-q { font-size: .92rem; font-weight: 700; color: var(--ink); line-height: 1.5; margin-bottom: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .rv-choices { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-direction: column; gap: 5px; }
@@ -606,4 +763,8 @@ async function submitAmend() {
 .rv-board-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .rv-you { color: #4f46e5; font-weight: 800; }
 .rv-board-count { flex-shrink: 0; font-weight: 800; color: var(--ink); font-size: .78rem; }
+
+/* ต่อยอด .rv-mini เดิม (นิยามหลักอยู่ด้านบน) ให้ใช้กับปุ่ม disabled และลิงก์ในรายการรอดำเนินการ */
+.rv-mini:disabled { background: #f1f5f9; color: rgba(0,0,0,.4); cursor: default; }
+a.rv-mini { display: inline-block; text-decoration: none; }
 </style>

@@ -70,61 +70,8 @@
       </details>
       </template>
 
-      <!-- ── 🔍 แท็บ ตรวจสอบ : งานค้าง + ข้อถูกแจ้ง + ตรวจข้อซ้ำ ── -->
+      <!-- ── 🔍 แท็บ ตรวจสอบ : ข้อถูกแจ้ง + ตรวจข้อซ้ำ ── -->
       <template v-if="activeTab === 'check'">
-
-      <!-- ── 🧰 งานค้างของทีมวิชาการ — คิดจาก list ที่โหลดแล้ว ไม่เปลือง read ── -->
-      <section class="qz-triage">
-        <div class="qz-triage-head">
-          <span><Emoji char="🧰" /> งานค้างของทีมวิชาการ</span>
-          <button class="qz-mini" :disabled="loading" @click="load">{{ loading ? 'กำลังโหลด…' : '↻ โหลดใหม่' }}</button>
-        </div>
-
-        <div v-if="!list.length" class="qz-empty">ยังไม่ได้โหลดข้อสอบ — กด ↻ โหลดใหม่ ก่อน</div>
-        <div v-else-if="!triage.total" class="qz-triage-clear">
-          <Emoji char="🎉" /> ไม่มีข้อที่มีปัญหาเลย — คลังสะอาด
-        </div>
-        <template v-else>
-          <div class="qz-triage-sum">
-            มีข้อที่ต้องจัดการ <b>{{ triage.total }}</b> ข้อ<span v-if="triage.urgent">
-              · <b class="qz-triage-urgent">{{ triage.urgent }}</b> ข้อในนั้น<b>เผยแพร่อยู่</b> นักศึกษาเห็นตอนนี้เลย</span>
-          </div>
-
-          <details v-for="k in BUCKET_KEYS" :key="k" class="qz-bucket" :open="openBucket === k">
-            <summary class="qz-bucket-sum" @click.prevent="openBucket = openBucket === k ? null : k">
-              <span>{{ BUCKET_META[k].icon }} {{ BUCKET_META[k].label }}</span>
-              <span class="qz-bucket-n" :class="{ zero: !buckets[k].length }">{{ buckets[k].length }}</span>
-            </summary>
-            <div class="qz-bucket-body">
-              <p class="qz-bucket-hint">{{ BUCKET_META[k].hint }}</p>
-              <div v-if="!buckets[k].length" class="qz-empty">ไม่มีข้อในกองนี้ <Emoji char="🎉" /></div>
-              <RouterLink v-else-if="k === 'conflict'" to="/review" class="qz-mini qz-bucket-go">
-                ไปหน้าตรวจข้อสอบเพื่อตัดสิน ›
-              </RouterLink>
-              <ul v-if="buckets[k].length" class="qz-bucket-list">
-                <li v-for="q in buckets[k].slice(0, bucketShown[k] || BUCKET_PAGE)" :key="q.id" class="qz-bucket-item">
-                  <div class="qz-bucket-q">
-                    <span v-if="q.isPublished" class="qz-bucket-live" title="นักศึกษาเห็นข้อนี้อยู่">เผยแพร่</span>
-                    <span v-else class="qz-bucket-draft">ร่าง</span>
-                    {{ truncate60(q.question) }}
-                  </div>
-                  <div class="qz-bucket-acts">
-                    <button class="qz-mini" @click="edit(q)">แก้ไข</button>
-                    <button
-                      v-if="k === 'failed'" class="qz-mini"
-                      :disabled="requeuingId === q.id" @click="requeue(q)"
-                    >{{ requeuingId === q.id ? 'กำลังส่ง…' : '↩️ ส่งกลับเข้าคิวตรวจ' }}</button>
-                  </div>
-                </li>
-              </ul>
-              <button
-                v-if="buckets[k].length > (bucketShown[k] || BUCKET_PAGE)"
-                class="qz-mini qz-bucket-more" @click="bucketShown[k] = (bucketShown[k] || BUCKET_PAGE) + BUCKET_PAGE"
-              >ดูเพิ่ม (เหลืออีก {{ buckets[k].length - (bucketShown[k] || BUCKET_PAGE) }})</button>
-            </div>
-          </details>
-        </template>
-      </section>
 
       <!-- ── ข้อที่ถูกแจ้งว่าผิด (questionReports) ── -->
       <details v-if="authStore.isAcademic" class="qz-reports" @toggle="onReportsToggle">
@@ -470,7 +417,6 @@ import { buildMeta } from '../utils/questionsMeta.js'
 import { filterQuestions, distinctCategories } from '../utils/questionsFilter.js'
 import { getCategories } from '../utils/questionCategories.js'
 import { pleFields, plePatch } from '../utils/pleMapping.js'
-import { triageBuckets, triageSummary, BUCKET_KEYS, BUCKET_META } from '../utils/questionTriage.js'
 import { isPleGroupKey } from '../data/plecc.js'
 import { topicRows, mergeTopicsPlan } from '../utils/topicMerge.js'
 import { groupReports, resolvePayload } from '../utils/questionReport.js'
@@ -492,30 +438,6 @@ const LETTERS = ['ก', 'ข', 'ค', 'ง', 'จ', 'ฉ']
 const list = ref([])
 const activeTab = ref('edit')   // แท็บงานในหน้า: edit (เพิ่ม/แก้) | bank (คลัง) | check (ตรวจสอบ)
 
-// ── 🧰 กระดานงานค้าง (แท็บตรวจสอบ) — คิดจาก list ที่โหลดแล้ว ไม่ยิง Firestore เพิ่ม ──
-const BUCKET_PAGE = 10          // โชว์ทีละ 10 ข้อ กันกองยาวดันของอื่นตกจอ
-const openBucket = ref(null)    // กองที่กางอยู่ (ทีละกอง — บังคับให้โฟกัสงานทีละอย่าง)
-const bucketShown = ref({})     // กอง → จำนวนที่โชว์อยู่ตอนนี้
-const requeuingId = ref(null)
-const buckets = computed(() => triageBuckets(list.value))
-const triage = computed(() => triageSummary(list.value))
-
-// ส่งข้อที่แก้แล้วกลับเข้าคิวตรวจ — ล้างผลตรวจให้กลับเป็น pending
-//  rules อนุญาต canEditQuestions() ผ่าน isReviewReset() (ไม่ใช่แค่แอดมิน)
-//  ปุ่มในฟอร์มแก้ไขยังจำกัดแอดมินเหมือนเดิม — ตรงนี้เปิดให้วิชาการเพราะเป็นงานประจำของกองนี้
-async function requeue(q) {
-  if (requeuingId.value) return
-  if (!(await confirm(`ส่ง "${truncate60(q.question)}" กลับเข้าคิวตรวจใหม่?`))) return
-  requeuingId.value = q.id
-  try {
-    await updateDoc(doc(db, 'questions', q.id), { ...REVIEW_RESET, reviewVerdicts: deleteField() })
-    usage.track(0, 1)
-    const idx = list.value.findIndex(x => x.id === q.id)
-    if (idx >= 0) list.value[idx] = { ...list.value[idx], ...REVIEW_RESET }
-    toast('ส่งกลับเข้าคิวตรวจแล้ว', 'success')
-  } catch (e) { console.error('[requeue]', e); toast('ส่งกลับไม่สำเร็จ', 'error') }
-  finally { requeuingId.value = null }
-}
 const loading = ref(false)
 const saving = ref(false)
 
@@ -1348,30 +1270,6 @@ async function resolveReports(g, verdict) {
 .qz-dup-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
 .qz-dup-items li { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .qz-dup-acts { display: flex; gap: 6px; }
-
-/* ── 🧰 กระดานงานค้าง (แท็บตรวจสอบ) ── */
-.qz-triage { border: 2px solid var(--ink); border-radius: 14px; padding: 12px; margin-bottom: 14px; background: #fff; }
-.qz-triage-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .88rem; font-weight: 800; margin-bottom: 10px; }
-.qz-triage-clear { text-align: center; padding: 18px 10px; font-size: .85rem; font-weight: 700; color: #15803d; }
-.qz-triage-sum { font-size: .8rem; line-height: 1.5; color: #334155; background: #f8fafc; border-radius: 10px; padding: 8px 11px; margin-bottom: 10px; }
-.qz-triage-urgent { color: #b91c1c; }
-
-.qz-bucket { border: 1px solid #e2e8f0; border-radius: 11px; margin-bottom: 7px; overflow: hidden; }
-.qz-bucket-sum { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; list-style: none; padding: 9px 11px; font-size: .82rem; font-weight: 800; background: #f8fafc; }
-.qz-bucket-sum::-webkit-details-marker { display: none; }
-.qz-bucket-n { flex-shrink: 0; min-width: 24px; text-align: center; background: #fef2f2; color: #b91c1c; border-radius: 999px; padding: 2px 9px; font-size: .76rem; font-weight: 800; }
-.qz-bucket-n.zero { background: rgba(34,197,94,.15); color: #15803d; }
-.qz-bucket-body { padding: 10px 11px 12px; }
-.qz-bucket-hint { margin: 0 0 9px; font-size: .75rem; line-height: 1.5; color: rgba(0,0,0,.55); }
-.qz-bucket-go { display: inline-block; margin-bottom: 9px; text-decoration: none; }
-.qz-bucket-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
-.qz-bucket-item { border-top: 1px solid #f1f5f9; padding-top: 9px; }
-.qz-bucket-item:first-child { border-top: none; padding-top: 0; }
-.qz-bucket-q { font-size: .78rem; line-height: 1.5; color: #1e293b; margin-bottom: 6px; }
-.qz-bucket-live { display: inline-block; background: rgba(34,197,94,.15); color: #15803d; border-radius: 999px; padding: 1px 8px; font-size: .7rem; font-weight: 800; margin-right: 5px; }
-.qz-bucket-draft { display: inline-block; background: rgba(0,0,0,.08); color: rgba(0,0,0,.55); border-radius: 999px; padding: 1px 8px; font-size: .7rem; font-weight: 800; margin-right: 5px; }
-.qz-bucket-acts { display: flex; flex-wrap: wrap; gap: 6px; }
-.qz-bucket-more { margin-top: 10px; }
 
 /* ── ป้ายสถานะตรวจ ── */
 .qz-badge.rv.pending { background: #eef2ff; color: #4f46e5; }
