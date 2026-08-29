@@ -46,6 +46,8 @@
         </div>
       </div>
 
+      <ArenaRankCard :rivals="rivals" />
+
       <PvpHistory />
     </template>
     <div v-else class="ar-login">เข้าสู่ระบบเพื่อเล่น</div>
@@ -67,6 +69,7 @@ import TeamPicker from '../components/battle/TeamPicker.vue'
 import BattleReplay from '../components/battle/BattleReplay.vue'
 import PvpHistory from '../components/battle/PvpHistory.vue'
 import ArenaStatus from '../components/battle/ArenaStatus.vue'
+import ArenaRankCard from '../components/battle/ArenaRankCard.vue'
 import { arenaRanking } from '../utils/arenaRivals.js'
 import { PVP_RATING_START } from '../utils/pvpRating.js'
 import PetThumb from '../components/shared/PetThumb.vue'
