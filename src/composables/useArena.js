@@ -18,6 +18,8 @@ import { getFallbackBots } from '../utils/pvpBot.js'
 import { pickHumanOpponents, BOARD_SIZE } from '../utils/pvpMatch.js'
 import { teamPower, coinForResult } from '../utils/pvpCoins.js'
 import { boardSeed, canRefresh, refreshLeftMs } from '../utils/pvpBoard.js'
+import { bumpDailyQuest } from '../utils/dailyQuest.js'
+import { buildLoseTip } from '../utils/loseTip.js'
 
 // คีย์วันที่รายวัน (UTC) — ใช้ toISOString ให้ตรงกับ daily-reset อื่นของแอป
 // (quizCoinDate/studyCoinDate/dailyQuest ใช้ UTC เหมือนกันหมด → คงไว้เพื่อความสอดคล้อง)
@@ -92,16 +94,19 @@ export function useArena() {
     const coin = coinForResult(myPower.value, teamPower(opp.team), won)
     // ⚠️ CLAUDE.md ข้อ 9 — หยิบค่าก่อนเรียก patchUser (หลังเรียกแล้ว computed จะเป็นค่าใหม่ทันที)
     const nextNonce = (auth.userData?.pvpBoardNonce || 0) + 1   // บุกจบ = กระดานชุดใหม่
+    // เควสประจำวัน "ลองสู้ในสนามประลอง" — นับทั้งชนะและแพ้ (เป้าคือให้คนเข้ามา ไม่ใช่ให้เก่ง)
+    // เกาะไปกับ write ที่เกิดอยู่แล้ว ⇒ 0 write เพิ่ม · เขียนไม่สำเร็จ patchUser rollback ให้ทั้งก้อน
+    const dq = bumpDailyQuest(auth.userData?.dailyQuest, 'pvp', today, 1)
     const ok = await auth.patchUser(
       {
         pvp: nextPvp, pvpAttackDate: today, pvpAttacksUsed: usedBefore + 1,
-        pvpBoardNonce: nextNonce,
+        pvpBoardNonce: nextNonce, dailyQuest: dq,
         ...(coin ? { coins: (auth.userData?.coins || 0) + coin } : {}),
       },
       {
         // ใช้ค่าตรงๆ ไม่ใช้ increment() — ให้ตรงกับ optimistic เป๊ะ กัน seed กระดานกระพริบ
         pvp: nextPvp, pvpAttackDate: today, pvpAttacksUsed: usedBefore + 1,
-        pvpBoardNonce: nextNonce,
+        pvpBoardNonce: nextNonce, dailyQuest: dq,
         ...(coin ? { coins: increment(coin) } : {}),
       },
     )
@@ -151,6 +156,9 @@ export function useArena() {
       vsLabel: `VS ${name}`,
       winText: `ชนะ! ${sign}${delta} แต้มประลอง`,
       loseText: `แพ้ ${delta} แต้มประลอง`,
+      // ⚠️ CLAUDE.md ข้อ 9 — userData ตรงนี้เป็นค่า "หลัง" patchUser แล้ว (เหรียญที่เพิ่งได้นับรวมด้วย)
+      // ตั้งใจให้เป็นแบบนั้น: ปุ่มต้องสะท้อนว่า "ตอนนี้กดอะไรได้" ไม่ใช่ตอนก่อนเริ่มไฟต์
+      loseTip: buildLoseTip('arena', auth.userData),
       rewardText: coin ? `ได้รับ: ${coin.toLocaleString()} เหรียญ` : '',
     }
   }

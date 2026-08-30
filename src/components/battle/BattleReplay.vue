@@ -102,6 +102,13 @@
         <div class="br-result" :class="{ win: data.won }">{{ data.won ? (data.winText ?? `ชนะ! ขึ้นชั้น ${data.cleared + 1}`) : (data.loseText ?? 'แพ้ ลองใหม่ได้เลย') }}</div>
         <div v-if="data.won && (data.rewardText ?? data.cleared != null)" class="br-reward"><Emoji char="🎁" /> {{ data.rewardText ?? ('ได้รับ: ขึ้นชั้น ' + (data.cleared + 1)) }}</div>
 
+        <!-- แพ้แล้วต้องมีทางไปต่อ ไม่ใช่ทางตัน — ผู้เรียกเป็นคนเลือกว่าปุ่มควรพาไปไหน (มันเห็นเหรียญ/ตั๋วจริง)
+             ที่นี่แค่วาด: ไม่รู้ราคากาชา ไม่แตะ auth store -->
+        <div v-if="!data.won && data.loseTip" class="br-tip">
+          <div class="br-tip-text">{{ data.loseTip.text }}</div>
+          <button class="br-btn sm br-tip-btn" @click="goTip(data.loseTip.to)">{{ data.loseTip.label }}</button>
+        </div>
+
         <div class="br-sum-team">
           <div class="br-sum-head"><i class="dot me"></i> ทีมคุณ</div>
           <div v-for="u in summary.teamA" :key="u.uid" class="br-sum-row" :class="{ mvp: summary.mvp.A === u.uid, win: data.won, dead: u.dead }">
@@ -183,6 +190,7 @@
 import { useEscapeKey } from '../../composables/useEscapeKey.js'
 import Emoji from '../shared/Emoji.vue'
 import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { getPetDef, atkStyleOf, projectileOf, passiveOf, sparkOf, ELEMENTS, EL_NAME, GRADE_LABELS } from '../../data/index.js'
 import { passiveText, STATUS_MAX } from '../../data/petPassives.js'
 import { buffSources, liveBuffs, badgesOf } from '../../utils/battleBuffs.js'
@@ -201,7 +209,14 @@ const props = defineProps({
   data: { type: Object, default: null },
   theme: { type: String, default: 'tower' },   // 'arena' | 'tower' — พื้นหลังสนาม
 })
-defineEmits(['close'])
+const emit = defineEmits(['close'])
+
+const router = useRouter()
+// ปิด overlay ไฟต์ก่อนแล้วค่อยเปลี่ยนหน้า — ไม่งั้น overlay ค้างทับหน้าใหม่
+function goTip(to) {
+  emit('close')
+  router.push(to)
+}
 
 const BASE_URL = import.meta.env.BASE_URL
 
@@ -1006,6 +1021,9 @@ onUnmounted(() => {
 @keyframes br-hint-in { from { opacity: 0 } to { opacity: 1 } }
 
 .br-result { font-size: 1.2rem; font-weight: 800; color: #fff; }
+.br-tip { margin-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.br-tip-text { font-size: .78rem; font-weight: 700; color: rgba(255,255,255,.8); text-align: center; }
+.br-tip-btn { background: var(--gold); color: var(--ink); }
 .br-result.win { color: #34d399; }
 
 /* ⚠️ การ์ด inspect พื้นเข้ม (#1e293b) — ตัวอักษรต้องสว่าง

@@ -101,6 +101,7 @@ import Emoji from '../components/shared/Emoji.vue'
 import { RouterLink } from 'vue-router'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
+import { buildLoseTip } from '../utils/loseTip.js'
 import { useMembersStore } from '../stores/members.js'
 import { useTower } from '../composables/useTower.js'
 import { towerRanking, TOP_COUNT } from '../utils/towerRivals.js'
@@ -193,7 +194,8 @@ async function onFight() {
   holdPath.value = true          // ต้องตั้งก่อน await — patchUser ข้างใน fight() ขยับ floor ทันที
   try {
     const r = await fight()
-    if (r) replay.value = r      // ทั้งชนะและแพ้มี replay → ปล่อย path ตอนปิด replay
+    // แพ้แล้วต้องมีทางไปต่อ — ปุ่มเลือกตามเหรียญ/ตั๋วที่มีอยู่จริง ณ ตอนนี้
+    if (r) replay.value = { ...r, loseTip: buildLoseTip('tower', authStore.userData) }
     else releasePath()           // fight() คืน null (ยังไม่ได้จัดทีม) → ปล่อยเลย
   } catch (e) {
     releasePath()

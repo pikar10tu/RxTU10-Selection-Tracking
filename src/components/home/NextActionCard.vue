@@ -27,7 +27,7 @@ import { useAppConfig } from '../../composables/useAppConfig.js'
 
 const emit = defineEmits(['sheet'])
 const auth = useAuthStore()
-const { expeditionOpen } = useAppConfig()
+const { expeditionOpen, pvpOpen } = useAppConfig()
 
 // คำนวณสดจาก userData ที่มีอยู่ในหน่วยความจำ — ไม่มีต้นทุน read
 // วันที่ใช้นิพจน์เดียวกับที่ทั้งโปรเจกต์ใช้อยู่ (HomeView:70, StudyView:243, ฯลฯ) — ไม่มี helper กลาง
@@ -37,6 +37,7 @@ const action = computed(() => nextAction(
     today: new Date().toISOString().slice(0, 10),
     now: Date.now(),
     expeditionOpen: expeditionOpen.value,
+    pvpOpen: pvpOpen.value,
   },
 ))
 

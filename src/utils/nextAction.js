@@ -21,9 +21,10 @@ function hasEmptyPlot(userData) {
 
 // คืนงานถัดไป 1 อย่าง หรือ null = ซ่อนการ์ด (ไม่ใช่การ์ดว่าง)
 //  ctx.today = 'YYYY-MM-DD' (ไม่ส่ง = ข้ามกฎที่อิงวันที่) · ctx.now = epoch ms (ฉีดเพื่อเทส)
+//  ctx.pvpOpen = สนามประลองเปิดไหม — เป้าช่องที่ 3 ของเควสสลับตามนี้ (ดู dailyQuest.questGoals)
 export function nextAction(userData, ctx = {}) {
   if (!userData) return null
-  const { today = null, now = Date.now() } = ctx
+  const { today = null, now = Date.now(), pvpOpen = false } = ctx
 
   // 1) วันนี้ยังไม่ทำข้อสอบ — dailyQuest.quiz คือสัญญาณเดียวที่ QuizView เขียนจริง
   //    (quizCoinDate ตายตั้งแต่ปลดเพดานเหรียญควิซ 11 ก.ค. — ไม่มีใครเขียนแล้ว อย่าเอากลับมาใช้)
@@ -54,7 +55,7 @@ export function nextAction(userData, ctx = {}) {
   // 4) เควสวันนี้ยังไม่ได้กดรับรางวัล — เปิด bottom-sheet บน Home ไม่ใช่เปลี่ยนหน้า
   //    แยกข้อความ 2 สถานะ: ทำครบแล้วรอกดรับ vs ยังทำไม่ครบ (questNotClaimed จริงทั้งสองแบบ)
   if (today && questNotClaimed(dq, today)) {
-    return questClaimable(dq, today)
+    return questClaimable(dq, today, pvpOpen)
       ? {
           key: 'quest', icon: '🎯', title: 'เควสวันนี้ครบแล้ว — ยังไม่ได้กดรับรางวัล',
           sub: 'กดรับเลยจะได้รายได้ ×1.5 กับตั๋วอัญเชิญฟรี', cta: 'ไปกดรับ', sheet: 'quest',

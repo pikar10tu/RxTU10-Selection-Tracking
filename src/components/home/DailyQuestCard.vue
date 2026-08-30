@@ -1,18 +1,15 @@
 <template>
   <div class="dq-body">
+    <!-- แถวกดได้ = ตัวแก้ "ไม่รู้ว่าสนามประลองอยู่ตรงไหน" — เดิมเป็นข้อความล้วน อ่านแล้วไปต่อไม่ถูก
+         ทำครบแล้วยังกดได้ (ไม่ล็อก) เพราะทำเสร็จแล้วอาจอยากกลับไปเล่นต่อ -->
     <div class="dq-tasks">
-      <div class="dq-task" :class="{ done: q.quiz >= GOALS.quiz }">
-        <span class="dq-task-l"><Emoji char="📝" /> ทำข้อสอบ</span>
-        <span class="dq-task-n">{{ Math.min(q.quiz, GOALS.quiz) }}/{{ GOALS.quiz }}</span>
-      </div>
-      <div class="dq-task" :class="{ done: q.farm >= GOALS.farm }">
-        <span class="dq-task-l"><Emoji char="🌱" /> ปลูกพืช</span>
-        <span class="dq-task-n">{{ Math.min(q.farm, GOALS.farm) }}/{{ GOALS.farm }}</span>
-      </div>
-      <div class="dq-task" :class="{ done: q.gacha >= GOALS.gacha }">
-        <span class="dq-task-l"><Emoji char="🎰" /> อัญเชิญเพ็ท</span>
-        <span class="dq-task-n">{{ Math.min(q.gacha, GOALS.gacha) }}/{{ GOALS.gacha }}</span>
-      </div>
+      <button v-for="t in tasks" :key="t.key" class="dq-task" :class="{ done: t.n >= t.goal }" @click="go(t.to)">
+        <span class="dq-task-l"><Emoji :char="t.icon" /> {{ t.label }}</span>
+        <span class="dq-task-r">
+          <span class="dq-task-n">{{ Math.min(t.n, t.goal) }}/{{ t.goal }}</span>
+          <span class="dq-task-go" aria-hidden="true">›</span>
+        </span>
+      </button>
     </div>
 
     <button v-if="!claimed" class="dq-claim" :class="{ ready: claimable }" :disabled="!claimable || claiming" @click="claimReward">
@@ -28,14 +25,18 @@
 <script setup>
 import Emoji from '../shared/Emoji.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { increment } from 'firebase/firestore'
 import { useAuthStore } from '../../stores/auth.js'
 import { useToast } from '../../composables/useToast.js'
-import { QUEST_GOALS, BUFF_MS, QUEST_TICKETS, questClaimable } from '../../utils/dailyQuest.js'
+import { useAppConfig } from '../../composables/useAppConfig.js'
+import { questGoals, BUFF_MS, QUEST_TICKETS, questClaimable } from '../../utils/dailyQuest.js'
 
 const auth = useAuthStore()
+const router = useRouter()
 const { toast } = useToast()
-const GOALS = QUEST_GOALS
+const { pvpOpen } = useAppConfig()
+const go = (to) => router.push(to)
 
 const now = ref(Date.now())
 let timer = null
@@ -45,10 +46,24 @@ onUnmounted(() => clearInterval(timer))
 const today = () => new Date().toISOString().slice(0, 10)
 const q = computed(() => {
   const dq = auth.userData?.dailyQuest
-  return (dq && dq.date === today()) ? dq : { date: today(), quiz: 0, study: 0, gacha: 0, claimed: false }
+  return (dq && dq.date === today()) ? dq : { date: today(), quiz: 0, farm: 0, gacha: 0, pvp: 0, claimed: false }
 })
+
+// ช่องที่ 3 สลับตาม pvpOpen — เป้ามาจาก questGoals() ที่เดียว การ์ดไม่ถือรายการเป้าของตัวเอง
+const tasks = computed(() => {
+  const goals = questGoals(pvpOpen.value)
+  const rows = [
+    { key: 'quiz', icon: '📝', label: 'ทำข้อสอบ', to: '/quiz' },
+    { key: 'farm', icon: '🌱', label: 'ปลูกพืช', to: '/play/farm' },
+    goals.pvp != null
+      ? { key: 'pvp',   icon: '⚔️', label: 'ลองสู้ในสนามประลอง', to: '/arena' }
+      : { key: 'gacha', icon: '🎰', label: 'อัญเชิญเพ็ท',        to: '/shop' },
+  ]
+  return rows.map(r => ({ ...r, goal: goals[r.key], n: q.value[r.key] || 0 }))
+})
+
 const claimed = computed(() => q.value.claimed)
-const claimable = computed(() => questClaimable(auth.userData?.dailyQuest, today()))
+const claimable = computed(() => questClaimable(auth.userData?.dailyQuest, today(), pvpOpen.value))
 const tickets = computed(() => auth.userData?.freeGachaTickets || 0)
 const buffActive = computed(() => (auth.userData?.incomeBuffUntil || 0) > now.value)
 const buffRemain = computed(() => {
@@ -81,9 +96,13 @@ async function claimReward() {
 <style scoped>
 .dq-body { display: flex; flex-direction: column; }
 .dq-tasks { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
-.dq-task { display: flex; justify-content: space-between; align-items: center; font-size: .82rem; font-weight: 700; color: rgba(0,0,0,.65); padding: 7px 10px; border: 2px solid rgba(0,0,0,.1); border-radius: 10px; }
+.dq-task { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: left; font-family: inherit; font-size: .82rem; font-weight: 700; color: rgba(0,0,0,.65); padding: 7px 10px; border: 2px solid rgba(0,0,0,.1); border-radius: 10px; background: transparent; cursor: pointer; transition: transform .12s, border-color .12s; }
+.dq-task:active { transform: scale(.985); }
+.dq-task:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .dq-task.done { border-color: var(--mint, #34d399); background: rgba(52,211,153,.12); color: var(--ink); }
+.dq-task-r { display: flex; align-items: center; gap: 6px; }
 .dq-task-n { font-variant-numeric: tabular-nums; }
+.dq-task-go { font-size: 1rem; line-height: 1; color: rgba(0,0,0,.3); }
 .dq-claim { width: 100%; border: 2px solid var(--ink); border-radius: 12px; padding: 11px; font-family: inherit; font-size: .85rem; font-weight: 800; color: #fff; background: #c9c2d4; cursor: pointer; transition: transform .12s, box-shadow .12s; }
 .dq-claim.ready { background: var(--gold); box-shadow: var(--pop); }
 .dq-claim.ready:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
