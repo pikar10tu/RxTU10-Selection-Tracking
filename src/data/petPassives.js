@@ -36,7 +36,7 @@ export const PET_PASSIVES = {
     name: 'สัญชาตญาณนักล่า', icon: '🦖',
     hook: 'onKill', effect: 'stackAtk', value: { pct: 12, max: 3 }, step: { pct: 4, max: 0 },
     desc: 'ล้มศัตรู 1 ตัว พลังโจมตี +{pct}% ถาวร (สะสมได้ {max} ชั้น)',
-    short: 'ล้มศัตรู 1 ตัว พลังโจมตี +{pct}% (สูงสุด {max} ชั้น)',
+    short: 'ล้มศัตรู 1 ตัว พลังโจมตี +{pct}%',
   },
   ouroboros: {
     name: 'วัฏจักรนิรันดร์', icon: '🐍',
@@ -143,6 +143,9 @@ export const PET_PASSIVES = {
     hook: 'aura', effect: 'enemyVuln', value: { pct: 6 }, step: { pct: 2 },
     desc: 'ศัตรูทุกตัวรับดาเมจเพิ่ม {pct}%',
     short: 'ศัตรูทุกตัวรับดาเมจเพิ่ม {pct}%',
+    // ⚠️ aura ที่ลงฝั่งตรงข้าม ป้ายไปโผล่บน "ตัวที่โดน" ⇒ ข้อความมุมเจ้าของอ่านกลับด้านทันที
+    //    ("ศัตรูทุกตัวรับดาเมจเพิ่ม" บนเพ็ทของเราเอง = เหมือนบอกว่าเราได้เปรียบ ซึ่งตรงข้ามกับความจริง)
+    shortOn: 'รับดาเมจเพิ่ม {pct}%',
   },
   seal: {
     name: 'ยอดนักซัพพอร์ต', icon: '💧',
@@ -220,10 +223,11 @@ export function passiveText(p, level = 1) {
  *     ใช้ effect เดียวกันโดยให้ผลคนละอย่าง — ฟีนิกซ์ (revive ฟื้น 35%) กับแมว (cheatDeath เหลือเลือด 1)
  *     เคยอ่านได้ว่า "กันตายได้ 1 ครั้ง" เหมือนกันเป๊ะทั้งคู่ · หมาป่าได้แค่ "พลังโจมตีเพิ่ม" ที่ไม่บอกอะไรเลย
  *  ⚠️ ห้ามพิมพ์ตัวเลขลง short เอง — ใส่ {pct} {count} … แล้วให้ passiveValueAt เติมตามขั้น */
-export function effectText(p, level = 1) {
+export function effectText(p, level = 1, { onTarget = false } = {}) {
   if (!p) return ''
   const v = passiveValueAt(p, level)
-  return String(p.short || p.desc || '').replace(/\{(\w+)\}/g, (m, key) => (v[key] ?? m))
+  const tpl = (onTarget && p.shortOn) || p.short || p.desc || ''
+  return String(tpl).replace(/\{(\w+)\}/g, (m, key) => (v[key] ?? m))
 }
 
 // ════════════════════════════════════════════════════════════════════

@@ -30,6 +30,8 @@ test('ดีบัฟข้ามฝั่ง: นกฮูกอยู่ที
   assert.equal(b.foeSide, true)
   assert.equal(b.ownerUid, 'B0')
   assert.equal(b.ownerName, 'นกฮูก')
+  // ⚠️ ข้อความต้องเป็นมุม "ผู้รับ" — มุมเจ้าของ ("ศัตรูทุกตัวรับดาเมจเพิ่ม") อ่านกลับด้านทันที
+  assert.equal(b.label, 'รับดาเมจเพิ่ม 6%')
   assert.equal(find(s.B0, 'enemyVuln'), undefined, 'เจ้าของ aura ไม่ควรติดดีบัฟของตัวเอง')
 })
 

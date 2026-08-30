@@ -377,3 +377,11 @@ test('STATUS_ICON/STATUS_TEXT: มี duoRegen แล้ว (คู่หู �
   assert.equal(STATUS_ICON.duoRegen, '💧')
   assert.ok(STATUS_TEXT.duoRegen)
 })
+
+test('effectText: aura ที่ลงฝั่งตรงข้ามมีข้อความมุมผู้รับแยก (onTarget)', () => {
+  const owl = PET_PASSIVES.owl
+  assert.equal(effectText(owl, 1), 'ศัตรูทุกตัวรับดาเมจเพิ่ม 6%')
+  assert.equal(effectText(owl, 1, { onTarget: true }), 'รับดาเมจเพิ่ม 6%')
+  // ตัวที่ไม่มี shortOn ต้องตกกลับไป short เหมือนเดิม ไม่ใช่ค่าว่าง
+  assert.equal(effectText(PET_PASSIVES.whale, 1, { onTarget: true }), effectText(PET_PASSIVES.whale, 1))
+})

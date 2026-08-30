@@ -36,7 +36,8 @@ function makeBuff(effect, owner, ownerUid, opts) {
     key: `${effect}:${ownerUid}`,
     effect,
     icon: STATUS_ICON[effect] || '',
-    label: opts.label ?? effectText(p, owner?.passiveLv),
+    // foeSide = ป้ายอยู่บน "ตัวที่โดน" ⇒ ต้องใช้ข้อความมุมผู้รับ ไม่ใช่มุมเจ้าของสกิล
+    label: opts.label ?? effectText(p, owner?.passiveLv, { onTarget: !!opts.foeSide }),
     skillName: opts.skillName ?? p?.name ?? '',
     skillIcon: opts.skillIcon ?? p?.icon ?? '',
     ownerUid,
