@@ -152,6 +152,26 @@
         <div class="br-card-pass"><span>ทักษะเฉพาะ</span><b>{{ insp.passive ? insp.passive.name : 'ตัวนี้ยังไม่มี' }}</b></div>
         <!-- เดิมโชว์แค่ชื่อ เปิดมาก็ยังไม่รู้อยู่ดีว่าสกิลทำอะไร — passiveText() เติมเลขจริงของขั้นให้แล้ว -->
         <div v-if="insp.passive" class="br-card-passdesc">{{ passiveText(insp.passive) }}</div>
+
+        <div v-if="inspBuffs.length" class="br-buffs">
+          <div class="br-buffs-head">กำลังได้รับ</div>
+          <div v-for="b in inspBuffs" :key="b.key" class="br-buff"
+               :class="{ dbf: !b.buff, spent: b.spent }">
+            <div class="br-buff-src">
+              <Emoji :char="b.skillIcon" /> {{ b.skillName }}<span class="br-buff-owner">
+                · <template v-if="b.self">ตัวเอง</template>
+                <template v-else><Emoji :char="b.ownerEmoji" /> {{ b.ownerName }}</template>
+                <template v-if="b.foeSide"> · ฝ่ายศัตรู</template>
+              </span>
+            </div>
+            <div class="br-buff-eff">
+              <Emoji :char="b.icon" /> {{ b.label }}
+              <span v-if="b.spent" class="br-buff-tag">ใช้ไปแล้ว</span>
+              <span v-else-if="b.maxStacks" class="br-buff-tag">{{ b.stacks }}/{{ b.maxStacks }} ชั้น</span>
+            </div>
+          </div>
+        </div>
+
         <button class="br-btn sm" @click="closeInspect">ปิด</button>
       </div>
     </div>
@@ -164,10 +184,8 @@ import { useEscapeKey } from '../../composables/useEscapeKey.js'
 import Emoji from '../shared/Emoji.vue'
 import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import { getPetDef, atkStyleOf, projectileOf, passiveOf, sparkOf, ELEMENTS, EL_NAME, GRADE_LABELS } from '../../data/index.js'
-import {
-  passiveText, STATUS_ICON, STATUS_TEXT, STATUS_MAX,
-  TEAM_AURA_EFFECTS, FOE_AURA_EFFECTS, SELF_STATUS_EFFECTS,
-} from '../../data/petPassives.js'
+import { passiveText, STATUS_MAX } from '../../data/petPassives.js'
+import { buffSources, liveBuffs, badgesOf } from '../../utils/battleBuffs.js'
 import { RARITY } from '../../data/index.js'
 import { buildCombatant } from '../../data/battle.js'
 import { computeBattleSummary } from '../../utils/battleSummary.js'
@@ -314,37 +332,12 @@ function ticksFor(uid) {
 //
 // ต้นทุน: span static ในการ์ดที่ถูก promote เป็น layer อยู่แล้ว ⇒ 0 layer เพิ่ม 0 ต้นทุนต่อเฟรม
 // (แพทเทิร์นเดียวกับ .br-skill-dot ที่ใช้อยู่จริงในโปรดักชันแล้ว)
+// แหล่งความจริงเดียวของ "ใครติดบัฟอะไร มาจากใคร" (utils/battleBuffs.js)
+// ป้ายบนการ์ดคือก้อนนี้ที่ตัดที่มาทิ้ง — รายการเต็มพร้อมที่มาไปโผล่ในหน้าต่าง inspect
+const buffMap = computed(() => buffSources(props.data?.playerTeam || [], props.data?.botTeam || []))
 const statusMap = computed(() => {
   const out = {}
-  const teams = { A: props.data?.playerTeam || [], B: props.data?.botTeam || [] }
-  const auraOf = (team) => {
-    const mine = new Set(), theirs = new Set()
-    for (const p of team) {
-      const eff = passiveOf(getPetDef(p?.id))?.effect
-      if (!eff) continue
-      if (TEAM_AURA_EFFECTS.has(eff)) mine.add(eff)
-      else if (FOE_AURA_EFFECTS.has(eff)) theirs.add(eff)
-    }
-    return { mine, theirs }
-  }
-  const a = auraOf(teams.A), b = auraOf(teams.B)
-  for (const side of ['A', 'B']) {
-    const own = side === 'A' ? a : b
-    const foe = side === 'A' ? b : a
-    teams[side].forEach((p, i) => {
-      const list = [], seen = new Set()
-      const push = (eff, buff) => {
-        if (!eff || seen.has(eff) || !STATUS_ICON[eff]) return
-        seen.add(eff)
-        list.push({ key: eff, icon: STATUS_ICON[eff], label: STATUS_TEXT[eff] || '', buff })
-      }
-      const selfEff = passiveOf(getPetDef(p?.id))?.effect
-      if (selfEff && SELF_STATUS_EFFECTS.has(selfEff)) push(selfEff, true)
-      for (const eff of own.mine) push(eff, true)      // บัฟจากทีมตัวเอง (รวมของตัวเองด้วย)
-      for (const eff of foe.theirs) push(eff, false)   // ดีบัฟที่ศัตรูแผ่ใส่
-      out[side + i] = list.slice(0, STATUS_MAX)
-    })
-  }
+  for (const [uid, list] of Object.entries(buffMap.value)) out[uid] = badgesOf(list, STATUS_MAX)
   return out
 })
 function statusOf(uid) { return statusMap.value[uid] || [] }
@@ -832,6 +825,14 @@ const insp = computed(() => {
   }
 })
 
+// รายการบัฟที่ยูนิตนี้กำลังได้รับ — คำนวณตอนเปิดหน้าต่างเท่านั้น
+// inspect() สั่ง paused=true + clearTimeout ไปแล้ว ⇒ ไม่มีการ์ดใบไหนมีอนิเมชันวิ่ง = ไม่ชนกฎเหล็ก perf
+const inspBuffs = computed(() => {
+  const uid = inspectUid.value
+  if (!uid) return []
+  return liveBuffs(buffMap.value[uid] || [], beats.value, idx.value)
+})
+
 // ── มาตรวัดเฟรม — เปิดด้วย ?fps=1 ท้าย URL หรือ data.fpsMeter (พาเนล Admin) ──
 // ⚠️ ต้องประกาศ "เหนือ" watch(props.data, immediate) ด้านล่าง เพราะ reset() เรียก startFps()
 //    ซึ่งอ่าน showFps — ถ้าอยู่ใต้ watch จะเข้า TDZ ทันทีที่มี call site ไหน mount มาพร้อม data
@@ -1053,6 +1054,22 @@ onUnmounted(() => {
 .br-modal .br-result { text-align: center; }
 @keyframes br-modal-in { from { opacity: 0; transform: scale(.92) translateY(10px) } to { opacity: 1; transform: none } }
 .br-modal-btns { display: flex; gap: 8px; justify-content: center; margin-top: 4px; }
+/* รายการบัฟในการ์ด inspect — พื้นการ์ดเป็น #1e293b (เข้ม)
+   ⚠️ ถมเขียว/แดงทึบแล้ววางตัวอักษรสว่าง = แสบตาและอ่านยากกว่าเดิม (CLAUDE.md ข้อ 13)
+   จึงใช้พื้นจาง 16% + แถบสีทึบขอบซ้าย · วัดแล้ว 9.9:1 (บัฟ) และ 11.4:1 (ดีบัฟ) ผ่าน AA สบาย
+   🔑 สีไม่ใช่ตัวบอกเดียว — ตาบอดสีเขียว-แดงคือแบบที่พบบ่อยที่สุด และสองสีนี้คือคู่ที่แยกไม่ออกพอดี
+      จึงมีไอคอนของผลกับคำว่า "ฝ่ายศัตรู" ซ้ำอีก 2 ชั้น สีเป็นชั้นที่สามเท่านั้น */
+.br-buffs { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.br-buffs-head { font-size: .74rem; font-weight: 800; color: #94a3b8; margin-bottom: 2px; }
+.br-buff { border-left: 3px solid #4ade80; border-radius: 0 10px 10px 0; background: rgba(34,197,94,.16); padding: 6px 9px; }
+.br-buff.dbf { border-left-color: #f87171; background: rgba(239,68,68,.16); }
+/* ใช้ไปแล้ว = ไม่ได้ให้อะไรอีก ถ้ายังเขียวอยู่จะอ่านผิดว่ายังกันตายได้ */
+.br-buff.spent { border-left-color: #94a3b8; background: rgba(148,163,184,.14); opacity: .62; }
+.br-buff-src { font-size: .78rem; font-weight: 800; color: #f1f5f9; }
+.br-buff-owner { font-weight: 700; color: #cbd5e1; }
+.br-buff-eff { font-size: .76rem; color: #e2e8f0; margin-top: 1px; }
+.br-buff-tag { margin-left: 6px; font-size: .7rem; font-weight: 800; color: #cbd5e1; background: rgba(255,255,255,.12); border-radius: 999px; padding: 1px 7px; }
+
 /* แถบปุ่มลอยตอน peek สนาม (ดูสรุป + ปิด) — เกาะล่างกลาง เหนือ safe-area */
 .br-peek-bar { position: fixed; left: 50%; transform: translateX(-50%);
   bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 424; display: flex; gap: 8px; }
