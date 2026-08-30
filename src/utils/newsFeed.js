@@ -12,6 +12,7 @@
  */
 import { MINIGAMES } from '../data/minigames.js'
 import { TA_MODES } from './timeAttack.js'
+import { RESIDENCE_TIERS } from '../data/residence.js'
 
 /** เก็บกี่ข่าวต่อคน — ⚠️ เพิ่มแล้วต้องคำนวณขนาด doc ใหม่ (3×~30B×105คน ≈ 9.5KB จากลิมิต 1MB) */
 export const EVENT_MAX = 3
@@ -26,6 +27,18 @@ const gameName = (key) => MINIGAMES.find(g => g.key === key)?.name || 'มิน
 const taLabel  = (key) => TA_MODES.find(m => m.key === key)?.label || 'Time Attack'
 const GRADE_ROMAN = ['', 'I', 'II', 'III', 'IV', 'V']
 
+/** ชื่อขั้นบ้านจากเลเวล — ห้ามใช้ getTier() ที่นี่เพราะมัน clamp (เลเวล 0 จะกลายเป็นขั้น 1) */
+const tierName = (level) => RESIDENCE_TIERS[Number(level) - 1]?.tierName || ''
+/** ข่าวย้ายบ้าน: บอกชื่อขั้นเก่า→ใหม่ · ขั้นเก่าไม่มี (เลเวล 1 = คนใหม่) ก็เป็นข่าวต้อนรับแทน */
+function houseText(who, e) {
+  const to = tierName(e.v)
+  if (!to) return `${who} อัปเกรดบ้านเป็นเลเวล ${e.v}`   // เลเวลใหม่เกินทะเบียน — กันข่าวหาย
+  const from = tierName(Number(e.v) - 1)
+  return from
+    ? `${who} ได้ย้ายจาก ${from} ไปอยู่ ${to} ยินดีด้วย`
+    : `${who} ได้เข้าสู่ระบบ ยินดีต้อนรับ`
+}
+
 /**
  * ทะเบียนชนิดข่าว — เพิ่มชนิดใหม่ที่นี่ที่เดียว
  * text(who, e) : who = ชื่อที่ขึ้นต้นประโยค ('คุณ' ถ้าเป็นตัวเอง) · e = { k, v, g?, t }
@@ -37,7 +50,7 @@ const KINDS = {
   qz: { icon: '📚', text: (who, e) => `${who} ตอบควิซถูกรวด ${e.v} ข้อ` },
   mg: { icon: '🎮', text: (who, e) => `${who} ทำคะแนน ${gameName(e.g)} ขึ้นอันดับ ${e.v} ของรุ่น` },
   ta: { icon: '⏱️', text: (who, e) => `${who} ทำสถิติ Time Attack ${taLabel(e.g)} ขึ้นอันดับ ${e.v} ของรุ่น` },
-  hs: { icon: '🏠', text: (who, e) => `${who} อัปเกรดบ้านเป็นเลเวล ${e.v}` },
+  hs: { icon: '🏠', text: houseText },
   fo: { icon: '🌾', text: (who, e) => `${who} ส่งออเดอร์ฟาร์มชิ้นใหญ่ ได้ ${(Number(e.v) || 0).toLocaleString()} เหรียญ` },
   pv: { icon: '⚔️', text: (who, e) => `${who} ขึ้นอันดับ ${e.v} ของสนามประลอง` },
 }
