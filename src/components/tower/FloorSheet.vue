@@ -14,7 +14,10 @@
 
       <div class="fs-sec">ศัตรูที่รออยู่</div>
       <div class="fs-team">
-        <div v-for="(p, i) in botTeam" :key="i" class="fs-mon"><PetThumb :pet="p" /></div>
+        <button v-for="(p, i) in botTeam" :key="i" class="fs-mon" type="button"
+                :aria-label="`ดูข้อมูล ${defName(p)}`" @click="scout = p">
+          <PetThumb :pet="p" />
+        </button>
       </div>
 
       <div v-if="friends.length" class="fs-sec">เพื่อนที่พิชิตถึงชั้นนี้ ({{ friends.length }})</div>
@@ -32,13 +35,19 @@
       </button>
     </div>
   </BottomSheet>
+
+  <!-- นอก BottomSheet โดยตั้งใจ: การ์ด Teleport ไป body เองด้วย z410 (สูงกว่า sheet z400)
+       ถ้าวางไว้ข้างในจะยังทำงานได้ แต่ผูกชีวิตกับ v-if ของ sheet โดยไม่จำเป็น -->
+  <PetScoutCard :pet="scout" @close="scout = null" />
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import BottomSheet from '../shared/BottomSheet.vue'
 import PetThumb from '../shared/PetThumb.vue'
 import Emoji from '../shared/Emoji.vue'
+import PetScoutCard from '../pets/PetScoutCard.vue'
+import { getPetDef } from '../../data/index.js'
 import { letterAvatar, fallbackAvatar } from '../../utils/avatar.js'
 import { floorZone, getFloorTeam, getTowerBonus } from '../../data/towerFloors.js'
 
@@ -55,6 +64,10 @@ const zone    = computed(() => floorZone(safe.value))
 const botTeam = computed(() => getFloorTeam(safe.value))
 const bonus   = computed(() => getTowerBonus(safe.value))
 const friends = computed(() => props.crowd?.get(safe.value)?.all || [])
+const scout = ref(null)
+const defName = (p) => getPetDef(p?.id)?.name || 'เพ็ท'
+// ปิดแผ่นชั้นทั้งที่การ์ดสอดแนมเปิดค้าง → การ์ดจะลอยเดี่ยวโดยไม่มีที่มา ต้องเก็บไปด้วย
+watch(() => props.floor, (f) => { if (f === null) scout.value = null })
 </script>
 
 <style scoped>
@@ -67,7 +80,8 @@ const friends = computed(() => props.crowd?.get(safe.value)?.all || [])
 }
 .fs-sec { font-size: .76rem; font-weight: 800; color: var(--muted); margin-top: 2px; }
 .fs-team { display: flex; gap: 8px; }
-.fs-mon { width: 58px; flex-shrink: 0; }
+/* เป็นปุ่มแล้ว — ต้องรีเซ็ตสไตล์ปุ่มดีฟอลต์ ไม่งั้นได้ขอบเทา/พื้นเทาของเบราว์เซอร์ */
+.fs-mon { width: 58px; flex-shrink: 0; padding: 0; border: none; background: none; font-family: inherit; cursor: pointer; }
 
 .fs-friends { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .fs-friend {

@@ -91,20 +91,8 @@
     <FloorSheet :floor="sheetFloor" :crowd="crowd" :current-floor="floor"
                 @close="sheetFloor = null" @fight="onSheetFight" />
 
-    <!-- scout ศัตรู (read-only) — Teleport ไป body: #main-content stacking context, z-index สู้ #bottom-nav ไม่ได้ (ดู CLAUDE.md) -->
-    <Teleport to="body">
-    <div v-if="scout" class="tw-scout" @click.self="scout = null">
-      <div class="tw-scout-box">
-        <div class="tw-scout-emoji"><Emoji :char="defOf(scout.id).emoji" /></div>
-        <div class="tw-scout-name">{{ defOf(scout.id).name }}</div>
-        <div class="tw-scout-row"><span>สาย</span><b><Emoji :char="elEmoji(scout)" /> {{ elName(scout) }}</b></div>
-        <div class="tw-scout-row"><span>ระดับ</span><b>{{ rarityLabel(scout) }} · เกรด {{ GRADE_LABELS[Math.min(5, Math.max(0, scout.grade || 0))] }}</b></div>
-        <div class="tw-scout-row"><span>พลังโจมตี</span><b>{{ scoutStat.atk }}</b></div>
-        <div class="tw-scout-row"><span>พลังชีวิต</span><b>{{ scoutStat.hp }}</b></div>
-        <button class="tw-scout-x" @click="scout = null">ปิด</button>
-      </div>
-    </div>
-    </Teleport>
+    <!-- สอดแนมศัตรู (read-only) — การ์ดกลาง จัดการ Teleport/z-index/Escape ให้เองแล้ว -->
+    <PetScoutCard :pet="scout" @close="scout = null" />
   </div>
 </template>
 
@@ -117,12 +105,12 @@ import { useMembersStore } from '../stores/members.js'
 import { useTower } from '../composables/useTower.js'
 import { towerRanking, TOP_COUNT } from '../utils/towerRivals.js'
 import { buildFloorCrowd } from '../utils/towerCrowd.js'
-import { getPetDef, ELEMENTS, RARITY, EL_NAME, GRADE_LABELS } from '../data/index.js'
+import { getPetDef } from '../data/index.js'
 import { floorZone, BONUS_CAP_FLOOR } from '../data/towerFloors.js'
-import { buildCombatant } from '../data/battle.js'
 import TeamPicker from '../components/battle/TeamPicker.vue'
 import BattleReplay from '../components/battle/BattleReplay.vue'
 import PetDetailModal from '../components/pets/PetDetailModal.vue'
+import PetScoutCard from '../components/pets/PetScoutCard.vue'
 import PetThumb from '../components/shared/PetThumb.vue'
 import HelpButton from '../components/help/HelpButton.vue'
 import TowerPath from '../components/tower/TowerPath.vue'
@@ -198,14 +186,6 @@ const zone = computed(() => floorZone(floor.value))
 const zoneBg = computed(() => zone.value.royal
   ? 'linear-gradient(135deg, var(--ink) 0%, #5b21b6 100%)'
   : `linear-gradient(135deg, ${zone.value.color}, ${zone.value.color}bb)`)
-const elEmoji = (p) => ELEMENTS[p?.element]?.emoji || '✊'
-const elName = (p) => EL_NAME[p?.element] || p?.element
-const rarityLabel = (p) => RARITY[p?.rarity]?.label || p?.rarity
-const scoutStat = computed(() => {
-  if (!scout.value) return { atk: 0, hp: 0 }
-  const c = buildCombatant(scout.value)
-  return { atk: Math.round(c.atk), hp: Math.round(c.maxHp) }
-})
 
 async function onFight() {
   if (busy.value) return
@@ -286,11 +266,4 @@ function onSheetFight() {
 .tw-rival-all:active { transform: translate(2px,2px); box-shadow: 0 0 0 var(--ink); }
 .tw-rival-chase { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #ffeef1; border: 1.5px solid var(--accent); font-size: .76rem; font-weight: 700; color: var(--ink); }
 
-.tw-scout { position: fixed; inset: 0; z-index: 240; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; padding: 18px; }
-.tw-scout-box { background: #1e293b; color: #fff; border: 2px solid #fff; border-radius: 18px; padding: 16px 18px; width: 240px; display: flex; flex-direction: column; gap: 7px; max-height: 88vh; overflow-y: auto; }
-.tw-scout-emoji { font-size: 2.8rem; text-align: center; }
-.tw-scout-name { text-align: center; font-weight: 800; font-size: 1.1rem; margin-bottom: 4px; }
-.tw-scout-row { display: flex; justify-content: space-between; align-items: center; font-size: .82rem; }
-.tw-scout-row span { color: rgba(255,255,255,.6); }
-.tw-scout-x { margin-top: 10px; border: 2px solid #fff; background: rgba(255,255,255,.14); color: #fff; border-radius: 12px; padding: 9px; font-family: inherit; font-weight: 800; cursor: pointer; }
 </style>
