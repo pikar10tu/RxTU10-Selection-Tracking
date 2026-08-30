@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { simulateBattle } from './battleEngine.js'
+import { buildCombatant } from '../data/battle.js'
 
 const mono = (rarity, element, grade, n = 4) =>
   Array.from({ length: n }, (_, i) => ({ id: `${element}${i}`, rarity, element, grade }))
@@ -86,4 +87,48 @@ test('เลือกตัวออกตีจากซ้ายไปขว�
     if (e.t === 'attack' && e.side === 'A') seq.push(e.attacker)
   }
   assert.deepEqual(seq.slice(0, 4), ['A0', 'A1', 'A2', 'A3'])
+})
+
+// ── สเตตัสที่ UI เอาไปวาด (units / statsAfter) ────────────────
+// เดิม BattleReplay คำนวณ ATK/HP จาก buildCombatant ล้วน ไม่ผ่าน aura
+// แต่ log ส่ง targetHpAfter มาบนสเกลหลัง aura ⇒ ทีมที่มีคุณวาฬหลอดเลือดเริ่มเกิน 100%
+const teamOf = (...ids) => ids.map(id => ({ id, rarity: 'legendary', element: 'fist', grade: 0 }))
+
+test('result.units: มีครบทุก uid ของทั้งสองทีม พร้อม atk/maxHp', () => {
+  const r = simulateBattle(teamOf('turtle', 'turtle'), teamOf('turtle'), 7)
+  assert.deepEqual(Object.keys(r.units).sort(), ['A0', 'A1', 'B0'])
+  for (const u of Object.values(r.units)) {
+    assert.equal(typeof u.atk, 'number')
+    assert.ok(u.maxHp > 0)
+  }
+})
+
+test('result.units: ทีมมีคุณวาฬ → maxHp ทั้งทีม = ค่าดิบ x 1.10 (teamHp 10%)', () => {
+  const withWhale = simulateBattle(teamOf('whale', 'turtle'), teamOf('turtle'), 7)
+  const without   = simulateBattle(teamOf('turtle', 'turtle'), teamOf('turtle'), 7)
+  // ⚠️ เทียบค่าตรงๆ อย่าเทียบเป็นอัตราส่วนของเลขที่ปัดแล้ว — ฐานจริง 59.5 ปัดเป็น 60
+  //    ทำให้ 65/60 = 1.083 ทั้งที่คณิตข้างในถูก (59.5 x 1.1 = 65.45)
+  const raw = buildCombatant({ rarity: 'legendary', element: 'fist', grade: 0 }).maxHp
+  assert.equal(withWhale.units.A1.maxHp, Math.round(raw * 1.1))
+  assert.equal(without.units.A1.maxHp, Math.round(raw))
+  assert.equal(withWhale.units.B0.maxHp, without.units.B0.maxHp, 'aura ต้องไม่ข้ามไปทีมศัตรู')
+})
+
+test('statsAfter: ติดมากับ aura ที่เปลี่ยนค่าจริง ไม่ติดกับ aura ที่ไม่แตะ atk/maxHp', () => {
+  const r = simulateBattle(teamOf('whale', 'fairy'), teamOf('turtle'), 7)
+  const auras = r.log.filter(e => e.t === 'passive' && e.fxKind === 'aura')
+  const hp   = auras.find(e => e.effect === 'teamHp')
+  const crit = auras.find(e => e.effect === 'teamCrit')
+  assert.ok(hp.statsAfter, 'teamHp ต้องมี statsAfter')
+  assert.equal(crit.statsAfter, undefined, 'teamCrit ไม่แตะ atk/maxHp จึงไม่ต้องมี')
+  assert.equal(hp.statsAfter.A0.maxHp, r.units.A0.maxHp)
+})
+
+test('statsAfter: stackAtk ส่ง atk ใหม่มาทุกชั้นที่สะสม', () => {
+  const weak = Array.from({ length: 3 }, () => ({ id: 'mouse', rarity: 'common', element: 'scissors', grade: 0 }))
+  const r = simulateBattle(teamOf('trex'), weak, 3)
+  const stacks = r.log.filter(e => e.t === 'passive' && e.effect === 'stackAtk')
+  assert.ok(stacks.length >= 1, 'ควรมี stackAtk อย่างน้อย 1 ครั้ง')
+  for (const s of stacks) assert.ok(s.statsAfter.A0.atk > 0)
+  if (stacks.length >= 2) assert.ok(stacks[1].statsAfter.A0.atk > stacks[0].statsAfter.A0.atk)
 })

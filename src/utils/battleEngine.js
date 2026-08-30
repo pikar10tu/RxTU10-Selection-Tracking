@@ -5,7 +5,7 @@
 // ════════════════════════════════════════════════════════════
 import { BATTLE_CFG, buildCombatant, elementMult } from '../data/battle.js'
 import {
-  applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill,
+  applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, statsSnapshot,
 } from './battlePassives.js'
 
 // mulberry32 — RNG เดียวกับ sim
@@ -31,6 +31,9 @@ export function simulateBattle(teamA, teamB, seed) {
   // ── ลำดับ hook ที่ห้ามสลับ (สเปก §B): aura → onStart → [onRound] → onAttack → onHit → onDeath → onKill ──
   const auraEvents = [...applyAuras(A, B), ...applyAuras(B, A)]
   for (const e of auraEvents) log.push(e)
+  // สเตตัสหลัง aura ก่อนหมัดแรก = "ตัวหารจริง" ของหลอดเลือดฝั่ง UI
+  // (targetHpAfter ใน log อยู่บนสเกลนี้ ไม่ใช่ค่าดิบ — ใช้ค่าดิบแล้วทีมที่มีคุณวาฬหลอดจะเกิน 100%)
+  const units = statsSnapshot(A, B)
   for (const e of [...runOnStart(A, B), ...runOnStart(B, A)]) log.push(e)
 
   const pick = (foes) => { const al = alive(foes); return al.length ? al[Math.floor(rand() * al.length)] : null }
@@ -121,13 +124,13 @@ export function simulateBattle(teamA, teamB, seed) {
       // killChain — "ตัวเดียวที่เพิ่ม beat ได้" จึงมีเพดานจาก value.max และหยุดทันทีที่ศัตรูหมด
       let chain = 0
       while (killed && alive(foes).length && turns < BATTLE_CFG.maxTurns) {
-        const k = runOnKill(att, chain)
+        const k = runOnKill(att, chain, team, foes)
         for (const e of k.events) log.push(e)
         if (!k.extraAttack) break
         chain++; turns++
         killed = hit(att, foes)
       }
-      if (killed) { const k = runOnKill(att, chain); for (const e of k.events) log.push(e) }
+      if (killed) { const k = runOnKill(att, chain, team, foes); for (const e of k.events) log.push(e) }
       cursor[cur] = (ai + 1) % team.length
     }
     turns++
@@ -143,5 +146,5 @@ export function simulateBattle(teamA, teamB, seed) {
   else winner = hpPctA >= hpPctB ? 'A' : 'B'
 
   log.push({ t: 'end', winner, rounds: round, hpPctA, hpPctB })
-  return { winner, rounds: round, log }
+  return { winner, rounds: round, log, units }
 }

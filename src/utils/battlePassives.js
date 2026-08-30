@@ -15,6 +15,19 @@ const valOf = (p, unit) => passiveValueAt(p, unit?.passiveLv)
 const alive = (t) => t.filter(u => u.hp > 0)
 const pctOf = (v, pct) => v * (pct / 100)
 
+/** snapshot สเตตัสที่ "UI เอาไปวาด" ของทั้งสองทีม — atk/maxHp เท่านั้น
+ *  🔑 เอนจินเป็นแหล่งความจริงเดียว — ถ้าปล่อยให้ UI คำนวณ aura เอง
+ *     วันที่สูตรเปลี่ยนจะมีสองแหล่งความจริงทันที แล้วเลขบนจอกับเลขที่ใช้สู้จะคลาดกันเงียบๆ
+ *  ⚠️ ชื่อฟิลด์ปลายทางคือ `statsAfter` — ห้ามชนกับ `kind` ที่ buildBeats spread ทับ (CLAUDE.md ข้อ 15) */
+export function statsSnapshot(...teams) {
+  const out = {}
+  for (const t of teams) for (const u of t) out[u.uid] = { atk: Math.round(u.atk), maxHp: Math.round(u.maxHp) }
+  return out
+}
+
+/** effect ที่ขยับ atk/maxHp จริง — teamCrit/enemyVuln ไม่ต้องแบก snapshot ไปด้วย */
+const STAT_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'stackAtk'])
+
 /** สร้าง event สำหรับ log — รูปเดียวกับที่ BattleReplay/battleBeats รับ
  *  🔴 ชนิดผลชื่อ `fxKind` ห้ามใช้ชื่อ `kind` เด็ดขาด — `kind` เป็นของ battleBeats (= เวลา)
  *     และมันสร้าง beat ด้วย { ...event, kind } ⇒ ชื่อซ้ำเมื่อไหร่ ชนิดผลหายทั้งระบบทันที
@@ -58,7 +71,8 @@ export function applyAuras(team, foes) {
     // ⚠️ aura ต้องเด้งป้ายตอนเริ่มด้วย — เดิมสเปกเขียนว่า "ไม่มี event เพราะเห็นผลผ่านตัวเลข"
     //    แต่เทสจอจริงพบว่าทีมที่มี aura ล้วน (เช่น whale+seal) เงียบสนิท ผู้เล่นไม่รู้เลยว่ามี passive
     //    master plan §5.5 เขียนถูกแล้วว่า "proc ตอนเริ่มเกม → ป้ายขึ้นพร้อมกันตอนเริ่ม"
-    out.push(ev(u, p, { targets: [u.uid], fxKind: 'aura' }))
+    const e = ev(u, p, { targets: [u.uid], fxKind: 'aura' })
+    out.push(e)
     switch (p.effect) {
       case 'teamHp': {
         const add = pctOf(1, v.pct)
@@ -89,6 +103,9 @@ export function applyAuras(team, foes) {
         for (const f of foes) f.vuln = (f.vuln || 0) + v.pct / 100
         break
     }
+    // ⚠️ ต้องเติม "หลัง" switch — event ถูก push ไปก่อนที่ stat จะเปลี่ยนจริง
+    //    ถ้าเติมตอนสร้าง ev() จะได้ snapshot ของ "ก่อนออร่าทำงาน" = เลขไม่ขยับเลยบนจอ
+    if (STAT_EFFECTS.has(p.effect)) e.statsAfter = statsSnapshot(team, foes)
   }
   return out
 }
@@ -303,7 +320,7 @@ export function runOnDeath(unit, team) {
 //  onKill — หลังศัตรูตายจริง (onDeath ต้องผ่านไปแล้ว)
 // ══════════════════════════════════════════════════════════════
 /** คืน { extraAttack, events } — extraAttack = true ให้เอนจินตีต่ออีก 1 หมัด (beat เพิ่มจริง) */
-export function runOnKill(killer, chainUsed) {
+export function runOnKill(killer, chainUsed, team, foes) {
   const out = { extraAttack: false, events: [] }
   const p = passiveFor(killer)
   if (!p || p.hook !== 'onKill') return out
@@ -313,7 +330,9 @@ export function runOnKill(killer, chainUsed) {
     if (stacks < v.max) {
       killer.atkStacks = stacks + 1
       killer.atk *= 1 + v.pct / 100
-      out.events.push(ev(killer, p, { targets: [killer.uid], amount: killer.atkStacks, fxKind: 'buff' }))
+      const e = ev(killer, p, { targets: [killer.uid], amount: killer.atkStacks, fxKind: 'buff' })
+      if (team && foes) e.statsAfter = statsSnapshot(team, foes)
+      out.events.push(e)
     }
   } else if (p.effect === 'killChain') {
     if (chainUsed < v.max) {
