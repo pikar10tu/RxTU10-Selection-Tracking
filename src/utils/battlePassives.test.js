@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import {
   applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, passiveFor,
 } from './battlePassives.js'
-import { PET_PASSIVES, passiveValueAt, passiveText, PASSIVE_MAX_LEVEL } from '../data/petPassives.js'
+import { PET_PASSIVES, passiveValueAt, passiveText, effectText, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT } from '../data/petPassives.js'
 import { PETS } from '../data/index.js'
 import { simulateBattle } from './battleEngine.js'
 import { buildBeats, beatDuration } from './battleBeats.js'
@@ -345,4 +345,35 @@ test('🔑 ชนิดผลของ passive ต้องรอด buildBeats 
     }
   }
   assert.ok(checked > 0, 'ต้องมี duoRegen โปรกจริงถึงจะเทสได้')
+})
+
+// ── ข้อความผลของ passive (short / effectText) ────────────────
+// เดิมรายการบัฟอ่านจาก STATUS_TEXT ที่คีย์ด้วย effect — พาสสีฟคนละตัวที่ใช้ effect เดียวกัน
+// จึงได้ข้อความเหมือนกันเป๊ะทั้งที่ให้ผลคนละอย่าง (ฟีนิกซ์ฟื้น 35% vs แมวเหลือเลือด 1)
+test('PET_PASSIVES: ทุกตัวมี short และเติมเลขครบ ไม่เหลือ {placeholder}', () => {
+  for (const [id, p] of Object.entries(PET_PASSIVES)) {
+    assert.ok(typeof p.short === 'string' && p.short.length > 0, `${id} ไม่มี short`)
+    const filled = effectText(p, 1)
+    assert.ok(!/\{\w+\}/.test(filled), `${id} เหลือ placeholder: ${filled}`)
+  }
+})
+
+test('effectText: ขั้นสูงขึ้นแล้วเลขต้องขยับ (ตัวที่ step ไม่เป็น 0)', () => {
+  assert.notEqual(effectText(PET_PASSIVES.whale, 1), effectText(PET_PASSIVES.whale, 3))
+  assert.match(effectText(PET_PASSIVES.whale, 3), /16/)
+})
+
+test('effectText: ฟีนิกซ์กับแมวต้องอ่านต่างกัน (เดิมชนกันที่ "กันตายได้ 1 ครั้ง")', () => {
+  assert.notEqual(effectText(PET_PASSIVES.phoenix, 1), effectText(PET_PASSIVES.cat, 1))
+})
+
+test('หมาป่า: desc/short ต้องไม่มีคำว่า "สายพลัง" (ชื่อสายจริงคือ จู่โจม)', () => {
+  assert.ok(!PET_PASSIVES.wolf.desc.includes('สายพลัง'), PET_PASSIVES.wolf.desc)
+  assert.ok(!PET_PASSIVES.wolf.short.includes('สายพลัง'), PET_PASSIVES.wolf.short)
+  assert.ok(PET_PASSIVES.wolf.desc.includes('จู่โจม'))
+})
+
+test('STATUS_ICON/STATUS_TEXT: มี duoRegen แล้ว (คู่หู 🐳🦭 เดิมไม่มีป้ายเลย)', () => {
+  assert.equal(STATUS_ICON.duoRegen, '💧')
+  assert.ok(STATUS_TEXT.duoRegen)
 })

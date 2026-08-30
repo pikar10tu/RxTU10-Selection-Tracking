@@ -23,47 +23,56 @@ export const PET_PASSIVES = {
     name: 'ลมหายใจราชัน', icon: '🔥',
     hook: 'onStart', effect: 'aoeOpener', value: { pct: 12 }, step: { pct: 4 },
     desc: 'เริ่มสู้ สาดเปลวไฟใส่ศัตรูทุกตัว {pct}% ของพลังโจมตี',
+    short: 'เริ่มสู้ ยิงศัตรูทุกตัว {pct}% ของพลังโจมตี',
   },
   kirin: {
     name: 'อสูรกระหายเลือด', icon: '👹',
     // ⚠️ step 0 โดยตั้งใจ — killChain เป็นตัวเดียวที่เพิ่ม beat จริง ให้อัพได้ = ไฟต์ยืดตามขั้น
     hook: 'onKill', effect: 'killChain', value: { max: 2 }, step: { max: 0 },
     desc: 'น็อกศัตรูแล้วได้ตีต่อทันที (สูงสุด {max} ครั้งต่อเทิร์น)',
+    short: 'น็อกแล้วได้ตีต่อ สูงสุด {max} ครั้ง/เทิร์น',
   },
   trex: {
     name: 'สัญชาตญาณนักล่า', icon: '🦖',
     hook: 'onKill', effect: 'stackAtk', value: { pct: 12, max: 3 }, step: { pct: 4, max: 0 },
     desc: 'ล้มศัตรู 1 ตัว พลังโจมตี +{pct}% ถาวร (สะสมได้ {max} ชั้น)',
+    short: 'ล้มศัตรู 1 ตัว พลังโจมตี +{pct}% (สูงสุด {max} ชั้น)',
   },
   ouroboros: {
     name: 'วัฏจักรนิรันดร์', icon: '🐍',
     hook: 'onRound', effect: 'regenSelf', value: { pct: 4 }, step: { pct: 1.5 },
     desc: 'ฟื้นเลือดตัวเอง {pct}% ของเลือดสูงสุดทุกต้นรอบ',
+    short: 'ฟื้นเลือดตัวเอง {pct}% ทุกต้นรอบ',
   },
   simurgh: {
     name: 'โฉบเด็ดชีพ', icon: '🦅',
     hook: 'onAttack', effect: 'targetLowest', value: {}, step: {},
     desc: 'เล็งศัตรูที่เลือดน้อยที่สุดเสมอ',
+    short: 'เล็งศัตรูที่เลือดน้อยที่สุดเสมอ',
   },
   phoenix: {
     name: 'เกิดใหม่จากเถ้า', icon: '🔥',
     hook: 'onDeath', effect: 'revive', value: { pct: 35 }, step: { pct: 10 },
     desc: 'ตายครั้งแรกแล้วฟื้นกลับมาด้วยเลือด {pct}%',
+    short: 'ตายครั้งแรกแล้วฟื้นด้วยเลือด {pct}%',
   },
   whale: {
     name: 'พรมหาสมุทร', icon: '💧',
     hook: 'aura', effect: 'teamHp', value: { pct: 10 }, step: { pct: 3 },
     desc: 'เลือดสูงสุดของทั้งทีม +{pct}%',
+    short: 'เลือดสูงสุดทั้งทีม +{pct}%',
   },
   qilin: {
     name: 'ปราการพิทักษ์', icon: '🛡️',
     hook: 'onHit', effect: 'guardian', value: { pct: 50 }, step: { pct: 8 },
     desc: 'รับดาเมจแทนเพื่อนที่เลือดน้อยที่สุด {pct}%',
+    short: 'รับดาเมจแทนเพื่อนที่เลือดน้อยสุด {pct}%',
   },
   mammoth: {
     name: 'เกราะปฐพี', icon: '🪨',
     hook: 'onHit', effect: 'damageReduction', value: { pct: 20 }, step: { pct: 5 },
     desc: 'ลดดาเมจที่ตัวเองได้รับ {pct}%',
+    short: 'ลดดาเมจที่ตัวเองได้รับ {pct}%',
   },
 
   // ── Epic ────────────────────────────────────────────────────
@@ -71,58 +80,69 @@ export const PET_PASSIVES = {
     name: 'ลมหายใจเพลิง', icon: '🔥',
     hook: 'onAttack', effect: 'cleave', value: { count: 2, pct: 50 }, step: { count: 0, pct: 10 },
     desc: 'เปลวไฟลามโดนศัตรู {count} ตัว · ตัวรองรับ {pct}% ของดาเมจ',
+    short: 'ไฟลามโดนศัตรู {count} ตัว · ตัวรอง {pct}% ของดาเมจ',
   },
   cerberus: {
     name: 'ตรีเขี้ยวอสูร', icon: '🦷',
     hook: 'onAttack', effect: 'cleave', value: { count: 3, pct: 40 }, step: { count: 0, pct: 8 },
     desc: 'พุ่งขย้ำทีเดียว เขี้ยวโดนศัตรู {count} ตัว · ตัวรองรับ {pct}% ของดาเมจ',
+    short: 'เขี้ยวโดนศัตรู {count} ตัว · ตัวรอง {pct}% ของดาเมจ',
   },
   unicorn: {
     name: 'เขาศักดิ์สิทธิ์', icon: '✨',
     hook: 'onRound', effect: 'healLowestAlly', value: { pct: 5 }, step: { pct: 2 },
     desc: 'ฟื้นเลือดเพื่อนที่บอบช้ำที่สุด {pct}% ทุกต้นรอบ',
+    short: 'ฟื้นเลือดเพื่อนที่บอบช้ำสุด {pct}% ทุกต้นรอบ',
   },
   fairy: {
     name: 'ละอองเวทมนตร์', icon: '✨',
     hook: 'aura', effect: 'teamCrit', value: { pct: 8 }, step: { pct: 3 },
     desc: 'โอกาสคริของทั้งทีม +{pct}%',
+    short: 'โอกาสคริทั้งทีม +{pct}%',
   },
   panda: {
     name: 'ลมปราณฟื้นฟู', icon: '🎋',
     hook: 'onRound', effect: 'regenSelf', value: { pct: 5 }, step: { pct: 2 },
     desc: 'ฟื้นเลือดตัวเอง {pct}% ของเลือดสูงสุดทุกต้นรอบ',
+    short: 'ฟื้นเลือดตัวเอง {pct}% ทุกต้นรอบ',
   },
   genie: {
     name: 'พรคุ้มครอง', icon: '🧞',
     hook: 'onDeath', effect: 'saveAlly', value: { times: 1 }, step: { times: 0 },
     desc: 'กันเพื่อนไม่ให้ตาย {times} ครั้ง (เหลือเลือด 1)',
+    short: 'กันเพื่อนไม่ให้ตาย {times} ครั้ง (เหลือเลือด 1)',
   },
 
   // ── Rare ────────────────────────────────────────────────────
   wolf: {
     name: 'สัญชาตญาณฝูง', icon: '🐺',
     hook: 'aura', effect: 'teamAtkPerElement', value: { pct: 4, element: 'fist' }, step: { pct: 1.5 },
-    desc: 'พลังโจมตีทั้งทีม +{pct}% ต่อเพื่อนสายพลัง 1 ตัว',
+    desc: 'พลังโจมตีทั้งทีม +{pct}% ต่อเพื่อนสายจู่โจม 1 ตัว',
+    short: 'พลังโจมตีทีม +{pct}% ต่อเพื่อนสายจู่โจม 1 ตัว',
   },
   shark: {
     name: 'เขี้ยวกระหาย', icon: '🦈',
     hook: 'onAttack', effect: 'execute', value: { pct: 25, below: 30 }, step: { pct: 8, below: 3 },
     desc: 'ตีแรงขึ้น {pct}% กับศัตรูที่เลือดต่ำกว่า {below}%',
+    short: 'ตีแรงขึ้น {pct}% กับศัตรูที่เลือดต่ำกว่า {below}%',
   },
   fox: {
     name: 'เงาลวงตา', icon: '🦊',
     hook: 'onHit', effect: 'dodge', value: { pct: 12 }, step: { pct: 3 },
     desc: 'โอกาสหลบการโจมตี {pct}%',
+    short: 'หลบการโจมตี {pct}%',
   },
   rabbit: {
     name: 'ฝีเท้าสายลม', icon: '🐰',
     hook: 'onAttack', effect: 'multiStrike', value: { chance: 30, pct: 60 }, step: { chance: 8, pct: 5 },
     desc: 'โอกาส {chance}% กระโดดตีสองทีรวดเดียว (ทีละ {pct}% ของดาเมจ)',
+    short: 'โอกาส {chance}% ตีสองทีรวด (ทีละ {pct}% ของดาเมจ)',
   },
   owl: {
     name: 'นัยน์ตาหยั่งรู้', icon: '🦉',
     hook: 'aura', effect: 'enemyVuln', value: { pct: 6 }, step: { pct: 2 },
     desc: 'ศัตรูทุกตัวรับดาเมจเพิ่ม {pct}%',
+    short: 'ศัตรูทุกตัวรับดาเมจเพิ่ม {pct}%',
   },
   seal: {
     name: 'ยอดนักซัพพอร์ต', icon: '💧',
@@ -130,6 +150,7 @@ export const PET_PASSIVES = {
     value: { pct: 6, duoWith: 'whale', duoPct: 10, duoRegen: 3 },
     step: { pct: 2, duoPct: 3, duoRegen: 1 },
     desc: 'พลังโจมตีทีม +{pct}% · เข้าคู่กับคุณวาฬเป็น +{duoPct}% และทีมฟื้นเลือด {duoRegen}%/รอบ',
+    short: 'พลังโจมตีทีม +{pct}% (คู่กับ 🐳 เป็น +{duoPct}%)',
   },
 
   // ── Common ──────────────────────────────────────────────────
@@ -137,21 +158,25 @@ export const PET_PASSIVES = {
     name: 'เกราะหนาม', icon: '🦔',
     hook: 'onHit', effect: 'thorns', value: { pct: 8 }, step: { pct: 3 },
     desc: 'สะท้อน {pct}% ของดาเมจที่รับกลับไปที่ผู้โจมตี',
+    short: 'สะท้อน {pct}% ของดาเมจกลับไปที่ผู้โจมตี',
   },
   hamster: {
     name: 'พลังกักตุน', icon: '🐹',
     hook: 'onAttack', effect: 'atkWhenFull', value: { pct: 15 }, step: { pct: 5 },
     desc: 'ตอนเลือดเต็ม พลังโจมตี +{pct}%',
+    short: 'ตอนเลือดเต็ม พลังโจมตี +{pct}%',
   },
   mouse: {
     name: 'ปราดเปรียว', icon: '🐭',
     hook: 'onHit', effect: 'dodge', value: { pct: 8 }, step: { pct: 2 },
     desc: 'โอกาสหลบการโจมตี {pct}%',
+    short: 'หลบการโจมตี {pct}%',
   },
   cat: {
     name: 'เก้าชีวิต', icon: '🐱',
     hook: 'onDeath', effect: 'cheatDeath', value: { times: 1 }, step: { times: 0 },
     desc: 'รอดตายครั้งแรกด้วยเลือด 1',
+    short: 'รอดตายครั้งแรกด้วยเลือด 1',
   },
   butterfly: {
     // ⚠️ เดิมเป็น teamHealOpener (ฟื้นทีมตอนเริ่ม) — วัดแล้วได้ +0.0% เป๊ะ เพราะตอนเริ่มสู้
@@ -161,11 +186,13 @@ export const PET_PASSIVES = {
     name: 'ละอองเยียวยา', icon: '🦋',
     hook: 'onRound', effect: 'healLowestAlly', value: { pct: 2 }, step: { pct: 1 },
     desc: 'ฟื้นเลือดเพื่อนที่บอบช้ำที่สุด {pct}% ทุกต้นรอบ',
+    short: 'ฟื้นเลือดเพื่อนที่บอบช้ำสุด {pct}% ทุกต้นรอบ',
   },
   turtle: {
     name: 'กระดองศิลา', icon: '🐢',
     hook: 'onHit', effect: 'damageReduction', value: { pct: 12 }, step: { pct: 4 },
     desc: 'ลดดาเมจที่ตัวเองได้รับ {pct}%',
+    short: 'ลดดาเมจที่ตัวเองได้รับ {pct}%',
   },
 }
 
@@ -187,6 +214,18 @@ export function passiveText(p, level = 1) {
   return String(p.desc || '').replace(/\{(\w+)\}/g, (m, key) => (v[key] ?? m))
 }
 
+/** ข้อความ "ผล" สั้นๆ พร้อมเลขจริงของขั้นนั้น — ใช้ในรายการบัฟหน้า inspect
+ *  ฝาแฝดของ passiveText แต่กินฟิลด์ `short` (สั้นกว่า desc · เขียนจากมุมเจ้าของสกิล)
+ *  🔑 ทำไมต้องมี `short` แยกจาก STATUS_TEXT: STATUS_TEXT คีย์ด้วย *effect* แต่พาสสีฟคนละตัว
+ *     ใช้ effect เดียวกันโดยให้ผลคนละอย่าง — ฟีนิกซ์ (revive ฟื้น 35%) กับแมว (cheatDeath เหลือเลือด 1)
+ *     เคยอ่านได้ว่า "กันตายได้ 1 ครั้ง" เหมือนกันเป๊ะทั้งคู่ · หมาป่าได้แค่ "พลังโจมตีเพิ่ม" ที่ไม่บอกอะไรเลย
+ *  ⚠️ ห้ามพิมพ์ตัวเลขลง short เอง — ใส่ {pct} {count} … แล้วให้ passiveValueAt เติมตามขั้น */
+export function effectText(p, level = 1) {
+  if (!p) return ''
+  const v = passiveValueAt(p, level)
+  return String(p.short || p.desc || '').replace(/\{(\w+)\}/g, (m, key) => (v[key] ?? m))
+}
+
 // ════════════════════════════════════════════════════════════════════
 //  ป้ายสถานะบนการ์ดในหน้าต่อสู้ (สเปก 2026-08-28-battle-rhythm-redesign §5)
 //
@@ -202,6 +241,7 @@ export const STATUS_ICON = {
   teamHp: '❤️', teamAtk: '⚔️', teamAtkPerElement: '⚔️', teamCrit: '💥', enemyVuln: '🎯',
   guardian: '🛡️', damageReduction: '🧱', dodge: '💨', thorns: '⚡',
   revive: '🧿', saveAlly: '🧿', cheatDeath: '🧿', stackAtk: '⬆️',
+  duoRegen: '💧',
 }
 
 /** ความหมายสั้นๆ ของป้าย — ใช้ใน aria-label และหน้า inspect */
@@ -211,6 +251,7 @@ export const STATUS_TEXT = {
   guardian: 'มีเพื่อนรับแทนให้', damageReduction: 'ลดดาเมจที่ได้รับ', dodge: 'มีโอกาสหลบ',
   thorns: 'ตีแล้วเจ็บกลับ', revive: 'กันตายได้ 1 ครั้ง', saveAlly: 'กันเพื่อนตายได้ 1 ครั้ง',
   cheatDeath: 'กันตายได้ 1 ครั้ง', stackAtk: 'ยิ่งฆ่ายิ่งแรง',
+  duoRegen: 'ทีมฟื้นเลือดทุกรอบ',
 }
 
 /** aura ที่แผ่ใส่ "ทีมตัวเอง" — ป้ายลงทุกใบในทีมนั้น */
