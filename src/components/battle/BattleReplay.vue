@@ -263,7 +263,10 @@ function clearPending() {
   pendingTimers.forEach(clearTimeout); pendingTimers.clear()
   pendingRafs.forEach(cancelAnimationFrame); pendingRafs.clear()
 }
-let maxHp = {}, unitAtk = {}     // uid → maxHp / atk (static ต่อ unit จาก buildCombatant)
+// ⚠️ maxHp = ค่า "หลัง aura" ของเอนจิน (result.units) — เป็นตัวหารของ hp% และป้อน buildBeats เท่านั้น
+//    ห้ามทำเป็น ref เด็ดขาด ไม่งั้น beats จะ re-compute กลางไฟต์ขณะ idx ชี้เข้าอาเรย์เก่า = พังทั้งไฟต์
+//    (เลขที่ "พิมพ์บนการ์ด" เป็นคนละตัว → dispStats ด้านล่าง)
+let maxHp = {}
 const els = {}                   // uid → DOM el (วัดตำแหน่ง melee/ranged)
 function setEl(uid, el) { if (el) els[uid] = el }
 
@@ -293,10 +296,10 @@ function ensureFx() {
 }
 
 // ── การ์ดสไตล์ Hearthstone: ATK/HP เป็นเลข + หลอดเลือดขีดทุก 50 HP ──
-function atkOf(uid) { return unitAtk[uid] ?? 0 }
-function curHp(uid) { return Math.round((maxHp[uid] || 0) * (hp.value[uid] ?? 100) / 100) }
+function atkOf(uid) { return dispStats.value[uid]?.atk ?? 0 }
+function curHp(uid) { return Math.round((dispStats.value[uid]?.maxHp || 0) * (hp.value[uid] ?? 100) / 100) }
 function ticksFor(uid) {
-  const max = maxHp[uid] || 1, out = []
+  const max = dispStats.value[uid]?.maxHp || 1, out = []
   for (let h = 50; h < max; h += 50) out.push((h / max) * 100)  // % ตำแหน่งขีดทุก 50 HP
   return out
 }
@@ -356,11 +359,23 @@ const summary = computed(() => done.value
   ? computeBattleSummary(rawLog.value, props.data?.playerTeam || [], props.data?.botTeam || [])
   : null)
 
+// เลขที่ "พิมพ์บนการ์ด" — เริ่มที่ค่าดิบเหมือนตอนจัดทีม แล้ววิ่งตาม statsAfter ที่เอนจินส่งมา
+// ผู้เล่นต้องได้เห็นโมเมนต์ที่สกิลทำงาน (🐳 เปล่งออร่า → เลือดทั้งทีมขยับ) ไม่ใช่แอบเป็นค่าบัฟมาแต่ต้น
+const dispStats = ref({})
+
 function buildMax(d) {
-  maxHp = {}; unitAtk = {}
-  const add = (p, uid) => { const c = buildCombatant(p); maxHp[uid] = Math.round(c.maxHp) || 1; unitAtk[uid] = Math.round(c.atk) }
+  maxHp = {}
+  const disp = {}
+  const add = (p, uid) => {
+    const c = buildCombatant(p)
+    disp[uid] = { atk: Math.round(c.atk), maxHp: Math.round(c.maxHp) || 1 }
+    // 🔑 ตัวหาร hp% ต้องเป็นค่าหลัง aura ของเอนจิน ไม่ใช่ค่าดิบ — log ส่ง targetHpAfter มาบนสเกลนั้น
+    //    ใช้ค่าดิบแล้วทีมที่มีคุณวาฬ (เลือด +10%) หลอดจะเริ่มเกิน 100% และเลข HP ผิดตั้งแต่หมัดแรก
+    maxHp[uid] = Math.round(d?.result?.units?.[uid]?.maxHp ?? disp[uid].maxHp) || 1
+  }
   ;(d?.botTeam || []).forEach((p, i) => add(p, 'B' + i))
   ;(d?.playerTeam || []).forEach((p, i) => add(p, 'A' + i))
+  dispStats.value = disp
   if (import.meta.env.DEV) warnTeamMismatch(d)
 }
 
@@ -754,6 +769,11 @@ async function step() {
   stepGen = g
   try {
     const b = beats.value[idx.value]
+    // สกิลเปลี่ยนสเตตัสจริง → เลขบนการ์ดขยับตรงนี้ให้ผู้เล่นเห็น
+    // (aura เล่นในกลุ่มเปิดตอนไม่มีการ์ดใบไหนมีอนิเมชัน · stackAtk ≤3 ครั้ง/ไฟต์ ตามเพดาน 🦖)
+    // ⚠️ ที่นี่ที่เดียว อย่ากระจายใส่ตาม handler รายชนิด เดี๋ยวพลาดชนิดใดชนิดหนึ่ง
+    //    และต้องอยู่นอก try ที่ครอบ dispatch — handler พังก็ยังต้องได้เลขที่ถูก
+    if (b?.statsAfter) dispStats.value = { ...dispStats.value, ...b.statsAfter }
     const h = handlers[b.t]
     // 🛡️ กันไฟต์ค้าง: FX ตัวใดตัวหนึ่งพัง ต้องข้ามหมัดนั้นแล้วเล่นต่อ ห้ามหยุดทั้งไฟต์
     //    เกิดจริง 27 ส.ค.: jab() มีตัวแปรที่ไม่ได้นิยาม → throw ทุกหมัดชั้น chip (55% ของหมัด)
