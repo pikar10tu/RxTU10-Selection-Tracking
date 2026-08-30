@@ -1,5 +1,14 @@
 <template>
   <div class="dq-body">
+    <!-- รางวัลต้องเห็นตั้งแต่ก่อนเริ่มทำ ไม่ใช่ไปโผล่บนปุ่มตอนครบแล้ว — ไม่งั้นไม่มีเหตุผลจะเริ่ม -->
+    <div class="dq-prize">
+      <div class="dq-prize-head">ทำครบทั้ง 3 อย่างวันนี้ รับ</div>
+      <div class="dq-prize-row">
+        <span class="dq-prize-item"><Emoji char="⚡" /> รายได้บ้าน+เพ็ท <b>×1.5</b> นาน 24 ชม.</span>
+        <span class="dq-prize-item"><Emoji char="🎟️" /> ตั๋วอัญเชิญฟรี <b>×{{ QUEST_TICKETS }}</b></span>
+      </div>
+    </div>
+
     <!-- แถวกดได้ = ตัวแก้ "ไม่รู้ว่าสนามประลองอยู่ตรงไหน" — เดิมเป็นข้อความล้วน อ่านแล้วไปต่อไม่ถูก
          ทำครบแล้วยังกดได้ (ไม่ล็อก) เพราะทำเสร็จแล้วอาจอยากกลับไปเล่นต่อ -->
     <div class="dq-tasks">
@@ -95,6 +104,10 @@ async function claimReward() {
 
 <style scoped>
 .dq-body { display: flex; flex-direction: column; }
+.dq-prize { margin-bottom: 12px; padding: 9px 11px; border: 2px solid rgba(251,191,36,.5); border-radius: 10px; background: rgba(251,191,36,.12); }
+.dq-prize-head { font-size: .72rem; font-weight: 700; color: #b45309; margin-bottom: 5px; }
+.dq-prize-row { display: flex; flex-direction: column; gap: 3px; }
+.dq-prize-item { font-size: .78rem; font-weight: 700; color: var(--ink); }
 .dq-tasks { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
 .dq-task { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: left; font-family: inherit; font-size: .82rem; font-weight: 700; color: rgba(0,0,0,.65); padding: 7px 10px; border: 2px solid rgba(0,0,0,.1); border-radius: 10px; background: transparent; cursor: pointer; transition: transform .12s, border-color .12s; }
 .dq-task:active { transform: scale(.985); }

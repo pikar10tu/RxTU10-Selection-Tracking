@@ -12,7 +12,7 @@ export function questGoals(pvpOpen = false) {
 }
 
 export const BUFF_MS = 24 * 60 * 60 * 1000
-export const QUEST_TICKETS = 3   // ตั๋วกาชาฟรีที่ได้เมื่อรับรางวัลเควส
+export const QUEST_TICKETS = 10   // ตั๋วกาชาฟรีที่ได้เมื่อรับรางวัลเควส (3 → 10 เมื่อ 31 ส.ค. ให้รางวัลรู้สึกคุ้ม)
 
 // นับ gacha ต่อไปแม้ pvpOpen เปิด (ShopView ยัง bump อยู่) — แอดมินสลับ flag กลางวันได้
 // ตัวนับที่ยังเดินอยู่แปลว่าสลับแล้วความคืบหน้าของคนที่ทำไปแล้วไม่หาย
