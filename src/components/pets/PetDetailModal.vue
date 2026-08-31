@@ -53,9 +53,13 @@
             <span v-else class="pd-max">สูงสุดแล้ว</span>
           </span>
         </div>
-        <!-- FIX (fable): คงข้อมูล cost/copies เดิมไว้ (spec Part 3 สั่งคง progress copies) -->
+        <!-- ต้องโชว์ "ของที่มี" ครบทั้งสองอย่าง ไม่ใช่แค่ตัวซ้ำ —
+             ปุ่มวิวัฒน์เป็น :disabled จึงกดไม่ติด = ไม่มีทางรู้ว่าติดตรงไหน
+             (เพื่อนแจ้ง 31 ส.ค. "มีตัวซ้ำ 11 แต่อัพไม่ได้" ทั้งที่ตัวจริงคือเหรียญไม่พอ) -->
         <div v-if="gradeNow < MAX_GRADE && upCost" class="pd-axis-cost">
-          ใช้ {{ upCost.copies }} ตัวซ้ำ + {{ upCost.coins.toLocaleString() }} เหรียญ · มี {{ pet.copies || 0 }} ตัวซ้ำ
+          ใช้ {{ upCost.copies }} ตัวซ้ำ + {{ upCost.coins.toLocaleString() }} เหรียญ ·
+          มี {{ pet.copies || 0 }} ตัวซ้ำ · {{ (auth.userData?.coins || 0).toLocaleString() }} เหรียญ
+          <span v-if="blockText" class="pd-axis-lack">{{ blockText }}</span>
         </div>
       </div>
 
@@ -77,7 +81,7 @@ import { passiveText } from '../../data/petPassives.js'
 import { buildCombatant } from '../../data/battle.js'
 import { petDailyCoins } from '../../utils/petUtils.js'
 import { BATTLE_SLOTS } from '../../data/residence.js'
-import { gradeUpCost, canUpgrade, MAX_GRADE } from '../../utils/petGrade.js'
+import { gradeUpCost, upgradeBlock, MAX_GRADE } from '../../utils/petGrade.js'
 import { useRosterSync } from '../../composables/useRosterSync.js'
 import { useEscapeKey } from '../../composables/useEscapeKey.js'
 
@@ -125,7 +129,17 @@ const elDef = computed(() => getPetDef(pet.value?.id)?.element || pet.value?.ele
 
 const gradeNow = computed(() => pet.value?.grade || 0)
 const upCost = computed(() => pet.value ? gradeUpCost(pet.value) : null)
-const canUp = computed(() => pet.value && canUpgrade(pet.value, auth.userData?.coins || 0))
+// แหล่งความจริงเดียวของ "อัพได้ไหม + ทำไมไม่ได้" — อย่าแยกเป็นสองสูตร เดี๋ยวปุ่มกับข้อความไม่ตรงกัน
+const block = computed(() => pet.value ? upgradeBlock(pet.value, auth.userData?.coins || 0) : { reason: 'maxed' })
+const canUp = computed(() => !!pet.value && block.value === null)
+const blockText = computed(() => {
+  const b = block.value
+  if (!b || b.reason !== 'short') return ''
+  const parts = []
+  if (b.copiesShort) parts.push(`ตัวซ้ำอีก ${b.copiesShort}`)
+  if (b.coinsShort) parts.push(`เหรียญอีก ${b.coinsShort.toLocaleString()}`)
+  return `ขาด${parts.join(' และ ')}`
+})
 
 // เลข combat จริง (= ที่ใช้สู้) — element ดึงจาก def (per-species), grade V = ×2
 const combat = computed(() => {
@@ -218,5 +232,7 @@ async function evolve() {
 .pd-rarity { color: #fff; padding: 2px 12px; border-radius: 999px; font-size: .74rem; }
 .pd-grade-badge { background: #1e293b; color: #fff; min-width: 26px; text-align: center; padding: 2px 8px; border-radius: 8px; }
 .pd-max { font-size: .72rem; color: #15803d; font-weight: 800; }
-.pd-axis-cost { font-size: .7rem; color: rgba(0,0,0,.55); text-align: right; margin: -4px 4px 0; }
+.pd-axis-cost { font-size: .7rem; color: rgba(0,0,0,.55); text-align: right; margin: -4px 4px 0; line-height: 1.6; }
+/* พื้นการ์ดเป็นสีขาว — แดงเข้มพอให้ contrast ผ่าน (ดู CLAUDE.md ข้อ 13 ก่อนก๊อปสีไปที่อื่น) */
+.pd-axis-lack { display: block; color: #b91c1c; font-weight: 800; }
 </style>
