@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { buildCombatant, elementMult, BATTLE_CFG } from './battle.js'
 
 test('BATTLE_CFG ตรงกับ sim ที่จูนแล้ว', () => {
-  assert.equal(BATTLE_CFG.teamSize, 4)
+  assert.equal(BATTLE_CFG.teamSize, undefined)   // จำนวนช่องทีมอยู่ที่ BATTLE_SLOTS ไม่ใช่ที่นี่
   assert.equal(BATTLE_CFG.maxRounds, 30)
   assert.equal(BATTLE_CFG.maxTurns, 300)
   assert.equal(BATTLE_CFG.elementAdv, 1.20)

@@ -7,7 +7,9 @@ import { elementBeats } from './index.js'
 import { combatStats } from './petPower.js'
 
 export const BATTLE_CFG = {
-  teamSize: 4, maxRounds: 30,   // maxRounds = legacy (ไม่ใช้เป็น cap แล้ว ดู maxTurns)
+  // ⚠️ ไม่มี teamSize ที่นี่โดยตั้งใจ — จำนวนช่องทีมคือ `BATTLE_SLOTS` (= 3) ใน data/residence.js
+  //    ตัวเดียวเท่านั้น · เดิมมี `teamSize: 4` ค้างอยู่ตรงนี้ ไม่มีใครอ่าน แต่หลอกคนอ่านโค้ดให้เชื่อว่าทีมมี 4 ตัว
+  maxRounds: 30,                // maxRounds = legacy (ไม่ใช้เป็น cap แล้ว ดู maxTurns)
   maxTurns: 300,                // cap จำนวนการตีรวม กันลูปยาวผิดปกติ (1 ตัวออกตี = 1 turn)
   elementAdv: 1.20, elementDis: 0.83,
   critRate: 0.12, critMult: 1.6, variance: 0.22,
