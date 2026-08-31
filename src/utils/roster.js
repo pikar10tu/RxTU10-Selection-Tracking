@@ -79,20 +79,42 @@ export function buildRosterRow(u, prev) {
     ...(ta4  ? { ta4 }  : {}),
     ...(ta15 ? { ta15 } : {}),
     // ชนะ/แพ้ซีซั่นนี้ — ใช้แยก "เคยลงสนามจริง" ออกจากคนที่ยังเป็นค่าเริ่มต้น 1000 (กระดานอันดับ)
-    // ใส่เฉพาะเมื่อ > 0 ตามแพทเทิร์นเดียวกับ m/ta4 · ต้องอยู่ก่อน h/ev เสมอ
+    // ใส่เฉพาะเมื่อ > 0 ตามแพทเทิร์นเดียวกับ m/ta4
     ...(num(pvp.wins, 0)   ? { pw: num(pvp.wins, 0) }   : {}),
     ...(num(pvp.losses, 0) ? { pl: num(pvp.losses, 0) } : {}),
-    // h ต่อท้ายเสมอ (ตำแหน่งคงที่ = rosterRowChanged เทียบ JSON ได้ตรง ไม่ยิงเขียนเปล่า)
+    // h/ev ต่อท้าย — ลำดับคีย์ไม่มีผลต่อการเทียบแล้ว (rosterRowChanged เทียบแบบ canonical)
     ...(prev?.h?.length ? { h: prev.h } : {}),
-    // ev ต่อหลัง h ด้วยเหตุผลเดียวกัน — ข่าวกระดาน (ดู utils/newsFeed.js)
+    // ev = ข่าวกระดาน (ดู utils/newsFeed.js)
     ...(prev?.ev?.length ? { ev: prev.ev } : {}),
   }
 }
 
-/** เทียบสองแถว — true = ต้องเขียน · ใช้ JSON เพราะแถวเป็น plain data ตื้น คีย์เรียงคงที่จาก buildRosterRow */
+/**
+ * ก้อนข้อมูล → สตริงที่ "ค่าเท่ากันแล้วได้สตริงเดียวกัน" โดยไม่สนลำดับคีย์
+ * (ลำดับใน array ยังมีความหมาย — ประวัติบุกเรียงใหม่สุดอยู่หน้า)
+ */
+function canonical(v) {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`
+  if (v && typeof v === 'object') {
+    return `{${Object.keys(v).sort()
+      .filter(k => v[k] !== undefined)
+      .map(k => `${JSON.stringify(k)}:${canonical(v[k])}`).join(',')}}`
+  }
+  return v === undefined ? 'null' : JSON.stringify(v)
+}
+
+/**
+ * เทียบสองแถว — true = ต้องเขียน
+ *
+ * ⚠️ ห้ามกลับไปใช้ `JSON.stringify` ตรงๆ: **Firestore คืน map ที่เรียงคีย์ตามตัวอักษร**
+ *    ไม่ใช่ลำดับที่เราเขียนลงไป ⇒ พอรีโหลดหน้า `prev` (จาก Firestore) กับ `next`
+ *    (จาก buildRosterRow) จะมีคีย์คนละลำดับเสมอ ทั้งที่ค่าเท่ากันเป๊ะ
+ *    = ยิงเขียนเปล่า 1 ครั้งต่อคนต่อเซสชัน ทั้งที่ doc นี้รับได้ ~1 เขียน/วินาที
+ *    (เทสเดิมจับไม่ได้เพราะสร้าง prev จาก buildRosterRow เอง คีย์เลยเรียงตรงกันพอดี)
+ */
 export function rosterRowChanged(oldRow, newRow) {
   if (!oldRow) return true
-  return JSON.stringify(oldRow) !== JSON.stringify(newRow)
+  return canonical(oldRow) !== canonical(newRow)
 }
 
 /** สร้าง rows ทั้งก้อนจาก users ทั้ง collection (ใช้เฉพาะปุ่มแอดมิน)

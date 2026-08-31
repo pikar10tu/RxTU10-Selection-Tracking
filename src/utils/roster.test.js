@@ -332,12 +332,27 @@ test('buildRosterRow pw/pl ต้องมาจาก applySeasonReset ก้�
   assert.equal('pl' in r, false)
 })
 
-test('buildRosterRow pw/pl ต้องอยู่ก่อน h/ev — rosterRowChanged เทียบ JSON ตามลำดับคีย์', () => {
+// Firestore คืน map ที่ "เรียงคีย์ตามตัวอักษร" ไม่ใช่ลำดับที่เราเขียนไป
+// ⇒ หลังรีโหลดหน้า prev จะมีคีย์คนละลำดับกับ next เสมอ — เทียบตามลำดับ = ยิงเขียนเปล่าทุกเซสชัน
+const shuffleKeys = (o) => Object.fromEntries(Object.keys(o).sort().map(k => [k, o[k]]))
+
+test('rosterRowChanged ไม่สนใจลำดับคีย์ (Firestore เรียงคีย์เองตอนอ่านกลับ)', () => {
   const prev = { h: [{ u: 'x', w: 1, c: 5, t: 1 }], ev: [{ k: 'pv', v: 3, t: 1 }] }
   const row = buildRosterRow(user({ pvp: { rating: 1120, wins: 1, losses: 1, seasonId: currentSeasonId() } }), prev)
-  const keys = Object.keys(row)
-  assert.ok(keys.indexOf('pw') < keys.indexOf('h'), 'pw ต้องมาก่อน h')
-  assert.ok(keys.indexOf('pl') < keys.indexOf('ev'), 'pl ต้องมาก่อน ev')
+  assert.equal(rosterRowChanged(shuffleKeys(row), row), false, 'ค่าเท่าเดิมแต่คีย์คนละลำดับ = ห้ามเขียน')
+})
+
+test('rosterRowChanged ค่าใน map/array ซ้อนเปลี่ยนจริง = ต้องเขียน', () => {
+  const a = { n: 'เอ', m: { g2048: 100 }, h: [{ u: 'x', w: 1, c: 5, t: 1 }] }
+  assert.equal(rosterRowChanged(a, { ...a, m: { g2048: 200 } }), true, 'best มินิเกมเปลี่ยน')
+  assert.equal(rosterRowChanged(a, { ...a, h: [{ u: 'x', w: 0, c: 5, t: 1 }] }), true, 'ผลในประวัติเปลี่ยน')
+  assert.equal(rosterRowChanged(a, { ...a, h: [] }), true, 'ประวัติหาย')
+})
+
+test('rosterRowChanged ลำดับใน array ยังมีความหมาย (ประวัติใหม่สุดอยู่หน้า)', () => {
+  const e1 = { u: 'a', w: 1, c: 1, t: 1 }
+  const e2 = { u: 'b', w: 0, c: 0, t: 2 }
+  assert.equal(rosterRowChanged({ h: [e1, e2] }, { h: [e2, e1] }), true)
 })
 
 // ── รูปที่ผู้ใช้อัปเอง — ตัวจิ๋วเท่านั้นที่ขี่มากับแถว (ดู utils/photo.js) ──
