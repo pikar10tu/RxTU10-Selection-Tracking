@@ -8,6 +8,24 @@
     </div>
 
     <template v-else>
+      <!-- ───── โน้ตชั่วคราว: ลิงก์แผงข้อมูลเพ็ท (ลบทิ้งได้เมื่ออ่านแล้ว) ───── -->
+      <section class="admin-card note-card">
+        <div class="admin-card-head"><span><Emoji char="🐉" /> แผงข้อมูลเพ็ท (สำหรับปรับสมดุล)</span></div>
+        <div class="admin-hint">
+          ดึงข้อมูลเพ็ททั้ง 27 ตัวออกมาให้แล้ว — ชื่อ/ระดับ/สาย/ค่าพลังทุกเกรด/พาสสีฟทุกขั้น/flavor ปัจจุบัน
+          พร้อม <b>ผลวัดความแรงของพาสสีฟ</b> ที่รันจากเอนจินไฟต์ตัวจริง (ไม่ได้เดา)
+          <br>เปิดในมือถือได้ · กรอง/เรียงได้ · มีตารางรวมสำหรับลากไปวางในชีต
+        </div>
+        <a class="note-link" href="https://claude.ai/code/artifact/45379ac4-f810-438b-90af-c5d197013457" target="_blank" rel="noopener">
+          เปิดแผงข้อมูลเพ็ท →
+        </a>
+        <div class="admin-hint" style="margin-top:8px">
+          สรุปสั้นๆ: 🐘 บากุ พาสสีฟติดลบ (−0.9%) · 🦅 กริฟฟิน +0.1% เท่ากับไม่มี ·
+          🦋 ผีเสื้อ (ธรรมดา) แรงกว่าตำนาน 6 ตัว · สายฟื้นเลือดกินอันดับต้นเกือบหมด
+          <br><i>การ์ดนี้เป็นโน้ตชั่วคราว อ่านแล้วบอกได้ เดี๋ยวลบให้</i>
+        </div>
+      </section>
+
       <!-- ───── โหมดซ่อมบำรุง (config/app.maintenance) ───── -->
       <section class="admin-card">
         <div class="admin-card-head"><span><Emoji char="🚧" /> โหมดซ่อมบำรุง</span></div>
@@ -1093,6 +1111,12 @@ async function saveEcon(m) {
   padding: 14px;
   margin-bottom: 14px;
 }
+.note-card { border-color: var(--primary); background: #f8f7ff; }
+.note-link {
+  display: inline-block; background: var(--primary); color: #fff; text-decoration: none;
+  font-weight: 700; font-size: .82rem; padding: 8px 14px; border-radius: 10px;
+}
+.note-link:hover { filter: brightness(1.08); }
 .admin-card-head {
   display: flex;
   align-items: center;
