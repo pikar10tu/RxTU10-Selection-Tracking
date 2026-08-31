@@ -56,9 +56,17 @@ export const useMembersStore = defineStore('members', () => {
         } catch { /* localStorage เต็ม/ปิด — ไม่เป็นไร รอบหน้าค่อยยิง Firestore */ }
     }
 
-    async function loadRoster({ force = false } = {}) {
-        if (rosterLoading.value) return
-        if (!force && rosterReady.value) return
+    // คำขอที่กำลังบินอยู่ — คนที่เรียกซ้อนต้อง "รอคิวเดิม" ไม่ใช่เด้งกลับมือเปล่า
+    // (useRosterSync รอตัวนี้ก่อนเขียน ถ้าเด้งกลับทั้งที่ยังไม่มีข้อมูล มันจะข้ามการเขียนไปเฉยๆ)
+    let rosterInflight = null
+    function loadRoster({ force = false } = {}) {
+        if (rosterInflight) return rosterInflight
+        if (!force && rosterReady.value) return Promise.resolve()
+        rosterInflight = runLoadRoster().finally(() => { rosterInflight = null })
+        return rosterInflight
+    }
+
+    async function runLoadRoster() {
         rosterLoading.value = true
         try {
             const snap = await getDoc(doc(db, 'roster', 'current'))

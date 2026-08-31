@@ -3,7 +3,7 @@ import { db } from '../firebase/config.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useMembersStore } from '../stores/members.js'
 import { useUsageStore } from '../stores/usage.js'
-import { buildRosterRow, rosterRowChanged } from '../utils/roster.js'
+import { buildRosterRow, rosterRowChanged, canWriteRosterRow } from '../utils/roster.js'
 import { pushHistory } from '../utils/pvpHistory.js'
 import { pushEvent } from '../utils/newsFeed.js'
 
@@ -35,7 +35,13 @@ export function useRosterSync() {
     const u = auth.userData
     if (!uid || !u) return
     if (!u.studentId && !u.nickname) return       // ตรรกะเดียวกับตอนสร้าง roster
-    if (members.rosterMissing) return              // ยังไม่มี doc — รอแอดมินกดสร้างก่อน
+
+    // ต้องมี "แถวเดิม" อยู่ในมือก่อนเสมอ — จอส่วนใหญ่ที่เรียก syncRosterRow ไม่ได้โหลด roster เอง
+    // (route เป็น flat ทั้งหมด · เข้า /me /quiz /play/farm /pets ตรงๆ = ไม่มีใครโหลดให้)
+    // เขียนทั้งที่ไม่รู้แถวเดิม = h (ประวัติบุก) กับ ev (ข่าวกระดาน) หายเกลี้ยง — ดู canWriteRosterRow
+    // โหลดไม่สำเร็จ/ยังไม่มี doc = ไม่เขียน ดีกว่าเขียนทับแล้วของหาย (สถิติรอบนี้ตกไป รอบหน้าเขียนเอง)
+    if (!members.rosterReady) await members.loadRoster()
+    if (!canWriteRosterRow({ ready: members.rosterReady, missing: members.rosterMissing })) return
 
     const prev = members.rosterRows?.[uid]
     const next = buildRosterRow({ ...u, uid }, prev)   // prev = พ่วง h เดิมไว้ ไม่ให้ถูกล้างทุกครั้งที่ sync

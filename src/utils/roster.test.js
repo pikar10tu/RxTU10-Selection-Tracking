@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   buildRosterRow, rosterRowChanged, buildRosterFromUsers,
-  rosterToMembers, rosterTeam, rosterOpponents, petSpeciesOf,
+  rosterToMembers, rosterTeam, rosterOpponents, petSpeciesOf, canWriteRosterRow,
 } from './roster.js'
 import { currentSeasonId } from './pvpSeason.js'
 
@@ -355,4 +355,19 @@ test('buildRosterRow: ไม่เคยอัปรูปเอง → pm เ�
 test('rosterToMembers ส่ง photoMini กลับออกมาให้ view ใช้', () => {
   const { byStudentId } = rosterToMembers({ u1: buildRosterRow(user()) })
   assert.equal(byStudentId['6512345678'].photoMini, 'data:image/jpeg;base64,MINI')
+})
+
+// ── เขียนแถวตัวเองโดยยังไม่รู้แถวเดิม = ล้าง h/ev ทิ้ง (บั๊กประวัติบุกหาย 31 ส.ค.) ──
+
+test('canWriteRosterRow: roster ยังไม่โหลด = ห้ามเขียน (แถวใหม่ไม่มี h/ev → ล้างของทิ้ง)', () => {
+  assert.equal(canWriteRosterRow({ ready: false, missing: false }), false)
+})
+
+test('canWriteRosterRow: ยังไม่มี doc = ห้ามเขียน (รอแอดมินกดสร้าง)', () => {
+  assert.equal(canWriteRosterRow({ ready: true, missing: true }), false)
+  assert.equal(canWriteRosterRow({ ready: false, missing: true }), false)
+})
+
+test('canWriteRosterRow: โหลดแล้วและมี doc = เขียนได้', () => {
+  assert.equal(canWriteRosterRow({ ready: true, missing: false }), true)
 })
