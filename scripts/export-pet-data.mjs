@@ -36,12 +36,12 @@ const pets = PETS.map(p => {
       const parts = partsOf(pas)
       return {
         name: pas.name, icon: pas.icon,
-        // hook/effect แบบเดี่ยว = part แรก — คงไว้ให้หน้าเพจเดิมอ่านได้ · ของจริงอยู่ใน parts
+        // hook/effect/value/step แบบเดี่ยว = part แรก — คงไว้ให้หน้าเพจเดิมอ่านได้ · ของจริง (ทุก part) อยู่ใน parts
         hook: parts[0]?.hook, effect: parts[0]?.effect,
-        value: pas.value, step: pas.step,
-        lv: [1, 2, 3].map(l => ({ l, text: passiveText(pas, l), v: passiveValueAt(pas, l) })),
+        value: parts[0]?.value, step: parts[0]?.step,
+        lv: [1, 2, 3].map(l => ({ l, text: passiveText(pas, l), v: passiveValueAt(parts[0], l) })),
         short: effectText(pas, 1), rawDesc: pas.desc,
-        parts: parts.map(x => ({ hook: x.hook, effect: x.effect })),
+        parts: parts.map(x => ({ hook: x.hook, effect: x.effect, value: x.value, step: x.step })),
       }
     })() : null,
     sim: { lift: lift[p.id], fires: fires[p.id], rrFlat: rrFlat[p.id], dbeat: dbeat[p.id] },
