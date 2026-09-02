@@ -10,8 +10,9 @@
 //    เพราะเปลี่ยน paint ขณะการ์ดมีอนิเมชัน = re-raster ทั้งใบ (ข้อบังคับ v3 ของ BattleReplay)
 import { getPetDef } from '../data/index.js'
 import {
-  PET_PASSIVES, effectText, STATUS_ICON, STATUS_TEXT,
+  STATUS_ICON, STATUS_TEXT, STATUS_MAX, PET_PASSIVES, effectText,
   TEAM_AURA_EFFECTS, FOE_AURA_EFFECTS, SELF_STATUS_EFFECTS,
+  partsOf, partsAt, partWithEffect,
 } from '../data/petPassives.js'
 
 const passiveOf = (pet) => PET_PASSIVES[pet?.id] || null
@@ -23,7 +24,9 @@ const ONE_SHOT = new Set(['revive', 'cheatDeath', 'saveAlly'])
 /** เพดานสแต็กของสกิลนั้น — อ่านจากทะเบียน ไม่ใช่เลขพิมพ์มือ */
 function maxStacksOf(b) {
   for (const p of Object.values(PET_PASSIVES)) {
-    if (p.effect === b.effect && p.name === b.skillName) return p.value?.max ?? 0
+    if (p.name !== b.skillName) continue
+    const part = partWithEffect(p, b.effect)
+    if (part) return part.value?.max ?? 0
   }
   return 0
 }
@@ -37,7 +40,7 @@ function makeBuff(effect, owner, ownerUid, opts) {
     effect,
     icon: STATUS_ICON[effect] || '',
     // foeSide = ป้ายอยู่บน "ตัวที่โดน" ⇒ ต้องใช้ข้อความมุมผู้รับ ไม่ใช่มุมเจ้าของสกิล
-    label: opts.label ?? effectText(p, owner?.passiveLv, { onTarget: !!opts.foeSide }),
+    label: opts.label ?? effectText(p, owner?.passiveLv, { onTarget: !!opts.foeSide, effect }),
     skillName: opts.skillName ?? p?.name ?? '',
     skillIcon: opts.skillIcon ?? p?.icon ?? '',
     ownerUid,
@@ -55,14 +58,16 @@ function aurasOf(team, side) {
   const ids = new Set(team.filter(Boolean).map(p => p.id))
   team.forEach((pet, i) => {
     const p = passiveOf(pet)
-    if (!p || p.hook !== 'aura') return
+    if (!p) return
     const entry = { owner: pet, uid: side + i, passive: p }
-    if (TEAM_AURA_EFFECTS.has(p.effect)) mine.push({ effect: p.effect, ...entry })
-    else if (FOE_AURA_EFFECTS.has(p.effect)) theirs.push({ effect: p.effect, ...entry })
-    // คู่หู 🐳🦭 — teamAtk ที่มี duoWith และเพื่อนคนนั้นอยู่ในทีมจริง ⇒ ทีมได้ regen เพิ่มอีกช่อง
-    // (ตรงกับเงื่อนไข duo ใน battlePassives.applyAuras) เดิมช่องนี้ไม่มีป้ายเลย ผู้เล่นไม่รู้ว่าคู่หูทำงาน
-    if (p.effect === 'teamAtk' && p.value?.duoWith && ids.has(p.value.duoWith)) {
-      duo.push({ effect: 'duoRegen', ...entry })
+    for (const part of partsAt(p, 'aura')) {
+      if (TEAM_AURA_EFFECTS.has(part.effect)) mine.push({ effect: part.effect, ...entry })
+      else if (FOE_AURA_EFFECTS.has(part.effect)) theirs.push({ effect: part.effect, ...entry })
+      // คู่หู 🐳🦭 — teamAtk ที่มี duoWith และเพื่อนคนนั้นอยู่ในทีมจริง ⇒ ทีมได้ regen เพิ่มอีกช่อง
+      // (ตรงกับเงื่อนไข duo ใน battlePassives.applyAuras) เดิมช่องนี้ไม่มีป้ายเลย ผู้เล่นไม่รู้ว่าคู่หูทำงาน
+      if (part.effect === 'teamAtk' && part.value?.duoWith && ids.has(part.value.duoWith)) {
+        duo.push({ effect: 'duoRegen', ...entry })
+      }
     }
   })
   return { mine, theirs, duo }
@@ -83,8 +88,9 @@ export function buffSources(playerTeam, botTeam) {
       const list = []
       // 1) สถานะติดตัว — ขึ้นเฉพาะเจ้าตัว
       const self = passiveOf(pet)
-      if (self && SELF_STATUS_EFFECTS.has(self.effect)) {
-        const b = makeBuff(self.effect, pet, uid, { passive: self })
+      for (const part of partsOf(self)) {
+        if (!SELF_STATUS_EFFECTS.has(part.effect)) continue
+        const b = makeBuff(part.effect, pet, uid, { passive: self })
         b.self = true
         list.push(b)
       }

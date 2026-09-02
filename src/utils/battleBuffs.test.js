@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { buffSources, liveBuffs, badgesOf } from './battleBuffs.js'
-import { STATUS_MAX } from '../data/petPassives.js'
+import { STATUS_MAX, PET_PASSIVES } from '../data/petPassives.js'
 
 const p = (id, over = {}) => ({ id, rarity: 'legendary', element: 'fist', grade: 0, ...over })
 const find = (list, effect) => list.find(b => b.effect === effect)
@@ -96,4 +96,23 @@ test('badgesOf: effect ซ้ำไม่ขึ้นสองป้าย (🦊
   const s = buffSources([p('fox'), p('mouse')], [p('turtle')])
   const b = badgesOf([...s.A0, ...s.A1], STATUS_MAX)
   assert.equal(b.filter(x => x.key === 'dodge').length, 1)
+})
+
+test('บัฟ: พาสสีฟ 2 ผลต้องได้ป้ายครบทั้งสองใบ', () => {
+  PET_PASSIVES.__dual = {
+    name: 'ทดสอบสองป้าย', icon: '🧪',
+    parts: [
+      { hook: 'onHit', effect: 'damageReduction', value: { pct: 10 }, step: { pct: 0 } },
+      { hook: 'onHit', effect: 'dodge', value: { pct: 5 }, step: { pct: 0 } },
+    ],
+    desc: 'ทดสอบ', short: 'ทดสอบ',
+  }
+  try {
+    const src = buffSources([{ id: '__dual' }], [])
+    const effects = (src.A0 || []).map(b => b.effect)
+    assert.ok(effects.includes('damageReduction'), 'ป้ายแรกหาย')
+    assert.ok(effects.includes('dodge'), 'ป้ายที่สองหาย')
+  } finally {
+    delete PET_PASSIVES.__dual
+  }
 })
