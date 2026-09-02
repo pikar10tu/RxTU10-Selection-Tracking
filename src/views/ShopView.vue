@@ -105,7 +105,7 @@
 
     <!-- reveal: anticipate (ลุ้น) → show (เผย) -->
     <Teleport to="body">
-      <div v-if="reveal" class="rv-ov" :class="[`r-${reveal.best}`, reveal.phase]" @click.self="closeReveal">
+      <div v-if="reveal" class="rv-ov" :class="[`r-${reveal.best}`, reveal.phase]" @click.self="onRevealBackdrop">
         <!-- จังหวะลุ้น: ลูกแก้วเรืองแสงสี rarity สูงสุด -->
         <div v-if="reveal.phase === 'anticipate'" class="anti" role="button" tabindex="0"
           aria-label="ข้ามการอัญเชิญ" :style="{ '--glow': rarityColor(reveal.best) }"
@@ -198,6 +198,13 @@ function showReveal(summary, multi) {
 }
 function skipReveal() { clearTimeout(revealTimer); if (reveal.value) reveal.value = { ...reveal.value, phase: 'show' } }
 function closeReveal() { clearTimeout(revealTimer); reveal.value = null }
+// แตะที่ว่างระหว่าง "ลุ้น" = ข้ามไปดูผล ไม่ใช่ปิดจอทิ้ง
+// (เดิมผูก closeReveal ตรงๆ ⇒ แตะพลาดนอกลูกแก้ว = เหรียญหักแล้วแต่ไม่มีทางรู้ว่าได้อะไร)
+function onRevealBackdrop() {
+  if (!reveal.value) return
+  if (reveal.value.phase === 'anticipate') skipReveal()
+  else closeReveal()
+}
 
 const rateList = ['legendary', 'epic', 'rare', 'common'].map((k) => ({ key: k, pct: GACHA_RATES[k], color: RARITY[k]?.color, label: RARITY[k]?.label }))
 
