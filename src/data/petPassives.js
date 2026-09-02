@@ -210,11 +210,50 @@ export function passiveValueAt(p, level = 1) {
   return out
 }
 
+// ════════════════════════════════════════════════════════════════════
+//  ตัวช่วยอ่านรูปข้อมูล — ตรรกะทุกที่ต้องอ่านผ่านตัวช่วยพวกนี้ ห้ามแตะ p.hook/p.effect ตรงๆ
+//
+//  🔑 เพ็ทตัวเดียวมีได้หลายผล (บากุ = รับแทน + ฟื้นเอง) ⇒ เก็บเป็น parts[]
+//  ⚠️ ระหว่าง P1 ตัวช่วยยัง "ห่อ" รูปเก่า {hook, effect} ให้เป็น 1 part ชั่วคราว
+//     เพื่อให้ย้ายผู้อ่านทีละไฟล์ได้โดยเทสไม่แดง — สะพานนี้ถูกถอดทิ้งในงานย่อยสุดท้ายของ P1
+// ════════════════════════════════════════════════════════════════════
+
+/** ทุก part ของ passive (รูปเก่าถูกห่อให้เป็น 1 part) */
+export function partsOf(p) {
+  if (!p) return []
+  if (Array.isArray(p.parts)) return p.parts
+  if (p.hook && p.effect) return [{ hook: p.hook, effect: p.effect, value: p.value, step: p.step }]
+  return []
+}
+
+/** ทุก part ที่ hook ตรง — ตามลำดับที่เขียนไว้ใน parts (ลำดับมีผลกับลำดับ event บนจอ) */
+export const partsAt = (p, hook) => partsOf(p).filter(x => x.hook === hook)
+
+/** part แรกที่ hook ตรง (ใช้ตอนที่ hook นั้นมีได้ part เดียวโดยธรรมชาติ) */
+export const partAt = (p, hook) => partsOf(p).find(x => x.hook === hook) || null
+
+/** part ที่ให้ผลนั้น */
+export const partWithEffect = (p, effect) => partsOf(p).find(x => x.effect === effect) || null
+
+/** ค่ารวมของทุก part สำหรับเติมข้อความ — คีย์ล้วน (part แรกที่มีคีย์นั้นชนะ)
+ *  + คีย์แบบ `tag.key` สำหรับ part ที่คีย์ชนกัน (บากุมี pct สองตัว) */
+function mergedValues(p, level) {
+  const out = {}
+  for (const part of partsOf(p)) {
+    const v = passiveValueAt(part, level)
+    for (const [k, val] of Object.entries(v)) {
+      if (!(k in out)) out[k] = val
+      if (part.tag) out[`${part.tag}.${k}`] = val
+    }
+  }
+  return out
+}
+
 /** คำอธิบายที่เติมตัวเลขจริงของขั้นนั้นแล้ว — ห้ามพิมพ์ตัวเลขลง desc เอง */
 export function passiveText(p, level = 1) {
   if (!p) return ''
-  const v = passiveValueAt(p, level)
-  return String(p.desc || '').replace(/\{(\w+)\}/g, (m, key) => (v[key] ?? m))
+  const v = mergedValues(p, level)
+  return String(p.desc || '').replace(/\{([\w.]+)\}/g, (m, key) => (v[key] ?? m))
 }
 
 /** ข้อความ "ผล" สั้นๆ พร้อมเลขจริงของขั้นนั้น — ใช้ในรายการบัฟหน้า inspect
@@ -223,11 +262,11 @@ export function passiveText(p, level = 1) {
  *     ใช้ effect เดียวกันโดยให้ผลคนละอย่าง — ฟีนิกซ์ (revive ฟื้น 35%) กับแมว (cheatDeath เหลือเลือด 1)
  *     เคยอ่านได้ว่า "กันตายได้ 1 ครั้ง" เหมือนกันเป๊ะทั้งคู่ · หมาป่าได้แค่ "พลังโจมตีเพิ่ม" ที่ไม่บอกอะไรเลย
  *  ⚠️ ห้ามพิมพ์ตัวเลขลง short เอง — ใส่ {pct} {count} … แล้วให้ passiveValueAt เติมตามขั้น */
-export function effectText(p, level = 1, { onTarget = false } = {}) {
+export function effectText(p, level = 1, { onTarget = false, effect = null } = {}) {
   if (!p) return ''
-  const v = passiveValueAt(p, level)
+  const v = mergedValues(p, level)
   const tpl = (onTarget && p.shortOn) || p.short || p.desc || ''
-  return String(tpl).replace(/\{(\w+)\}/g, (m, key) => (v[key] ?? m))
+  return String(tpl).replace(/\{([\w.]+)\}/g, (m, key) => (v[key] ?? m))
 }
 
 // ════════════════════════════════════════════════════════════════════
