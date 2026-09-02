@@ -94,7 +94,6 @@
           <div class="info-emoji"><Emoji :char="infoPet.emoji" /></div>
           <div class="info-name">{{ infoPet.name }}</div>
           <div class="info-rarity" :style="{ background: rarityColor(infoPet.rarity) }">{{ RARITY[infoPet.rarity]?.label }}</div>
-          <div class="info-flavor">“{{ infoPet.flavor }}”</div>
           <div v-if="passiveOf(infoPet)" class="info-passive">
             <b><Emoji :char="passiveOf(infoPet).icon" /> {{ passiveOf(infoPet).name }}</b> — {{ passiveText(passiveOf(infoPet)) }}
           </div>
@@ -301,8 +300,10 @@ async function chooseTarget(id) {
 .info-emoji { font-size: 3.4rem; }
 .info-name { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; margin-top: 2px; }
 .info-rarity { display: inline-block; color: #fff; font-size: .7rem; font-weight: 800; padding: 2px 10px; border-radius: 999px; margin-top: 6px; }
-.info-flavor { font-size: .8rem; color: rgba(0,0,0,.65); line-height: 1.6; margin: 12px 4px; font-style: italic; }
-.info-passive { font-size: .7rem; color: rgba(0,0,0,.45); background: rgba(0,0,0,.04); border-radius: 9px; padding: 7px; }
+/* flavor ของเพ็ทถูกซ่อนไว้ (user สั่ง 3 ก.ย.) — data ยังอยู่ครบใน data/index.js
+   คืนได้ด้วยการเอาบรรทัด .info-flavor ในเทมเพลตกลับมา + สไตล์ด้านล่าง
+.info-flavor { font-size: .8rem; color: rgba(0,0,0,.65); line-height: 1.6; margin: 12px 4px; font-style: italic; } */
+.info-passive { margin-top: 12px; font-size: .7rem; color: rgba(0,0,0,.45); background: rgba(0,0,0,.04); border-radius: 9px; padding: 7px; }
 .info-target { width: 100%; margin-top: 14px; border: 2px solid var(--ink); border-radius: 11px; padding: 10px; font-family: inherit; font-weight: 800; color: #fff; background: var(--primary); box-shadow: var(--pop); cursor: pointer; }
 /* ── reveal: ลุ้น (anticipate) → เผย (show) ── */
 .rv-ov { position: fixed; inset: 0; z-index: 410; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(10,8,20,.74); overscroll-behavior: contain; }
