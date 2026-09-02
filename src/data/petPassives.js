@@ -206,12 +206,15 @@ export const PET_PASSIVES = {
   },
 }
 
-/** ค่าของ passive ที่ขั้นนั้น (ขั้น 1 = ค่าตั้งต้น) · clamp ขั้นไว้ 1..PASSIVE_MAX_LEVEL */
-export function passiveValueAt(p, level = 1) {
-  if (!p) return {}
+/** ค่าของ part นั้นที่ขั้นนั้น (ขั้น 1 = ค่าตั้งต้น) · clamp ขั้นไว้ 1..PASSIVE_MAX_LEVEL
+ *  รับ `node` เป็น **part** เดี่ยว (`{value, step}`) เท่านั้น — ไม่ใช่ passive ทั้งตัว
+ *  ⚠️ ตั้งแต่ P1 ถอดสะพานรูปเก่าทิ้งแล้ว: ถ้าส่ง passive ทั้งตัวเข้ามา (มี `parts` แต่ไม่มี `value`/`step`
+ *     ที่ระดับบนสุด) ฟังก์ชันนี้จะไม่ throw แต่คืน `{}` เงียบๆ — ต้องดึง part ออกมาก่อนด้วย partAt/partsOf/partsAt */
+export function passiveValueAt(node, level = 1) {
+  if (!node) return {}
   const lv = Math.max(1, Math.min(PASSIVE_MAX_LEVEL, Math.round(level || 1)))
-  const out = { ...(p.value || {}) }
-  for (const [k, inc] of Object.entries(p.step || {})) {
+  const out = { ...(node.value || {}) }
+  for (const [k, inc] of Object.entries(node.step || {})) {
     if (typeof out[k] === 'number' && inc) out[k] = Math.round((out[k] + inc * (lv - 1)) * 10) / 10
   }
   return out

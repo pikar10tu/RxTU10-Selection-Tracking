@@ -5,7 +5,7 @@
 // 🔒 กฎเหล็ก: passive ไม่เพิ่มจำนวน beat — cleave/multiStrike อยู่ใน beat เดียวกับหมัดหลัก
 //    (ยิงเป็น event `passive` ที่ battleBeats ให้ timing ZERO ⇒ ไม่กินเวลา)
 //    killChain เป็นข้อยกเว้นเดียวที่เพิ่ม beat จริง จึงมีเพดาน
-import { PET_PASSIVES, passiveValueAt, partsOf, partsAt, partAt, partWithEffect } from '../data/petPassives.js'
+import { PET_PASSIVES, passiveValueAt, partsAt, partAt, partWithEffect } from '../data/petPassives.js'
 
 export const passiveFor = (unit) => PET_PASSIVES[unit?.id] || null
 

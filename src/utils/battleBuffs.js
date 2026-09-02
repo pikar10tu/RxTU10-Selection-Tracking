@@ -10,7 +10,7 @@
 //    เพราะเปลี่ยน paint ขณะการ์ดมีอนิเมชัน = re-raster ทั้งใบ (ข้อบังคับ v3 ของ BattleReplay)
 import { getPetDef } from '../data/index.js'
 import {
-  STATUS_ICON, STATUS_TEXT, STATUS_MAX, PET_PASSIVES, effectText,
+  STATUS_ICON, STATUS_TEXT, PET_PASSIVES, effectText,
   TEAM_AURA_EFFECTS, FOE_AURA_EFFECTS, SELF_STATUS_EFFECTS,
   partsOf, partsAt, partWithEffect,
 } from '../data/petPassives.js'
