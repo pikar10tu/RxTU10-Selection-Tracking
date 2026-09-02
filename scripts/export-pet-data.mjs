@@ -5,7 +5,7 @@
 // รัน: node scripts/export-pet-data.mjs [ไฟล์ออก]   (ค่าตั้งต้น docs/pet-data.json)
 import { writeFileSync } from 'node:fs'
 import { PETS, RARITY, EL_NAME, ELEMENTS } from '../src/data/index.js'
-import { PET_PASSIVES, passiveValueAt, passiveText, effectText, PASSIVE_MAX_LEVEL } from '../src/data/petPassives.js'
+import { PET_PASSIVES, passiveValueAt, passiveText, effectText, PASSIVE_MAX_LEVEL, partsOf } from '../src/data/petPassives.js'
 import { combatStats, petDailyCoins, expWeight, COMBAT_BASE, COMBAT_GRADE, ELEMENT_BIAS, RARITY_DAILY_BASE, GRADE_MULTI_V2, RARITY_WEIGHT } from '../src/data/petPower.js'
 import { GACHA_RATES, SOFT_PITY, HARD_PITY, SOFT_PITY_STEP } from '../src/utils/gacha.js'
 
@@ -32,12 +32,18 @@ const pets = PETS.map(p => {
     element: p.element, elementTh: EL_NAME[p.element], elEmoji: ELEMENTS[p.element].emoji,
     beats: EL_NAME[ELEMENTS[p.element].beats], flavor: p.flavor, spark: p.projectile || null,
     grades,
-    passive: pas ? {
-      name: pas.name, icon: pas.icon, hook: pas.hook, effect: pas.effect,
-      value: pas.value, step: pas.step,
-      lv: [1, 2, 3].map(l => ({ l, text: passiveText(pas, l), v: passiveValueAt(pas, l) })),
-      short: effectText(pas, 1), rawDesc: pas.desc,
-    } : null,
+    passive: pas ? (() => {
+      const parts = partsOf(pas)
+      return {
+        name: pas.name, icon: pas.icon,
+        // hook/effect แบบเดี่ยว = part แรก — คงไว้ให้หน้าเพจเดิมอ่านได้ · ของจริงอยู่ใน parts
+        hook: parts[0]?.hook, effect: parts[0]?.effect,
+        value: pas.value, step: pas.step,
+        lv: [1, 2, 3].map(l => ({ l, text: passiveText(pas, l), v: passiveValueAt(pas, l) })),
+        short: effectText(pas, 1), rawDesc: pas.desc,
+        parts: parts.map(x => ({ hook: x.hook, effect: x.effect })),
+      }
+    })() : null,
     sim: { lift: lift[p.id], fires: fires[p.id], rrFlat: rrFlat[p.id], dbeat: dbeat[p.id] },
   }
 })

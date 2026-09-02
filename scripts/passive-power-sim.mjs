@@ -16,7 +16,7 @@
 //      node scripts/passive-power-sim.mjs 1500 1
 import { simulateBattle } from '../src/utils/battleEngine.js'
 import { PETS } from '../src/data/index.js'
-import { PET_PASSIVES } from '../src/data/petPassives.js'
+import { PET_PASSIVES, partsOf } from '../src/data/petPassives.js'
 import { BATTLE_SLOTS } from '../src/data/residence.js'
 
 const N = Number(process.argv[2]) || 1500
@@ -57,9 +57,10 @@ for (const p of PETS) {
   if (!pas) continue
   const key = p.rarity + '|' + p.element
   const r = run(fill(p, mk(p)), Array.from({ length: BATTLE_SLOTS }, () => blank(p.rarity, p.element)), 'A0')
+  const parts = partsOf(pas)
   rows.push({
     id: p.id, name: p.name, rarity: p.rarity, element: p.element,
-    passive: pas.name, effect: pas.effect, hook: pas.hook,
+    passive: pas.name, effect: parts.map(x => x.effect).join('+'), hook: parts.map(x => x.hook).join('+'),
     wr: r.wr * 100, lift: (r.wr - base[key]) * 100,
     fires: r.fires, dbeat: r.beats - baseBeat[key],
   })

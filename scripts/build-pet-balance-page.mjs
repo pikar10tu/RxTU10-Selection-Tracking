@@ -72,7 +72,7 @@ const cards = pets.map(p => {
       <span class="pas-ico" aria-hidden="true">${pv.icon}</span>
       <b>${esc(pv.name)}</b>
       <span class="tag">${esc(HOOK_TH[pv.hook] || pv.hook)}</span>
-      <code class="tag-code">${pv.effect}</code>
+      <code class="tag-code">${(pv.parts || [{ effect: pv.effect }]).map(x => x.effect).join(' + ')}</code>
     </div>
     <ol class="lv">
       ${pv.lv.map(l => `<li><span class="lv-n">ขั้น ${l.l}</span><span>${esc(l.text)}</span></li>`).join('')}
@@ -91,7 +91,7 @@ const cards = pets.map(p => {
 const ranked = pets.slice().sort((a, b) => b.sim.rrFlat - a.sim.rrFlat)
 const chartRows = ranked.map(p => {
   const b = bar(p.sim.rrFlat)
-  return `<div class="row" tabindex="0" data-tip="${esc(p.passive.name)} · ${esc(HOOK_TH[p.passive.hook])} · ติด ${p.sim.fires} ครั้ง/ไฟต์ · ผลจริง ${p.sim.lift > 0 ? '+' : ''}${p.sim.lift}%">
+  return `<div class="row" tabindex="0" data-tip="${esc(p.passive.name)} · ${esc(HOOK_TH[p.passive.hook])} · ${(p.passive.parts || [{ effect: p.passive.effect }]).map(x => esc(x.effect)).join(' + ')} · ติด ${p.sim.fires} ครั้ง/ไฟต์ · ผลจริง ${p.sim.lift > 0 ? '+' : ''}${p.sim.lift}%">
   <span class="row-n"><i class="dot" style="background:${RAR[p.rarity]}"></i>${p.emoji} ${esc(p.name)}</span>
   <span class="track"><span class="mid"></span><span class="fill ${b.over ? 'over' : 'under'}" style="left:${b.left}%;width:${b.w}%"></span></span>
   <span class="row-v ${b.over ? 'over' : 'under'}">${p.sim.rrFlat}</span>
@@ -103,7 +103,7 @@ const tableRows = pets.map(p => `<tr>
 <td><span class="dot" style="background:${RAR[p.rarity]}"></span>${esc(p.rarityTh)}</td><td>${esc(p.elementTh)}</td>
 <td>${p.grades[0].atk}</td><td>${p.grades[0].hp}</td><td>${p.grades[5].atk}</td><td>${p.grades[5].hp}</td>
 <td>${p.grades[0].coins}</td><td>${p.grades[5].coins}</td>
-<td class="tl">${p.passive.icon} ${esc(p.passive.name)}</td><td><code>${p.passive.effect}</code></td><td>${esc(HOOK_TH[p.passive.hook])}</td>
+<td class="tl">${p.passive.icon} ${esc(p.passive.name)}</td><td><code>${(p.passive.parts || [{ effect: p.passive.effect }]).map(x => x.effect).join(' + ')}</code></td><td>${esc(HOOK_TH[p.passive.hook])}</td>
 <td class="${p.sim.lift >= 25 ? 'hot' : p.sim.lift <= 5 ? 'cool' : ''}">${p.sim.lift > 0 ? '+' : ''}${p.sim.lift}</td>
 <td class="${p.sim.rrFlat >= 54 ? 'hot' : p.sim.rrFlat <= 45 ? 'cool' : ''}">${p.sim.rrFlat}</td>
 <td>${p.sim.fires}</td><td>${p.sim.dbeat > 0 ? '+' : ''}${p.sim.dbeat}</td>
