@@ -5,13 +5,13 @@
 // 🔒 กฎเหล็ก: passive ไม่เพิ่มจำนวน beat — cleave/multiStrike อยู่ใน beat เดียวกับหมัดหลัก
 //    (ยิงเป็น event `passive` ที่ battleBeats ให้ timing ZERO ⇒ ไม่กินเวลา)
 //    killChain เป็นข้อยกเว้นเดียวที่เพิ่ม beat จริง จึงมีเพดาน
-import { PET_PASSIVES, passiveValueAt } from '../data/petPassives.js'
+import { PET_PASSIVES, passiveValueAt, partsOf, partsAt, partAt, partWithEffect } from '../data/petPassives.js'
 
 export const passiveFor = (unit) => PET_PASSIVES[unit?.id] || null
 
-/** ค่าของ passive ตามขั้นที่เพ็ทตัวนั้นอัพไว้ (ยังไม่มีระบบหิน ⇒ undefined = ขั้น 1)
- *  ⚠️ ห้ามอ่าน p.value ตรงๆ ในตรรกะ — ไม่งั้นพอระบบหินมา ค่าจะไม่ขยับตามขั้น */
-const valOf = (p, unit) => passiveValueAt(p, unit?.passiveLv)
+/** ค่าของ part นั้นตามขั้นที่เพ็ทอัพไว้ (ยังไม่มีระบบหิน ⇒ undefined = ขั้น 1)
+ *  ⚠️ ห้ามอ่าน part.value ตรงๆ ในตรรกะ — ไม่งั้นพอระบบหินมา ค่าจะไม่ขยับตามขั้น */
+const valOf = (part, unit) => passiveValueAt(part, unit?.passiveLv)
 const alive = (t) => t.filter(u => u.hp > 0)
 const pctOf = (v, pct) => v * (pct / 100)
 
@@ -32,8 +32,8 @@ const STAT_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'stackAt
  *  🔴 ชนิดผลชื่อ `fxKind` ห้ามใช้ชื่อ `kind` เด็ดขาด — `kind` เป็นของ battleBeats (= เวลา)
  *     และมันสร้าง beat ด้วย { ...event, kind } ⇒ ชื่อซ้ำเมื่อไหร่ ชนิดผลหายทั้งระบบทันที
  *     (เกิดมาแล้ว 28 ส.ค. `f32b519`: ฮีลแล้วหลอดขึ้นแต่เลข +N ไม่ขึ้น เพราะ 'heal' ถูกทับด้วย 'skill') */
-function ev(unit, p, extra = {}) {
-  return { t: 'passive', uid: unit.uid, side: unit.side, petId: unit.id, name: p.name, icon: p.icon, effect: p.effect, ...extra }
+function ev(unit, p, part, extra = {}) {
+  return { t: 'passive', uid: unit.uid, side: unit.side, petId: unit.id, name: p.name, icon: p.icon, effect: part.effect, ...extra }
 }
 
 /** ฟื้นเลือดให้ unit แล้วคืน { amount, hpPct } — amount = เลือดจริงที่ฟื้นได้ (ไม่ใช่ % ของ passive)
@@ -66,46 +66,47 @@ export function applyAuras(team, foes) {
   const out = []
   for (const u of team) {
     const p = passiveFor(u)
-    if (!p || p.hook !== 'aura') continue
-    const v = valOf(p, u)
-    // ⚠️ aura ต้องเด้งป้ายตอนเริ่มด้วย — เดิมสเปกเขียนว่า "ไม่มี event เพราะเห็นผลผ่านตัวเลข"
-    //    แต่เทสจอจริงพบว่าทีมที่มี aura ล้วน (เช่น whale+seal) เงียบสนิท ผู้เล่นไม่รู้เลยว่ามี passive
-    //    master plan §5.5 เขียนถูกแล้วว่า "proc ตอนเริ่มเกม → ป้ายขึ้นพร้อมกันตอนเริ่ม"
-    const e = ev(u, p, { targets: [u.uid], fxKind: 'aura' })
-    out.push(e)
-    switch (p.effect) {
-      case 'teamHp': {
-        const add = pctOf(1, v.pct)
-        for (const t of team) { t.maxHp *= (1 + add); t.hp = t.maxHp }
-        break
+    for (const part of partsAt(p, 'aura')) {
+      const v = valOf(part, u)
+      // ⚠️ aura ต้องเด้งป้ายตอนเริ่มด้วย — เดิมสเปกเขียนว่า "ไม่มี event เพราะเห็นผลผ่านตัวเลข"
+      //    แต่เทสจอจริงพบว่าทีมที่มี aura ล้วน (เช่น whale+seal) เงียบสนิท ผู้เล่นไม่รู้เลยว่ามี passive
+      //    master plan §5.5 เขียนถูกแล้วว่า "proc ตอนเริ่มเกม → ป้ายขึ้นพร้อมกันตอนเริ่ม"
+      const e = ev(u, p, part, { targets: [u.uid], fxKind: 'aura' })
+      out.push(e)
+      switch (part.effect) {
+        case 'teamHp': {
+          const add = pctOf(1, v.pct)
+          for (const t of team) { t.maxHp *= (1 + add); t.hp = t.maxHp }
+          break
+        }
+        case 'teamCrit':
+          for (const t of team) t.critBonus = (t.critBonus || 0) + v.pct / 100
+          break
+        case 'teamAtk': {
+          // คู่หู: ถ้ามีเพื่อนตามที่ระบุอยู่ในทีม บัฟแรงขึ้น + ทีมได้ regen
+          const duo = v.duoWith && ids.has(v.duoWith)
+          const pct = duo ? v.duoPct : v.pct
+          for (const t of team) t.atk *= (1 + pct / 100)
+          if (duo && v.duoRegen) for (const t of team) t.teamRegenPct = (t.teamRegenPct || 0) + v.duoRegen
+          break
+        }
+        case 'teamAtkPerElement': {
+          const n = team.filter(t => t.element === v.element).length
+          if (n > 0) for (const t of team) t.atk *= (1 + (v.pct * n) / 100)
+          break
+        }
+        case 'teamRegen':
+          // ใช้ช่องเดียวกับ duo whale🔗seal — ถ้ามีทั้งคู่ก็บวกกัน (ตั้งใจ)
+          for (const t of team) t.teamRegenPct = (t.teamRegenPct || 0) + v.pct
+          break
+        case 'enemyVuln':
+          for (const f of foes) f.vuln = (f.vuln || 0) + v.pct / 100
+          break
       }
-      case 'teamCrit':
-        for (const t of team) t.critBonus = (t.critBonus || 0) + v.pct / 100
-        break
-      case 'teamAtk': {
-        // คู่หู: ถ้ามีเพื่อนตามที่ระบุอยู่ในทีม บัฟแรงขึ้น + ทีมได้ regen
-        const duo = v.duoWith && ids.has(v.duoWith)
-        const pct = duo ? v.duoPct : v.pct
-        for (const t of team) t.atk *= (1 + pct / 100)
-        if (duo && v.duoRegen) for (const t of team) t.teamRegenPct = (t.teamRegenPct || 0) + v.duoRegen
-        break
-      }
-      case 'teamAtkPerElement': {
-        const n = team.filter(t => t.element === v.element).length
-        if (n > 0) for (const t of team) t.atk *= (1 + (v.pct * n) / 100)
-        break
-      }
-      case 'teamRegen':
-        // ใช้ช่องเดียวกับ duo whale🔗seal — ถ้ามีทั้งคู่ก็บวกกัน (ตั้งใจ)
-        for (const t of team) t.teamRegenPct = (t.teamRegenPct || 0) + v.pct
-        break
-      case 'enemyVuln':
-        for (const f of foes) f.vuln = (f.vuln || 0) + v.pct / 100
-        break
+      // ⚠️ ต้องเติม "หลัง" switch — event ถูก push ไปก่อนที่ stat จะเปลี่ยนจริง
+      //    ถ้าเติมตอนสร้าง ev() จะได้ snapshot ของ "ก่อนออร่าทำงาน" = เลขไม่ขยับเลยบนจอ
+      if (STAT_EFFECTS.has(part.effect)) e.statsAfter = statsSnapshot(team, foes)
     }
-    // ⚠️ ต้องเติม "หลัง" switch — event ถูก push ไปก่อนที่ stat จะเปลี่ยนจริง
-    //    ถ้าเติมตอนสร้าง ev() จะได้ snapshot ของ "ก่อนออร่าทำงาน" = เลขไม่ขยับเลยบนจอ
-    if (STAT_EFFECTS.has(p.effect)) e.statsAfter = statsSnapshot(team, foes)
   }
   return out
 }
@@ -117,18 +118,19 @@ export function runOnStart(team, foes) {
   const out = []
   for (const u of alive(team)) {
     const p = passiveFor(u)
-    if (!p || p.hook !== 'onStart') continue
-    const v = valOf(p, u)
-    if (p.effect === 'aoeOpener') {
-      const targets = alive(foes)
-      if (!targets.length) continue
-      const dmg = pctOf(u.atk, v.pct)
-      for (const t of targets) t.hp -= dmg
-      out.push(ev(u, p, { targets: targets.map(t => t.uid), amount: Math.round(dmg), fxKind: 'damage' }))
-    } else if (p.effect === 'teamHealOpener') {
-      const targets = alive(team)
-      for (const t of targets) t.hp = Math.min(t.maxHp, t.hp + pctOf(t.maxHp, v.pct))
-      out.push(ev(u, p, { targets: targets.map(t => t.uid), amount: v.pct, fxKind: 'heal' }))
+    for (const part of partsAt(p, 'onStart')) {
+      const v = valOf(part, u)
+      if (part.effect === 'aoeOpener') {
+        const targets = alive(foes)
+        if (!targets.length) continue
+        const dmg = pctOf(u.atk, v.pct)
+        for (const t of targets) t.hp -= dmg
+        out.push(ev(u, p, part, { targets: targets.map(t => t.uid), amount: Math.round(dmg), fxKind: 'damage' }))
+      } else if (part.effect === 'teamHealOpener') {
+        const targets = alive(team)
+        for (const t of targets) t.hp = Math.min(t.maxHp, t.hp + pctOf(t.maxHp, v.pct))
+        out.push(ev(u, p, part, { targets: targets.map(t => t.uid), amount: v.pct, fxKind: 'heal' }))
+      }
     }
   }
   return out
@@ -148,17 +150,18 @@ export function runOnRound(team) {
       if (h.amount > 0) out.push({ t: 'passive', uid: u.uid, side: u.side, petId: u.id,
         name: 'รางวัลคนเก่ง', icon: '💧', effect: 'duoRegen', targets: [u.uid], ...h, fxKind: 'heal' })
     }
-    if (!p || p.hook !== 'onRound') continue
-    const v = valOf(p, u)
-    if (p.effect === 'regenSelf') {
-      if (u.hp >= u.maxHp) continue                       // เลือดเต็มแล้วไม่ต้องเด้งป้าย
-      const h = healUnit(u, v.pct)
-      out.push(ev(u, p, { targets: [u.uid], ...h, fxKind: 'heal' }))
-    } else if (p.effect === 'healLowestAlly') {
-      const t = lowestHpAlly(team, u)
-      if (!t || t.hp >= t.maxHp) continue
-      const h = healUnit(t, v.pct)
-      out.push(ev(u, p, { targets: [t.uid], ...h, fxKind: 'heal' }))
+    for (const part of partsAt(p, 'onRound')) {
+      const v = valOf(part, u)
+      if (part.effect === 'regenSelf') {
+        if (u.hp >= u.maxHp) continue                       // เลือดเต็มแล้วไม่ต้องเด้งป้าย
+        const h = healUnit(u, v.pct)
+        out.push(ev(u, p, part, { targets: [u.uid], ...h, fxKind: 'heal' }))
+      } else if (part.effect === 'healLowestAlly') {
+        const t = lowestHpAlly(team, u)
+        if (!t || t.hp >= t.maxHp) continue
+        const h = healUnit(t, v.pct)
+        out.push(ev(u, p, part, { targets: [t.uid], ...h, fxKind: 'heal' }))
+      }
     }
   }
   return out
@@ -177,44 +180,45 @@ export function runOnRound(team) {
 export function runOnAttack(att, target, foes, rand) {
   const p = passiveFor(att)
   const res = { target, atkMult: 1, extra: [], strikes: 1, strikePct: 100, events: [] }
-  if (!p || p.hook !== 'onAttack') return res
-  const v = valOf(p, att)
-  switch (p.effect) {
-    case 'targetLowest': {
-      const low = alive(foes).reduce((b, f) => (!b || f.hp / f.maxHp < b.hp / b.maxHp ? f : b), null)
-      if (low && low !== target) {
-        res.target = low
-        res.events.push(ev(att, p, { targets: [low.uid], fxKind: 'aim' }))
+  for (const part of partsAt(p, 'onAttack')) {
+    const v = valOf(part, att)
+    switch (part.effect) {
+      case 'targetLowest': {
+        const low = alive(foes).reduce((b, f) => (!b || f.hp / f.maxHp < b.hp / b.maxHp ? f : b), null)
+        if (low && low !== target) {
+          res.target = low
+          res.events.push(ev(att, p, part, { targets: [low.uid], fxKind: 'aim' }))
+        }
+        break
       }
-      break
+      case 'cleave': {
+        const others = alive(foes).filter(f => f !== res.target).slice(0, Math.max(0, (v.count || 1) - 1))
+        if (others.length) {
+          res.extra = others.map(u => ({ unit: u, pct: v.pct }))
+          res.events.push(ev(att, p, part, { targets: [res.target.uid, ...others.map(u => u.uid)], fxKind: 'cleave' }))
+        }
+        break
+      }
+      case 'execute':
+        if (target && target.hp / target.maxHp < (v.below / 100)) {
+          res.atkMult *= 1 + v.pct / 100
+          res.events.push(ev(att, p, part, { targets: [target.uid], fxKind: 'buff' }))
+        }
+        break
+      case 'atkWhenFull':
+        if (att.hp >= att.maxHp) {
+          res.atkMult *= 1 + v.pct / 100
+          res.events.push(ev(att, p, part, { targets: [att.uid], fxKind: 'buff' }))
+        }
+        break
+      case 'multiStrike':
+        if (rand() * 100 < v.chance) {
+          res.strikes = 2
+          res.strikePct = v.pct
+          res.events.push(ev(att, p, part, { targets: [target?.uid].filter(Boolean), fxKind: 'multi' }))
+        }
+        break
     }
-    case 'cleave': {
-      const others = alive(foes).filter(f => f !== res.target).slice(0, Math.max(0, (v.count || 1) - 1))
-      if (others.length) {
-        res.extra = others.map(u => ({ unit: u, pct: v.pct }))
-        res.events.push(ev(att, p, { targets: [res.target.uid, ...others.map(u => u.uid)], fxKind: 'cleave' }))
-      }
-      break
-    }
-    case 'execute':
-      if (target && target.hp / target.maxHp < (v.below / 100)) {
-        res.atkMult *= 1 + v.pct / 100
-        res.events.push(ev(att, p, { targets: [target.uid], fxKind: 'buff' }))
-      }
-      break
-    case 'atkWhenFull':
-      if (att.hp >= att.maxHp) {
-        res.atkMult *= 1 + v.pct / 100
-        res.events.push(ev(att, p, { targets: [att.uid], fxKind: 'buff' }))
-      }
-      break
-    case 'multiStrike':
-      if (rand() * 100 < v.chance) {
-        res.strikes = 2
-        res.strikePct = v.pct
-        res.events.push(ev(att, p, { targets: [target?.uid].filter(Boolean), fxKind: 'multi' }))
-      }
-      break
   }
   return res
 }
@@ -233,43 +237,45 @@ export function runOnHit(defender, dmg, attacker, team, rand) {
   // 1) guardian ของ "เพื่อนในทีมเดียวกัน" — ต้องเช็คก่อนของตัว defender เอง
   for (const g of alive(team)) {
     const gp = passiveFor(g)
-    if (!gp || gp.hook !== 'onHit' || gp.effect !== 'guardian' || g === defender) continue
+    const gpart = partWithEffect(gp, 'guardian')
+    if (!gpart || gpart.hook !== 'onHit' || g === defender) continue
     const low = lowestHpAlly(team, g)
     if (low !== defender) continue                     // รับแทนเฉพาะเพื่อนที่บอบช้ำที่สุด
-    const share = pctOf(res.dmg, valOf(gp, g).pct)
+    const share = pctOf(res.dmg, valOf(gpart, g).pct)
     g.hp -= share
     res.dmg -= share
     // ⚠️ เลือดผู้พิทักษ์ลดโดยไม่มี attack event ⇒ ถ้าไม่ส่ง hpPct หลอดของเขาจะค้างเต็มทั้งที่เลือดหาย
-    res.events.push(ev(g, gp, { targets: [defender.uid], amount: Math.round(share),
+    res.events.push(ev(g, gp, gpart, { targets: [defender.uid], amount: Math.round(share),
       guardUid: g.uid, guardHpPct: Math.max(0, Math.round((g.hp / g.maxHp) * 100)), fxKind: 'guard' }))
     break                                              // ผู้พิทักษ์ตัวเดียวพอ
   }
 
   const p = passiveFor(defender)
-  if (!p || p.hook !== 'onHit') return res
-  const v = valOf(p, defender)
-  switch (p.effect) {
-    case 'dodge':
-      if (rand() * 100 < v.pct) {
-        res.dodged = true
-        res.dmg = 0
-        res.events.push(ev(defender, p, { targets: [defender.uid], fxKind: 'dodge' }))
+  for (const part of partsAt(p, 'onHit')) {
+    const v = valOf(part, defender)
+    switch (part.effect) {
+      case 'dodge':
+        if (rand() * 100 < v.pct) {
+          res.dodged = true
+          res.dmg = 0
+          res.events.push(ev(defender, p, part, { targets: [defender.uid], fxKind: 'dodge' }))
+        }
+        break
+      case 'damageReduction': {
+        const cut = pctOf(res.dmg, v.pct)
+        if (cut > 0) {
+          res.dmg -= cut
+          res.events.push(ev(defender, p, part, { targets: [defender.uid], amount: Math.round(cut), fxKind: 'reduce' }))
+        }
+        break
       }
-      break
-    case 'damageReduction': {
-      const cut = pctOf(res.dmg, v.pct)
-      if (cut > 0) {
-        res.dmg -= cut
-        res.events.push(ev(defender, p, { targets: [defender.uid], amount: Math.round(cut), fxKind: 'reduce' }))
-      }
-      break
+      case 'thorns':
+        res.thorns = pctOf(res.dmg, v.pct)
+        if (res.thorns > 0 && attacker) {
+          res.events.push(ev(defender, p, part, { targets: [attacker.uid], amount: Math.round(res.thorns), fxKind: 'thorns' }))
+        }
+        break
     }
-    case 'thorns':
-      res.thorns = pctOf(res.dmg, v.pct)
-      if (res.thorns > 0 && attacker) {
-        res.events.push(ev(defender, p, { targets: [attacker.uid], amount: Math.round(res.thorns), fxKind: 'thorns' }))
-      }
-      break
   }
   return res
 }
@@ -282,21 +288,22 @@ export function runOnDeath(unit, team) {
 
   // 1) ของตัวเอง — revive / cheatDeath
   const p = passiveFor(unit)
-  if (p && p.hook === 'onDeath' && (unit.passiveUses || 0) < (valOf(p, unit).times || 1)) {
-    const v = valOf(p, unit)
-    if (p.effect === 'revive') {
+  const part = partAt(p, 'onDeath')
+  if (part && (unit.passiveUses || 0) < (valOf(part, unit).times || 1)) {
+    const v = valOf(part, unit)
+    if (part.effect === 'revive') {
       unit.passiveUses = (unit.passiveUses || 0) + 1
       unit.hp = pctOf(unit.maxHp, v.pct)
       out.prevented = true
-      out.events.push(ev(unit, p, { targets: [unit.uid], amount: Math.round(unit.hp),
+      out.events.push(ev(unit, p, part, { targets: [unit.uid], amount: Math.round(unit.hp),
         hpPct: Math.round((unit.hp / unit.maxHp) * 100), fxKind: 'revive' }))
       return out
     }
-    if (p.effect === 'cheatDeath') {
+    if (part.effect === 'cheatDeath') {
       unit.passiveUses = (unit.passiveUses || 0) + 1
       unit.hp = 1
       out.prevented = true
-      out.events.push(ev(unit, p, { targets: [unit.uid], hpPct: 1, fxKind: 'revive' }))
+      out.events.push(ev(unit, p, part, { targets: [unit.uid], hpPct: 1, fxKind: 'revive' }))
       return out
     }
   }
@@ -305,12 +312,13 @@ export function runOnDeath(unit, team) {
   for (const g of alive(team)) {
     if (g === unit) continue
     const gp = passiveFor(g)
-    if (!gp || gp.hook !== 'onDeath' || gp.effect !== 'saveAlly') continue
-    if ((g.passiveUses || 0) >= (valOf(gp, g).times || 1)) continue
+    const gpart = partWithEffect(gp, 'saveAlly')
+    if (!gpart || gpart.hook !== 'onDeath') continue
+    if ((g.passiveUses || 0) >= (valOf(gpart, g).times || 1)) continue
     g.passiveUses = (g.passiveUses || 0) + 1
     unit.hp = 1
     out.prevented = true
-    out.events.push(ev(g, gp, { targets: [unit.uid], hpPct: 1, fxKind: 'save' }))
+    out.events.push(ev(g, gp, gpart, { targets: [unit.uid], hpPct: 1, fxKind: 'save' }))
     break
   }
   return out
@@ -323,21 +331,22 @@ export function runOnDeath(unit, team) {
 export function runOnKill(killer, chainUsed, team, foes) {
   const out = { extraAttack: false, events: [] }
   const p = passiveFor(killer)
-  if (!p || p.hook !== 'onKill') return out
-  const v = valOf(p, killer)
-  if (p.effect === 'stackAtk') {
-    const stacks = killer.atkStacks || 0
-    if (stacks < v.max) {
-      killer.atkStacks = stacks + 1
-      killer.atk *= 1 + v.pct / 100
-      const e = ev(killer, p, { targets: [killer.uid], amount: killer.atkStacks, fxKind: 'buff' })
-      if (team && foes) e.statsAfter = statsSnapshot(team, foes)
-      out.events.push(e)
-    }
-  } else if (p.effect === 'killChain') {
-    if (chainUsed < v.max) {
-      out.extraAttack = true
-      out.events.push(ev(killer, p, { targets: [killer.uid], fxKind: 'chain' }))
+  for (const part of partsAt(p, 'onKill')) {
+    const v = valOf(part, killer)
+    if (part.effect === 'stackAtk') {
+      const stacks = killer.atkStacks || 0
+      if (stacks < v.max) {
+        killer.atkStacks = stacks + 1
+        killer.atk *= 1 + v.pct / 100
+        const e = ev(killer, p, part, { targets: [killer.uid], amount: killer.atkStacks, fxKind: 'buff' })
+        if (team && foes) e.statsAfter = statsSnapshot(team, foes)
+        out.events.push(e)
+      }
+    } else if (part.effect === 'killChain') {
+      if (chainUsed < v.max) {
+        out.extraAttack = true
+        out.events.push(ev(killer, p, part, { targets: [killer.uid], fxKind: 'chain' }))
+      }
     }
   }
   return out

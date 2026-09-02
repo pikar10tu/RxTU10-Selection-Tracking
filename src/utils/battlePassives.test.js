@@ -385,3 +385,48 @@ test('effectText: aura ที่ลงฝั่งตรงข้ามมีข
   // ตัวที่ไม่มี shortOn ต้องตกกลับไป short เหมือนเดิม ไม่ใช่ค่าว่าง
   assert.equal(effectText(PET_PASSIVES.whale, 1, { onTarget: true }), effectText(PET_PASSIVES.whale, 1))
 })
+
+// ── หลายผลในตัวเดียว (โครง parts[]) ─────────────────────────────
+// ลงทะเบียนพาสสีฟสมมติชั่วคราวในทะเบียน แล้วลบทิ้งท้ายเทส
+// (แพทเทิร์นเดียวกับ id '__blank__' ที่ sim ใช้ — ทะเบียนเป็น object ธรรมดา)
+test('onRound: พาสสีฟที่มี 2 part ใน hook เดียวกัน ต้องทำงานครบทั้งคู่', () => {
+  PET_PASSIVES.__two = {
+    name: 'ทดสอบสองผล', icon: '🧪',
+    parts: [
+      { hook: 'onRound', effect: 'regenSelf', value: { pct: 10 }, step: { pct: 0 } },
+      { hook: 'onRound', effect: 'healLowestAlly', value: { pct: 20 }, step: { pct: 0 } },
+    ],
+    desc: 'ทดสอบ', short: 'ทดสอบ',
+  }
+  try {
+    const me = u('__two', { uid: 'A0', hp: 500 })      // maxHp 1000 ⇒ พร่องอยู่
+    const mate = u('__blank__', { uid: 'A1', hp: 200 })
+    const events = runOnRound([me, mate])
+    const effects = events.map(e => e.effect)
+    assert.ok(effects.includes('regenSelf'), 'part แรกไม่ทำงาน')
+    assert.ok(effects.includes('healLowestAlly'), 'part ที่สองไม่ทำงาน')
+    assert.equal(me.hp, 600)                            // +10% ของ 1000
+    assert.equal(mate.hp, 400)                          // +20% ของ 1000
+  } finally {
+    delete PET_PASSIVES.__two
+  }
+})
+
+test('onHit: part ของ hook อื่นต้องไม่ถูกเรียกผิดจังหวะ', () => {
+  PET_PASSIVES.__mix = {
+    name: 'ทดสอบข้ามฮุก', icon: '🧪',
+    parts: [
+      { hook: 'onHit', effect: 'damageReduction', value: { pct: 50 }, step: { pct: 0 } },
+      { hook: 'onKill', effect: 'stackAtk', value: { pct: 10, max: 3 }, step: { pct: 0, max: 0 } },
+    ],
+    desc: 'ทดสอบ', short: 'ทดสอบ',
+  }
+  try {
+    const d = u('__mix', { uid: 'A0' })
+    const res = runOnHit(d, 100, u('__blank__', { uid: 'B0', side: 'B' }), [d], () => 0.99)
+    assert.equal(res.dmg, 50)                                   // ลดครึ่ง
+    assert.equal(res.events.filter(e => e.effect === 'stackAtk').length, 0)
+  } finally {
+    delete PET_PASSIVES.__mix
+  }
+})
