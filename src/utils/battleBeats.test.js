@@ -231,3 +231,28 @@ test('🔑 beat.kind (เวลา) ต้องไม่ทับ fxKind (ช�
   assert.equal(bs[1].fxKind, 'heal', 'ชนิดผลต้องรอดมาถึง renderer')
   assert.equal(bs[1].amount, 12, 'เลข +N ต้องรอดมาด้วย')
 })
+
+test('เพ็ทหลาย part ที่ยิงติดกัน = จังหวะเดียว (ใบสุดท้ายถือเวลาคนเดียว)', () => {
+  const log = [
+    { t: 'attack', side: 'A', attacker: 'A0', target: 'B0', dmg: 10, targetHpAfter: 90 },
+    { t: 'passive', uid: 'A1', side: 'A', effect: 'regenSelf' },
+    { t: 'passive', uid: 'A1', side: 'A', effect: 'stackAtk' },
+    { t: 'passive', uid: 'A1', side: 'A', effect: 'healLowestAlly' },
+    { t: 'attack', side: 'B', attacker: 'B0', target: 'A0', dmg: 10, targetHpAfter: 90 },
+  ]
+  const b = buildBeats(log, { A0: 100, B0: 100 })
+  assert.deepEqual([b[1].kind, b[2].kind, b[3].kind], ['skillQuiet', 'skillQuiet', 'skill'])
+  const held = [b[1], b[2], b[3]].reduce((s, x) => s + x.timing.hitstop, 0)
+  assert.equal(held, SKILL_PAUSE)      // รวมกันแล้วยังหยุดแค่ครั้งเดียว ไม่ใช่ 3 เท่า
+})
+
+test('สอง part ที่ effect เดียวกันของเพ็ทตัวเดียว ต้องไม่ถูกกลืนหายไปเงียบๆ', () => {
+  const log = [
+    { t: 'attack', side: 'A', attacker: 'A0', target: 'B0', dmg: 10, targetHpAfter: 90 },
+    { t: 'passive', uid: 'A1', side: 'A', effect: 'regenSelf' },
+    { t: 'passive', uid: 'A1', side: 'A', effect: 'regenSelf' },
+    { t: 'attack', side: 'B', attacker: 'B0', target: 'A0', dmg: 10, targetHpAfter: 90 },
+  ]
+  const b = buildBeats(log, { A0: 100, B0: 100 })
+  assert.equal(b[2].kind, 'skill')     // ใบสุดท้ายของก้อนยังได้ประกาศ
+})

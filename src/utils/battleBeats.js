@@ -151,16 +151,34 @@ export function buildBeats(log, maxHpByUid) {
     if (openIdx.length) pKind.set(openIdx[openIdx.length - 1], 'openGroup')
 
     // ที่เหลือ: ครั้งแรกของสกิลนั้นได้หยุดสั้นๆ · ครั้งซ้ำเงียบ · จังหวะเป็น-ตายได้โมเมนต์เต็ม
-    // ⚠️ ไม่มีโควตาแล้ว — วัดจากทีมที่ยัดสกิลกันตายครบ 3 ตัว ยังได้แค่ 1.17 ครั้ง/ไฟต์
-    //    ส่วนครั้งแรกของสกิลมี 4.39 ครั้ง/ไฟต์ = 0.88 วิ ซึ่งถูกกว่าโควตาเดิม (3.6 วิ) อยู่แล้ว
+    // 🔑 เพ็ทตัวเดียวยิงหลาย part ติดกัน = "ก้อนเดียว" ⇒ ใบสุดท้ายของก้อนถือเวลาคนเดียว
+    //    ที่เหลือ 0ms (แพทเทิร์นเดียวกับ openQuiet/openGroup ของยกแรก)
+    //    ถ้าไม่ทำ เพ็ท 3 part จะได้ SKILL_PAUSE × 3 = หยุด 600ms ติดกันในจังหวะเดียว
+    // ⚠️ คีย์ตัวดักซ้ำต้องมีลำดับ part ด้วย ไม่งั้นสอง part ที่ effect เดียวกัน
+    //    ใบที่สองจะถูกลดเป็น skillQuiet แล้วหายไปเงียบๆ
+    // 🔒 `groupPos` = ตำแหน่งของใบนี้ "ในก้อนปัจจุบัน" (0, 1, 2, ...) — รีเซตทุกครั้งที่ก้อนขาด
+    //    (event ไม่ใช่ passive หรือ uid เปลี่ยน) ไม่ใช่ยอดสะสมของ uid ทั้งไฟต์
+    //    คีย์ dedupe (`seen`) ยังค้างข้ามก้อนไปตลอดไฟต์ตามเดิม — ก้อนถัดไปที่ uid เดิมยิง
+    //    part ตำแหน่งเดิมซ้ำ (groupPos ตรงกัน) จะได้คีย์ซ้ำ จึงยังถูกจับเป็น "ครั้งซ้ำ" เหมือนของเดิมก่อน P1
+    //    ถ้าใช้ยอดสะสมทั้งไฟต์แทน (นับทุกใบของ uid นี้ไม่สนก้อน) เพ็ท part เดียวที่ถูกยิงซ้ำจาก
+    //    2 การ์ดติดกัน (เช่น engine เรียก onKill ซ้อน 2 ครั้งต่อการฆ่า 1 ครั้ง) จะกลายเป็นคนละคีย์
+    //    ไปเลย ⇒ ก้อนซ้ำจริงจะไม่ถูกมองว่าซ้ำ (เทส 'สกิลครั้งแรกได้หยุด SKILL_PAUSE · ครั้งซ้ำเงียบ 0ms' จะแดง)
     const seen = new Set()
+    let groupUid = null
+    let groupPos = 0
     for (let i = openCut; i < evts.length; i++) {
       const e = evts[i]
-      if (!e || e.t !== 'passive') continue
-      const key = `${e.uid || ''}:${e.effect || ''}`
+      if (!e || e.t !== 'passive') { groupUid = null; continue }
+      const uid = e.uid || ''
+      if (uid === groupUid) groupPos += 1
+      else { groupUid = uid; groupPos = 0 }
+      const key = `${uid}:${e.effect || ''}:${groupPos}`
       const first = !seen.has(key)
       seen.add(key)
+      const next = evts[i + 1]
+      const lastOfGroup = !(next && next.t === 'passive' && (next.uid || '') === uid)
       if (CLUTCH_EFFECTS.has(e.effect)) pKind.set(i, 'skillMoment')
+      else if (!lastOfGroup) pKind.set(i, 'skillQuiet')
       else pKind.set(i, first ? 'skill' : 'skillQuiet')
     }
   }

@@ -503,8 +503,8 @@ test('onRound: พาสสีฟที่มี 2 part ใน hook เดีย
     const mate = u('__blank__', { uid: 'A1', hp: 200 })
     const events = runOnRound([me, mate])
     const effects = events.map(e => e.effect)
-    assert.ok(effects.includes('regenSelf'), 'part แรกไม่ทำงาน')
-    assert.ok(effects.includes('healLowestAlly'), 'part ที่สองไม่ทำงาน')
+    // ลำดับใน parts[] = ลำดับที่ event โผล่บนจอ — เป็นสัญญาในสเปก §2.4 ต้องมีเทสกัน
+    assert.deepEqual(effects, ['regenSelf', 'healLowestAlly'])
     assert.equal(me.hp, 600)                            // +10% ของ 1000
     assert.equal(mate.hp, 400)                          // +20% ของ 1000
   } finally {
