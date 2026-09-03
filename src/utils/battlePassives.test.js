@@ -239,6 +239,56 @@ test('multiStrike (rabbit): ตี 2 ทีเมื่อสุ่มติด 
   assert.equal(runOnAttack(u('rabbit'), foe, [foe], () => 0.9).strikes, 1)
 })
 
+test('berserk: ยิ่งเลือดหายยิ่งแรง นับเป็นขั้นละ 10%', () => {
+  PET_PASSIVES.__boar = {
+    name: 'ทดสอบหมูป่า', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'berserk', value: { pct: 6 }, step: { pct: 0 } }],
+    desc: 'เลือดหายยิ่งแรง +{pct}%', short: 'เลือดหายยิ่งแรง +{pct}%',
+  }
+  try {
+    const tg = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+    const full = { uid: 'A0', side: 'A', id: '__boar', hp: 100, maxHp: 100, atk: 10 }
+    assert.equal(runOnAttack(full, tg, [tg], () => 0.5).atkMult, 1)          // เลือดเต็ม = ไม่ได้อะไร
+    const hurt = { uid: 'A0', side: 'A', id: '__boar', hp: 40, maxHp: 100, atk: 10 }
+    const r = runOnAttack(hurt, tg, [tg], () => 0.5)
+    assert.equal(Math.round(r.atkMult * 100) / 100, 1.36)                    // หาย 60% = 6 ขั้น × 6%
+    assert.equal(r.events.length, 1)
+  } finally { delete PET_PASSIVES.__boar }
+})
+
+test('giantSlayer: เป้าตัวใหญ่กว่ายิ่งแรง แต่ชนเพดาน', () => {
+  PET_PASSIVES.__badger = {
+    name: 'ทดสอบแบดเจอร์', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'giantSlayer', value: { pct: 5, max: 50 }, step: { pct: 0, max: 0 } }],
+    desc: 'ล้มยักษ์ +{pct}%', short: 'ล้มยักษ์ +{pct}%',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__badger', hp: 100, maxHp: 100, atk: 10 }
+    const small = { uid: 'B0', side: 'B', id: 'blank', hp: 80, maxHp: 80, atk: 10 }
+    assert.equal(runOnAttack(me, small, [small], () => 0.5).atkMult, 1)      // เป้าเล็กกว่า = ไม่ได้อะไร
+    const big = { uid: 'B1', side: 'B', id: 'blank', hp: 130, maxHp: 130, atk: 10 }
+    assert.equal(Math.round(runOnAttack(me, big, [big], () => 0.5).atkMult * 100) / 100, 1.15)  // 3 ขั้น
+    const huge = { uid: 'B2', side: 'B', id: 'blank', hp: 500, maxHp: 500, atk: 10 }
+    assert.equal(Math.round(runOnAttack(me, huge, [huge], () => 0.5).atkMult * 100) / 100, 1.5) // ชนเพดาน
+  } finally { delete PET_PASSIVES.__badger }
+})
+
+test('healOnAttack: ฟื้นเพื่อนที่บอบช้ำสุดตามดาเมจจริงที่ทำได้', () => {
+  PET_PASSIVES.__uni = {
+    name: 'ทดสอบยูนิคอร์น', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'healOnAttack', value: { pct: 12 }, step: { pct: 0 } }],
+    desc: 'ตีแล้วฟื้นเพื่อน {pct}%', short: 'ตีแล้วฟื้นเพื่อน {pct}%',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__uni', hp: 100, maxHp: 100, atk: 10 }
+    const hurt = { uid: 'A1', side: 'A', id: 'blank', hp: 50, maxHp: 100, atk: 10 }
+    const tg = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+    const res = runOnHit(tg, 100, me, [tg], () => 0.5, [me, hurt])
+    assert.equal(hurt.hp, 62)                       // 12% ของดาเมจ 100
+    assert.ok(res.events.some(e => e.effect === 'healOnAttack'))
+  } finally { delete PET_PASSIVES.__uni }
+})
+
 // ── onHit ───────────────────────────────────────────────────
 test('damageReduction (mammoth): ลดดาเมจที่ตัวเองรับ', () => {
   const r = runOnHit(u('mammoth'), 100, u('cat'), [u('mammoth')], () => 0.5)

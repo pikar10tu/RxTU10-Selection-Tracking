@@ -279,6 +279,27 @@ export function runOnAttack(att, target, foes, rand) {
           res.events.push(ev(att, p, part, { targets: [target?.uid].filter(Boolean), fxKind: 'multi' }))
         }
         break
+      case 'berserk': {
+        // ขั้นละ 10% ของเลือดที่หายไป — ปัดลง (เลือด 40% = หาย 60% = 6 ขั้น)
+        const steps = Math.floor((1 - att.hp / att.maxHp) * 10)
+        if (steps > 0) {
+          res.atkMult *= 1 + (steps * v.pct) / 100
+          res.events.push(ev(att, p, part, { targets: [att.uid], amount: steps, fxKind: 'buff' }))
+        }
+        break
+      }
+      case 'giantSlayer': {
+        // ขั้นละ 10% ที่ maxHp ของเป้าสูงกว่าเรา · เพดานที่ v.max
+        if (!target) break
+        const steps = Math.floor((target.maxHp / att.maxHp - 1) * 10)
+        if (steps > 0) {
+          const pct = Math.min(steps * v.pct, v.max)
+          res.atkMult *= 1 + pct / 100
+          res.events.push(ev(att, p, part, { targets: [target.uid], amount: Math.round(pct), fxKind: 'buff' }))
+        }
+        break
+      }
+      // 🔴 healOnAttack ก็ hook: 'onAttack' ในข้อมูล แต่คำนวณใน runOnHit — ดูคอมเมนต์ที่นั่น
     }
   }
   return res
@@ -291,7 +312,7 @@ export function runOnAttack(att, target, foes, rand) {
  * คืน { dmg, dodged, thorns, events, pierce }
  *   thorns   = ดาเมจสะท้อนกลับไปที่ผู้ตี (เอนจินเป็นคนหัก)
  */
-export function runOnHit(defender, dmg, attacker, team, rand) {
+export function runOnHit(defender, dmg, attacker, team, rand, attTeam = null) {
   // pierce = ดาเมจที่ "ไม่ผ่านสายลด" — เอนจินหักหลัง res.dmg · วันนี้มีแค่ infect (P2b) ที่ใส่ค่า
   // 🔴 ห้ามเอาไปใช้กับกลไกอื่นโดยไม่แก้สเปก: การทะลุเกราะคือเหตุผลที่ไวรัสมีอยู่
   //    ถ้าแจกให้ตัวอื่นด้วย มันจะกลายเป็นแค่ "ดาเมจเพิ่ม" อีกตัวหนึ่ง
@@ -340,6 +361,27 @@ export function runOnHit(defender, dmg, attacker, team, rand) {
         break
     }
   }
+
+  // ── ผลของ "ผู้ตี" ที่ต้องรู้ดาเมจจริงถึงจะคิดได้ ──
+  // 🔴 hook ในข้อมูลคือ onAttack (มุมผู้เล่น: "เมื่อฉันตี") แต่คำนวณที่นี่เพราะ runOnAttack
+  //    ยังไม่รู้ดาเมจจริง — ใครอ่าน runOnAttack แล้วหา healOnAttack ไม่เจอ ให้มาดูตรงนี้
+  const dealt = res.dmg + res.pierce
+  if (attacker && dealt > 0 && attTeam) {
+    const ap = passiveFor(attacker)
+    for (const part of partsAt(ap, 'onAttack')) {
+      if (part.effect !== 'healOnAttack') continue
+      const t = lowestHpAlly(attTeam, attacker)
+      if (!t || t.hp >= t.maxHp) continue
+      const before = t.hp
+      t.hp = Math.min(t.maxHp, t.hp + pctOf(dealt, valOf(part, attacker).pct))
+      const amount = Math.round(t.hp - before)
+      if (amount > 0) {
+        res.events.push(ev(attacker, ap, part, { targets: [t.uid], amount,
+          hpPct: Math.round((t.hp / t.maxHp) * 100), fxKind: 'heal' }))
+      }
+    }
+  }
+
   return res
 }
 

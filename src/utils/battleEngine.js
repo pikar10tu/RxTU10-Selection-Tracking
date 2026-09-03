@@ -43,8 +43,9 @@ export function simulateBattle(teamA, teamB, seed) {
   /** หักเลือด 1 ครั้ง + บันทึก log · คืน true ถ้าเป้าตายจริง (ผ่าน onDeath แล้ว) */
   const strike = (att, tg, foes, mult, tier, sub) => {
     const before = tg.hp
-    // onHit: guardian (เพื่อนรับแทน) → dodge → ลดดาเมจ → หนาม
-    const hitRes = runOnHit(tg, Math.max(0, mult), att, foes, rand)
+    // onHit: guardian (เพื่อนรับแทน) → dodge → ลดดาเมจ → หนาม → healOnAttack (ทีมผู้ตี)
+    const attTeam = att.side === 'A' ? A : B
+    const hitRes = runOnHit(tg, Math.max(0, mult), att, foes, rand, attTeam)
     for (const e of hitRes.events) log.push(e)
     tg.hp -= hitRes.dmg
     // ดาเมจทะลุ (infect) — หักหลังสายลดจบแล้ว จึงไม่โดน guardian/dodge/DR/เกราะ
