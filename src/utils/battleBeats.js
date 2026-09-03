@@ -41,9 +41,15 @@ export const FF_SCALE = { hit: 0.45, ko: 1, finish: 1, sub: 1, skill: 1, skillMo
 /** จังหวะเป็น-ตาย — ได้โมเมนต์เต็มเสมอ แม้เป็นครั้งซ้ำ */
 export const CLUTCH_EFFECTS = new Set(['revive', 'cheatDeath', 'saveAlly'])
 
-/** hook ที่ทำงาน "ก่อนไฟต์เริ่ม" — ใช้ตัดกลุ่มยกแรก (ดู openCutOf) */
-const OPENING_EFFECTS = new Set([
-  'teamHp', 'teamAtk', 'teamAtkPerElement', 'teamCrit', 'enemyVuln',   // aura ทั้ง 5
+/** effect ของ hook ที่ทำงาน "ก่อนไฟต์เริ่ม" (`setup` + `aura`) — ใช้ตัดกลุ่มยกแรก (ดู openCutOf)
+ *  🔴 เพิ่ม effect ใหม่บน hook `aura`/`setup` เมื่อไหร่ ต้องมาเติมที่นี่ด้วยเสมอ — ไฟล์นี้ไม่ import อะไร
+ *     จึงตรวจให้ไม่ได้ตอนคอมไพล์ · เทสข้ามไฟล์ใน battleBeats.test.js เป็นตัวคุมแทน
+ *     ถ้าตกหล่น: openCutOf จะตัดกลุ่มยกแรกที่ตัวนั้นทันที ⇒ ป้ายออร่าเลิกขึ้นพร้อมกัน
+ *     กลายเป็นทยอยขึ้นทีละใบ ซึ่งเป็นอาการที่สเปกบอกให้เลี่ยงตรงๆ */
+export const OPENING_EFFECTS = new Set([
+  'teamHp', 'teamAtk', 'teamAtkPerElement', 'teamCrit', 'enemyVuln',   // aura เดิม 5 ตัว
+  'elementTrinity', 'teamLifesteal', 'teamDamageReduction',            // aura ใหม่ของ P2
+  'stealStats',                                                        // hook setup — เอนจิน log ก่อน aura ทุกใบ
 ])
 
 export const DANGER_PCT = 0.25         // เลือดเหลือไม่เกินนี้ (ยังไม่ตาย) = โซนอันตราย
@@ -96,6 +102,17 @@ export function weightOf(e, dmgPct) {
  *    ⇒ สกิลโจมตีของตัวที่ตีคนแรก ถูกกลืนเข้ากลุ่มยกแรกทุกไฟต์ แล้วไม่เคยได้ประกาศตอนโปรกจริง
  *    แก้: ตัดที่ passive ตัวแรกที่ "ไม่ใช่ของเปิดไฟต์" หรือที่ attack แรก แล้วแต่อะไรมาก่อน
  */
+/** effect ที่ "ไม่ใช่สกิลของเพ็ทใบนั้นเอง" จึงห้ามถูกรวมเข้าก้อนของ uid นั้น (ดู groupIdOf)
+ *  🔑 `duoRegen` = ผลของคู่หู 🐳🦭 · เอนจินยิงมันบน "ตัวที่ได้รับเลือด" ทุกใบในทีม ไม่ใช่บนเจ้าของสกิล
+ *     ⇒ ถ้าจัดก้อนด้วย uid เฉยๆ มันจะไปเกาะกับพาสสีฟของเพ็ทใบนั้น (เช่น regenSelf ของ 🐼)
+ *     แล้วถูกลดเป็น skillQuiet = ป้าย 💧 หายไปทั้งที่คู่หูทำงานอยู่ (วัดจริง 2 ไฟต์ในทีมวันนี้)
+ *  ✅ user เคาะ 3 ก.ย. 2026: "ก้อนหนึ่ง = สกิลของเพ็ทตัวเดียวยิงหลาย part · duoRegen ไม่ใช่แบบนั้น
+ *     ให้มันมีโมเมนต์ของตัวเอง" — จึงกันออกจากก้อนตรงนี้ ไม่ใช่ไปยุ่งกับลำดับ event ในเอนจิน */
+const OUT_OF_GROUP_EFFECTS = new Set(['duoRegen'])
+
+/** คีย์ของ "ก้อน" = เพ็ทหนึ่งตัวยิงสกิลของตัวเองติดกัน · effect ที่ไม่ใช่สกิลของใบนั้นได้คีย์ของตัวเอง */
+const groupIdOf = (e) => (OUT_OF_GROUP_EFFECTS.has(e.effect) ? `${e.uid || ''}#${e.effect}` : (e.uid || ''))
+
 function openCutOf(evts) {
   for (let i = 0; i < evts.length; i++) {
     const e = evts[i]
@@ -167,13 +184,14 @@ export function buildBeats(log, maxHpByUid) {
     //    นับแยกต่อ-effect แก้ปัญหานี้เพราะ stackAtk เป็น "ใบที่ 0 ของ stackAtk ในก้อน" เสมอ
     //    ไม่ว่า regenSelf จะร่วมก้อนด้วยหรือไม่ — คีย์เดิม ยังถูกจับเป็นครั้งซ้ำถูกต้อง
     const seen = new Set()
-    let groupUid = null
+    let groupId = null
     let groupEffCount = null   // Map: effect → กี่ใบของ effect นี้แล้วในก้อนปัจจุบัน
     for (let i = openCut; i < evts.length; i++) {
       const e = evts[i]
-      if (!e || e.t !== 'passive') { groupUid = null; groupEffCount = null; continue }
+      if (!e || e.t !== 'passive') { groupId = null; groupEffCount = null; continue }
       const uid = e.uid || ''
-      if (uid !== groupUid) { groupUid = uid; groupEffCount = new Map() }
+      const gid = groupIdOf(e)
+      if (gid !== groupId) { groupId = gid; groupEffCount = new Map() }
       const eff = e.effect || ''
       const nth = groupEffCount.get(eff) || 0
       groupEffCount.set(eff, nth + 1)
@@ -181,7 +199,7 @@ export function buildBeats(log, maxHpByUid) {
       const first = !seen.has(key)
       seen.add(key)
       const next = evts[i + 1]
-      const lastOfGroup = !(next && next.t === 'passive' && (next.uid || '') === uid)
+      const lastOfGroup = !(next && next.t === 'passive' && groupIdOf(next) === gid)
       if (CLUTCH_EFFECTS.has(e.effect)) pKind.set(i, 'skillMoment')
       else if (!lastOfGroup) pKind.set(i, 'skillQuiet')
       else pKind.set(i, first ? 'skill' : 'skillQuiet')

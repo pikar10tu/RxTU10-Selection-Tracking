@@ -2,8 +2,10 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   buildBeats, scaleTiming, beatDuration, totalDuration, weightOf, timingOf,
-  BEAT, KO_MULT, FINISH_MULT, SKILL_PAUSE, OPEN_GROUP_MS, SHAPE, FF_SCALE, WEIGHT_CFG,
+  BEAT, KO_MULT, FINISH_MULT, SKILL_PAUSE, OPEN_GROUP_MS, SHAPE, FF_SCALE, WEIGHT_CFG, OPENING_EFFECTS,
 } from './battleBeats.js'
+// battleBeats.js ไม่ import อะไรโดยตั้งใจ — เทสจึงเป็นที่เดียวที่เอาสองฝั่งมาชนกันได้
+import { PET_PASSIVES, partsOf, TEAM_AURA_EFFECTS, FOE_AURA_EFFECTS } from '../data/petPassives.js'
 
 const MH = { A0: 100, A1: 100, B0: 100, B1: 100 }
 const atk = (o = {}) => ({ t: 'attack', attacker: 'A0', target: 'B0', dmg: 10, targetHpAfter: 90, ...o })
@@ -273,4 +275,62 @@ test('🔑 คีย์ตัวดักซ้ำต้องไม่ผูก
   ]
   const b = buildBeats(log, { A0: 100, B0: 100 })
   assert.equal(b[4].kind, 'skillQuiet', 'stackAtk เดี่ยวรอบสอง = ครั้งซ้ำ ไม่ใช่ครั้งแรก')
+})
+
+test('duoRegen ไม่เข้าก้อนของเพ็ทใบนั้น — คู่หู 🐳🦭 ต้องได้โมเมนต์ของตัวเอง', () => {
+  // ของจริง: runOnRound ยิง duoRegen บน "ตัวที่ได้รับเลือด" ก่อน แล้วค่อยยิงพาสสีฟของเพ็ทใบนั้นเอง
+  // ⇒ uid ซ้ำกันติดกัน · ถ้าจัดก้อนด้วย uid เฉยๆ duoRegen จะถูกลดเป็น skillQuiet แล้วป้าย 💧 หายไป
+  const log = [
+    { t: 'attack', side: 'A', attacker: 'A0', target: 'B0', dmg: 10, targetHpAfter: 90 },
+    { t: 'passive', uid: 'A1', side: 'A', effect: 'duoRegen', fxKind: 'heal', amount: 5, hpPct: 60 },
+    { t: 'passive', uid: 'A1', side: 'A', effect: 'regenSelf', fxKind: 'heal', amount: 4, hpPct: 64 },
+    { t: 'attack', side: 'B', attacker: 'B0', target: 'A0', dmg: 10, targetHpAfter: 90 },
+  ]
+  const b = buildBeats(log, { A0: 100, B0: 100 })
+  assert.equal(b[1].kind, 'skill', 'duoRegen ต้องได้ประกาศของตัวเอง')
+  assert.equal(b[2].kind, 'skill', 'พาสสีฟของเพ็ทเองก็ยังได้ประกาศ')
+  assert.equal(b[1].timing.hitstop + b[2].timing.hitstop, SKILL_PAUSE * 2)
+})
+
+test('duoRegen ครั้งซ้ำยังเงียบเหมือนเดิม (กันออกจากก้อน ≠ ประกาศทุกรอบ)', () => {
+  const duo = { t: 'passive', uid: 'A1', side: 'A', effect: 'duoRegen', fxKind: 'heal', amount: 5, hpPct: 60 }
+  const log = [atk(), { ...duo }, atk(), { ...duo }]
+  const b = buildBeats(log, MH)
+  assert.equal(b[1].kind, 'skill')
+  assert.equal(b[3].kind, 'skillQuiet')
+})
+
+test('duoRegen ของคนละตัวยังแยกกันเหมือนเดิม (คีย์ก้อนต้องพ่วง uid ด้วย)', () => {
+  const log = [
+    atk(),
+    { t: 'passive', uid: 'A0', side: 'A', effect: 'duoRegen', fxKind: 'heal', amount: 5, hpPct: 60 },
+    { t: 'passive', uid: 'A1', side: 'A', effect: 'duoRegen', fxKind: 'heal', amount: 5, hpPct: 60 },
+  ]
+  const b = buildBeats(log, MH)
+  assert.deepEqual([b[1].kind, b[2].kind], ['skill', 'skill'], 'คนละตัว = คนละก้อน คนละคีย์ ต่างได้ประกาศของตัวเอง')
+})
+
+// ── สัญญาข้ามไฟล์: OPENING_EFFECTS ต้องครบทุก effect ของ hook aura/setup ────────────
+// battleBeats.js ไม่ import อะไรโดยตั้งใจ (pure ล้วน) ⇒ ตรวจให้ตัวเองไม่ได้ · เทสนี้จึงเป็นตัวคุมแทน
+// ถ้าตกหล่นตัวใดตัวหนึ่ง openCutOf() จะตัดกลุ่มยกแรกที่ตัวนั้น แล้วป้ายออร่าเลิกขึ้นพร้อมกัน
+// (เกิดจริงตอน P2a เพิ่ม aura 3 ตัว + hook setup แล้วลืมมาเติมที่นี่)
+test('OPENING_EFFECTS: ครบทุก effect ที่ประกาศเป็นออร่าในทะเบียนป้าย', () => {
+  for (const eff of [...TEAM_AURA_EFFECTS, ...FOE_AURA_EFFECTS]) {
+    assert.ok(OPENING_EFFECTS.has(eff), `${eff} เป็นออร่าแต่ไม่อยู่ใน OPENING_EFFECTS`)
+  }
+})
+
+test('OPENING_EFFECTS: ครบทุก part ในทะเบียนเพ็ทที่ hook เป็น aura/setup', () => {
+  for (const [id, p] of Object.entries(PET_PASSIVES)) {
+    for (const part of partsOf(p)) {
+      if (part.hook !== 'aura' && part.hook !== 'setup') continue
+      assert.ok(OPENING_EFFECTS.has(part.effect), `${id}: ${part.effect} (${part.hook}) ไม่อยู่ใน OPENING_EFFECTS`)
+    }
+  }
+})
+
+test('OPENING_EFFECTS: hook setup ต้องอยู่ด้วย — เอนจิน log runSetup ก่อน aura ทุกใบ', () => {
+  // hook `setup` ยังไม่มีทะเบียนรวมแบบ TEAM_AURA_EFFECTS (มี effect เดียวคือ stealStats) และยังไม่มีเพ็ทถือ
+  // ⇒ เทสสองตัวข้างบนยังคลุมไม่ถึง · พอ P3 ให้ 🐭 ถือ stealStats จริง เทส "ทะเบียนเพ็ท" จะคลุมแทนเอง
+  assert.ok(OPENING_EFFECTS.has('stealStats'))
 })
