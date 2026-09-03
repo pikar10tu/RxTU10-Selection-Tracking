@@ -1077,8 +1077,13 @@ export const TEAM_AURA_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElemen
   'elementTrinity', 'teamLifesteal', 'teamDamageReduction'])
 export const SELF_STATUS_EFFECTS = new Set([
   'guardian', 'damageReduction', 'dodge', 'thorns', 'revive', 'saveAlly', 'cheatDeath', 'stackAtk',
-  'atkOnHit', 'berserk', 'giantSlayer', 'stealStats',
+  'atkOnHit', 'berserk', 'giantSlayer', 'stealStats', 'healOnAttack',
 ])
+
+🔴 **effect ใหม่ทั้ง 8 ตัวต้องอยู่ใน `TEAM_AURA_EFFECTS` หรือ `SELF_STATUS_EFFECTS` อย่างใดอย่างหนึ่ง**
+— ถ้าตกกลุ่ม ป้ายจะไม่ขึ้นเลยทั้งที่มีไอคอนแล้ว เพราะ `buffSources()` เดินผ่านสองชุดนี้เท่านั้น
+(`healOnAttack` เคยตกหล่นตรงนี้มาแล้วในร่างแรกของแผน) · เทสในขั้นถัดไปต้องเช็คทั้งสองทาง:
+อยู่ในชุดหนึ่ง **และ** ไม่อยู่ในอีกชุด
 ```
 
 - [ ] **Step 5: รันเทสทั้งรีโป + build**
