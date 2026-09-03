@@ -20,6 +20,9 @@
 - 📝 **ห้ามพิมพ์ตัวเลขลง `desc`/`short`** — ใส่ `{pct}` `{count}` … แล้วให้ `passiveText()` เติม
 - ✅ **เทสทั้งรีโปต้องผ่านครบทุกงานย่อย** — ปัจจุบัน **993 ผ่าน** · รัน `node --test $(find src -name "*.test.js")`
 - ✅ **`npm run build` ต้องผ่าน** ก่อน commit ทุกครั้ง
+- 🧪 **เพ็ทสังเคราะห์ในเทสต้องขึ้นต้นด้วย `__`** และลบทิ้งใน `finally` เสมอ — แพทเทิร์นที่ไฟล์เทสใช้อยู่แล้ว
+  (`__two`, `__mix`, `__dual`, `__blank__`) · ห้ามใช้ชื่อธรรมดาอย่าง `lion`/`boar` เพราะ **P3 จะเพิ่มเพ็ทจริงชื่อพวกนี้**
+  แล้วเทสจะไปทับทะเบียนจริงเงียบๆ
 - 📌 commit เป็นไทย รูปแบบ `Area: อะไร (ทำไม)`
 - 🚫 **ห้าม `git push`** — ผู้ใช้เป็นคน push เอง
 
@@ -65,15 +68,15 @@ test('guardian: ต้องหาจาก hook onHit ไม่ใช่ effect
       { hook: 'onHit', effect: 'guardian', value: { pct: 50 } },
     ],
   }
-  const g = { uid: 'A0', side: 'A', id: 'fake', hp: 100, maxHp: 100, atk: 10 }
+  const g = { uid: 'A0', side: 'A', id: '__fake', hp: 100, maxHp: 100, atk: 10 }
   const d = { uid: 'A1', side: 'A', id: 'blank', hp: 40, maxHp: 100, atk: 10 }
   const att = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
-  PET_PASSIVES.fake = fake
+  PET_PASSIVES.__fake = fake
   try {
     const res = runOnHit(d, 100, att, [g, d], () => 0.99)
     // ต้องได้ 50% (ตัวจริงบน onHit) ไม่ใช่ 99% ของ part แรกที่ effect ตรง
     assert.equal(Math.round(res.dmg), 50)
-  } finally { delete PET_PASSIVES.fake }
+  } finally { delete PET_PASSIVES.__fake }
 })
 
 test('runOnHit ไม่คืนฟิลด์ absorber อีกแล้ว (เอนจินไม่เคยอ่าน = โค้ดตาย)', () => {
@@ -329,13 +332,13 @@ git commit -m "Battle: เปิดช่อง pierce ใน runOnHit (รอ�
 
 ```js
 test('stealStats: ศัตรูเสียจริง และผู้ขโมยได้เพิ่มเท่ากับที่ขโมยมารวมกัน', () => {
-  PET_PASSIVES.thief = {
+  PET_PASSIVES.__thief = {
     name: 'ทดสอบขโมย', icon: '🧪',
     parts: [{ hook: 'setup', effect: 'stealStats', value: { pct: 10 }, step: { pct: 0 } }],
     desc: 'ขโมย {pct}%', short: 'ขโมย {pct}%',
   }
   try {
-    const me = { uid: 'A0', side: 'A', id: 'thief', hp: 100, maxHp: 100, atk: 50 }
+    const me = { uid: 'A0', side: 'A', id: '__thief', hp: 100, maxHp: 100, atk: 50 }
     const f1 = { uid: 'B0', side: 'B', id: 'blank', hp: 200, maxHp: 200, atk: 30 }
     const f2 = { uid: 'B1', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 20 }
     const out = runSetup([me], [f1, f2])
@@ -347,20 +350,20 @@ test('stealStats: ศัตรูเสียจริง และผู้ข�
     assert.equal(me.maxHp, 100 + 20 + 10)
     assert.equal(out.length, 1)
     assert.equal(out[0].fxKind, 'buff')
-  } finally { delete PET_PASSIVES.thief }
+  } finally { delete PET_PASSIVES.__thief }
 })
 
 test('stealStats: ไม่มีศัตรู = ไม่มี event ไม่ throw', () => {
-  PET_PASSIVES.thief = {
+  PET_PASSIVES.__thief = {
     name: 'ทดสอบขโมย', icon: '🧪',
     parts: [{ hook: 'setup', effect: 'stealStats', value: { pct: 10 }, step: { pct: 0 } }],
     desc: 'ขโมย {pct}%', short: 'ขโมย {pct}%',
   }
   try {
-    const me = { uid: 'A0', side: 'A', id: 'thief', hp: 100, maxHp: 100, atk: 50 }
+    const me = { uid: 'A0', side: 'A', id: '__thief', hp: 100, maxHp: 100, atk: 50 }
     assert.deepEqual(runSetup([me], []), [])
     assert.equal(me.atk, 50)
-  } finally { delete PET_PASSIVES.thief }
+  } finally { delete PET_PASSIVES.__thief }
 })
 ```
 
@@ -453,13 +456,13 @@ git commit -m "Passive: hook setup + stealStats (ขโมยแล้วศั�
 
 ```js
 test('onAnyDeath: ศัตรูล้มโดยใครก็ได้ ทุกตัวในทีมที่มี hook นี้ได้ชั้นเพิ่ม (ยึดเพดาน max)', () => {
-  PET_PASSIVES.scav = {
+  PET_PASSIVES.__scav = {
     name: 'ทดสอบซาก', icon: '🧪',
     parts: [{ hook: 'onAnyDeath', effect: 'stackAtk', value: { pct: 10, max: 2 }, step: { pct: 0, max: 0 } }],
     desc: 'ล้ม 1 ตัว +{pct}%', short: 'ล้ม 1 ตัว +{pct}%',
   }
   try {
-    const me = { uid: 'A0', side: 'A', id: 'scav', hp: 100, maxHp: 100, atk: 100 }
+    const me = { uid: 'A0', side: 'A', id: '__scav', hp: 100, maxHp: 100, atk: 100 }
     const dead = { uid: 'B0', side: 'B', id: 'blank', hp: 0, maxHp: 100, atk: 10 }
     const e1 = runOnAnyDeath(dead, [me], [dead])
     assert.equal(e1.length, 1)
@@ -470,21 +473,21 @@ test('onAnyDeath: ศัตรูล้มโดยใครก็ได้ ท�
     const e3 = runOnAnyDeath(dead, [me], [dead])      // ชนเพดานแล้ว
     assert.equal(e3.length, 0)
     assert.equal(psOf(me).atkStacks, 2)
-  } finally { delete PET_PASSIVES.scav }
+  } finally { delete PET_PASSIVES.__scav }
 })
 
 test('onAnyDeath: ตัวที่ตายแล้วไม่ได้ชั้น', () => {
-  PET_PASSIVES.scav = {
+  PET_PASSIVES.__scav = {
     name: 'ทดสอบซาก', icon: '🧪',
     parts: [{ hook: 'onAnyDeath', effect: 'stackAtk', value: { pct: 10, max: 3 }, step: { pct: 0, max: 0 } }],
     desc: 'ล้ม 1 ตัว +{pct}%', short: 'ล้ม 1 ตัว +{pct}%',
   }
   try {
-    const corpse = { uid: 'A0', side: 'A', id: 'scav', hp: 0, maxHp: 100, atk: 100 }
+    const corpse = { uid: 'A0', side: 'A', id: '__scav', hp: 0, maxHp: 100, atk: 100 }
     const dead = { uid: 'B0', side: 'B', id: 'blank', hp: 0, maxHp: 100, atk: 10 }
     assert.deepEqual(runOnAnyDeath(dead, [corpse], [dead]), [])
     assert.equal(corpse.atk, 100)
-  } finally { delete PET_PASSIVES.scav }
+  } finally { delete PET_PASSIVES.__scav }
 })
 ```
 
@@ -641,16 +644,22 @@ Expected: PASS ทุกเคส
 - [ ] **Step 5: ล็อกลำดับ event ของเพ็ทหลาย part**
 
 สเปก §2.4 ข้อ 3 บอกว่า "ลำดับใน `parts[]` = ลำดับบนจอ" แต่เทสเพ็ทหลาย part ที่มีอยู่
-(`src/utils/battlePassives.test.js` เคสที่สร้าง passive สังเคราะห์สอง part) เช็คแค่ว่ามีครบ ไม่ได้เช็คลำดับ
-เติมบรรทัดล็อกลำดับเข้าไปในเคสนั้น:
+(`src/utils/battlePassives.test.js:403` เคส `'onRound: พาสสีฟที่มี 2 part ใน hook เดียวกัน ต้องทำงานครบทั้งคู่'`)
+เช็คแค่ว่ามีครบด้วย `effects.includes(...)` ไม่ได้เช็คลำดับ
+
+แทนที่สอง assert เดิม:
 
 ```js
-  // ลำดับใน parts[] = ลำดับที่ event โผล่บนจอ — เป็นสัญญาในสเปก ต้องมีเทสกัน
-  assert.deepEqual(events.map(e => e.effect), ['regenSelf', 'healLowestAlly'])
+    assert.ok(effects.includes('regenSelf'), 'part แรกไม่ทำงาน')
+    assert.ok(effects.includes('healLowestAlly'), 'part ที่สองไม่ทำงาน')
 ```
 
-⚠️ ชื่อตัวแปรที่เก็บ event ในเคสนั้นอาจไม่ใช่ `events` — ให้ใช้ชื่อจริงที่เคสนั้นใช้อยู่
-และถ้า effect ในเคสไม่ใช่สองตัวนี้ ให้ใส่ลำดับตามที่ `parts` ของเคสนั้นเขียนไว้จริง
+ด้วยการล็อกลำดับไปเลย (ครอบคลุมกว่าเดิม — ยังเช็คว่าทำงานครบทั้งคู่อยู่):
+
+```js
+    // ลำดับใน parts[] = ลำดับที่ event โผล่บนจอ — เป็นสัญญาในสเปก §2.4 ต้องมีเทสกัน
+    assert.deepEqual(effects, ['regenSelf', 'healLowestAlly'])
+```
 
 - [ ] **Step 6: รันเทสทั้งรีโป + build**
 
@@ -688,13 +697,13 @@ git commit -m "Beats: เพ็ทหลาย part ยิงติดกัน�
 
 ```js
 test('elementTrinity: ครบ 3 สายถึงจะติด ขาดสายเดียวไม่ได้อะไรเลย', () => {
-  PET_PASSIVES.lion = {
+  PET_PASSIVES.__lion = {
     name: 'ทดสอบสิงโต', icon: '🧪',
     parts: [{ hook: 'aura', effect: 'elementTrinity', value: { pct: 8, hpPct: 8 }, step: { pct: 0, hpPct: 0 } }],
     desc: 'ครบสาย +{pct}%', short: 'ครบสาย +{pct}%',
   }
   try {
-    const mk = (uid, el) => ({ uid, side: 'A', id: uid === 'A0' ? 'lion' : 'blank', element: el, hp: 100, maxHp: 100, atk: 100 })
+    const mk = (uid, el) => ({ uid, side: 'A', id: uid === 'A0' ? '__lion' : 'blank', element: el, hp: 100, maxHp: 100, atk: 100 })
     const full = [mk('A0', 'fist'), mk('A1', 'scissors'), mk('A2', 'paper')]
     applyAuras(full, [])
     assert.equal(Math.round(full[1].atk), 108)
@@ -703,37 +712,37 @@ test('elementTrinity: ครบ 3 สายถึงจะติด ขาดส
     const partial = [mk('A0', 'fist'), mk('A1', 'fist'), mk('A2', 'paper')]
     applyAuras(partial, [])
     assert.equal(partial[1].atk, 100)
-  } finally { delete PET_PASSIVES.lion }
+  } finally { delete PET_PASSIVES.__lion }
 })
 
 test('teamDamageReduction: ทีมได้ pct · เจ้าของได้สองเท่า', () => {
-  PET_PASSIVES.shell = {
+  PET_PASSIVES.__shell = {
     name: 'ทดสอบกระดอง', icon: '🧪',
     parts: [{ hook: 'aura', effect: 'teamDamageReduction', value: { pct: 10 }, step: { pct: 0 } }],
     desc: 'ทีมลด {pct}%', short: 'ทีมลด {pct}%',
   }
   try {
-    const me = { uid: 'A0', side: 'A', id: 'shell', hp: 100, maxHp: 100, atk: 10 }
+    const me = { uid: 'A0', side: 'A', id: '__shell', hp: 100, maxHp: 100, atk: 10 }
     const mate = { uid: 'A1', side: 'A', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
     applyAuras([me, mate], [])
     assert.equal(mate.teamDrPct, 10)
     assert.equal(me.teamDrPct, 20)
-  } finally { delete PET_PASSIVES.shell }
+  } finally { delete PET_PASSIVES.__shell }
 })
 
 test('teamLifesteal: แปะ % ให้ทุกคนในทีมรวมเจ้าของ', () => {
-  PET_PASSIVES.bat = {
+  PET_PASSIVES.__bat = {
     name: 'ทดสอบค้างคาว', icon: '🧪',
     parts: [{ hook: 'aura', effect: 'teamLifesteal', value: { pct: 8 }, step: { pct: 0 } }],
     desc: 'ทีมดูด {pct}%', short: 'ทีมดูด {pct}%',
   }
   try {
-    const me = { uid: 'A0', side: 'A', id: 'bat', hp: 100, maxHp: 100, atk: 10 }
+    const me = { uid: 'A0', side: 'A', id: '__bat', hp: 100, maxHp: 100, atk: 10 }
     const mate = { uid: 'A1', side: 'A', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
     applyAuras([me, mate], [])
     assert.equal(me.lifestealPct, 8)
     assert.equal(mate.lifestealPct, 8)
-  } finally { delete PET_PASSIVES.bat }
+  } finally { delete PET_PASSIVES.__bat }
 })
 ```
 
@@ -814,53 +823,53 @@ git commit -m "Passive: ออร่าใหม่ 3 ตัว ครบสา�
 
 ```js
 test('berserk: ยิ่งเลือดหายยิ่งแรง นับเป็นขั้นละ 10%', () => {
-  PET_PASSIVES.boar = {
+  PET_PASSIVES.__boar = {
     name: 'ทดสอบหมูป่า', icon: '🧪',
     parts: [{ hook: 'onAttack', effect: 'berserk', value: { pct: 6 }, step: { pct: 0 } }],
     desc: 'เลือดหายยิ่งแรง +{pct}%', short: 'เลือดหายยิ่งแรง +{pct}%',
   }
   try {
     const tg = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
-    const full = { uid: 'A0', side: 'A', id: 'boar', hp: 100, maxHp: 100, atk: 10 }
+    const full = { uid: 'A0', side: 'A', id: '__boar', hp: 100, maxHp: 100, atk: 10 }
     assert.equal(runOnAttack(full, tg, [tg], () => 0.5).atkMult, 1)          // เลือดเต็ม = ไม่ได้อะไร
-    const hurt = { uid: 'A0', side: 'A', id: 'boar', hp: 40, maxHp: 100, atk: 10 }
+    const hurt = { uid: 'A0', side: 'A', id: '__boar', hp: 40, maxHp: 100, atk: 10 }
     const r = runOnAttack(hurt, tg, [tg], () => 0.5)
     assert.equal(Math.round(r.atkMult * 100) / 100, 1.36)                    // หาย 60% = 6 ขั้น × 6%
     assert.equal(r.events.length, 1)
-  } finally { delete PET_PASSIVES.boar }
+  } finally { delete PET_PASSIVES.__boar }
 })
 
 test('giantSlayer: เป้าตัวใหญ่กว่ายิ่งแรง แต่ชนเพดาน', () => {
-  PET_PASSIVES.badger = {
+  PET_PASSIVES.__badger = {
     name: 'ทดสอบแบดเจอร์', icon: '🧪',
     parts: [{ hook: 'onAttack', effect: 'giantSlayer', value: { pct: 5, max: 50 }, step: { pct: 0, max: 0 } }],
     desc: 'ล้มยักษ์ +{pct}%', short: 'ล้มยักษ์ +{pct}%',
   }
   try {
-    const me = { uid: 'A0', side: 'A', id: 'badger', hp: 100, maxHp: 100, atk: 10 }
+    const me = { uid: 'A0', side: 'A', id: '__badger', hp: 100, maxHp: 100, atk: 10 }
     const small = { uid: 'B0', side: 'B', id: 'blank', hp: 80, maxHp: 80, atk: 10 }
     assert.equal(runOnAttack(me, small, [small], () => 0.5).atkMult, 1)      // เป้าเล็กกว่า = ไม่ได้อะไร
     const big = { uid: 'B1', side: 'B', id: 'blank', hp: 130, maxHp: 130, atk: 10 }
     assert.equal(Math.round(runOnAttack(me, big, [big], () => 0.5).atkMult * 100) / 100, 1.15)  // 3 ขั้น
     const huge = { uid: 'B2', side: 'B', id: 'blank', hp: 500, maxHp: 500, atk: 10 }
     assert.equal(Math.round(runOnAttack(me, huge, [huge], () => 0.5).atkMult * 100) / 100, 1.5) // ชนเพดาน
-  } finally { delete PET_PASSIVES.badger }
+  } finally { delete PET_PASSIVES.__badger }
 })
 
 test('healOnAttack: ฟื้นเพื่อนที่บอบช้ำสุดตามดาเมจจริงที่ทำได้', () => {
-  PET_PASSIVES.uni = {
+  PET_PASSIVES.__uni = {
     name: 'ทดสอบยูนิคอร์น', icon: '🧪',
     parts: [{ hook: 'onAttack', effect: 'healOnAttack', value: { pct: 12 }, step: { pct: 0 } }],
     desc: 'ตีแล้วฟื้นเพื่อน {pct}%', short: 'ตีแล้วฟื้นเพื่อน {pct}%',
   }
   try {
-    const me = { uid: 'A0', side: 'A', id: 'uni', hp: 100, maxHp: 100, atk: 10 }
+    const me = { uid: 'A0', side: 'A', id: '__uni', hp: 100, maxHp: 100, atk: 10 }
     const hurt = { uid: 'A1', side: 'A', id: 'blank', hp: 50, maxHp: 100, atk: 10 }
     const tg = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
     const res = runOnHit(tg, 100, me, [tg], () => 0.5, [me, hurt])
     assert.equal(hurt.hp, 62)                       // 12% ของดาเมจ 100
     assert.ok(res.events.some(e => e.effect === 'healOnAttack'))
-  } finally { delete PET_PASSIVES.uni }
+  } finally { delete PET_PASSIVES.__uni }
 })
 ```
 
@@ -964,18 +973,18 @@ git commit -m "Passive: berserk/giantSlayer/healOnAttack (ยังไม่ม�
 
 ```js
 test('atkOnHit: โดนตีทีนึง atk เพิ่มถาวร ไม่มีเพดาน (user ยืนยัน)', () => {
-  PET_PASSIVES.gori = {
+  PET_PASSIVES.__gori = {
     name: 'ทดสอบกอริลลา', icon: '🧪',
     parts: [{ hook: 'onHit', effect: 'atkOnHit', value: { pct: 3 }, step: { pct: 0 } }],
     desc: 'โดนตีแล้วแรงขึ้น {pct}%', short: 'โดนตีแล้วแรงขึ้น {pct}%',
   }
   try {
-    const me = { uid: 'A0', side: 'A', id: 'gori', hp: 100, maxHp: 100, atk: 100 }
+    const me = { uid: 'A0', side: 'A', id: '__gori', hp: 100, maxHp: 100, atk: 100 }
     const att = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
     for (let i = 0; i < 3; i++) runOnHit(me, 10, att, [me], () => 0.5)
     assert.equal(psOf(me).rage, 3)
     assert.equal(Math.round(me.atk), 109)            // 100 × 1.03³
-  } finally { delete PET_PASSIVES.gori }
+  } finally { delete PET_PASSIVES.__gori }
 })
 
 test('teamDamageReduction: หักเป็นทอดกับ damageReduction ของตัวเอง ไม่ใช่บวก %', () => {
