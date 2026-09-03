@@ -321,7 +321,7 @@ export const FOE_AURA_EFFECTS = new Set(['enemyVuln'])
 /** สถานะติดตัวที่ไม่ต้องพึ่งใคร — ป้ายลงเฉพาะเจ้าตัว */
 export const SELF_STATUS_EFFECTS = new Set([
   'guardian', 'damageReduction', 'dodge', 'thorns', 'revive', 'saveAlly', 'cheatDeath', 'stackAtk',
-  'atkOnHit', 'berserk', 'giantSlayer', 'stealStats',
+  'atkOnHit', 'berserk', 'giantSlayer', 'stealStats', 'healOnAttack',
 ])
 /** สูงสุดกี่ป้ายต่อการ์ด — วัดจากทีมสุ่ม 5,000 คู่: เฉลี่ย 1.09 · ชนเพดาน 3 แค่ 4.7% */
 export const STATUS_MAX = 3

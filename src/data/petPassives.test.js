@@ -2,8 +2,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  PET_PASSIVES, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT, partsOf, partsAt, partAt, partWithEffect,
-  passiveValueAt, passiveText, effectText,
+  PET_PASSIVES, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT, TEAM_AURA_EFFECTS, SELF_STATUS_EFFECTS,
+  partsOf, partsAt, partAt, partWithEffect, passiveValueAt, passiveText, effectText,
 } from './petPassives.js'
 
 test('partsOf: รูปใหม่คืน parts ตรงๆ', () => {
@@ -151,10 +151,16 @@ test('ห้ามใช้คำย่อ/คำไม่ทางการใ�
   }
 })
 
-test('effect ใหม่ของ P2 ต้องมีไอคอนและคำอธิบายป้ายครบ (มินิชิปใน P2c อ่านจากตรงนี้)', () => {
+test('effect ใหม่ของ P2 ต้องมีไอคอน คำอธิบายป้าย และอยู่ในกลุ่มป้ายที่ถูกต้องครบ (มินิชิปใน P2c อ่านจากตรงนี้)', () => {
   for (const k of ['elementTrinity', 'teamLifesteal', 'teamDamageReduction', 'atkOnHit',
                    'berserk', 'giantSlayer', 'healOnAttack', 'stealStats']) {
     assert.ok(STATUS_ICON[k], `${k} ไม่มีไอคอน`)
     assert.ok(STATUS_TEXT[k], `${k} ไม่มีคำอธิบายป้าย`)
+    const inTeam = TEAM_AURA_EFFECTS.has(k)
+    const inSelf = SELF_STATUS_EFFECTS.has(k)
+    // buffSources() หาป้ายจากสองกลุ่มนี้เท่านั้น — ไม่อยู่กลุ่มไหนเลย = ป้ายไม่มีวันขึ้นจอ
+    assert.ok(inTeam || inSelf, `${k} ไม่อยู่ในกลุ่มป้ายไหนเลย (buffSources จะไม่มีวันเจอ)`)
+    // อยู่สองกลุ่มพร้อมกัน = อาจขึ้นป้ายซ้ำสอง จึงต้องเลือกกลุ่มเดียว
+    assert.ok(!(inTeam && inSelf), `${k} อยู่ทั้งสองกลุ่มพร้อมกัน (ต้องเลือกกลุ่มเดียว)`)
   }
 })

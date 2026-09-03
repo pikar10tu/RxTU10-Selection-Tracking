@@ -336,7 +336,8 @@ test('atkOnHit: โดนตีทีนึง atk เพิ่มถาวร �
     const att = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
     for (let i = 0; i < 3; i++) runOnHit(me, 10, att, [me], () => 0.5)
     assert.equal(psOf(me).rage, 3)
-    assert.equal(Math.round(me.atk), 109)            // 100 × 1.03³
+    // ทบต้น 100×1.03³ = 109.2727 ≠ บวกเชิงเส้น 100×(1+3×0.03) = 109.0 — ปัดสองตำแหน่งให้เห็นส่วนต่าง
+    assert.equal(Math.round(me.atk * 100) / 100, 109.27)
   } finally { delete PET_PASSIVES.__gori }
 })
 
