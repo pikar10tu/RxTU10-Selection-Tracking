@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, passiveFor,
+  applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, passiveFor, psOf,
 } from './battlePassives.js'
 import { PET_PASSIVES, passiveValueAt, passiveText, effectText, partsOf, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT } from '../data/petPassives.js'
 import { PETS } from '../data/index.js'
@@ -11,6 +11,23 @@ import { buildBeats, beatDuration } from './battleBeats.js'
 
 const u = (id, over = {}) => ({ id, uid: over.uid || 'A0', side: 'A', atk: 100, maxHp: 1000, hp: 1000, element: 'fist', ...over })
 const seq = (...vals) => { let i = 0; return () => vals[Math.min(i++, vals.length - 1)] }
+
+// ── psOf: state bag ──────────────────────────────────────────
+test('psOf: สร้างก้อน state ตอนอ่านครั้งแรก และคืนก้อนเดิมทุกครั้งถัดไป', () => {
+  const u_ = { uid: 'A0' }
+  const a = psOf(u_)
+  a.foo = 1
+  assert.equal(psOf(u_).foo, 1)
+  assert.equal(u_.ps, a)
+})
+
+test('ตัวนับกันตายย้ายไปอยู่ใน ps.uses แล้ว (ไม่ใช่ฟิลด์ลอยบนตัวละคร)', () => {
+  const cat = { uid: 'A0', side: 'A', id: 'cat', hp: 0, maxHp: 100, atk: 10 }
+  const out = runOnDeath(cat, [cat])
+  assert.equal(out.prevented, true)
+  assert.equal(psOf(cat).uses, 1)
+  assert.equal(cat.passiveUses, undefined)
+})
 
 // ── data integrity ──────────────────────────────────────────
 test('เพ็ททุกตัวในแค็ตตาล็อกมี passive ครบ ไม่มีตัวไหนตกหล่น', () => {
@@ -202,7 +219,7 @@ test('stackAtk (trex): สะสมได้ถึงเพดานแล้ว
   const t = u('trex')
   const base = t.atk
   for (let i = 0; i < 6; i++) runOnKill(t, 0)
-  assert.equal(t.atkStacks, 3, 'เพดาน 3 ชั้น')
+  assert.equal(psOf(t).atkStacks, 3, 'เพดาน 3 ชั้น')
   assert.ok(t.atk > base)
 })
 

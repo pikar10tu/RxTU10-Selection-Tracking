@@ -15,6 +15,12 @@ const valOf = (part, unit) => passiveValueAt(part, unit?.passiveLv)
 const alive = (t) => t.filter(u => u.hp > 0)
 const pctOf = (v, pct) => v * (pct / 100)
 
+/** state ของพาสสีฟระหว่างไฟต์ — สร้างตอนถูกอ่านครั้งแรก (ไม่ต้องแตะ buildCombatant)
+ *  🔴 state ทุกกองต้องอยู่ในนี้ ห้ามแปะฟิลด์ลอยบนตัวละครอีก — ตัวละครมี atk/hp/uid/side/…
+ *     อยู่แล้ว การเติมฟิลด์ปนเข้าไปคือบั๊กชื่อชนกันแบบเดียวกับ kind/fxKind (CLAUDE.md ข้อ 15)
+ *  คีย์ที่ใช้: uses (กันตายไปแล้วกี่ครั้ง) · atkStacks (ชั้น stackAtk) · rage (ชั้น atkOnHit) */
+export const psOf = (u) => (u.ps || (u.ps = {}))
+
 /** snapshot สเตตัสที่ "UI เอาไปวาด" ของทั้งสองทีม — atk/maxHp เท่านั้น
  *  🔑 เอนจินเป็นแหล่งความจริงเดียว — ถ้าปล่อยให้ UI คำนวณ aura เอง
  *     วันที่สูตรเปลี่ยนจะมีสองแหล่งความจริงทันที แล้วเลขบนจอกับเลขที่ใช้สู้จะคลาดกันเงียบๆ
@@ -290,10 +296,10 @@ export function runOnDeath(unit, team) {
   // onDeath มี part เดียวโดยธรรมชาติ: กันตายได้ครั้งเดียวต่อการตายหนึ่งครั้ง
   // ถ้าวันหนึ่งมีเพ็ทที่ revive + cheatDeath พร้อมกัน ต้องเปลี่ยนเป็น partsAt แล้วนิยามลำดับก่อน
   const part = partAt(p, 'onDeath')
-  if (part && (unit.passiveUses || 0) < (valOf(part, unit).times || 1)) {
+  if (part && (psOf(unit).uses || 0) < (valOf(part, unit).times || 1)) {
     const v = valOf(part, unit)
     if (part.effect === 'revive') {
-      unit.passiveUses = (unit.passiveUses || 0) + 1
+      psOf(unit).uses = (psOf(unit).uses || 0) + 1
       unit.hp = pctOf(unit.maxHp, v.pct)
       out.prevented = true
       out.events.push(ev(unit, p, part, { targets: [unit.uid], amount: Math.round(unit.hp),
@@ -301,7 +307,7 @@ export function runOnDeath(unit, team) {
       return out
     }
     if (part.effect === 'cheatDeath') {
-      unit.passiveUses = (unit.passiveUses || 0) + 1
+      psOf(unit).uses = (psOf(unit).uses || 0) + 1
       unit.hp = 1
       out.prevented = true
       out.events.push(ev(unit, p, part, { targets: [unit.uid], hpPct: 1, fxKind: 'revive' }))
@@ -315,8 +321,8 @@ export function runOnDeath(unit, team) {
     const gp = passiveFor(g)
     const gpart = partsAt(gp, 'onDeath').find(x => x.effect === 'saveAlly')
     if (!gpart) continue
-    if ((g.passiveUses || 0) >= (valOf(gpart, g).times || 1)) continue
-    g.passiveUses = (g.passiveUses || 0) + 1
+    if ((psOf(g).uses || 0) >= (valOf(gpart, g).times || 1)) continue
+    psOf(g).uses = (psOf(g).uses || 0) + 1
     unit.hp = 1
     out.prevented = true
     out.events.push(ev(g, gp, gpart, { targets: [unit.uid], hpPct: 1, fxKind: 'save' }))
@@ -335,11 +341,12 @@ export function runOnKill(killer, chainUsed, team, foes) {
   for (const part of partsAt(p, 'onKill')) {
     const v = valOf(part, killer)
     if (part.effect === 'stackAtk') {
-      const stacks = killer.atkStacks || 0
+      const st = psOf(killer)
+      const stacks = st.atkStacks || 0
       if (stacks < v.max) {
-        killer.atkStacks = stacks + 1
+        st.atkStacks = stacks + 1
         killer.atk *= 1 + v.pct / 100
-        const e = ev(killer, p, part, { targets: [killer.uid], amount: killer.atkStacks, fxKind: 'buff' })
+        const e = ev(killer, p, part, { targets: [killer.uid], amount: st.atkStacks, fxKind: 'buff' })
         if (team && foes) e.statsAfter = statsSnapshot(team, foes)
         out.events.push(e)
       }
