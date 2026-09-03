@@ -32,7 +32,7 @@ export function statsSnapshot(...teams) {
 }
 
 /** effect ที่ขยับ atk/maxHp จริง — teamCrit/enemyVuln ไม่ต้องแบก snapshot ไปด้วย */
-const STAT_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'stackAtk'])
+const STAT_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'stackAtk', 'elementTrinity'])
 
 /** สร้าง event สำหรับ log — รูปเดียวกับที่ BattleReplay/battleBeats รับ
  *  🔴 ชนิดผลชื่อ `fxKind` ห้ามใช้ชื่อ `kind` เด็ดขาด — `kind` เป็นของ battleBeats (= เวลา)
@@ -143,6 +143,25 @@ export function applyAuras(team, foes) {
           break
         case 'enemyVuln':
           for (const f of foes) f.vuln = (f.vuln || 0) + v.pct / 100
+          break
+        case 'elementTrinity': {
+          // ต้องครบทั้ง 3 สายในทีมที่ยังไม่ตาย — ขาดสายเดียวไม่ได้อะไรเลย (all-or-nothing โดยตั้งใจ)
+          const els = new Set(alive(team).map(t => t.element))
+          if (els.size < 3) break
+          for (const t of team) {
+            t.atk *= (1 + v.pct / 100)
+            t.maxHp *= (1 + v.hpPct / 100)
+            t.hp = t.maxHp
+          }
+          break
+        }
+        case 'teamLifesteal':
+          // แปะ % ไว้บนตัวละคร — ใช้จริงตอนตีใน runOnHit (ที่นั่นเท่านั้นที่รู้ดาเมจจริง)
+          for (const t of team) t.lifestealPct = (t.lifestealPct || 0) + v.pct
+          break
+        case 'teamDamageReduction':
+          for (const t of team) t.teamDrPct = (t.teamDrPct || 0) + v.pct
+          u.teamDrPct = (u.teamDrPct || 0) + v.pct      // เจ้าของได้อีกรอบ = 2 เท่า ✅user
           break
       }
       // ⚠️ ต้องเติม "หลัง" switch — event ถูก push ไปก่อนที่ stat จะเปลี่ยนจริง

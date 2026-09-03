@@ -123,6 +123,55 @@ test('enemyVuln (owl): ไปลงที่ศัตรู ไม่ใช่�
   assert.equal(team[0].vuln, undefined)
 })
 
+test('elementTrinity: ครบ 3 สายถึงจะติด ขาดสายเดียวไม่ได้อะไรเลย', () => {
+  PET_PASSIVES.__lion = {
+    name: 'ทดสอบสิงโต', icon: '🧪',
+    parts: [{ hook: 'aura', effect: 'elementTrinity', value: { pct: 8, hpPct: 8 }, step: { pct: 0, hpPct: 0 } }],
+    desc: 'ครบสาย +{pct}%', short: 'ครบสาย +{pct}%',
+  }
+  try {
+    const mk = (uid, el) => ({ uid, side: 'A', id: uid === 'A0' ? '__lion' : 'blank', element: el, hp: 100, maxHp: 100, atk: 100 })
+    const full = [mk('A0', 'fist'), mk('A1', 'scissors'), mk('A2', 'paper')]
+    applyAuras(full, [])
+    assert.equal(Math.round(full[1].atk), 108)
+    assert.equal(Math.round(full[1].maxHp), 108)
+
+    const partial = [mk('A0', 'fist'), mk('A1', 'fist'), mk('A2', 'paper')]
+    applyAuras(partial, [])
+    assert.equal(partial[1].atk, 100)
+  } finally { delete PET_PASSIVES.__lion }
+})
+
+test('teamDamageReduction: ทีมได้ pct · เจ้าของได้สองเท่า', () => {
+  PET_PASSIVES.__shell = {
+    name: 'ทดสอบกระดอง', icon: '🧪',
+    parts: [{ hook: 'aura', effect: 'teamDamageReduction', value: { pct: 10 }, step: { pct: 0 } }],
+    desc: 'ทีมลด {pct}%', short: 'ทีมลด {pct}%',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__shell', hp: 100, maxHp: 100, atk: 10 }
+    const mate = { uid: 'A1', side: 'A', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+    applyAuras([me, mate], [])
+    assert.equal(mate.teamDrPct, 10)
+    assert.equal(me.teamDrPct, 20)
+  } finally { delete PET_PASSIVES.__shell }
+})
+
+test('teamLifesteal: แปะ % ให้ทุกคนในทีมรวมเจ้าของ', () => {
+  PET_PASSIVES.__bat = {
+    name: 'ทดสอบค้างคาว', icon: '🧪',
+    parts: [{ hook: 'aura', effect: 'teamLifesteal', value: { pct: 8 }, step: { pct: 0 } }],
+    desc: 'ทีมดูด {pct}%', short: 'ทีมดูด {pct}%',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__bat', hp: 100, maxHp: 100, atk: 10 }
+    const mate = { uid: 'A1', side: 'A', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+    applyAuras([me, mate], [])
+    assert.equal(me.lifestealPct, 8)
+    assert.equal(mate.lifestealPct, 8)
+  } finally { delete PET_PASSIVES.__bat }
+})
+
 // ── onStart / onRound ───────────────────────────────────────
 test('aoeOpener (bahamut): ศัตรูทุกตัวโดน + มี event', () => {
   const foes = [u('cat', { uid: 'B0' }), u('mouse', { uid: 'B1' })]
