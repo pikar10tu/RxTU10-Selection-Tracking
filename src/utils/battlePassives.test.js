@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, runOnAnyDeath, passiveFor, psOf,
+  runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDealt, runOnDeath, runOnKill, runOnAnyDeath, passiveFor, psOf,
 } from './battlePassives.js'
 import { PET_PASSIVES, passiveValueAt, passiveText, effectText, partsOf, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT } from '../data/petPassives.js'
 import { PETS } from '../data/index.js'
@@ -256,6 +256,24 @@ test('berserk: ยิ่งเลือดหายยิ่งแรง นั�
   } finally { delete PET_PASSIVES.__boar }
 })
 
+test('berserk: เส้นพอดี 80%/90% ต้องไม่ตกขั้นเพราะ float (1-0.8 ไม่ใช่ 0.2 เป๊ะ)', () => {
+  PET_PASSIVES.__boar = {
+    name: 'ทดสอบหมูป่า', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'berserk', value: { pct: 6 }, step: { pct: 0 } }],
+    desc: 'เลือดหายยิ่งแรง +{pct}%', short: 'เลือดหายยิ่งแรง +{pct}%',
+  }
+  try {
+    const tg = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+    const at = (hp) => {
+      const me = { uid: 'A0', side: 'A', id: '__boar', hp, maxHp: 100, atk: 10 }
+      return runOnAttack(me, tg, [tg], () => 0.5)
+    }
+    // เลือด 80% เป๊ะ = หายไป 20% = 2 ขั้น (ของเดิมได้ 1 ขั้น เพราะ (1-0.8)*10 = 1.9999999999999996)
+    assert.equal(Math.round(at(80).atkMult * 100) / 100, 1.12)
+    assert.equal(Math.round(at(90).atkMult * 100) / 100, 1.06)   // 90% เป๊ะ = 1 ขั้น
+  } finally { delete PET_PASSIVES.__boar }
+})
+
 test('giantSlayer: เป้าตัวใหญ่กว่ายิ่งแรง แต่ชนเพดาน', () => {
   PET_PASSIVES.__badger = {
     name: 'ทดสอบแบดเจอร์', icon: '🧪',
@@ -273,6 +291,48 @@ test('giantSlayer: เป้าตัวใหญ่กว่ายิ่งแ�
   } finally { delete PET_PASSIVES.__badger }
 })
 
+test('giantSlayer: เส้นพอดี 1.2×/1.4× ต้องไม่ตกขั้นเพราะ float (maxHp มาจากตารางตัวคูณที่ลงตัว)', () => {
+  PET_PASSIVES.__badger = {
+    name: 'ทดสอบแบดเจอร์', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'giantSlayer', value: { pct: 5, max: 50 }, step: { pct: 0, max: 0 } }],
+    desc: 'ล้มยักษ์ +{pct}%', short: 'ล้มยักษ์ +{pct}%',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__badger', hp: 100, maxHp: 100, atk: 10 }
+    const foe = (maxHp) => ({ uid: 'B0', side: 'B', id: 'blank', hp: maxHp, maxHp, atk: 10 })
+    const mult = (maxHp) => Math.round(runOnAttack(me, foe(maxHp), [foe(maxHp)], () => 0.5).atkMult * 100) / 100
+    // 1.2× เป๊ะ = 2 ขั้น (ของเดิมได้ 1 ขั้น เพราะ (1.2-1)*10 = 1.9999999999999996)
+    assert.equal(mult(120), 1.1)
+    assert.equal(mult(140), 1.2)                                  // 1.4× เป๊ะ = 4 ขั้น
+  } finally { delete PET_PASSIVES.__badger }
+})
+
+test('berserk/giantSlayer: fxKind buff ใช้กติกาเดียวกัน — targets = ตัวที่ได้บัฟ · amount = % ที่เพิ่มจริง', () => {
+  PET_PASSIVES.__boar = {
+    name: 'ทดสอบหมูป่า', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'berserk', value: { pct: 6 }, step: { pct: 0 } }],
+    desc: 'เลือดหายยิ่งแรง +{pct}%', short: 'เลือดหายยิ่งแรง +{pct}%',
+  }
+  PET_PASSIVES.__badger = {
+    name: 'ทดสอบแบดเจอร์', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'giantSlayer', value: { pct: 5, max: 50 }, step: { pct: 0, max: 0 } }],
+    desc: 'ล้มยักษ์ +{pct}%', short: 'ล้มยักษ์ +{pct}%',
+  }
+  try {
+    const huge = { uid: 'B0', side: 'B', id: 'blank', hp: 500, maxHp: 500, atk: 10 }
+    const boar = { uid: 'A0', side: 'A', id: '__boar', hp: 40, maxHp: 100, atk: 10 }
+    const e1 = runOnAttack(boar, huge, [huge], () => 0.5).events[0]
+    assert.deepEqual(e1.targets, ['A0'])            // ตัวที่ได้บัฟ ไม่ใช่เป้าที่ไปตี
+    assert.equal(e1.amount, 36)                     // 6 ขั้น × 6% = +36% (ไม่ใช่ "6")
+
+    const badger = { uid: 'A1', side: 'A', id: '__badger', hp: 100, maxHp: 100, atk: 10 }
+    const e2 = runOnAttack(badger, huge, [huge], () => 0.5).events[0]
+    assert.deepEqual(e2.targets, ['A1'])            // เดิมชี้ไปที่เหยื่อ = คนละกติกากับ berserk
+    assert.equal(e2.amount, 50)                     // ชนเพดาน 50% (ถ้าส่งเป็น "จำนวนขั้น" จะได้ 40 ซึ่งโกหก)
+  } finally { delete PET_PASSIVES.__boar; delete PET_PASSIVES.__badger }
+})
+
+// ── onDealt (ผลฝั่งผู้ตี) ────────────────────────────────────
 test('healOnAttack: ฟื้นเพื่อนที่บอบช้ำสุดตามดาเมจจริงที่ทำได้', () => {
   PET_PASSIVES.__uni = {
     name: 'ทดสอบยูนิคอร์น', icon: '🧪',
@@ -282,11 +342,61 @@ test('healOnAttack: ฟื้นเพื่อนที่บอบช้ำส
   try {
     const me = { uid: 'A0', side: 'A', id: '__uni', hp: 100, maxHp: 100, atk: 10 }
     const hurt = { uid: 'A1', side: 'A', id: 'blank', hp: 50, maxHp: 100, atk: 10 }
-    const tg = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
-    const res = runOnHit(tg, 100, me, [tg], () => 0.5, [me, hurt])
+    const res = runOnDealt(me, [me, hurt], 100)
     assert.equal(hurt.hp, 62)                       // 12% ของดาเมจ 100
     assert.ok(res.events.some(e => e.effect === 'healOnAttack'))
   } finally { delete PET_PASSIVES.__uni }
+})
+
+test('runOnHit ไม่รับทีมผู้ตีอีกแล้ว — ผลฝั่งผู้ตีย้ายไป runOnDealt ทั้งหมด', () => {
+  PET_PASSIVES.__uni = {
+    name: 'ทดสอบยูนิคอร์น', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'healOnAttack', value: { pct: 12 }, step: { pct: 0 } }],
+    desc: 'ตีแล้วฟื้นเพื่อน {pct}%', short: 'ตีแล้วฟื้นเพื่อน {pct}%',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__uni', hp: 100, maxHp: 100, atk: 10 }
+    const hurt = { uid: 'A1', side: 'A', id: 'blank', hp: 50, maxHp: 100, atk: 10 }
+    const tg = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+    // เผลอส่งทีมผู้ตีเป็นพารามิเตอร์ที่ 6 แบบเดิม = ถูกเมิน ไม่มีใครถูกฟื้น
+    const res = runOnHit(tg, 100, me, [tg], () => 0.5, [me, hurt])
+    assert.equal(hurt.hp, 50)
+    assert.equal(res.events.length, 0)
+    assert.equal(runOnHit.length, 5)                // ห้ามงอกพารามิเตอร์กลับมาอีก
+  } finally { delete PET_PASSIVES.__uni }
+})
+
+test('teamLifesteal: ผู้ตีดูดเลือดจากดาเมจที่ทำได้จริง + ส่ง hpPct ให้หลอดเลือดตาม', () => {
+  const me = { uid: 'A0', side: 'A', id: 'blank', hp: 50, maxHp: 100, atk: 10, lifestealPct: 8 }
+  const out = runOnDealt(me, [me], 100)
+  assert.equal(me.hp, 58)                           // 8% ของ 100
+  assert.equal(out.events.length, 1)
+  const e = out.events[0]
+  assert.equal(e.effect, 'teamLifesteal')
+  assert.equal(e.fxKind, 'heal')
+  assert.deepEqual(e.targets, ['A0'])
+  assert.equal(e.amount, 8)                         // เลือดจริงที่ฟื้นได้ ไม่ใช่ % ของสูตร
+  assert.equal(e.hpPct, 58)
+  assert.equal('kind' in e, false)                  // 🔴 ห้ามมีฟิลด์ชื่อ kind (CLAUDE.md ข้อ 15)
+})
+
+test('teamLifesteal: ไม่ล้นหลอด และเลือดเต็มอยู่แล้วต้องไม่มี event', () => {
+  const full = { uid: 'A0', side: 'A', id: 'blank', hp: 100, maxHp: 100, atk: 10, lifestealPct: 8 }
+  assert.deepEqual(runOnDealt(full, [full], 100).events, [])
+  assert.equal(full.hp, 100)
+
+  const nearly = { uid: 'A0', side: 'A', id: 'blank', hp: 97, maxHp: 100, atk: 10, lifestealPct: 50 }
+  const out = runOnDealt(nearly, [nearly], 100)
+  assert.equal(nearly.hp, 100)                      // ดูดได้ 50 แต่หลอดรับได้แค่ 3
+  assert.equal(out.events[0].amount, 3)
+})
+
+test('runOnDealt: ไม่มีดาเมจ/ไม่มีทีมผู้ตี = เงียบ ไม่ throw', () => {
+  const me = { uid: 'A0', side: 'A', id: 'blank', hp: 50, maxHp: 100, atk: 10, lifestealPct: 8 }
+  assert.deepEqual(runOnDealt(me, [me], 0).events, [])
+  assert.deepEqual(runOnDealt(me, null, 100).events, [])
+  assert.deepEqual(runOnDealt(null, [me], 100).events, [])
+  assert.equal(me.hp, 50)
 })
 
 // ── onHit ───────────────────────────────────────────────────

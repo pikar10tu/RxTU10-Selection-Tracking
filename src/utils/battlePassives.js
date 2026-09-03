@@ -15,6 +15,13 @@ const valOf = (part, unit) => passiveValueAt(part, unit?.passiveLv)
 const alive = (t) => t.filter(u => u.hp > 0)
 const pctOf = (v, pct) => v * (pct / 100)
 
+/** "อัตราส่วนนี้เป็นกี่ขั้นละ 10%" — ปัดลง แต่ต้องไม่พลาดที่เส้นพอดี
+ *  🔴 ห้ามเขียน Math.floor(ratio * 10) ตรงๆ: ratio มาจากการลบ float
+ *     `1.2 - 1 = 0.19999999999999996` ⇒ ×10 = 1.9999999999999996 ⇒ floor ได้ 1 ทั้งที่ต้องได้ 2
+ *     และเส้นพวกนี้เจอบ่อยของจริง เพราะ maxHp มาจากตารางตัวคูณ rarity/grade ที่ลงตัวสวยๆ
+ *     (เลือดเหลือ 80%/90% เป๊ะ · เป้าใหญ่กว่า 1.2×/1.4× เป๊ะ) — 1e-9 เล็กกว่าความละเอียดที่เกมใช้จริงมาก */
+const stepsOf10 = (ratio) => Math.floor(ratio * 10 + 1e-9)
+
 /** state ของพาสสีฟระหว่างไฟต์ — สร้างตอนถูกอ่านครั้งแรก (ไม่ต้องแตะ buildCombatant)
  *  🔴 state ทุกกองต้องอยู่ในนี้ ห้ามแปะฟิลด์ลอยบนตัวละครอีก — ตัวละครมี atk/hp/uid/side/…
  *     อยู่แล้ว การเติมฟิลด์ปนเข้าไปคือบั๊กชื่อชนกันแบบเดียวกับ kind/fxKind (CLAUDE.md ข้อ 15)
@@ -37,7 +44,18 @@ const STAT_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'stackAt
 /** สร้าง event สำหรับ log — รูปเดียวกับที่ BattleReplay/battleBeats รับ
  *  🔴 ชนิดผลชื่อ `fxKind` ห้ามใช้ชื่อ `kind` เด็ดขาด — `kind` เป็นของ battleBeats (= เวลา)
  *     และมันสร้าง beat ด้วย { ...event, kind } ⇒ ชื่อซ้ำเมื่อไหร่ ชนิดผลหายทั้งระบบทันที
- *     (เกิดมาแล้ว 28 ส.ค. `f32b519`: ฮีลแล้วหลอดขึ้นแต่เลข +N ไม่ขึ้น เพราะ 'heal' ถูกทับด้วย 'skill') */
+ *     (เกิดมาแล้ว 28 ส.ค. `f32b519`: ฮีลแล้วหลอดขึ้นแต่เลข +N ไม่ขึ้น เพราะ 'heal' ถูกทับด้วย 'skill')
+ *
+ *  📐 กติกาของ `targets` กับ `amount` — เขียนไว้ตรงนี้เพราะ P2c (ชั้นชิป) จะอ่านสองฟิลด์นี้
+ *     แล้วถ้าแต่ละ effect ตีความคนละแบบ ชิปจะพิมพ์เลขมั่วโดยไม่มีเทสจับ:
+ *       `targets` = การ์ดที่ "ผลไปลง" (คนที่โดน/คนที่ได้) ⇒ FX กับหลอดเลือดยิงที่ใบนั้น
+ *       `amount`  = เลขที่ชิปต้องพิมพ์ในหน่วยของ effect นั้น
+ *     - `fxKind: 'heal'|'revive'` → targets = คนที่ถูกฟื้น · amount = เลือดจริงที่ฟื้นได้ (+ ส่ง `hpPct` ด้วย)
+ *     - `fxKind: 'damage'|'thorns'` → targets = คนที่กิน · amount = ดาเมจจริง
+ *     - `fxKind: 'buff'` → **targets = ตัวที่ได้บัฟ (ไม่ใช่เป้าที่ไปตี)** ·
+ *       amount = "เลขของบัฟนั้น": `stackAtk`/`atkOnHit` = จำนวนชั้นสะสม (battleBuffs.liveBuffs อ่านเป็นชั้น)
+ *       ส่วนตัวที่ไม่ได้สะสมชั้น (`berserk`/`giantSlayer`) = **% ดาเมจที่เพิ่มได้จริงรอบนี้** (ปัดจำนวนเต็ม)
+ *       ⚠️ giantSlayer ห้ามส่งเป็น "จำนวนขั้น" เพราะมันมีเพดาน `max` ⇒ ขั้นกับ % ไม่ตรงกันเมื่อชนเพดาน */
 function ev(unit, p, part, extra = {}) {
   return { t: 'passive', uid: unit.uid, side: unit.side, petId: unit.id, name: p.name, icon: p.icon, effect: part.effect, ...extra }
 }
@@ -161,7 +179,7 @@ export function applyAuras(team, foes) {
           break
         case 'teamDamageReduction':
           for (const t of team) t.teamDrPct = (t.teamDrPct || 0) + v.pct
-          u.teamDrPct = (u.teamDrPct || 0) + v.pct      // เจ้าของได้อีกรอบ = 2 เท่า ✅user
+          u.teamDrPct = (u.teamDrPct || 0) + v.pct      // เจ้าของได้อีกรอบ = 2 เท่า (user เคาะ 3 ก.ย.)
           break
       }
       // ⚠️ ต้องเติม "หลัง" switch — event ถูก push ไปก่อนที่ stat จะเปลี่ยนจริง
@@ -281,28 +299,84 @@ export function runOnAttack(att, target, foes, rand) {
         break
       case 'berserk': {
         // ขั้นละ 10% ของเลือดที่หายไป — ปัดลง (เลือด 40% = หาย 60% = 6 ขั้น)
-        const steps = Math.floor((1 - att.hp / att.maxHp) * 10)
+        const steps = stepsOf10(1 - att.hp / att.maxHp)
         if (steps > 0) {
-          res.atkMult *= 1 + (steps * v.pct) / 100
-          res.events.push(ev(att, p, part, { targets: [att.uid], amount: steps, fxKind: 'buff' }))
+          const pct = steps * v.pct
+          res.atkMult *= 1 + pct / 100
+          res.events.push(ev(att, p, part, { targets: [att.uid], amount: Math.round(pct), fxKind: 'buff' }))
         }
         break
       }
       case 'giantSlayer': {
         // ขั้นละ 10% ที่ maxHp ของเป้าสูงกว่าเรา · เพดานที่ v.max
         if (!target) break
-        const steps = Math.floor((target.maxHp / att.maxHp - 1) * 10)
+        const steps = stepsOf10(target.maxHp / att.maxHp - 1)
         if (steps > 0) {
           const pct = Math.min(steps * v.pct, v.max)
           res.atkMult *= 1 + pct / 100
-          res.events.push(ev(att, p, part, { targets: [target.uid], amount: Math.round(pct), fxKind: 'buff' }))
+          // targets = ตัวที่ได้บัฟ (ผู้ตี) ไม่ใช่เป้าที่ไปตี — ดูกติกาใน docblock ของ ev()
+          res.events.push(ev(att, p, part, { targets: [att.uid], amount: Math.round(pct), fxKind: 'buff' }))
         }
         break
       }
-      // 🔴 healOnAttack ก็ hook: 'onAttack' ในข้อมูล แต่คำนวณใน runOnHit — ดูคอมเมนต์ที่นั่น
+      // 🔴 healOnAttack ก็ hook: 'onAttack' ในข้อมูล แต่คำนวณใน runOnDealt (ข้างล่างนี้) — ดูคอมเมนต์ที่นั่น
     }
   }
   return res
+}
+
+/** ── ผลฝั่ง "ผู้ตี" ที่ต้องรู้ดาเมจจริงถึงจะคิดได้ ──
+ *  เรียกทันทีหลัง runOnHit ของหมัดนั้น (เอนจิน push event ต่อจากกันเลย ⇒ ลำดับบนจอไม่เปลี่ยน)
+ *  คืน { events }
+ *
+ *  🔴 hook ในข้อมูลของ effect พวกนี้คือ `onAttack` (มุมผู้เล่น: "เมื่อฉันตี") แต่คิดที่นี่
+ *     เพราะ runOnAttack ยังไม่รู้ดาเมจจริง — ใครอ่าน runOnAttack แล้วหา healOnAttack/ดูดเลือดไม่เจอ ให้มาดูตรงนี้
+ *  🔑 แยกออกจาก runOnHit เพราะ runOnHit เป็นมุมของ "ผู้รับ" ล้วน — เดิมรับทีมผู้ตีเป็นพารามิเตอร์
+ *     ตัวที่ 6 (`attTeam = null`) ต่อท้ายพารามิเตอร์ชื่อ `team` ที่แปลว่าทีมผู้รับ ⇒ สลับกันได้ง่ายมาก
+ *     และถ้าลืมส่ง ผลฝั่งผู้ตีจะเงียบหายโดยไม่มีใครรู้ · P2b ยังจะเติม taunt/infect เข้ามาอีก
+ *  @param {object} attacker  ตัวที่ตี
+ *  @param {Array}  attTeam   ทีมของผู้ตี (ต้องมี ไม่งั้นหาเพื่อนที่บอบช้ำสุดไม่ได้)
+ *  @param {number} dealt     ดาเมจที่ลงจริงกับเป้าในหมัดนี้ (res.dmg + res.pierce)
+ */
+export function runOnDealt(attacker, attTeam, dealt) {
+  const out = { events: [] }
+  if (!attacker || !attTeam || !(dealt > 0)) return out
+
+  const ap = passiveFor(attacker)
+  for (const part of partsAt(ap, 'onAttack')) {
+    if (part.effect !== 'healOnAttack') continue
+    // 🔑 ยิงครั้งเดียวต่อ "หมัดลูก" หนึ่งใบ (cleave/multiStrike ยิงหลายรอบต่อ beat) — ตั้งใจ ✅ user เคาะ:
+    //    สูตรเป็นเชิงเส้น (pct ของดาเมจ) ⇒ รวมทั้ง beat แล้วได้เท่ากับคิดทีเดียวจากดาเมจรวมเป๊ะ
+    //    และการเลือกเป้าใหม่ทุกหมัดลูกทำให้ "ฟื้นให้คนที่บอบช้ำที่สุด ณ วินาทีนั้น" ซึ่งเป็นพฤติกรรมที่ดีกว่า
+    //    (คิดทีเดียวตอนจบ beat = เทเลือดก้อนเดียวใส่คนเดียว อาจล้นหลอดทิ้งทั้งที่อีกคนกำลังจะตาย)
+    const t = lowestHpAlly(attTeam, attacker)
+    if (!t || t.hp >= t.maxHp) continue
+    const before = t.hp
+    t.hp = Math.min(t.maxHp, t.hp + pctOf(dealt, valOf(part, attacker).pct))
+    const amount = Math.round(t.hp - before)
+    if (amount > 0) {
+      out.events.push(ev(attacker, ap, part, { targets: [t.uid], amount,
+        hpPct: Math.round((t.hp / t.maxHp) * 100), fxKind: 'heal' }))
+    }
+  }
+
+  // ดูดเลือดของทีม (teamLifesteal) — applyAuras แปะ % ไว้บนตัวละคร ที่นี่คือที่เดียวที่รู้ดาเมจจริง
+  // 🔑 event ไม่ผ่าน ev() เพราะ "เจ้าของออร่า" อาจเป็นเพื่อนคนละตัวกับคนที่ได้ดูด — ชื่อ/ไอคอนของ
+  //    พาสสีฟตัวเองจึงใช้ไม่ได้ · ใช้แพทเทิร์นเดียวกับ duoRegen ใน runOnRound (คำกลาง + ไอคอนของ *ผล*)
+  if (attacker.lifestealPct > 0) {
+    const before = attacker.hp
+    attacker.hp = Math.min(attacker.maxHp, attacker.hp + pctOf(dealt, attacker.lifestealPct))
+    const amount = Math.round(attacker.hp - before)
+    if (amount > 0) {
+      out.events.push({
+        t: 'passive', uid: attacker.uid, side: attacker.side, petId: attacker.id,
+        name: 'ดูดเลือด', icon: '🩸', effect: 'teamLifesteal', targets: [attacker.uid],
+        amount, hpPct: Math.round((attacker.hp / attacker.maxHp) * 100), fxKind: 'heal',
+      })
+    }
+  }
+
+  return out
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -312,13 +386,18 @@ export function runOnAttack(att, target, foes, rand) {
  * คืน { dmg, dodged, thorns, events, pierce }
  *   thorns   = ดาเมจสะท้อนกลับไปที่ผู้ตี (เอนจินเป็นคนหัก)
  */
-export function runOnHit(defender, dmg, attacker, team, rand, attTeam = null) {
+export function runOnHit(defender, dmg, attacker, team, rand) {
   // pierce = ดาเมจที่ "ไม่ผ่านสายลด" — เอนจินหักหลัง res.dmg · วันนี้มีแค่ infect (P2b) ที่ใส่ค่า
   // 🔴 ห้ามเอาไปใช้กับกลไกอื่นโดยไม่แก้สเปก: การทะลุเกราะคือเหตุผลที่ไวรัสมีอยู่
   //    ถ้าแจกให้ตัวอื่นด้วย มันจะกลายเป็นแค่ "ดาเมจเพิ่ม" อีกตัวหนึ่ง
   const res = { dmg, dodged: false, thorns: 0, pierce: 0, events: [] }
 
   // 1) guardian ของ "เพื่อนในทีมเดียวกัน" — ต้องเช็คก่อนของตัว defender เอง
+  // 🔑 ส่วนที่ผู้พิทักษ์รับไปถูกหักออกจากดาเมจ "ก่อน" teamDrPct และก่อน damageReduction ทุกตัว
+  //    ⇒ ก้อนนั้นไม่ผ่านสายลดเลยแม้แต่ชั้นเดียว (ผู้พิทักษ์กินเต็มๆ ตามสัดส่วนที่รับ)
+  //    เป็นไปตามสเปก ตั้งใจให้เป็นแบบนี้: การ์ดของผู้พิทักษ์คือ "เอาตัวเข้าแลก" ไม่ใช่ "ลดดาเมจอีกชั้น"
+  //    ถ้าย้ายไปหักทีหลัง เกราะของเป้าจะไปลดก้อนที่เพื่อนเป็นคนกินด้วย = ผู้พิทักษ์ได้ประโยชน์จากเกราะคนอื่น
+  //    ⚠️ อย่าเพิ่งคิดว่าเป็นบั๊กแล้วสลับลำดับ — มีเทสของสายลดคุมตัวเลขนี้อยู่
   for (const g of alive(team)) {
     const gp = passiveFor(g)
     const gpart = partsAt(gp, 'onHit').find(x => x.effect === 'guardian')
@@ -376,25 +455,11 @@ export function runOnHit(defender, dmg, attacker, team, rand, attTeam = null) {
     }
   }
 
-  // ── ผลของ "ผู้ตี" ที่ต้องรู้ดาเมจจริงถึงจะคิดได้ ──
-  // 🔴 hook ในข้อมูลคือ onAttack (มุมผู้เล่น: "เมื่อฉันตี") แต่คำนวณที่นี่เพราะ runOnAttack
-  //    ยังไม่รู้ดาเมจจริง — ใครอ่าน runOnAttack แล้วหา healOnAttack ไม่เจอ ให้มาดูตรงนี้
-  const dealt = res.dmg + res.pierce
-  if (attacker && dealt > 0 && attTeam) {
-    const ap = passiveFor(attacker)
-    for (const part of partsAt(ap, 'onAttack')) {
-      if (part.effect !== 'healOnAttack') continue
-      const t = lowestHpAlly(attTeam, attacker)
-      if (!t || t.hp >= t.maxHp) continue
-      const before = t.hp
-      t.hp = Math.min(t.maxHp, t.hp + pctOf(dealt, valOf(part, attacker).pct))
-      const amount = Math.round(t.hp - before)
-      if (amount > 0) {
-        res.events.push(ev(attacker, ap, part, { targets: [t.uid], amount,
-          hpPct: Math.round((t.hp / t.maxHp) * 100), fxKind: 'heal' }))
-      }
-    }
-  }
+  // พื้นดาเมจ — หนีบครั้งเดียวหลังสายลดจบ
+  // 🔴 teamDrPct เป็น "ลดแบบบวก %" ตัวเดียวในไฟล์นี้ และ**ไม่มีเพดาน** (ออร่าซ้อนกันหลายตัวได้)
+  //    ถ้าเกิน 100% ขึ้นมา res.dmg จะติดลบ แล้วเอนจินทำ `tg.hp -= dmg` = หมัดนั้นกลายเป็นการฟื้นเลือดให้เป้า
+  //    (ตัวลดอื่นหักเป็นทอด ×(1-p) จึงเข้าใกล้ 0 ได้แต่ไม่มีวันติดลบ)
+  res.dmg = Math.max(0, res.dmg)
 
   return res
 }

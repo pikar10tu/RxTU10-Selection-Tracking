@@ -125,7 +125,8 @@ export function liveBuffs(sources, beats, idx) {
     if (b.effect === 'stackAtk') {
       let stacks = 0
       for (const e of played) {
-        // amount ที่เอนจินส่งมา = จำนวนชั้นสะสม (killer.atkStacks) ไม่ใช่ % ต่อชั้น
+        // amount ที่เอนจินส่งมา = จำนวนชั้นสะสม (psOf(killer).atkStacks) ไม่ใช่ % ต่อชั้น
+        // (กติกาของ amount/targets ต่อ fxKind อยู่ใน docblock ของ ev() ใน battlePassives.js)
         if (e?.t === 'passive' && e.effect === 'stackAtk' && e.uid === b.ownerUid) stacks = e.amount || stacks
       }
       return { ...b, stacks, maxStacks: maxStacksOf(b) }

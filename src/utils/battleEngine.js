@@ -5,7 +5,7 @@
 // ════════════════════════════════════════════════════════════
 import { BATTLE_CFG, buildCombatant, elementMult } from '../data/battle.js'
 import {
-  runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, runOnAnyDeath, statsSnapshot,
+  runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDealt, runOnDeath, runOnKill, runOnAnyDeath, statsSnapshot,
 } from './battlePassives.js'
 
 // mulberry32 — RNG เดียวกับ sim
@@ -43,10 +43,13 @@ export function simulateBattle(teamA, teamB, seed) {
   /** หักเลือด 1 ครั้ง + บันทึก log · คืน true ถ้าเป้าตายจริง (ผ่าน onDeath แล้ว) */
   const strike = (att, tg, foes, mult, tier, sub) => {
     const before = tg.hp
-    // onHit: guardian (เพื่อนรับแทน) → dodge → ลดดาเมจ → หนาม → healOnAttack (ทีมผู้ตี)
+    // onHit: guardian (เพื่อนรับแทน) → dodge → ลดดาเมจ → หนาม  (มุมของ "ผู้รับ" ล้วน)
     const attTeam = att.side === 'A' ? A : B
-    const hitRes = runOnHit(tg, Math.max(0, mult), att, foes, rand, attTeam)
+    const hitRes = runOnHit(tg, Math.max(0, mult), att, foes, rand)
     for (const e of hitRes.events) log.push(e)
+    // onDealt: ผลฝั่ง "ผู้ตี" ที่ต้องรู้ดาเมจจริง (healOnAttack / teamLifesteal)
+    // 🔒 ต้อง push ต่อท้าย hitRes.events ทันที — ลำดับ event ใน log คือสิ่งที่รีเพลย์เล่าตามตรงๆ
+    for (const e of runOnDealt(att, attTeam, hitRes.dmg + hitRes.pierce).events) log.push(e)
     tg.hp -= hitRes.dmg
     // ดาเมจทะลุ (infect) — หักหลังสายลดจบแล้ว จึงไม่โดน guardian/dodge/DR/เกราะ
     // ยังอยู่ใน beat เดิม และ attack event คิด dmg จาก before-after อยู่แล้ว หลอดเลือดจึงตรงเอง
