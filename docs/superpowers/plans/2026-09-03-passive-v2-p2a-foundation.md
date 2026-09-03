@@ -775,7 +775,9 @@ Expected: FAIL ทั้ง 3 เคส (ค่ายังไม่ขยับ
           break
         case 'teamDamageReduction':
           for (const t of team) t.teamDrPct = (t.teamDrPct || 0) + v.pct
-          u.teamDrPct = (u.teamDrPct || 0) + v.pct      // เจ้าของได้อีกรอบ = 2 เท่า ✅user
+          // เจ้าของได้อีกรอบ = 2 เท่า · บวกนอกลูปไม่ใช่ special-case ในลูป เพราะถ้ามีเจ้าของสองตัวในทีมเดียว
+          // การเช็คในลูปจะนับซ้ำผิดตัว (แบบนี้: เจ้าของได้ 3×pct เพื่อนได้ 2×pct ซึ่งถูกต้อง)
+          u.teamDrPct = (u.teamDrPct || 0) + v.pct
           break
 ```
 
