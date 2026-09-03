@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  PET_PASSIVES, partsOf, partsAt, partAt, partWithEffect,
+  PET_PASSIVES, PASSIVE_MAX_LEVEL, STATUS_TEXT, partsOf, partsAt, partAt, partWithEffect,
   passiveValueAt, passiveText, effectText,
 } from './petPassives.js'
 
@@ -103,5 +103,50 @@ test('เพ็ททุกตัวในทะเบียนมีอย่�
       assert.ok(part.hook, `${id} มี part ที่ไม่มี hook`)
       assert.ok(part.effect, `${id} มี part ที่ไม่มี effect`)
     }
+  }
+})
+
+// ── กติกาการเขียนคำอธิบาย (user สั่ง 3 ก.ย. 2026) ────────────────────────
+//  "อธิบายตรงๆ พร้อมแจ้งตัวเลขเลย · ไม่เอาคำไม่ทางการ"
+//  เทส 3 ตัวข้างล่างคือกติกานั้นในรูปที่ทำงานเอง — เพ็ทใหม่ของ P2/P3 จะถูกจับด้วยกฎเดียวกัน
+
+test('คำอธิบายทุกตัวต้องเติมค่าครบทุกช่อง ไม่มี {…} หลุดไปถึงจอ', () => {
+  for (const [id, p] of Object.entries(PET_PASSIVES)) {
+    for (let lv = 1; lv <= PASSIVE_MAX_LEVEL; lv++) {
+      for (const [label, txt] of [
+        ['desc', passiveText(p, lv)],
+        ['short', effectText(p, lv)],
+        ['shortOn', p.shortOn ? effectText(p, lv, { onTarget: true }) : ''],
+      ]) {
+        assert.ok(!/\{[\w.]+\}/.test(txt), `${id} ขั้น ${lv} ${label} เหลือช่องไม่ถูกเติม: ${txt}`)
+      }
+    }
+  }
+})
+
+test('desc ต้องแจ้งตัวเลขทุกตัวที่ข้อมูลมี (ค่าที่ไม่ถูกพูดถึง = ผู้เล่นไม่มีทางรู้)', () => {
+  for (const [id, p] of Object.entries(PET_PASSIVES)) {
+    const said = new Set([...String(p.desc || '').matchAll(/\{([\w.]+)\}/g)].map(m => m[1].split('.').pop()))
+    for (const part of partsOf(p)) {
+      for (const [k, v] of Object.entries(part.value || {})) {
+        if (typeof v !== 'number') continue      // duoWith/element เป็นชื่อ ไม่ใช่ค่าที่ต้องบอก
+        assert.ok(said.has(k), `${id} desc ไม่ได้บอกค่า ${k} (=${v}) → "${p.desc}"`)
+      }
+    }
+  }
+})
+
+test('ห้ามใช้คำย่อ/คำไม่ทางการในข้อความที่ผู้เล่นเห็น', () => {
+  // 'คริ' ที่ไม่ได้ตามด้วย 'ติคอล' = คำย่อ · 'เทิร์น' ทั้งเกมใช้คำว่า 'รอบ'
+  const BANNED = [/คริ(?!ติคอล)/, /เทิร์น/]
+  const seen = []
+  for (const [id, p] of Object.entries(PET_PASSIVES)) {
+    for (const [label, txt] of [['name', p.name], ['desc', p.desc], ['short', p.short], ['shortOn', p.shortOn]]) {
+      if (txt) seen.push([`${id}.${label}`, txt])
+    }
+  }
+  for (const [k, v] of Object.entries(STATUS_TEXT)) seen.push([`STATUS_TEXT.${k}`, v])
+  for (const [where, txt] of seen) {
+    for (const re of BANNED) assert.ok(!re.test(txt), `${where} ใช้คำไม่ทางการ: "${txt}"`)
   }
 })

@@ -34,14 +34,14 @@ export const PET_PASSIVES = {
     name: 'อสูรกระหายเลือด', icon: '👹',
     // ⚠️ step 0 โดยตั้งใจ — killChain เป็นตัวเดียวที่เพิ่ม beat จริง ให้อัพได้ = ไฟต์ยืดตามขั้น
     parts: [{ hook: 'onKill', effect: 'killChain', value: { max: 2 }, step: { max: 0 } }],
-    desc: 'น็อกศัตรูแล้วได้ตีต่อทันที (สูงสุด {max} ครั้งต่อเทิร์น)',
-    short: 'น็อกแล้วได้ตีต่อ สูงสุด {max} ครั้ง/เทิร์น',
+    desc: 'น็อกศัตรูแล้วได้ตีต่อทันที (สูงสุด {max} ครั้งต่อรอบ)',
+    short: 'น็อกแล้วได้ตีต่อ สูงสุด {max} ครั้ง/รอบ',
   },
   trex: {
     name: 'สัญชาตญาณนักล่า', icon: '🦖',
     parts: [{ hook: 'onKill', effect: 'stackAtk', value: { pct: 12, max: 3 }, step: { pct: 4, max: 0 } }],
     desc: 'ล้มศัตรู 1 ตัว พลังโจมตี +{pct}% ถาวร (สะสมได้ {max} ชั้น)',
-    short: 'ล้มศัตรู 1 ตัว พลังโจมตี +{pct}%',
+    short: 'ล้มศัตรู 1 ตัว พลังโจมตี +{pct}% (สะสม {max} ชั้น)',
   },
   ouroboros: {
     name: 'วัฏจักรนิรันดร์', icon: '🐍',
@@ -84,14 +84,14 @@ export const PET_PASSIVES = {
   dragon: {
     name: 'ลมหายใจเพลิง', icon: '🔥',
     parts: [{ hook: 'onAttack', effect: 'cleave', value: { count: 2, pct: 50 }, step: { count: 0, pct: 10 } }],
-    desc: 'เปลวไฟลามโดนศัตรู {count} ตัว · ตัวรองรับ {pct}% ของดาเมจ',
-    short: 'ไฟลามโดนศัตรู {count} ตัว · ตัวรอง {pct}% ของดาเมจ',
+    desc: 'เปลวไฟลามโดนศัตรู {count} ตัว · ตัวรองโดน {pct}% ของดาเมจ',
+    short: 'ไฟลามโดนศัตรู {count} ตัว · ตัวรองโดน {pct}%',
   },
   cerberus: {
     name: 'ตรีเขี้ยวอสูร', icon: '🦷',
     parts: [{ hook: 'onAttack', effect: 'cleave', value: { count: 3, pct: 40 }, step: { count: 0, pct: 8 } }],
-    desc: 'พุ่งขย้ำทีเดียว เขี้ยวโดนศัตรู {count} ตัว · ตัวรองรับ {pct}% ของดาเมจ',
-    short: 'เขี้ยวโดนศัตรู {count} ตัว · ตัวรอง {pct}% ของดาเมจ',
+    desc: 'พุ่งขย้ำทีเดียว เขี้ยวโดนศัตรู {count} ตัว · ตัวรองโดน {pct}% ของดาเมจ',
+    short: 'เขี้ยวโดนศัตรู {count} ตัว · ตัวรองโดน {pct}%',
   },
   unicorn: {
     name: 'เขาศักดิ์สิทธิ์', icon: '✨',
@@ -102,8 +102,8 @@ export const PET_PASSIVES = {
   fairy: {
     name: 'ละอองเวทมนตร์', icon: '✨',
     parts: [{ hook: 'aura', effect: 'teamCrit', value: { pct: 8 }, step: { pct: 3 } }],
-    desc: 'โอกาสคริของทั้งทีม +{pct}%',
-    short: 'โอกาสคริทั้งทีม +{pct}%',
+    desc: 'โอกาสคริติคอลของทั้งทีม +{pct}%',
+    short: 'โอกาสคริติคอลทั้งทีม +{pct}%',
   },
   panda: {
     name: 'ลมปราณฟื้นฟู', icon: '🎋',
@@ -135,7 +135,7 @@ export const PET_PASSIVES = {
     name: 'เงาลวงตา', icon: '🦊',
     parts: [{ hook: 'onHit', effect: 'dodge', value: { pct: 12 }, step: { pct: 3 } }],
     desc: 'โอกาสหลบการโจมตี {pct}%',
-    short: 'หลบการโจมตี {pct}%',
+    short: 'โอกาสหลบ {pct}%',
   },
   rabbit: {
     name: 'ฝีเท้าสายลม', icon: '🐰',
@@ -180,13 +180,13 @@ export const PET_PASSIVES = {
     name: 'ปราดเปรียว', icon: '🐭',
     parts: [{ hook: 'onHit', effect: 'dodge', value: { pct: 8 }, step: { pct: 2 } }],
     desc: 'โอกาสหลบการโจมตี {pct}%',
-    short: 'หลบการโจมตี {pct}%',
+    short: 'โอกาสหลบ {pct}%',
   },
   cat: {
     name: 'เก้าชีวิต', icon: '🐱',
     parts: [{ hook: 'onDeath', effect: 'cheatDeath', value: { times: 1 }, step: { times: 0 } }],
-    desc: 'รอดตายครั้งแรกด้วยเลือด 1',
-    short: 'รอดตายครั้งแรกด้วยเลือด 1',
+    desc: 'รอดตายได้ {times} ครั้ง โดยเหลือเลือด 1',
+    short: 'รอดตายได้ {times} ครั้ง (เหลือเลือด 1)',
   },
   butterfly: {
     // ⚠️ เดิมเป็น teamHealOpener (ฟื้นทีมตอนเริ่ม) — วัดแล้วได้ +0.0% เป๊ะ เพราะตอนเริ่มสู้
@@ -298,10 +298,10 @@ export const STATUS_ICON = {
 /** ความหมายสั้นๆ ของป้าย — ใช้ใน aria-label และหน้า inspect */
 export const STATUS_TEXT = {
   teamHp: 'เลือดสูงสุดเพิ่ม', teamAtk: 'พลังโจมตีเพิ่ม', teamAtkPerElement: 'พลังโจมตีเพิ่ม',
-  teamCrit: 'โอกาสคริเพิ่ม', enemyVuln: 'รับดาเมจเพิ่ม',
+  teamCrit: 'โอกาสคริติคอลเพิ่ม', enemyVuln: 'รับดาเมจเพิ่ม',
   guardian: 'มีเพื่อนรับแทนให้', damageReduction: 'ลดดาเมจที่ได้รับ', dodge: 'มีโอกาสหลบ',
-  thorns: 'ตีแล้วเจ็บกลับ', revive: 'กันตายได้ 1 ครั้ง', saveAlly: 'กันเพื่อนตายได้ 1 ครั้ง',
-  cheatDeath: 'กันตายได้ 1 ครั้ง', stackAtk: 'ยิ่งฆ่ายิ่งแรง',
+  thorns: 'ตีแล้วเจ็บกลับ', revive: 'ตายแล้วฟื้นคืนชีพได้ 1 ครั้ง', saveAlly: 'กันเพื่อนตายได้ 1 ครั้ง',
+  cheatDeath: 'รอดตายด้วยเลือด 1 ได้ 1 ครั้ง', stackAtk: 'ยิ่งฆ่ายิ่งแรง',
   duoRegen: 'ทีมฟื้นเลือดทุกรอบ',
 }
 
