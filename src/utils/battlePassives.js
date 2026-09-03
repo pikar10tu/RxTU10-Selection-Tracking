@@ -235,7 +235,6 @@ export function runOnAttack(att, target, foes, rand) {
 /**
  * คืน { dmg, dodged, thorns, events, pierce }
  *   thorns   = ดาเมจสะท้อนกลับไปที่ผู้ตี (เอนจินเป็นคนหัก)
- *   pierce   = ดาเมจที่ "ไม่ผ่านสายลด" — เอนจินหักหลัง res.dmg · วันนี้มีแค่ infect (P2b) ที่ใส่ค่า
  */
 export function runOnHit(defender, dmg, attacker, team, rand) {
   // pierce = ดาเมจที่ "ไม่ผ่านสายลด" — เอนจินหักหลัง res.dmg · วันนี้มีแค่ infect (P2b) ที่ใส่ค่า
