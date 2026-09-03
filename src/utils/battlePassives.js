@@ -334,6 +334,10 @@ export function runOnHit(defender, dmg, attacker, team, rand, attTeam = null) {
     break                                              // ผู้พิทักษ์ตัวเดียวพอ
   }
 
+  // ลดดาเมจของออร่าทีม — หักก่อน แล้ว damageReduction ของตัวเองหักต่อเป็นทอด
+  // (ไม่ใช่บวก % กัน: 20% + 12% ≠ 32% แต่เป็น ×0.8×0.88 = ลดจริง 29.6%)
+  if (defender.teamDrPct > 0) res.dmg -= pctOf(res.dmg, defender.teamDrPct)
+
   const p = passiveFor(defender)
   for (const part of partsAt(p, 'onHit')) {
     const v = valOf(part, defender)
@@ -359,6 +363,16 @@ export function runOnHit(defender, dmg, attacker, team, rand, attTeam = null) {
           res.events.push(ev(defender, p, part, { targets: [attacker.uid], amount: Math.round(res.thorns), fxKind: 'thorns' }))
         }
         break
+      case 'atkOnHit': {
+        // ไม่มีเพดานโดยตั้งใจ (user ยืนยัน) — P4 ต้องรายงานว่าในไฟต์ยาวมันบานแค่ไหน
+        const st = psOf(defender)
+        st.rage = (st.rage || 0) + 1
+        defender.atk *= 1 + v.pct / 100
+        const e = ev(defender, p, part, { targets: [defender.uid], amount: st.rage, fxKind: 'buff' })
+        e.statsAfter = statsSnapshot(team)
+        res.events.push(e)
+        break
+      }
     }
   }
 

@@ -325,6 +325,29 @@ test('guardian: ไม่รับแทนเพื่อนที่ไม่�
   assert.equal(guard.hp, 1000)
 })
 
+test('atkOnHit: โดนตีทีนึง atk เพิ่มถาวร ไม่มีเพดาน (user ยืนยัน)', () => {
+  PET_PASSIVES.__gori = {
+    name: 'ทดสอบกอริลลา', icon: '🧪',
+    parts: [{ hook: 'onHit', effect: 'atkOnHit', value: { pct: 3 }, step: { pct: 0 } }],
+    desc: 'โดนตีแล้วแรงขึ้น {pct}%', short: 'โดนตีแล้วแรงขึ้น {pct}%',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__gori', hp: 100, maxHp: 100, atk: 100 }
+    const att = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+    for (let i = 0; i < 3; i++) runOnHit(me, 10, att, [me], () => 0.5)
+    assert.equal(psOf(me).rage, 3)
+    assert.equal(Math.round(me.atk), 109)            // 100 × 1.03³
+  } finally { delete PET_PASSIVES.__gori }
+})
+
+test('teamDamageReduction: หักเป็นทอดกับ damageReduction ของตัวเอง ไม่ใช่บวก %', () => {
+  const d = { uid: 'A0', side: 'A', id: 'turtle', hp: 100, maxHp: 100, atk: 10, teamDrPct: 20 }
+  const att = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+  // 🐢 turtle มี damageReduction 12% ของตัวเองอยู่แล้ว ⇒ 100 × 0.8 × 0.88 = 70.4
+  const res = runOnHit(d, 100, att, [d], () => 0.5)
+  assert.equal(Math.round(res.dmg * 10) / 10, 70.4)
+})
+
 // ── onDeath / onKill ────────────────────────────────────────
 test('revive (phoenix): ฟื้นครั้งเดียวเท่านั้น', () => {
   const ph = u('phoenix', { hp: -5 })

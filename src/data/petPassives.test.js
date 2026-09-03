@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  PET_PASSIVES, PASSIVE_MAX_LEVEL, STATUS_TEXT, partsOf, partsAt, partAt, partWithEffect,
+  PET_PASSIVES, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT, partsOf, partsAt, partAt, partWithEffect,
   passiveValueAt, passiveText, effectText,
 } from './petPassives.js'
 
@@ -148,5 +148,13 @@ test('ห้ามใช้คำย่อ/คำไม่ทางการใ�
   for (const [k, v] of Object.entries(STATUS_TEXT)) seen.push([`STATUS_TEXT.${k}`, v])
   for (const [where, txt] of seen) {
     for (const re of BANNED) assert.ok(!re.test(txt), `${where} ใช้คำไม่ทางการ: "${txt}"`)
+  }
+})
+
+test('effect ใหม่ของ P2 ต้องมีไอคอนและคำอธิบายป้ายครบ (มินิชิปใน P2c อ่านจากตรงนี้)', () => {
+  for (const k of ['elementTrinity', 'teamLifesteal', 'teamDamageReduction', 'atkOnHit',
+                   'berserk', 'giantSlayer', 'healOnAttack', 'stealStats']) {
+    assert.ok(STATUS_ICON[k], `${k} ไม่มีไอคอน`)
+    assert.ok(STATUS_TEXT[k], `${k} ไม่มีคำอธิบายป้าย`)
   }
 })

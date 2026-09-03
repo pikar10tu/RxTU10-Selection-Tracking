@@ -293,6 +293,9 @@ export const STATUS_ICON = {
   guardian: '🛡️', damageReduction: '🧱', dodge: '💨', thorns: '⚡',
   revive: '🧿', saveAlly: '🧿', cheatDeath: '🧿', stackAtk: '⬆️',
   duoRegen: '💧',
+  // ── P2 ──
+  elementTrinity: '🔺', teamLifesteal: '🩸', teamDamageReduction: '🧱', atkOnHit: '💢',
+  berserk: '🔥', giantSlayer: '🗡️', healOnAttack: '💞', stealStats: '🫳',
 }
 
 /** ความหมายสั้นๆ ของป้าย — ใช้ใน aria-label และหน้า inspect */
@@ -303,15 +306,22 @@ export const STATUS_TEXT = {
   thorns: 'ตีแล้วเจ็บกลับ', revive: 'ตายแล้วฟื้นคืนชีพได้ 1 ครั้ง', saveAlly: 'กันเพื่อนตายได้ 1 ครั้ง',
   cheatDeath: 'รอดตายด้วยเลือด 1 ได้ 1 ครั้ง', stackAtk: 'ยิ่งฆ่ายิ่งแรง',
   duoRegen: 'ทีมฟื้นเลือดทุกรอบ',
+  // ── P2 ──
+  elementTrinity: 'ทีมครบสายจึงแรงขึ้น', teamLifesteal: 'ตีแล้วดูดเลือด',
+  teamDamageReduction: 'ทั้งทีมลดดาเมจที่ได้รับ', atkOnHit: 'ยิ่งโดนตียิ่งแรง',
+  berserk: 'ยิ่งเลือดหายยิ่งแรง', giantSlayer: 'ยิ่งเป้าตัวใหญ่ยิ่งแรง',
+  healOnAttack: 'ตีแล้วฟื้นเลือดเพื่อน', stealStats: 'ขโมยพลังจากศัตรู',
 }
 
 /** aura ที่แผ่ใส่ "ทีมตัวเอง" — ป้ายลงทุกใบในทีมนั้น */
-export const TEAM_AURA_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'teamCrit'])
+export const TEAM_AURA_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'teamCrit',
+  'elementTrinity', 'teamLifesteal', 'teamDamageReduction'])
 /** aura ที่แผ่ใส่ "ทีมศัตรู" — ป้ายลงฝั่งตรงข้าม (ดีบัฟ) */
 export const FOE_AURA_EFFECTS = new Set(['enemyVuln'])
 /** สถานะติดตัวที่ไม่ต้องพึ่งใคร — ป้ายลงเฉพาะเจ้าตัว */
 export const SELF_STATUS_EFFECTS = new Set([
   'guardian', 'damageReduction', 'dodge', 'thorns', 'revive', 'saveAlly', 'cheatDeath', 'stackAtk',
+  'atkOnHit', 'berserk', 'giantSlayer', 'stealStats',
 ])
 /** สูงสุดกี่ป้ายต่อการ์ด — วัดจากทีมสุ่ม 5,000 คู่: เฉลี่ย 1.09 · ชนเพดาน 3 แค่ 4.7% */
 export const STATUS_MAX = 3
