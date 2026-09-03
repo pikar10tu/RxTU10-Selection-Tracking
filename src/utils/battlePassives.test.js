@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, passiveFor, psOf,
+  runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, passiveFor, psOf,
 } from './battlePassives.js'
 import { PET_PASSIVES, passiveValueAt, passiveText, effectText, partsOf, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT } from '../data/petPassives.js'
 import { PETS } from '../data/index.js'
@@ -51,6 +51,42 @@ test('passive ทุกอันมีฟิลด์ครบและ hook ท
 test('ชื่อ passive ไม่ซ้ำกัน (ผู้เล่นต้องแยกออกว่าใครเป็นใคร)', () => {
   const names = Object.values(PET_PASSIVES).map(p => p.name)
   assert.equal(new Set(names).size, names.length)
+})
+
+// ── setup ───────────────────────────────────────────────────
+test('stealStats: ศัตรูเสียจริง และผู้ขโมยได้เพิ่มเท่ากับที่ขโมยมารวมกัน', () => {
+  PET_PASSIVES.__thief = {
+    name: 'ทดสอบขโมย', icon: '🧪',
+    parts: [{ hook: 'setup', effect: 'stealStats', value: { pct: 10 }, step: { pct: 0 } }],
+    desc: 'ขโมย {pct}%', short: 'ขโมย {pct}%',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__thief', hp: 100, maxHp: 100, atk: 50 }
+    const f1 = { uid: 'B0', side: 'B', id: 'blank', hp: 200, maxHp: 200, atk: 30 }
+    const f2 = { uid: 'B1', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 20 }
+    const out = runSetup([me], [f1, f2])
+    assert.equal(f1.atk, 27)                       // เสีย 10%
+    assert.equal(f2.atk, 18)
+    assert.equal(me.atk, 50 + 3 + 2)               // ได้ที่ขโมยมารวมกัน
+    assert.equal(f1.maxHp, 180)
+    assert.equal(f1.hp, 180)                       // เลือดปัจจุบันลดตามสัดส่วน ไม่ล้นหลอด
+    assert.equal(me.maxHp, 100 + 20 + 10)
+    assert.equal(out.length, 1)
+    assert.equal(out[0].fxKind, 'buff')
+  } finally { delete PET_PASSIVES.__thief }
+})
+
+test('stealStats: ไม่มีศัตรู = ไม่มี event ไม่ throw', () => {
+  PET_PASSIVES.__thief = {
+    name: 'ทดสอบขโมย', icon: '🧪',
+    parts: [{ hook: 'setup', effect: 'stealStats', value: { pct: 10 }, step: { pct: 0 } }],
+    desc: 'ขโมย {pct}%', short: 'ขโมย {pct}%',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__thief', hp: 100, maxHp: 100, atk: 50 }
+    assert.deepEqual(runSetup([me], []), [])
+    assert.equal(me.atk, 50)
+  } finally { delete PET_PASSIVES.__thief }
 })
 
 // ── aura ────────────────────────────────────────────────────

@@ -5,7 +5,7 @@
 // ════════════════════════════════════════════════════════════
 import { BATTLE_CFG, buildCombatant, elementMult } from '../data/battle.js'
 import {
-  applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, statsSnapshot,
+  runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, statsSnapshot,
 } from './battlePassives.js'
 
 // mulberry32 — RNG เดียวกับ sim
@@ -28,7 +28,9 @@ export function simulateBattle(teamA, teamB, seed) {
   const B = (teamB || []).map((p, i) => ({ ...buildCombatant(p), id: p?.id, uid: `B${i}`, side: 'B' }))
   const log = []
 
-  // ── ลำดับ hook ที่ห้ามสลับ (สเปก §B): aura → onStart → [onRound] → onAttack → onHit → onDeath → onKill ──
+  // ── ลำดับ hook ที่ห้ามสลับ (สเปก §B): setup → aura → onStart → [onRound] → onAttack → onHit → onDeath → onKill ──
+  // setup ต้องมาก่อน aura — stealStats เปลี่ยนเลขดิบที่ออร่าจะไปคูณต่อ
+  for (const e of [...runSetup(A, B), ...runSetup(B, A)]) log.push(e)
   const auraEvents = [...applyAuras(A, B), ...applyAuras(B, A)]
   for (const e of auraEvents) log.push(e)
   // สเตตัสหลัง aura ก่อนหมัดแรก = "ตัวหารจริง" ของหลอดเลือดฝั่ง UI

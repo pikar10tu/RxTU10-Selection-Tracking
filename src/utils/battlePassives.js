@@ -61,6 +61,42 @@ function lowestHpAlly(team, exclude) {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  setup — ก่อน aura ทุกอย่าง (แก้ atk/maxHp ดิบได้)
+// ══════════════════════════════════════════════════════════════
+/** ผลที่ต้องเกิด "ก่อน" ออร่า เพราะมันเปลี่ยนตัวเลขที่ออร่าจะไปคูณต่อ
+ *  🔴 ต้องรันก่อน applyAuras เสมอ — ไม่งั้น statsSnapshot ที่ส่งให้รีเพลย์เป็นเลขก่อนขโมย
+ *     แล้วเลขบนการ์ดกับดาเมจจริงจะคลาดกันเงียบๆ */
+export function runSetup(team, foes) {
+  const out = []
+  for (const u of alive(team)) {
+    const p = passiveFor(u)
+    for (const part of partsAt(p, 'setup')) {
+      const v = valOf(part, u)
+      if (part.effect !== 'stealStats') continue
+      const targets = alive(foes)
+      if (!targets.length) continue
+      let gotAtk = 0, gotHp = 0
+      for (const f of targets) {
+        const dAtk = pctOf(f.atk, v.pct)
+        const dHp = pctOf(f.maxHp, v.pct)
+        f.atk -= dAtk
+        f.maxHp -= dHp
+        f.hp = Math.min(f.hp, f.maxHp)      // เลือดปัจจุบันห้ามล้นหลอดที่หดลง
+        gotAtk += dAtk
+        gotHp += dHp
+      }
+      u.atk += gotAtk
+      u.maxHp += gotHp
+      u.hp += gotHp                          // ได้เลือดมาเต็มก้อนที่ขโมยได้
+      const e = ev(u, p, part, { targets: targets.map(t => t.uid), amount: Math.round(gotAtk), fxKind: 'buff' })
+      e.statsAfter = statsSnapshot(team, foes)
+      out.push(e)
+    }
+  }
+  return out
+}
+
+// ══════════════════════════════════════════════════════════════
 //  aura — แก้ stat ก่อนไฟต์เริ่ม (ไม่มี event, ผู้เล่นเห็นผลผ่านตัวเลขบนการ์ด)
 // ══════════════════════════════════════════════════════════════
 /**
