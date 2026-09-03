@@ -5,7 +5,7 @@
 // ════════════════════════════════════════════════════════════
 import { BATTLE_CFG, buildCombatant, elementMult } from '../data/battle.js'
 import {
-  runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, statsSnapshot,
+  runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, runOnAnyDeath, statsSnapshot,
 } from './battlePassives.js'
 
 // mulberry32 — RNG เดียวกับ sim
@@ -57,6 +57,11 @@ export function simulateBattle(teamA, teamB, seed) {
       const d = runOnDeath(tg, foes)          // foes (จากมุมผู้ตี) = ทีมของ tg
       for (const e of d.events) log.push(e)
       if (d.prevented) dead = false
+    }
+    if (dead) {
+      // ฝั่งที่ได้ประโยชน์คือทีมของผู้ตี — ไม่ว่าใครเป็นคนลงมือจริง
+      const killerTeam = att.side === 'A' ? A : B
+      for (const e of runOnAnyDeath(tg, killerTeam, foes)) log.push(e)
     }
     log.push({
       t: 'attack', side: att.side, attacker: att.uid, target: tg.uid,

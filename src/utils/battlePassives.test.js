@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, passiveFor, psOf,
+  runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDeath, runOnKill, runOnAnyDeath, passiveFor, psOf,
 } from './battlePassives.js'
 import { PET_PASSIVES, passiveValueAt, passiveText, effectText, partsOf, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT } from '../data/petPassives.js'
 import { PETS } from '../data/index.js'
@@ -264,6 +264,41 @@ test('killChain (kirin): ตีต่อได้จนถึงเพดาน 
   assert.equal(runOnKill(k, 0).extraAttack, true)
   assert.equal(runOnKill(k, 1).extraAttack, true)
   assert.equal(runOnKill(k, 2).extraAttack, false)
+})
+
+test('onAnyDeath: ศัตรูล้มโดยใครก็ได้ ทุกตัวในทีมที่มี hook นี้ได้ชั้นเพิ่ม (ยึดเพดาน max)', () => {
+  PET_PASSIVES.__scav = {
+    name: 'ทดสอบซาก', icon: '🧪',
+    parts: [{ hook: 'onAnyDeath', effect: 'stackAtk', value: { pct: 10, max: 2 }, step: { pct: 0, max: 0 } }],
+    desc: 'ล้ม 1 ตัว +{pct}%', short: 'ล้ม 1 ตัว +{pct}%',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__scav', hp: 100, maxHp: 100, atk: 100 }
+    const dead = { uid: 'B0', side: 'B', id: 'blank', hp: 0, maxHp: 100, atk: 10 }
+    const e1 = runOnAnyDeath(dead, [me], [dead])
+    assert.equal(e1.length, 1)
+    assert.equal(Math.round(me.atk), 110)
+    assert.equal(psOf(me).atkStacks, 1)
+    runOnAnyDeath(dead, [me], [dead])
+    assert.equal(psOf(me).atkStacks, 2)
+    const e3 = runOnAnyDeath(dead, [me], [dead])      // ชนเพดานแล้ว
+    assert.equal(e3.length, 0)
+    assert.equal(psOf(me).atkStacks, 2)
+  } finally { delete PET_PASSIVES.__scav }
+})
+
+test('onAnyDeath: ตัวที่ตายแล้วไม่ได้ชั้น', () => {
+  PET_PASSIVES.__scav = {
+    name: 'ทดสอบซาก', icon: '🧪',
+    parts: [{ hook: 'onAnyDeath', effect: 'stackAtk', value: { pct: 10, max: 3 }, step: { pct: 0, max: 0 } }],
+    desc: 'ล้ม 1 ตัว +{pct}%', short: 'ล้ม 1 ตัว +{pct}%',
+  }
+  try {
+    const corpse = { uid: 'A0', side: 'A', id: '__scav', hp: 0, maxHp: 100, atk: 100 }
+    const dead = { uid: 'B0', side: 'B', id: 'blank', hp: 0, maxHp: 100, atk: 10 }
+    assert.deepEqual(runOnAnyDeath(dead, [corpse], [dead]), [])
+    assert.equal(corpse.atk, 100)
+  } finally { delete PET_PASSIVES.__scav }
 })
 
 // ── integration: กฎเหล็ก + determinism ──────────────────────

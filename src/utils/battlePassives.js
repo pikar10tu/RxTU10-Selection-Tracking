@@ -370,6 +370,28 @@ export function runOnDeath(unit, team) {
   return out
 }
 
+/** ใครสักคนตายจริงแล้ว — ยิงให้ทีมของ "ฝั่งที่ได้ประโยชน์" (ฝั่งตรงข้ามคนที่ตาย)
+ *  ต่างจาก onKill ตรงที่ไม่สนว่าใครเป็นคนล้ม ⇒ 🦖 ได้ชั้นแม้เพื่อนเป็นคนเก็บ (P2c) */
+export function runOnAnyDeath(dead, killerTeam, foes) {
+  const out = []
+  for (const u of alive(killerTeam)) {
+    const p = passiveFor(u)
+    for (const part of partsAt(p, 'onAnyDeath')) {
+      const v = valOf(part, u)
+      if (part.effect !== 'stackAtk') continue
+      const st = psOf(u)
+      const stacks = st.atkStacks || 0
+      if (stacks >= v.max) continue
+      st.atkStacks = stacks + 1
+      u.atk *= 1 + v.pct / 100
+      const e = ev(u, p, part, { targets: [u.uid], amount: st.atkStacks, fxKind: 'buff' })
+      if (killerTeam && foes) e.statsAfter = statsSnapshot(killerTeam, foes)
+      out.push(e)
+    }
+  }
+  return out
+}
+
 // ══════════════════════════════════════════════════════════════
 //  onKill — หลังศัตรูตายจริง (onDeath ต้องผ่านไปแล้ว)
 // ══════════════════════════════════════════════════════════════
