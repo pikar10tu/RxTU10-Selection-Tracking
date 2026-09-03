@@ -8,6 +8,8 @@
 //
 // Exit code: 0 = ไม่มีไฟต์ไหนต่าง (ผ่าน) · 1 = มีไฟต์ต่างอย่างน้อย 1 ไฟต์ (เกมเปลี่ยนพฤติกรรม)
 //            2 = เรียกสคริปต์ผิด (ไม่ได้ใส่ base sha)
+// สิ่งที่นับว่า "ต่าง": winner + log + units (สเตตัสหลัง aura = ตัวหารหลอดเลือดของรีเพลย์) + rounds
+// บรรทัด "ℹ️ จังหวะ" ท้ายผลเป็นข้อมูลประกอบล้วน **ไม่มีผลกับ exit code** — ดูเหตุผลที่ cmp()
 //
 // ประชากรที่ทดสอบ: ตอนนี้เพ็ททุกตัวใน PETS มี PET_PASSIVES ครบ (27/27) — ไม่มีตัวไหนถูกกรองออก
 // ถ้าวันไหนมีเพ็ทลงทะเบียนแล้วยังไม่มี passive (เช่นระหว่างพัฒนา P3) สคริปต์จะพิมพ์ WARNING
@@ -39,6 +41,8 @@ try {
 
   const here = await import('../src/utils/battleEngine.js')
   const base = await import(pathToFileURL(join(dir, 'src/utils/battleEngine.js')).href)
+  const hereBeats = await import('../src/utils/battleBeats.js')
+  const baseBeats = await import(pathToFileURL(join(dir, 'src/utils/battleBeats.js')).href)
   const { PETS } = await import('../src/data/index.js')
   const { BATTLE_SLOTS } = await import('../src/data/residence.js')
   const { PET_PASSIVES } = await import('../src/data/petPassives.js')
@@ -51,15 +55,33 @@ try {
   }
   const mk = (p) => ({ id: p.id, rarity: p.rarity, element: p.element, grade: 3 })
 
-  let n = 0, bad = 0
+  // ตัวหารของหลอดเลือดที่ BattleReplay ใช้จริง (result.units หลัง aura) — ป้อนให้ buildBeats เหมือนกันเป๊ะ
+  const mhOf = (r) => Object.fromEntries(Object.entries(r.units || {}).map(([uid, s]) => [uid, Math.round(s.maxHp) || 1]))
+  const durOf = (bs) => bs.reduce((s, b) => s + b.timing.windup + b.timing.motion + b.timing.hitstop + b.timing.tail, 0)
+
+  let n = 0, bad = 0, beatBad = 0, durBad = 0
   const cmp = (A, B, seed) => {
     n++
     const a = here.simulateBattle(A, B, seed)
     const b = base.simulateBattle(A, B, seed)
-    if (JSON.stringify({ w: a.winner, l: a.log }) !== JSON.stringify({ w: b.winner, l: b.log })) {
+    // 🔑 เทียบ units กับ rounds ด้วย ไม่ใช่แค่ winner+log:
+    //    units = สเตตัสหลัง aura ที่รีเพลย์ใช้เป็น "ตัวหาร" ของหลอดเลือด ⇒ เพี้ยนเมื่อไหร่หลอดผิดสัดส่วน
+    //    ทั้งที่ log เหมือนเดิมทุกไบต์ (ช่องโหว่จริงของสคริปต์รุ่นแรก) · rounds ไปโผล่ในหน้าสรุปผล
+    if (JSON.stringify({ w: a.winner, l: a.log, u: a.units, r: a.rounds })
+        !== JSON.stringify({ w: b.winner, l: b.log, u: b.units, r: b.rounds })) {
       bad++
       if (bad <= 3) console.error('ต่างกันที่ซีด', seed, A.map(x => x.id).join('+'), 'vs', B.map(x => x.id).join('+'))
     }
+    // ── ข้อมูลประกอบ (ไม่มีผลกับ exit code) ── จังหวะ/เวลาเล่าเรื่องของรีเพลย์
+    // ⚠️ ห้ามเอาไปรวมกับเงื่อนไขผ่าน: วันนี้ยังมีความต่างที่ "ยอมรับแล้ว" ค้างอยู่ —
+    //    🦖 ทีเร็กซ์ ได้ stackAtk สองใบติดกันต่อการล้ม 1 ตัว (battleEngine เรียก runOnKill ซ้ำ
+    //    เมื่อศัตรูยังเหลือ) พอ P2a จัดก้อนจังหวะใหม่ คู่นั้นสลับกันเป็น skillQuiet→skill
+    //    เวลารวมเท่าเดิมเป๊ะ (net-zero) แต่ kind ไม่ตรงกับ base · ต้นเหตุจริงคือการเรียกซ้ำ
+    //    ซึ่ง user มอบให้ P2c เป็นคนแก้ ⇒ ที่นี่รายงานเฉยๆ ห้ามทำให้แดง
+    const bsA = hereBeats.buildBeats(a.log, mhOf(a))
+    const bsB = baseBeats.buildBeats(b.log, mhOf(b))
+    if (JSON.stringify(bsA.map(x => x.kind)) !== JSON.stringify(bsB.map(x => x.kind))) beatBad++
+    if (Math.abs(durOf(bsA) - durOf(bsB)) > 1e-6) durBad++
   }
 
   // ทุกคู่เพ็ท × 3 ซีด — ทีมเติมด้วย 🛡️ กับ 🧞 ให้ guardian/saveAlly ได้ทำงานด้วย
@@ -77,6 +99,7 @@ try {
   }
 
   console.log(`เทียบ ${n} ไฟต์ · ต่างกัน ${bad}`)
+  console.log(`ℹ️  จังหวะ (ไม่นับเป็นเงื่อนไขผ่าน): kind ต่างกัน ${beatBad} ไฟต์ · เวลารวมต่างกัน ${durBad} ไฟต์`)
   exitCode = bad === 0 ? 0 : 1
 } finally {
   rmSync(dir, { recursive: true, force: true })
