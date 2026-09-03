@@ -135,11 +135,19 @@ Expected: FAIL 2 เคส
   const upgradable = new Set()
   for (const [id, p] of Object.entries(PET_PASSIVES)) {
     for (const part of partsOf(p)) {
-      if (Object.values(part.step || {}).some(v => typeof v === 'number' && v > 0)) upgradable.add(id)
+      const lo = passiveValueAt(part, 1)
+      const hi = passiveValueAt(part, PASSIVE_MAX_LEVEL)
+      // นับเฉพาะตัวที่ "อัพขั้นแล้วเลขขยับจริง" — มี step เป็นบวกอย่างเดียวไม่พอ
+      // (step ที่คำนวณแล้วไม่ขยับ = หินอัพขั้นไม่ให้อะไรเลย ซึ่งเป็นบั๊กที่เทสนี้มีไว้จับ)
+      if (Object.keys(hi).some(k => typeof hi[k] === 'number' && hi[k] > lo[k])) upgradable.add(id)
     }
   }
   assert.ok(upgradable.size >= 20, `เพ็ทที่อัพขั้นแล้วเลขขยับมีแค่ ${upgradable.size} ตัว`)
 ```
+
+🔴 **ต้องคงการเทียบขั้น 1 กับขั้นสูงสุดไว้** — ของเดิมเช็คว่า "อัพแล้วเลขขยับจริง" ถ้าเปลี่ยนเป็น
+นับแค่ `step` ที่เป็นบวก เทสจะผ่านทั้งที่หินอัพขั้นไม่ให้อะไรเลย = ลดความครอบคลุมของเทสเดิม
+ซึ่งขัดกับข้อบังคับของแผนเอง · ที่เปลี่ยนคือ**หน่วยที่นับ** (ตัวเพ็ท ไม่ใช่ part) เท่านั้น
 
 - [ ] **Step 5: รันเทสทั้งรีโป**
 
