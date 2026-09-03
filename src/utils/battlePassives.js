@@ -233,11 +233,15 @@ export function runOnAttack(att, target, foes, rand) {
 //  onHit — ก่อนหักเลือด (dodge / ลดดาเมจ / เปลี่ยนตัวรับ / หนาม)
 // ══════════════════════════════════════════════════════════════
 /**
- * คืน { dmg, dodged, thorns, events }
+ * คืน { dmg, dodged, thorns, events, pierce }
  *   thorns   = ดาเมจสะท้อนกลับไปที่ผู้ตี (เอนจินเป็นคนหัก)
+ *   pierce   = ดาเมจที่ "ไม่ผ่านสายลด" — เอนจินหักหลัง res.dmg · วันนี้มีแค่ infect (P2b) ที่ใส่ค่า
  */
 export function runOnHit(defender, dmg, attacker, team, rand) {
-  const res = { dmg, dodged: false, thorns: 0, events: [] }
+  // pierce = ดาเมจที่ "ไม่ผ่านสายลด" — เอนจินหักหลัง res.dmg · วันนี้มีแค่ infect (P2b) ที่ใส่ค่า
+  // 🔴 ห้ามเอาไปใช้กับกลไกอื่นโดยไม่แก้สเปก: การทะลุเกราะคือเหตุผลที่ไวรัสมีอยู่
+  //    ถ้าแจกให้ตัวอื่นด้วย มันจะกลายเป็นแค่ "ดาเมจเพิ่ม" อีกตัวหนึ่ง
+  const res = { dmg, dodged: false, thorns: 0, pierce: 0, events: [] }
 
   // 1) guardian ของ "เพื่อนในทีมเดียวกัน" — ต้องเช็คก่อนของตัว defender เอง
   for (const g of alive(team)) {

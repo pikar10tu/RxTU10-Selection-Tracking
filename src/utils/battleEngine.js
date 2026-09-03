@@ -45,6 +45,9 @@ export function simulateBattle(teamA, teamB, seed) {
     const hitRes = runOnHit(tg, Math.max(0, mult), att, foes, rand)
     for (const e of hitRes.events) log.push(e)
     tg.hp -= hitRes.dmg
+    // ดาเมจทะลุ (infect) — หักหลังสายลดจบแล้ว จึงไม่โดน guardian/dodge/DR/เกราะ
+    // ยังอยู่ใน beat เดิม และ attack event คิด dmg จาก before-after อยู่แล้ว หลอดเลือดจึงตรงเอง
+    if (hitRes.pierce > 0) tg.hp -= hitRes.pierce
     if (hitRes.thorns > 0) att.hp -= hitRes.thorns
 
     let dead = tg.hp <= 0

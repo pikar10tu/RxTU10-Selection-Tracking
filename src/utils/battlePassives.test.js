@@ -486,3 +486,19 @@ test('runOnHit ไม่คืนฟิลด์ absorber อีกแล้ว 
   const res = runOnHit(d, 100, att, [d], () => 0.5)
   assert.equal('absorber' in res, false)
 })
+
+test('pierce: ค่าเริ่มต้นเป็น 0 เสมอ', () => {
+  const d = { uid: 'A0', side: 'A', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+  const att = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+  assert.equal(runOnHit(d, 100, att, [d], () => 0.5).pierce, 0)
+})
+
+test('pierce: ไม่ถูกหักโดย dodge หรือ damageReduction (ทะลุทุกอย่าง)', () => {
+  // 🦊 fox = dodge 12% · บังคับให้หลบด้วย rand = 0 ⇒ dmg ต้องเป็น 0 แต่ pierce ต้องอยู่ครบ
+  const d = { uid: 'A0', side: 'A', id: 'fox', hp: 100, maxHp: 100, atk: 10 }
+  const att = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+  const res = runOnHit(d, 100, att, [d], () => 0)
+  res.pierce = 30                                   // จำลองว่ามีคนใส่ค่าให้ (P2b)
+  assert.equal(res.dmg, 0)
+  assert.equal(res.pierce, 30)
+})
