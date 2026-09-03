@@ -227,18 +227,17 @@ export function runOnAttack(att, target, foes, rand) {
 //  onHit — ก่อนหักเลือด (dodge / ลดดาเมจ / เปลี่ยนตัวรับ / หนาม)
 // ══════════════════════════════════════════════════════════════
 /**
- * คืน { dmg, absorber, dodged, thorns, events }
- *   absorber = ตัวที่รับดาเมจจริง (guardian อาจไม่ใช่ defender)
+ * คืน { dmg, dodged, thorns, events }
  *   thorns   = ดาเมจสะท้อนกลับไปที่ผู้ตี (เอนจินเป็นคนหัก)
  */
 export function runOnHit(defender, dmg, attacker, team, rand) {
-  const res = { dmg, absorber: defender, dodged: false, thorns: 0, events: [] }
+  const res = { dmg, dodged: false, thorns: 0, events: [] }
 
   // 1) guardian ของ "เพื่อนในทีมเดียวกัน" — ต้องเช็คก่อนของตัว defender เอง
   for (const g of alive(team)) {
     const gp = passiveFor(g)
-    const gpart = partWithEffect(gp, 'guardian')
-    if (!gpart || gpart.hook !== 'onHit' || g === defender) continue
+    const gpart = partsAt(gp, 'onHit').find(x => x.effect === 'guardian')
+    if (!gpart || g === defender) continue
     const low = lowestHpAlly(team, g)
     if (low !== defender) continue                     // รับแทนเฉพาะเพื่อนที่บอบช้ำที่สุด
     const share = pctOf(res.dmg, valOf(gpart, g).pct)
@@ -288,6 +287,8 @@ export function runOnDeath(unit, team) {
 
   // 1) ของตัวเอง — revive / cheatDeath
   const p = passiveFor(unit)
+  // onDeath มี part เดียวโดยธรรมชาติ: กันตายได้ครั้งเดียวต่อการตายหนึ่งครั้ง
+  // ถ้าวันหนึ่งมีเพ็ทที่ revive + cheatDeath พร้อมกัน ต้องเปลี่ยนเป็น partsAt แล้วนิยามลำดับก่อน
   const part = partAt(p, 'onDeath')
   if (part && (unit.passiveUses || 0) < (valOf(part, unit).times || 1)) {
     const v = valOf(part, unit)
@@ -312,8 +313,8 @@ export function runOnDeath(unit, team) {
   for (const g of alive(team)) {
     if (g === unit) continue
     const gp = passiveFor(g)
-    const gpart = partWithEffect(gp, 'saveAlly')
-    if (!gpart || gpart.hook !== 'onDeath') continue
+    const gpart = partsAt(gp, 'onDeath').find(x => x.effect === 'saveAlly')
+    if (!gpart) continue
     if ((g.passiveUses || 0) >= (valOf(gpart, g).times || 1)) continue
     g.passiveUses = (g.passiveUses || 0) + 1
     unit.hp = 1

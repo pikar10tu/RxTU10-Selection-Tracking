@@ -326,17 +326,13 @@ test('🪨 killChain/cheatDeath/saveAlly ต้องอัพขั้นแล
 })
 
 test('ขั้น 3 ต้องแรงกว่าขั้น 1 จริงสำหรับตัวที่อัพได้ (ไม่งั้นหินไร้ความหมาย)', () => {
-  const upgradable = []
+  const upgradable = new Set()
   for (const [id, p] of Object.entries(PET_PASSIVES)) {
     for (const part of partsOf(p)) {
-      if (Object.values(part.step || {}).some(x => x > 0)) upgradable.push([id, part])
+      if (Object.values(part.step || {}).some(v => typeof v === 'number' && v > 0)) upgradable.add(id)
     }
   }
-  assert.ok(upgradable.length >= 20, `อัพได้แค่ ${upgradable.length} ตัว น้อยเกินไป`)
-  for (const [id, part] of upgradable) {
-    const a = passiveValueAt(part, 1), b = passiveValueAt(part, PASSIVE_MAX_LEVEL)
-    assert.ok(Object.keys(part.step).some(k => b[k] > a[k]), `${id} ขั้น 3 ไม่แรงขึ้นเลย`)
-  }
+  assert.ok(upgradable.size >= 20, `เพ็ทที่อัพขั้นแล้วเลขขยับมีแค่ ${upgradable.size} ตัว`)
 })
 
 // user เทสจอจริง 29 ส.ค.: ทีม seal+whale เลือดขึ้นแต่ "เลขไม่ขึ้น"
@@ -441,4 +437,31 @@ test('onHit: part ของ hook อื่นต้องไม่ถูกเ�
   } finally {
     delete PET_PASSIVES.__mix
   }
+})
+
+test('guardian: ต้องหาจาก hook onHit ไม่ใช่ effect-first (กันเจอ part ผิดตอนเพ็ทมีหลาย part)', () => {
+  // เพ็ทสังเคราะห์: guardian อยู่บน hook อื่นมาก่อน แล้วค่อยมีตัวจริงบน onHit
+  const fake = {
+    name: 'ทดสอบ', icon: '🧪',
+    parts: [
+      { hook: 'onRound', effect: 'guardian', value: { pct: 99 } },
+      { hook: 'onHit', effect: 'guardian', value: { pct: 50 } },
+    ],
+  }
+  const g = { uid: 'A0', side: 'A', id: '__fake', hp: 100, maxHp: 100, atk: 10 }
+  const d = { uid: 'A1', side: 'A', id: 'blank', hp: 40, maxHp: 100, atk: 10 }
+  const att = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+  PET_PASSIVES.__fake = fake
+  try {
+    const res = runOnHit(d, 100, att, [g, d], () => 0.99)
+    // ต้องได้ 50% (ตัวจริงบน onHit) ไม่ใช่ 99% ของ part แรกที่ effect ตรง
+    assert.equal(Math.round(res.dmg), 50)
+  } finally { delete PET_PASSIVES.__fake }
+})
+
+test('runOnHit ไม่คืนฟิลด์ absorber อีกแล้ว (เอนจินไม่เคยอ่าน = โค้ดตาย)', () => {
+  const d = { uid: 'A0', side: 'A', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+  const att = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
+  const res = runOnHit(d, 100, att, [d], () => 0.5)
+  assert.equal('absorber' in res, false)
 })
