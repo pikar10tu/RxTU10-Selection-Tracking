@@ -256,3 +256,21 @@ test('สอง part ที่ effect เดียวกันของเพ็
   const b = buildBeats(log, { A0: 100, B0: 100 })
   assert.equal(b[2].kind, 'skill')     // ใบสุดท้ายของก้อนยังได้ประกาศ
 })
+
+test('🔑 คีย์ตัวดักซ้ำต้องไม่ผูกกับตำแหน่งดิบในก้อน — พาร์ตข้างเคียงหาย/โผล่ ไม่ทำให้ effect เดิมดูเหมือนใหม่', () => {
+  // จำลอง 🐍 อูโรโบรอส (P2c): parts [regenSelf, stackAtk] บน onRound · regenSelf ข้ามตัวเองเวลาเลือดเต็ม
+  // รอบแรก: เลือดพร่อง ⇒ ก้อนมีทั้งคู่ [regenSelf, stackAtk] — stackAtk อยู่ตำแหน่งดิบที่ 1
+  // รอบสอง: เลือดเต็มแล้ว (regenSelf ข้าม) ⇒ ก้อนเหลือ [stackAtk] เดี่ยวๆ — ตำแหน่งดิบขยับเป็น 0
+  // ถ้าคีย์ผูกกับตำแหน่งดิบ stackAtk รอบสองจะได้คีย์ใหม่ (ตำแหน่ง 0 ≠ 1) แล้วดูเหมือนประกาศครั้งแรก
+  // อีกรอบ ทั้งที่จริงเป็น "ครั้งซ้ำ" — ได้หยุด 200ms ที่ไม่ควรมี
+  const log = [
+    { t: 'attack', side: 'A', attacker: 'A0', target: 'B0', dmg: 10, targetHpAfter: 90 },
+    { t: 'passive', uid: 'A1', side: 'A', effect: 'regenSelf' },
+    { t: 'passive', uid: 'A1', side: 'A', effect: 'stackAtk' },
+    { t: 'attack', side: 'B', attacker: 'B0', target: 'A0', dmg: 10, targetHpAfter: 90 },
+    { t: 'passive', uid: 'A1', side: 'A', effect: 'stackAtk' },
+    { t: 'attack', side: 'B', attacker: 'B0', target: 'A0', dmg: 10, targetHpAfter: 80 },
+  ]
+  const b = buildBeats(log, { A0: 100, B0: 100 })
+  assert.equal(b[4].kind, 'skillQuiet', 'stackAtk เดี่ยวรอบสอง = ครั้งซ้ำ ไม่ใช่ครั้งแรก')
+})

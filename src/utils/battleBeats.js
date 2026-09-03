@@ -156,23 +156,28 @@ export function buildBeats(log, maxHpByUid) {
     //    ถ้าไม่ทำ เพ็ท 3 part จะได้ SKILL_PAUSE × 3 = หยุด 600ms ติดกันในจังหวะเดียว
     // ⚠️ คีย์ตัวดักซ้ำต้องมีลำดับ part ด้วย ไม่งั้นสอง part ที่ effect เดียวกัน
     //    ใบที่สองจะถูกลดเป็น skillQuiet แล้วหายไปเงียบๆ
-    // 🔒 `groupPos` = ตำแหน่งของใบนี้ "ในก้อนปัจจุบัน" (0, 1, 2, ...) — รีเซตทุกครั้งที่ก้อนขาด
-    //    (event ไม่ใช่ passive หรือ uid เปลี่ยน) ไม่ใช่ยอดสะสมของ uid ทั้งไฟต์
-    //    คีย์ dedupe (`seen`) ยังค้างข้ามก้อนไปตลอดไฟต์ตามเดิม — ก้อนถัดไปที่ uid เดิมยิง
-    //    part ตำแหน่งเดิมซ้ำ (groupPos ตรงกัน) จะได้คีย์ซ้ำ จึงยังถูกจับเป็น "ครั้งซ้ำ" เหมือนของเดิมก่อน P1
-    //    ถ้าใช้ยอดสะสมทั้งไฟต์แทน (นับทุกใบของ uid นี้ไม่สนก้อน) เพ็ท part เดียวที่ถูกยิงซ้ำจาก
-    //    2 การ์ดติดกัน (เช่น engine เรียก onKill ซ้อน 2 ครั้งต่อการฆ่า 1 ครั้ง) จะกลายเป็นคนละคีย์
-    //    ไปเลย ⇒ ก้อนซ้ำจริงจะไม่ถูกมองว่าซ้ำ (เทส 'สกิลครั้งแรกได้หยุด SKILL_PAUSE · ครั้งซ้ำเงียบ 0ms' จะแดง)
+    // 🔒 ลำดับที่ใส่ในคีย์ต้องนับ "ใบที่เท่าไรของ effect นี้ในก้อนปัจจุบัน" (nth ต่อ-effect)
+    //    ไม่ใช่ตำแหน่งดิบของ event ในก้อน (0,1,2,... ไม่สน effect) — เพราะตำแหน่งดิบขยับได้เวลา
+    //    "พาร์ตข้างเคียงในก้อนเดียวกัน" มีเงื่อนไขข้าม ตัวอย่างจริงจาก P2c: 🐍 อูโรโบรอส มี
+    //    parts: [regenSelf, stackAtk] บน onRound และ regenSelf ข้ามตัวเองเวลาเลือดเต็ม
+    //    (battlePassives.js: `if (u.hp >= u.maxHp) continue`) ⇒ รอบเลือดเต็ม ก้อนมีแค่ [stackAtk]
+    //    (ตำแหน่งดิบ 0) รอบเลือดพร่อง ก้อนมี [regenSelf, stackAtk] (stackAtk ตำแหน่งดิบขยับเป็น 1)
+    //    ถ้าคีย์ผูกกับตำแหน่งดิบ stackAtk จะได้คนละคีย์ทุกครั้งที่ regenSelf ข้าม/ไม่ข้าม สลับกัน
+    //    ⇒ ประกาศซ้ำทุกครั้งที่ข้ามเส้นเลือดเต็ม/พร่อง = หยุด 200ms ที่ไม่ควรมี
+    //    นับแยกต่อ-effect แก้ปัญหานี้เพราะ stackAtk เป็น "ใบที่ 0 ของ stackAtk ในก้อน" เสมอ
+    //    ไม่ว่า regenSelf จะร่วมก้อนด้วยหรือไม่ — คีย์เดิม ยังถูกจับเป็นครั้งซ้ำถูกต้อง
     const seen = new Set()
     let groupUid = null
-    let groupPos = 0
+    let groupEffCount = null   // Map: effect → กี่ใบของ effect นี้แล้วในก้อนปัจจุบัน
     for (let i = openCut; i < evts.length; i++) {
       const e = evts[i]
-      if (!e || e.t !== 'passive') { groupUid = null; continue }
+      if (!e || e.t !== 'passive') { groupUid = null; groupEffCount = null; continue }
       const uid = e.uid || ''
-      if (uid === groupUid) groupPos += 1
-      else { groupUid = uid; groupPos = 0 }
-      const key = `${uid}:${e.effect || ''}:${groupPos}`
+      if (uid !== groupUid) { groupUid = uid; groupEffCount = new Map() }
+      const eff = e.effect || ''
+      const nth = groupEffCount.get(eff) || 0
+      groupEffCount.set(eff, nth + 1)
+      const key = `${uid}:${eff}:${nth}`
       const first = !seen.has(key)
       seen.add(key)
       const next = evts[i + 1]
