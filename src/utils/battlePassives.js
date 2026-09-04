@@ -616,10 +616,32 @@ export function runOnDeath(unit, team) {
   return out
 }
 
+// สเปก §4.1 (2026-09-03-passive-v2-p2-engine-design.md): "ค่าตั้งต้น pct = 15 ต่อชั้น · เพดาน 5 ชั้น"
+// ใช้เป็นเพดานสำรองตอนหาพาสสีฟของไวรัสตัวจริงไม่เจอ (เช่น ไวรัสสังเคราะห์ในเทสที่ไม่ได้ลงทะเบียน onAttack/infect ไว้)
+const INFECT_DEFAULT_MAX = 5
+
 /** ใครสักคนตายจริงแล้ว — ยิงให้ทีมของ "ฝั่งที่ได้ประโยชน์" (ฝั่งตรงข้ามคนที่ตาย)
  *  ต่างจาก onKill ตรงที่ไม่สนว่าใครเป็นคนล้ม ⇒ 🦖 ได้ชั้นแม้เพื่อนเป็นคนเก็บ (P2c) */
-export function runOnAnyDeath(dead, killerTeam, foes) {
+export function runOnAnyDeath(dead, killerTeam, foes, rand) {
   const out = []
+
+  // ส่งต่อเชื้อ — ศพยังแพร่ต่อได้ 1 ทอด สุ่มไปเพื่อนของมันที่ยังไม่ตาย
+  // 🎲 ใช้ rand ของเอนจินเท่านั้น (รีเพลย์ต้องตรงกับผลจริง) · ยึดเพดานเดิมของเชื้อ (รวมยอดของโฮสต์ใหม่ + ศพ)
+  // 🔴 ต้องอยู่ใต้ `if (inf...)` เท่านั้น — ไฟต์ที่ไม่มีเชื้อห้ามดึง rand() เพิ่มแม้แต่ครั้งเดียว
+  //    ไม่งั้นลำดับสุ่มทั้งไฟต์เลื่อน (ดู battle-differential.mjs)
+  const inf = dead && dead.ps && dead.ps.infect
+  if (inf && inf.n > 0 && typeof rand === 'function') {
+    const others = alive(foes || []).filter(u => u !== dead)
+    if (others.length) {
+      const to = others[Math.floor(rand() * others.length)]
+      const vpart = partsAt(passiveFor(inf.from), 'onAttack').find(x => x.effect === 'infect')
+      const cap = vpart ? valOf(vpart, inf.from).max : INFECT_DEFAULT_MAX
+      const cur = psOf(to).infect
+      psOf(to).infect = { n: Math.min(cap, (cur ? cur.n : 0) + inf.n), from: inf.from }
+    }
+    delete psOf(dead).infect
+  }
+
   for (const u of alive(killerTeam)) {
     const p = passiveFor(u)
     for (const part of partsAt(p, 'onAnyDeath')) {

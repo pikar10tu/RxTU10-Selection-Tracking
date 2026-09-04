@@ -582,6 +582,27 @@ test('onAnyDeath: ตัวที่ตายแล้วไม่ได้ช�
   } finally { delete PET_PASSIVES.__scav }
 })
 
+// ── infect (ตอนที่ 3: ส่งต่อเชื้อตอนตัวติดเชื้อล้ม) ─────────────
+test('infect: ตัวติดเชื้อล้ม เชื้อย้ายไปเพื่อนของมันแบบ deterministic และไม่เกินเพดาน', () => {
+  const virus = { uid: 'A0', side: 'A', id: '__blank__', hp: 100, maxHp: 100, atk: 100 }
+  const dead = { uid: 'B0', side: 'B', id: '__blank__', hp: 0, maxHp: 100, atk: 10 }
+  const alive1 = { uid: 'B1', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+  const alive2 = { uid: 'B2', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+  psOf(dead).infect = { n: 4, from: virus }
+  psOf(alive2).infect = { n: 3, from: virus }
+  runOnAnyDeath(dead, [virus], [dead, alive1, alive2], () => 0.99)   // 0.99 = ตัวท้ายสุด
+  assert.equal(psOf(alive2).infect.n, 5, 'รวมแล้วยึดเพดาน 5')
+  assert.equal(psOf(dead).infect, undefined, 'ศพต้องไม่ถือเชื้อต่อ')
+})
+
+test('infect: ไม่มีศัตรูเหลือให้ย้าย ก็ไม่ throw', () => {
+  const virus = { uid: 'A0', side: 'A', id: '__blank__', hp: 100, maxHp: 100, atk: 100 }
+  const dead = { uid: 'B0', side: 'B', id: '__blank__', hp: 0, maxHp: 100, atk: 10 }
+  psOf(dead).infect = { n: 2, from: virus }
+  runOnAnyDeath(dead, [virus], [dead], () => 0.5)
+  assert.equal(psOf(dead).infect, undefined)
+})
+
 // ── integration: กฎเหล็ก + determinism ──────────────────────
 const team = (ids, rarity, grade) => ids.map((id, i) => {
   const d = PETS.find(p => p.id === id)

@@ -92,7 +92,7 @@ export function simulateBattle(teamA, teamB, seed) {
     if (dead) {
       // ฝั่งที่ได้ประโยชน์คือทีมของผู้ตี — ไม่ว่าใครเป็นคนลงมือจริง
       const killerTeam = att.side === 'A' ? A : B
-      for (const e of runOnAnyDeath(tg, killerTeam, foes)) log.push(e)
+      for (const e of runOnAnyDeath(tg, killerTeam, foes, rand)) log.push(e)
     }
     log.push({
       t: 'attack', side: att.side, attacker: att.uid, target: tg.uid,
