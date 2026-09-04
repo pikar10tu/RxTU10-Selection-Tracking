@@ -583,24 +583,41 @@ test('onAnyDeath: ตัวที่ตายแล้วไม่ได้ช�
 })
 
 // ── infect (ตอนที่ 3: ส่งต่อเชื้อตอนตัวติดเชื้อล้ม) ─────────────
+// 🔑 ไวรัสในเทสต้องลงทะเบียนพาสสีฟจริง (id ชี้ไปที่ part ที่มี effect: 'infect') — ไม่ใช่ id ลอยๆ
+//    ที่หาไม่เจอใน PET_PASSIVES เพราะ vpart ของ runOnAnyDeath ต้องเจอค่า max จริงเพื่อพิสูจน์ว่าเพดานที่ยึด
+//    มาจาก value.max ของไวรัส ไม่ใช่ fallback (fallback มีไว้กันพังกรณีที่ไม่ควรเกิดจริงเท่านั้น)
 test('infect: ตัวติดเชื้อล้ม เชื้อย้ายไปเพื่อนของมันแบบ deterministic และไม่เกินเพดาน', () => {
-  const virus = { uid: 'A0', side: 'A', id: '__blank__', hp: 100, maxHp: 100, atk: 100 }
-  const dead = { uid: 'B0', side: 'B', id: '__blank__', hp: 0, maxHp: 100, atk: 10 }
-  const alive1 = { uid: 'B1', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
-  const alive2 = { uid: 'B2', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
-  psOf(dead).infect = { n: 4, from: virus }
-  psOf(alive2).infect = { n: 3, from: virus }
-  runOnAnyDeath(dead, [virus], [dead, alive1, alive2], () => 0.99)   // 0.99 = ตัวท้ายสุด
-  assert.equal(psOf(alive2).infect.n, 5, 'รวมแล้วยึดเพดาน 5')
-  assert.equal(psOf(dead).infect, undefined, 'ศพต้องไม่ถือเชื้อต่อ')
+  PET_PASSIVES.__virus = {
+    name: 'ทดสอบเชื้อ', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  try {
+    const virus = { uid: 'A0', side: 'A', id: '__virus', hp: 100, maxHp: 100, atk: 100 }
+    const dead = { uid: 'B0', side: 'B', id: '__blank__', hp: 0, maxHp: 100, atk: 10 }
+    const alive1 = { uid: 'B1', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    const alive2 = { uid: 'B2', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    psOf(dead).infect = { n: 4, from: virus }
+    psOf(alive2).infect = { n: 3, from: virus }
+    runOnAnyDeath(dead, [virus], [dead, alive1, alive2], () => 0.99)   // 0.99 = ตัวท้ายสุด
+    assert.equal(psOf(alive2).infect.n, 5, 'รวมแล้วยึดเพดาน 5')
+    assert.equal(psOf(dead).infect, undefined, 'ศพต้องไม่ถือเชื้อต่อ')
+  } finally { delete PET_PASSIVES.__virus }
 })
 
 test('infect: ไม่มีศัตรูเหลือให้ย้าย ก็ไม่ throw', () => {
-  const virus = { uid: 'A0', side: 'A', id: '__blank__', hp: 100, maxHp: 100, atk: 100 }
-  const dead = { uid: 'B0', side: 'B', id: '__blank__', hp: 0, maxHp: 100, atk: 10 }
-  psOf(dead).infect = { n: 2, from: virus }
-  runOnAnyDeath(dead, [virus], [dead], () => 0.5)
-  assert.equal(psOf(dead).infect, undefined)
+  PET_PASSIVES.__virus = {
+    name: 'ทดสอบเชื้อ', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  try {
+    const virus = { uid: 'A0', side: 'A', id: '__virus', hp: 100, maxHp: 100, atk: 100 }
+    const dead = { uid: 'B0', side: 'B', id: '__blank__', hp: 0, maxHp: 100, atk: 10 }
+    psOf(dead).infect = { n: 2, from: virus }
+    runOnAnyDeath(dead, [virus], [dead], () => 0.5)
+    assert.equal(psOf(dead).infect, undefined)
+  } finally { delete PET_PASSIVES.__virus }
 })
 
 // ── integration: กฎเหล็ก + determinism ──────────────────────
