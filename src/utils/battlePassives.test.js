@@ -1387,6 +1387,12 @@ test('infect ทะลุทุกเกราะจริง — ยิงผ�
 })
 
 // ── runOnKill: ต้องยิงครั้งเดียวต่อการฆ่าหนึ่งครั้ง (บั๊กเดิม: เรียกซ้ำเมื่อศัตรูยังเหลือ) ──
+// ⚠️ เทสนี้ (ของบรีฟฉบับแรก) ไม่ discriminate บั๊ก: เพดาน trex.stackAtk.max=3 บังเอิญเท่ากับจำนวน
+//    ศัตรู (3 ตัว) พอดี ⇒ ต่อให้ยิงซ้ำจริง ค่าที่ push ออกมาก็ยังไล่ 1,2,3 ไม่ซ้ำกันเอง (assert แรกผ่าน
+//    เสมอ) และเพดานเองก็กันไม่ให้จำนวน event เกิน deaths อยู่แล้ว (assert สองผ่านเสมอ) — วัดจริงแล้ว:
+//    ทั้งก่อนและหลังแก้บั๊ก ได้ amounts=[1,2,3] เหมือนกันเป๊ะ เทสนี้จึงพิสูจน์ได้แค่ "ค่าที่บันทึกไว้ไม่ลดลง/
+//    ไม่ซ้ำกันเอง" เท่านั้น ไม่ได้พิสูจน์ว่า runOnKill ถูกเรียกกี่ครั้งต่อการตาย — เก็บไว้เป็นสมอกันเลขเพี้ยน
+//    แบบอื่น แต่ตัวที่จับบั๊กจริงคือเทสถัดไป
 test('runOnKill: ล้มศัตรู 1 ตัว = ได้ชั้นเดียว ไม่ใช่สองชั้น', () => {
   const strong = { id: 'trex', rarity: 'legendary', element: 'fist', grade: 5 }
   const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
@@ -1397,6 +1403,21 @@ test('runOnKill: ล้มศัตรู 1 ตัว = ได้ชั้นเ
   assert.deepEqual(amounts, [...new Set(amounts)], `ชั้นซ้ำ = ยิงซ้ำ: ${amounts}`)
   const deaths = r.log.filter(e => e.t === 'attack' && e.dead).length
   assert.ok(stacks.length <= deaths, `${stacks.length} ชั้น จากการตาย ${deaths} ครั้ง`)
+})
+
+// ── ตัวที่จับบั๊กจริง: เดินไล่ log ทีละ event นับ stackAtk ที่โผล่ "หลัง attack ที่ dead:true"
+//    ก่อนถึง attack ครั้งถัดไป — ต้องไม่เกิน 1 เสมอ ไม่ว่าเพดานจะซ้อนกับจำนวนศัตรูพอดีหรือไม่ ──
+test('runOnKill: การตายหนึ่งครั้งต้องได้ชั้นไม่เกินหนึ่ง (ของเดิมยิงซ้ำ 2 ครั้งต่อศพ)', () => {
+  const strong = { id: 'trex', rarity: 'legendary', element: 'fist', grade: 5 }
+  const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
+  const r = simulateBattle([strong], [weak, weak, weak], 999)
+  let sinceDeath = -1, worst = 0
+  for (const e of r.log) {
+    if (e.t === 'attack') { if (sinceDeath >= 0) worst = Math.max(worst, sinceDeath); sinceDeath = e.dead ? 0 : -1 }
+    else if (sinceDeath >= 0 && e.t === 'passive' && e.effect === 'stackAtk') sinceDeath += 1
+  }
+  worst = Math.max(worst, Math.max(0, sinceDeath))
+  assert.equal(worst, 1, 'ศพเดียวต้องให้ชั้นเดียว — ได้มากกว่านั้นแปลว่า runOnKill ยิงซ้ำ')
 })
 
 test('runOnKill: หมัดที่ปิดไฟต์ก็ต้องได้ชั้น (บรรทัดใต้ลูปเป็นตัวเดียวที่ยิงให้มัน)', () => {

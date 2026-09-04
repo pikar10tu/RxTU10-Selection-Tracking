@@ -59,8 +59,12 @@ try {
   const mhOf = (r) => Object.fromEntries(Object.entries(r.units || {}).map(([uid, s]) => [uid, Math.round(s.maxHp) || 1]))
   const durOf = (bs) => bs.reduce((s, b) => s + b.timing.windup + b.timing.motion + b.timing.hitstop + b.timing.tail, 0)
 
-  // นับว่าเพ็ทตัวไหนอยู่ในไฟต์ที่ผลต่างกันบ้าง — ใช้ตอบว่า "ที่เปลี่ยนคือตัวที่เราตั้งใจแก้เท่านั้นจริงไหม"
-  const byPet = new Map()
+  // เก็บ "ชุด id ของทั้งสองทีม" ของทุกไฟต์ที่ผลต่างกัน — ใช้ตอบว่า "ที่เปลี่ยนคือตัวที่เราตั้งใจแก้
+  // เท่านั้นจริงไหม" ด้วยคำถามที่ถูกกว่าการนับว่าใครอยู่ในไฟต์ที่ต่างบ้าง (ทีมมีเพื่อนร่วมทีมคงที่
+  // qilin/genie เสมอ นับแบบนั้นใครๆ ก็ติดโผ) — คำถามที่ถูกคือ "มีไฟต์ที่ต่างกัน โดยไม่มีตัวนี้อยู่เลย
+  // กี่ไฟต์" ถ้าตอบ 0 แปลว่าตัวนั้นอยู่ในทุกไฟต์ที่ต่าง = ตัวการจริง ส่วนตัวที่เป็นแค่เพื่อนร่วมทีม/
+  // คู่ต่อสู้ที่บังเอิญโดนจับคู่ จะมีไฟต์ที่ต่างกันแบบไม่มีมันอยู่เสมอ (>0)
+  const badFights = []
   let n = 0, bad = 0, beatBad = 0, durBad = 0
   const cmp = (A, B, seed) => {
     n++
@@ -73,7 +77,7 @@ try {
         !== JSON.stringify({ w: b.winner, l: b.log, u: b.units, r: b.rounds })) {
       bad++
       if (bad <= 3) console.error('ต่างกันที่ซีด', seed, A.map(x => x.id).join('+'), 'vs', B.map(x => x.id).join('+'))
-      for (const id of new Set([...A, ...B].map(u => u.id))) byPet.set(id, (byPet.get(id) || 0) + 1)
+      badFights.push(new Set([...A, ...B].map(u => u.id)))
     }
     // ── ข้อมูลประกอบ (ไม่มีผลกับ exit code) ── จังหวะ/เวลาเล่าเรื่องของรีเพลย์
     // ⚠️ ห้ามเอาไปรวมกับเงื่อนไขผ่าน: วันนี้ยังมีความต่างที่ "ยอมรับแล้ว" ค้างอยู่ —
@@ -103,8 +107,14 @@ try {
 
   console.log(`เทียบ ${n} ไฟต์ · ต่างกัน ${bad}`)
   if (bad) {
-    const rows = [...byPet.entries()].sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id} ${n}`)
-    console.log('เพ็ทที่อยู่ในไฟต์ที่ต่าง:', rows.join(' · '))
+    const allPets = new Set()
+    for (const s of badFights) for (const id of s) allPets.add(id)
+    // ต่อเพ็ทแต่ละตัว: จำนวนไฟต์ที่ต่างกัน "โดยไม่มีตัวนี้อยู่เลย" — 0 = อยู่ในทุกไฟต์ที่ต่าง (ตัวการจริง)
+    const withoutCount = (id) => badFights.reduce((n, s) => n + (s.has(id) ? 0 : 1), 0)
+    const rows = [...allPets].map(id => [id, withoutCount(id)])
+      .sort((a, b) => a[1] - b[1]).map(([id, n]) => `${id} ${n}`)
+    console.log('เพ็ทที่อยู่ในไฟต์ที่ต่าง (เรียงตาม "ไฟต์ที่ต่างโดยไม่มีตัวนี้" — 0 = อยู่ในทุกไฟต์ที่ต่าง):')
+    console.log('  ' + rows.join(' · '))
   }
   console.log(`ℹ️  จังหวะ (ไม่นับเป็นเงื่อนไขผ่าน): kind ต่างกัน ${beatBad} ไฟต์ · เวลารวมต่างกัน ${durBad} ไฟต์`)
   exitCode = bad === 0 ? 0 : 1
