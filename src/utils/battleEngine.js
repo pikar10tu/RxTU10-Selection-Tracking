@@ -73,11 +73,20 @@ export function simulateBattle(teamA, teamB, seed) {
     // 🔒 sub: true ⇒ อยู่ beat เดิม ไม่เพิ่มจังหวะ · reflecting กันไม่ให้เกราะฝั่งตรงข้ามสะท้อนกลับมาวนไม่รู้จบ
     // ⚠️ ต้อง finally: ถ้าอะไรใน strike/runOnHit/runOnDeath/runOnAnyDeath ที่ซ้อนอยู่ throw ขึ้นมา
     //    แล้วไม่มี finally, reflecting จะค้าง true ไปตลอดไฟต์ที่เหลือ ⇒ เกราะทุกตัวหลังจากนั้นเงียบสนิทไม่มีใครรู้
+    // 🔑 ตั้งใจให้อยู่ "ก่อน" การเช็คตายของตัวที่มีเกราะ (let dead = ... ข้างล่าง) — เกราะโปรกในหมัดที่
+    //    ฆ่าเจ้าของมันเอง (เช่นโดนเชื้อระเบิดผ่าน pierce ในหมัดเดียวกัน) ก็ยังต้องสะท้อนครบทั้งชุด
+    //    เพราะมันโปรกไปแล้วตอนรับหมัดนั้น ⇒ **ไม่ใช่บั๊ก อย่า "แก้" ด้วยการเลื่อนลงไปใต้ if (dead)**
     if (hitRes.reflect > 0 && !reflecting) {
       reflecting = true
       try {
         const victims = alive(att.side === 'A' ? A : B)
-        for (const v of victims) strike(tg, v, att.side === 'A' ? A : B, hitRes.reflect, { crit: false, eff: 'neutral' }, true)
+        for (const v of victims) {
+          // 🔴 victims เป็น snapshot ตั้งแต่ก่อนเข้าลูป แต่เป้าตายกลางลูปได้จริง (เช่นไปรับแทนเพื่อน
+          //    ตามกฎ guardian ในก้อนสะท้อนใบก่อนหน้า) — ตีศพซ้ำ = runOnDeath รอบสอง อาจกินสิทธิ์
+          //    revive ทิ้งฟรี · ลูป cleave ของ hit() กันด้วยเช็คเดียวกันนี้อยู่แล้ว
+          if (v.hp <= 0) continue
+          strike(tg, v, att.side === 'A' ? A : B, hitRes.reflect, { crit: false, eff: 'neutral' }, true)
+        }
       } finally {
         reflecting = false
       }
