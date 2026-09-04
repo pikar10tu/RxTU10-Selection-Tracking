@@ -447,6 +447,10 @@ export function runOnHit(defender, dmg, attacker, team, rand) {
         }
         break
       case 'armorStack': {
+        // กันไว้เผื่อเพ็ทวันหน้ามี armorStack 2 part บนตัวเดียว (วันนี้ยังไม่มี, ทะเบียนล็อกอยู่):
+        // ถ้าไม่กันตรงนี้ part ที่สองจะเห็น res.dmg = 0 จาก part แรกไปแล้ว แล้วคำนวณ
+        // res.reflect = pctOf(0, pct) = 0 ทับค่าที่ถูกต้องของ part แรก ทั้งที่ยังกินสแตคไปฟรีอีก 1 ชั้น
+        if (res.reflect > 0) break
         const st = psOf(defender)
         // เติมสแตคครั้งเดียวตอนโดนหมัดแรกของไฟต์ — ไม่มีการเติมซ้ำระหว่างไฟต์ (สเปก §4.3)
         if (st.armor === undefined) st.armor = v.count

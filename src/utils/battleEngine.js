@@ -61,11 +61,16 @@ export function simulateBattle(teamA, teamB, seed) {
 
     // เกราะสะท้อน — ใส่ศัตรูทุกตัวของผู้รับ ผ่าน strike() ปกติ (โดนสายลดของฝั่งนั้นตามสเปก)
     // 🔒 sub: true ⇒ อยู่ beat เดิม ไม่เพิ่มจังหวะ · reflecting กันไม่ให้เกราะฝั่งตรงข้ามสะท้อนกลับมาวนไม่รู้จบ
+    // ⚠️ ต้อง finally: ถ้าอะไรใน strike/runOnHit/runOnDeath/runOnAnyDeath ที่ซ้อนอยู่ throw ขึ้นมา
+    //    แล้วไม่มี finally, reflecting จะค้าง true ไปตลอดไฟต์ที่เหลือ ⇒ เกราะทุกตัวหลังจากนั้นเงียบสนิทไม่มีใครรู้
     if (hitRes.reflect > 0 && !reflecting) {
       reflecting = true
-      const victims = alive(att.side === 'A' ? A : B)
-      for (const v of victims) strike(tg, v, att.side === 'A' ? A : B, hitRes.reflect, { crit: false, eff: 'neutral' }, true)
-      reflecting = false
+      try {
+        const victims = alive(att.side === 'A' ? A : B)
+        for (const v of victims) strike(tg, v, att.side === 'A' ? A : B, hitRes.reflect, { crit: false, eff: 'neutral' }, true)
+      } finally {
+        reflecting = false
+      }
     }
 
     let dead = tg.hp <= 0
