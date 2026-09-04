@@ -6,6 +6,7 @@
 import { BATTLE_CFG, buildCombatant, elementMult } from '../data/battle.js'
 import {
   runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDealt, runOnDeath, runOnKill, runOnAnyDeath, statsSnapshot,
+  tauntTargetOf,
 } from './battlePassives.js'
 
 // mulberry32 — RNG เดียวกับ sim
@@ -38,7 +39,14 @@ export function simulateBattle(teamA, teamB, seed) {
   const units = statsSnapshot(A, B)
   for (const e of [...runOnStart(A, B), ...runOnStart(B, A)]) log.push(e)
 
-  const pick = (foes) => { const al = alive(foes); return al.length ? al[Math.floor(rand() * al.length)] : null }
+  // เลือกเป้า: ถูกบังคับ (taunt) มาก่อนเสมอ · ไม่งั้นสุ่มตามเดิม
+  // 🔴 ต้องเช็ค taunt ก่อนเรียก rand() — ถ้าเรียก rand() แล้วค่อยทิ้งผล ลำดับสุ่มจะเลื่อนทั้งไฟต์
+  const pick = (foes) => {
+    const forced = tauntTargetOf(foes)
+    if (forced) return forced
+    const al = alive(foes)
+    return al.length ? al[Math.floor(rand() * al.length)] : null
+  }
 
   // กันเกราะสะท้อนชนกันไปมา: ระหว่างยิงก้อนสะท้อน ห้ามมีก้อนสะท้อนใหม่เกิดขึ้นอีกชั้น
   let reflecting = false

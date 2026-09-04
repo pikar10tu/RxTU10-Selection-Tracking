@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDealt, runOnDeath, runOnKill, runOnAnyDeath, passiveFor, psOf,
+  tauntTargetOf,
 } from './battlePassives.js'
 import { PET_PASSIVES, passiveValueAt, passiveText, effectText, partsOf, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT } from '../data/petPassives.js'
 import { PETS } from '../data/index.js'
@@ -880,4 +881,25 @@ test('armorStack: กันหมัดหลักได้ แต่กัน�
     assert.equal(res.dmg, 0)
     assert.equal(res.pierce, 30, 'เกราะต้องไม่แตะช่อง pierce')
   } finally { delete PET_PASSIVES.__armor2 }
+})
+
+// ── tauntTargetOf ────────────────────────────────────────────
+test('tauntTargetOf: ไม่มีใครมี taunt คืน null (ไฟต์ปกติต้องไม่เปลี่ยนพฤติกรรม)', () => {
+  const a = { uid: 'B0', side: 'B', id: 'turtle', hp: 100, maxHp: 100, atk: 10 }
+  const b = { uid: 'B1', side: 'B', id: 'fox', hp: 100, maxHp: 100, atk: 10 }
+  assert.equal(tauntTargetOf([a, b]), null)
+})
+
+test('tauntTargetOf: มีสองตัวเอาช่องซ้ายสุด และข้ามตัวที่ตายแล้ว', () => {
+  PET_PASSIVES.__taunt = {
+    name: 'ทดสอบท้าชน', icon: '🧪',
+    parts: [{ hook: 'onRound', effect: 'taunt', value: { pct: 25 }, step: { pct: 0 } }],
+    desc: 'ท้าชน ลด {pct}%', short: 'ท้าชน ลด {pct}%',
+  }
+  try {
+    const dead = { uid: 'B0', side: 'B', id: '__taunt', hp: 0, maxHp: 100, atk: 10 }
+    const left = { uid: 'B1', side: 'B', id: '__taunt', hp: 100, maxHp: 100, atk: 10 }
+    const right = { uid: 'B2', side: 'B', id: '__taunt', hp: 100, maxHp: 100, atk: 10 }
+    assert.equal(tauntTargetOf([dead, left, right]), left)
+  } finally { delete PET_PASSIVES.__taunt }
 })

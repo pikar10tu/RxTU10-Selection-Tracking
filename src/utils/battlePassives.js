@@ -246,6 +246,17 @@ export function runOnRound(team) {
   return out
 }
 
+/** ตัวที่ถูกบังคับให้เป็นเป้าในรอบนี้ (taunt) — คืน null ถ้าไม่มีใครบังคับ
+ *  🔴 กอริลลา 2 ตัวในทีมเดียว = เอาช่องซ้ายสุดเสมอ · ต้อง deterministic ไม่งั้นรีเพลย์ไม่ตรงกับผลจริง
+ *  🔴 ห้ามดึง rand ในฟังก์ชันนี้ — ลำดับการดึงสุ่มของเอนจินต้องไม่เปลี่ยน ไม่งั้นไฟต์เดิมทั้งเกมเพี้ยน */
+export function tauntTargetOf(foes) {
+  for (const u of alive(foes)) {
+    const part = partsAt(passiveFor(u), 'onRound').find(x => x.effect === 'taunt')
+    if (part) return u
+  }
+  return null
+}
+
 // ══════════════════════════════════════════════════════════════
 //  onAttack — ก่อนคิดดาเมจ (คืนตัวปรับ ไม่แก้ state เอง)
 // ══════════════════════════════════════════════════════════════
