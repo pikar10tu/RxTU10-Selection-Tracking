@@ -359,11 +359,15 @@ test('runOnHit ไม่รับทีมผู้ตีอีกแล้ว �
     const me = { uid: 'A0', side: 'A', id: '__uni', hp: 100, maxHp: 100, atk: 10 }
     const hurt = { uid: 'A1', side: 'A', id: 'blank', hp: 50, maxHp: 100, atk: 10 }
     const tg = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
-    // เผลอส่งทีมผู้ตีเป็นพารามิเตอร์ที่ 6 แบบเดิม = ถูกเมิน ไม่มีใครถูกฟื้น
-    const res = runOnHit(tg, 100, me, [tg], () => 0.5, [me, hurt])
-    assert.equal(hurt.hp, 50)
-    assert.equal(res.events.length, 0)
-    assert.equal(runOnHit.length, 5)                // ห้ามงอกพารามิเตอร์กลับมาอีก
+    // พารามิเตอร์ที่ 6 ของ runOnHit วันนี้คือ `forced` (บอกว่าหมัดนี้ถูก taunt บังคับมาหรือเลือกเอง — P2b)
+    // ไม่ใช่ทีมผู้ตีอีกต่อไป (นั่นคือของ P2a ที่ถูกตัดออกแล้ว) — ส่ง false ตรงๆ เพราะเคสนี้ไม่ได้ทดสอบ taunt
+    // สิ่งที่ยังต้องพิสูจน์จาก P2a คือ "runOnHit มองไม่เห็นทีมผู้ตี": ผลฝั่งผู้ตี (healOnAttack) ย้ายไป
+    // runOnDealt ทั้งหมดแล้ว ⇒ เพื่อนของผู้ตีที่เลือดพร่อง (hurt) ต้องไม่ถูกฟื้นจากอะไรใน runOnHit เลย
+    // แม้จะส่ง [tg] เป็นทีมผู้รับตามจริง ก็ไม่มีทางไปถึง hurt ได้ (เดิมเคยพิสูจน์ด้วย runOnHit.length === 5
+    // แต่ arity ไม่ได้พิสูจน์อะไร — พารามิเตอร์ที่ 6 งอกกลับมาจริงในงานนี้ เพียงแค่มี default จึงไม่โผล่ใน .length)
+    const res = runOnHit(tg, 100, me, [tg], () => 0.5, false)
+    assert.equal(hurt.hp, 50, 'runOnHit มองไม่เห็นทีมผู้ตี — เพื่อนของผู้ตีต้องไม่ถูกฟื้นจากอะไรในนี้')
+    assert.equal(res.events.length, 0, 'healOnAttack ไม่ได้ยิงจาก runOnHit เลย (ย้ายไป runOnDealt ทั้งหมด)')
   } finally { delete PET_PASSIVES.__uni }
 })
 
