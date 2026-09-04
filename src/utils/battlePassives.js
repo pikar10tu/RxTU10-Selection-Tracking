@@ -521,7 +521,12 @@ export function runOnHit(defender, dmg, attacker, team, rand, forced = false) {
     const st = psOf(defender)
     const cur = st.infect || { n: 0, from: attacker }
     if (cur.n < v.max) {
-      st.infect = { n: cur.n + 1, from: attacker }
+      // 🔴 กฎ "ไวรัสตัวแรกเป็นเจ้าของสแตค": from ต้องมาจาก cur.from ไม่ใช่ attacker ตรงๆ
+      //    ถ้าทีมมีไวรัส 2 ตัว (คนละเกรด/atk) แล้วให้ attacker ทับทุกครั้งที่ตี เจ้าของดาเมจตอนระเบิด
+      //    (งานย่อย 6 อ่าน from.atk) และตอนย้ายเชื้อตอนตาย (งานย่อย 7) จะเปลี่ยนไปเงียบๆ ตามว่าใครตีล่าสุด
+      //    ทั้งที่ไม่มี event บอกผู้เล่นเลย — cur.from เมื่อยังไม่เคยติดเชื้อ (st.infect ไม่มี) จะ fallback
+      //    เป็น attacker ของหมัดนี้พอดี (ผู้ติดเชื้อคนแรก) แล้วค้างค่าเดิมไว้ทุกหมัดถัดไปจนกว่าเชื้อจะหาย
+      st.infect = { n: cur.n + 1, from: cur.from }
       res.events.push(ev(attacker, ap, part, { targets: [defender.uid],
         amount: st.infect.n, fxKind: 'debuff' }))
     } else {

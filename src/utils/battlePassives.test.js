@@ -947,9 +947,14 @@ test('infect: ไวรัสตีแล้วเป้าได้ชั้น
   try {
     const virus = { uid: 'A0', side: 'A', id: '__virus', hp: 100, maxHp: 100, atk: 100 }
     const tgt = { uid: 'B0', side: 'B', id: '__blank__', hp: 500, maxHp: 500, atk: 10 }
-    for (let i = 0; i < 7; i++) runOnHit(tgt, 10, virus, [tgt], () => 0.5)
+    let infectEvents = 0
+    for (let i = 0; i < 7; i++) {
+      const r = runOnHit(tgt, 10, virus, [tgt], () => 0.5)
+      infectEvents += r.events.filter(e => e.effect === 'infect').length
+    }
     assert.equal(psOf(tgt).infect.n, 5, 'เพดาน 5 ชั้น')
     assert.equal(psOf(tgt).infect.from, virus)
+    assert.equal(infectEvents, 5, 'ชนเพดานแล้วต้องเงียบ — 7 หมัดต้องได้ event แค่ 5 อัน ไม่ใช่ 7')
   } finally { delete PET_PASSIVES.__virus }
 })
 
@@ -958,4 +963,52 @@ test('infect: เพ็ทที่ไม่ใช่ไวรัสตี ไ�
   const tgt = { uid: 'B0', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
   runOnHit(tgt, 10, att, [tgt], () => 0.5)
   assert.equal(psOf(tgt).infect, undefined)
+})
+
+test('infect: ไวรัสตัวแรกเป็นเจ้าของสแตคเสมอ — ไวรัสตัวที่สองตีต่อไม่แย่งความเป็นเจ้าของ', () => {
+  PET_PASSIVES.__virusA = {
+    name: 'ทดสอบเชื้อ A', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  PET_PASSIVES.__virusB = {
+    name: 'ทดสอบเชื้อ B', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  try {
+    const virusA = { uid: 'A0', side: 'A', id: '__virusA', hp: 100, maxHp: 100, atk: 100 }
+    const virusB = { uid: 'A1', side: 'A', id: '__virusB', hp: 100, maxHp: 100, atk: 999 } // atk ต่างกันชัดเจน
+    const tgt = { uid: 'B0', side: 'B', id: '__blank__', hp: 500, maxHp: 500, atk: 10 }
+    runOnHit(tgt, 10, virusA, [tgt], () => 0.5)
+    runOnHit(tgt, 10, virusA, [tgt], () => 0.5)
+    assert.equal(psOf(tgt).infect.n, 2)
+    assert.equal(psOf(tgt).infect.from, virusA, 'ก่อนไวรัส B ตี เจ้าของต้องเป็น A')
+
+    runOnHit(tgt, 10, virusB, [tgt], () => 0.5)     // ไวรัส B ตีต่อ ยังไม่ชนเพดาน (n=2 < max=5)
+    assert.equal(psOf(tgt).infect.n, 3, 'สแตคยังต้องเพิ่มจากไวรัส B')
+    assert.equal(psOf(tgt).infect.from, virusA, 'ไวรัสตัวแรก (A) ยังต้องเป็นเจ้าของสแตค ไม่ใช่ B ที่ตีล่าสุด')
+  } finally { delete PET_PASSIVES.__virusA; delete PET_PASSIVES.__virusB }
+})
+
+test('infect: ดอดจ์เต็มหมัด (dmg=0) ก็ยังติดเชื้อ — การแปะไม่ขึ้นกับดาเมจที่ทะลุเข้ามา', () => {
+  PET_PASSIVES.__virusDmg = {
+    name: 'ทดสอบเชื้อ', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  PET_PASSIVES.__dodger = {
+    name: 'ทดสอบหลบ', icon: '🧪',
+    parts: [{ hook: 'onHit', effect: 'dodge', value: { pct: 100 }, step: { pct: 0 } }],
+    desc: 'หลบ {pct}%', short: 'หลบ {pct}%',
+  }
+  try {
+    const virus = { uid: 'A0', side: 'A', id: '__virusDmg', hp: 100, maxHp: 100, atk: 100 }
+    const tgt = { uid: 'B0', side: 'B', id: '__dodger', hp: 100, maxHp: 100, atk: 10 }
+    const res = runOnHit(tgt, 10, virus, [tgt], () => 0)   // rand 0 = หลบติดแน่นอน (dodge 100%)
+    assert.equal(res.dodged, true, 'ต้องหลบจริงในเทสนี้')
+    assert.equal(res.dmg, 0, 'ดาเมจต้องเป็น 0 หลังหลบ')
+    assert.equal(psOf(tgt).infect.n, 1, 'หลบเต็มหมัดก็ยังต้องติดเชื้อ 1 ชั้น')
+    assert.equal(psOf(tgt).infect.from, virus)
+  } finally { delete PET_PASSIVES.__virusDmg; delete PET_PASSIVES.__dodger }
 })
