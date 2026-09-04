@@ -949,12 +949,14 @@ test('infect: ไวรัสตีแล้วเป้าได้ชั้น
     const virus = { uid: 'A0', side: 'A', id: '__virus', hp: 100, maxHp: 100, atk: 100 }
     const tgt = { uid: 'B0', side: 'B', id: '__blank__', hp: 500, maxHp: 500, atk: 10 }
     // 🔴 P2b (งานย่อย 6) ทำให้หมัดที่ 2 เป็นต้นไปของลูปนี้ "ระเบิด" ด้วย (virus ตีเป้าที่ตัวเองแปะเชื้อไว้แล้ว
-    //    ก็ถือว่าอยู่ทีมเดียวกับ from) ⇒ นับเฉพาะ event fxKind:'debuff' (การแปะชั้น) ให้ตรงกับที่เทสนี้ตั้งใจวัด
-    //    (เพดานของการ "แปะ" ไม่ใช่จำนวนครั้งที่ "ระเบิด" ซึ่งไม่มีเพดานและถูกเทสแยกไว้ต่างหากแล้ว)
+    //    ก็ถือว่าอยู่ทีมเดียวกับ from) — แต่ event ระเบิดใช้ชื่อ effect แยกเป็น 'infectBurst' แล้ว (fix round 1
+    //    ข้อ 2: กันชนคีย์ dedupe ของ battleBeats.js) ⇒ filter effect === 'infect' เฉยๆ ก็ได้เฉพาะการแปะชั้น
+    //    ตรงกับที่เทสนี้ตั้งใจวัดอยู่แล้ว ไม่ต้องพึ่ง fxKind (เพดานของการ "แปะ" ไม่ใช่จำนวนครั้งที่ "ระเบิด"
+    //    ซึ่งไม่มีเพดานและถูกเทสแยกไว้ต่างหากแล้ว)
     let tagEvents = 0
     for (let i = 0; i < 7; i++) {
       const r = runOnHit(tgt, 10, virus, [tgt], () => 0.5)
-      tagEvents += r.events.filter(e => e.effect === 'infect' && e.fxKind === 'debuff').length
+      tagEvents += r.events.filter(e => e.effect === 'infect').length
     }
     assert.equal(psOf(tgt).infect.n, 5, 'เพดาน 5 ชั้น')
     assert.equal(psOf(tgt).infect.from, virus)
@@ -1073,59 +1075,92 @@ test('infect: ไวรัสตายแล้วเชื้อยังระ
 // เทสนี้ยิงผ่าน simulateBattle เต็มใบ ให้ engine เป็นคนคำนวณทั้งสายลดและ pierce เอง แล้วตรวจทุก event
 // ระเบิดเชื้อในไฟต์เทียบกับสูตร infect เป๊ะๆ ไม่ใช่แค่ "มากกว่า 0" — ถ้า turtle มีสิทธิ์หักดาเมจนี้ได้แม้แต่นิดเดียว
 // (damageReduction 12% ของมันเอง) ตัวเลขที่ได้จริงจะไม่ตรงสูตรทันที
+//
+// 🔴 fix round 1: เช็คแค่ event.amount (ตัวเลขที่ battlePassives.js เขียนอธิบายตัวเองในหมัดเดียวกัน) ไม่พอ —
+//    บล็อกระเบิดไม่เคยอ่าน res.dmg เลย ต่อให้ battleEngine.js หัก hitRes.pierce ผิด (เช่นหักครึ่งเดียว)
+//    event.amount ก็ยังพิมพ์ค่าที่ "ควรจะเป็น" เหมือนเดิม เทสแบบเดิมจะยังผ่านทั้งที่ปลายทาง (ฝั่งใช้ค่า) พัง
+//    ต้องพิสูจน์ที่ hp ของเป้าที่หายไปจริง (ฝั่ง battleEngine.js: `tg.hp -= hitRes.pierce`) จึงรัน simulateBattle
+//    ซ้ำสองครั้งด้วย seed เดิมเป๊ะ ครั้งหนึ่ง pct=15 (ของจริง) อีกครั้ง pct=0 (คุมกลุ่ม) — โค้ดของ infect
+//    ไม่เรียก rand() เลยสักจุด (ทั้งตอนแปะและตอนระเบิด) และ pct ไม่มีผลต่อ elementMult/crit/variance/การเลือก
+//    เป้าของ battleEngine.js ⇒ ลำดับการดึง rand() ทั้งไฟต์เหมือนกันเป๊ะระหว่างสองรัน จนกว่าฝั่งใดฝั่งหนึ่งจะตาย
+//    ก่อน (การตายเกิดจาก hp ต่างกัน ซึ่งมาทีหลังหมัดที่กำลังเทส) ⇒ ดาเมจ "หมัดหลักหลังหักลด" ของหมัดที่ N
+//    เหมือนกันทั้งสองรันเป๊ะ ส่วนต่างของ attack.dmg ระหว่างสองรันที่หมัดเดียวกัน = pierce ล้วนๆ ที่ถูกหักจริง
+//    จาก hp ของเป้า — ไม่ใช่ค่าที่ battlePassives.js "รายงาน" — นี่คือครึ่งที่หนี้ P2a ต้องการ
 test('infect ทะลุทุกเกราะจริง — ยิงผ่าน simulateBattle ไม่ใช่แค่ระดับฟังก์ชัน', () => {
   // ทีม A: ไวรัสล้วน (1 ตัว) · ทีม B: เต่า (damageReduction) — ทีมละตัวเดียว ⇒ A0 ตี B0 ทุกหมัดแน่นอน
   // ถ้าเชื้อถูกหักโดยสายลด ดาเมจที่ B เสียแต่ละหมัดจะน้อยกว่าที่คำนวณไว้อย่างเห็นได้ชัด
-  PET_PASSIVES.__virus = {
-    name: 'ทดสอบเชื้อ', icon: '🧪',
-    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
-    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
-  }
-  try {
-    const A = [{ id: '__virus', rarity: 'legendary', element: 'fist', grade: 3 }]
-    const B = [{ id: 'turtle', rarity: 'common', element: 'paper', grade: 3 }]
-    const r = simulateBattle(A, B, 12345)
-    const infectEvents = r.log.filter(e => e.t === 'passive' && e.effect === 'infect')
-    assert.ok(infectEvents.length > 0, 'ต้องมี event เชื้อในไฟต์')
-
-    // ── ที่มาของ virusAtk: buildCombatant (src/data/petPower.js combatStats), ไม่เดา ──
-    //   rarity legendary → COMBAT_BASE.legendary.atk = 14
-    //   grade 3          → COMBAT_GRADE[3] = 1.52
-    //   element fist      → ELEMENT_BIAS.fist.atk = 1.2
-    //   atk = 14 × 1.52 × 1.2 = 25.536 (คูณตามลำดับเดียวกับ combatStats() เป๊ะ กันพลาดจุดทศนิยม)
-    //   __virus ไม่มี aura/setup ใดๆ ที่แตะ atk ⇒ ค่านี้คงที่ตลอดทั้งไฟต์ ไม่ต้องคำนึงถึง atkOnHit/stackAtk
-    const virusAtk = COMBAT_BASE.legendary.atk * COMBAT_GRADE[3] * ELEMENT_BIAS.fist.atk
-    assert.equal(virusAtk, 25.536)
-
-    // ── สูตรระเบิด (Step 4 ที่เพิ่งเขียนใน battlePassives.js runOnHit) ──
-    //   res.pierce += pctOf(inf.from.atk, vv.pct) * inf.n   ← ใช้ n "ก่อน" แปะชั้นใหม่ของหมัดนี้
-    //   amount ของ event fxKind:'damage' = Math.round(res.pierce)
-    // เดินตาม log ตามลำดับจริง สะสม n จาก event แปะชั้น (fxKind:'debuff', amount = n หลังแปะ) แล้วเช็คว่า
-    // event ระเบิด (fxKind:'damage') ที่ตามมาแต่ละอัน ตรงกับ Math.round(virusAtk × 0.15 × nก่อนหน้า) เป๊ะ
-    // — ไม่ใช่ Math.round(virusAtk × 0.15 × nก่อนหน้า × 0.88) ซึ่งจะเป็นค่าที่ได้ถ้า damageReduction 12%
-    // ของ turtle มีสิทธิ์แตะช่อง pierce (มันไม่มีสิทธิ์ ตามสเปก — เทสนี้พิสูจน์ตรงนี้)
-    let stackSoFar = 0
-    let boomChecked = 0
-    for (const e of infectEvents) {
-      if (e.fxKind === 'damage') {
-        const undiminished = Math.round(virusAtk * 0.15 * stackSoFar)
-        const asIfReduced = Math.round(virusAtk * 0.15 * stackSoFar * (1 - 0.12))   // ถ้า DR 12% ของ turtle แตะ pierce ได้
-        assert.equal(e.amount, undiminished,
-          `pierce หมัดที่ n=${stackSoFar} ต้องเท่ากับ ${undiminished} (สูตรไม่ผ่านสายลด)`)
-        assert.notEqual(e.amount, asIfReduced,
-          'ถ้าค่าตรงกับเวอร์ชันที่ถูกลด 12% ด้วย แปลว่า turtle แตะ pierce ได้ ซึ่งผิดสเปก')
-        boomChecked++
-      } else if (e.fxKind === 'debuff') {
-        stackSoFar = e.amount   // st.infect.n หลังแปะของหมัดนี้ — ใช้เป็น n "ก่อนหน้า" ของหมัดถัดไป
-      }
+  const A = [{ id: '__virus', rarity: 'legendary', element: 'fist', grade: 3 }]
+  const B = [{ id: 'turtle', rarity: 'common', element: 'paper', grade: 3 }]
+  const runWith = (pct) => {
+    PET_PASSIVES.__virus = {
+      name: 'ทดสอบเชื้อ', icon: '🧪',
+      parts: [{ hook: 'onAttack', effect: 'infect', value: { pct, max: 5 }, step: { pct: 0, max: 0 } }],
+      desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
     }
-    assert.ok(boomChecked > 0, 'ต้องมีหมัดที่ทำให้เชื้อระเบิดจริงอย่างน้อย 1 ครั้งถึงจะพิสูจน์อะไรได้')
+    try { return simulateBattle(A, B, 12345) } finally { delete PET_PASSIVES.__virus }
+  }
+  const real = runWith(15)                     // ของจริง — pierce มีค่า
+  const ctrl = runWith(0)                       // คุมกลุ่ม — โครงสร้างพาสสีฟเหมือนกันทุกจุด (แปะชั้นยังทำงาน,
+                                                 // เดิน code path เดียวกัน, ไม่เรียก rand() เพิ่ม/น้อยลง)
+                                                 // ต่างกันแค่ pierce ที่ผลิตออกมาเป็น 0 เท่านั้น
 
-    // ── ค่าที่วัดได้จริงตอนเขียนเทสนี้ (seed 12345, เพื่อบันทึกไว้เป็นหลักฐาน ไม่ใช่ที่มาของสูตร) ──
-    //   debuff n=1 → damage 4 (round(3.8304×1)) → debuff n=2 → damage 8 (round(3.8304×2))
-    //   → debuff n=3 → damage 11 (round(3.8304×3)) → debuff n=4 (ไฟต์จบก่อนหมัดถัดไป ชนะฝั่ง A)
-    // ยืนยันจำนวน event ให้ตรงกับที่สังเกตได้จริง กันไม่ให้สูตรข้างบน "ผ่านโดยบังเอิญ" เพราะไม่มีอะไรให้เช็คเลย
-    assert.equal(infectEvents.filter(e => e.fxKind === 'debuff').length, 4)
-    assert.equal(boomChecked, 3)
-  } finally { delete PET_PASSIVES.__virus }
+  // effect ของ "แปะชั้น" กับ "ระเบิด" แยกชื่อกันแล้ว (infect vs infectBurst — ดู docblock ของ ev() ในซอร์ส
+  // สำหรับเหตุผลเรื่องคีย์ dedupe ของ battleBeats.js) กรองได้ตรงๆ ไม่ต้องพึ่ง fxKind อีกต่อไป
+  const tagEvents = real.log.filter(e => e.t === 'passive' && e.effect === 'infect')
+  const burstEvents = real.log.filter(e => e.t === 'passive' && e.effect === 'infectBurst')
+  assert.ok(tagEvents.length > 0 && burstEvents.length > 0, 'ต้องมีทั้งเหตุการณ์แปะเชื้อและระเบิดเชื้อ')
+
+  // ── ที่มาของ virusAtk: buildCombatant (src/data/petPower.js combatStats), ไม่เดา ──
+  //   rarity legendary → COMBAT_BASE.legendary.atk = 14
+  //   grade 3          → COMBAT_GRADE[3] = 1.52
+  //   element fist      → ELEMENT_BIAS.fist.atk = 1.2
+  //   atk = 14 × 1.52 × 1.2 = 25.536 (คูณตามลำดับเดียวกับ combatStats() เป๊ะ กันพลาดจุดทศนิยม)
+  //   __virus ไม่มี aura/setup ใดๆ ที่แตะ atk ⇒ ค่านี้คงที่ตลอดทั้งไฟต์ ไม่ต้องคำนึงถึง atkOnHit/stackAtk
+  const virusAtk = COMBAT_BASE.legendary.atk * COMBAT_GRADE[3] * ELEMENT_BIAS.fist.atk
+  assert.equal(virusAtk, 25.536)
+
+  // ── ครึ่งที่ 1 (ตัวรายงานตัวเอง — ยังเก็บไว้เป็นเช็คชั้นแรก): event.amount ของบล็อกระเบิดต้องตรงสูตร
+  //    amount = Math.round(virusAtk × 0.15 × nก่อนหน้า) (delta ของหมัดนี้ ไม่ใช่สะสม — fix round 1 ข้อ 3) ──
+  let stackSoFar = 0, boomChecked = 0
+  for (const e of real.log) {
+    if (e.t !== 'passive' || (e.effect !== 'infect' && e.effect !== 'infectBurst')) continue
+    if (e.effect === 'infectBurst') {
+      const undiminished = Math.round(virusAtk * 0.15 * stackSoFar)
+      assert.equal(e.amount, undiminished, `pierce หมัดที่ n=${stackSoFar} ต้องเท่ากับ ${undiminished}`)
+      boomChecked++
+    } else {
+      stackSoFar = e.amount   // st.infect.n หลังแปะของหมัดนี้ — ใช้เป็น n "ก่อนหน้า" ของหมัดถัดไป
+    }
+  }
+  assert.ok(boomChecked > 0, 'ต้องมีหมัดที่ทำให้เชื้อระเบิดจริงอย่างน้อย 1 ครั้งถึงจะพิสูจน์อะไรได้')
+
+  // ── ครึ่งที่ 2 (ของจริงที่หนี้ต้องการ — พิสูจน์ผ่าน hp ที่หายจริง ไม่ใช่ event ที่รายงานตัวเอง) ──
+  // เทียบ attack event ฝั่ง A (A0 ตี B0) ทีละหมัดระหว่างรันจริงกับรันคุมกลุ่ม: ส่วนต่างของ dmg ที่บันทึกจริง
+  // (ซึ่งมาจาก `tg.hp -= hitRes.dmg` แล้ว `tg.hp -= hitRes.pierce` ใน battleEngine.js — คนละจุดกับที่
+  // battlePassives.js เขียน event) ต้องเท่ากับ pierce ที่สูตรทำนายไว้ (คำนวณไว้ในครึ่งที่ 1 แล้ว: 4, 8, 11)
+  const realHits = real.log.filter(e => e.t === 'attack' && e.side === 'A')
+  const ctrlHits = ctrl.log.filter(e => e.t === 'attack' && e.side === 'A')
+  const pierceByHit = [0, 4, 8, 11]   // n=0,1,2,3 ก่อนหมัดที่ 1,2,3,4 ตามลำดับ (จาก round(3.8304×n) ด้านบน)
+  // หมัดที่ 1 (n=0 ยังไม่มีสแตค) ไม่มี pierce เลยทั้งสองรัน ⇒ diff ต้องเป็น 0 พอดี ไม่มีปัญหาการปัดเศษ
+  assert.equal(realHits[0].dmg - ctrlHits[0].dmg, pierceByHit[0])
+  // หมัดที่ 2 และ 3: ยืนยันด้วย diff แบบเป๊ะ (ตรวจแล้วว่า seed 12345 ไม่ชนขอบการปัดเศษที่หมัดเหล่านี้ —
+  // main-หลังลดของหมัดนั้นบวก pierce ไม่ข้ามเส้น .5 พอดี) ทั้งสองหมัดนี้มีทั้งไวรัสมีชีวิตในทั้งสองรันแน่นอน
+  // (turtle ยังไม่ตายในรันไหนเลยตอนนี้ ⇒ ลำดับ rand() ยังซิงก์กันอยู่ 100%)
+  assert.equal(realHits[1].dmg - ctrlHits[1].dmg, pierceByHit[1],
+    'หมัดที่ 2: ส่วนต่างดาเมจจริงระหว่างมี/ไม่มี pierce ต้องเท่ากับ pierce เป๊ะ (ไม่ถูกหักที่ปลายทาง)')
+  assert.equal(realHits[2].dmg - ctrlHits[2].dmg, pierceByHit[2],
+    'หมัดที่ 3: เหมือนกัน — พิสูจน์ผ่าน hp ที่หายจริง ไม่ใช่ event ที่ battlePassives.js รายงานเอง')
+  // หมัดที่ 4: main-หลังลดของหมัดนี้บังเอิญอยู่ชิดขอบ .5 (ยืนยันด้วยสคริปต์สำรวจ: real=30, ctrl=18, diff=12
+  // ไม่ใช่ 11) — เป็นผลจากการปัดเศษสองรอบอิสระกัน (round(M+p) กับ round(M) ต่างกันได้ไม่เกิน 1 จาก round(p)
+  // เสมอ เป็นสมบัติทางคณิตศาสตร์ของ Math.round ไม่ใช่บั๊ก) จึงเช็คแบบคลาดได้ไม่เกิน 1 แทนการเช็คเป๊ะที่หมัดนี้
+  assert.ok(Math.abs((realHits[3].dmg - ctrlHits[3].dmg) - pierceByHit[3]) <= 1,
+    'หมัดที่ 4: ส่วนต่างต้องใกล้เคียง pierce ในช่วงคลาดเคลื่อนจากการปัดเศษ (≤1) เท่านั้น')
+
+  // ── ค่าที่วัดได้จริงตอนเขียนเทสนี้ (seed 12345, เพื่อบันทึกไว้เป็นหลักฐาน ไม่ใช่ที่มาของสูตร) ──
+  //   debuff n=1 → burst 4 (round(3.8304×1)) → debuff n=2 → burst 8 (round(3.8304×2))
+  //   → debuff n=3 → burst 11 (round(3.8304×3)) → debuff n=4 (ไฟต์จบก่อนหมัดถัดไป ชนะฝั่ง A รอบที่ 4)
+  // ยืนยันจำนวน event ให้ตรงกับที่สังเกตได้จริง กันไม่ให้สูตรข้างบน "ผ่านโดยบังเอิญ" เพราะไม่มีอะไรให้เช็คเลย
+  assert.equal(tagEvents.length, 4)
+  assert.equal(boomChecked, 3)
+  assert.equal(realHits.length, 4)
 })

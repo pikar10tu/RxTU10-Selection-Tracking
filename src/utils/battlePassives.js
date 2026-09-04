@@ -55,7 +55,15 @@ const STAT_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'stackAt
  *     - `fxKind: 'buff'` → **targets = ตัวที่ได้บัฟ (ไม่ใช่เป้าที่ไปตี)** ·
  *       amount = "เลขของบัฟนั้น": `stackAtk`/`atkOnHit` = จำนวนชั้นสะสม (battleBuffs.liveBuffs อ่านเป็นชั้น)
  *       ส่วนตัวที่ไม่ได้สะสมชั้น (`berserk`/`giantSlayer`) = **% ดาเมจที่เพิ่มได้จริงรอบนี้** (ปัดจำนวนเต็ม)
- *       ⚠️ giantSlayer ห้ามส่งเป็น "จำนวนขั้น" เพราะมันมีเพดาน `max` ⇒ ขั้นกับ % ไม่ตรงกันเมื่อชนเพดาน */
+ *       ⚠️ giantSlayer ห้ามส่งเป็น "จำนวนขั้น" เพราะมันมีเพดาน `max` ⇒ ขั้นกับ % ไม่ตรงกันเมื่อชนเพดาน
+ *     - `fxKind: 'debuff'` (วันนี้มีแค่ `infect` แปะชั้น) → targets = เป้าที่ติด · amount = จำนวนชั้นสะสม
+ *       หลังแปะของหมัดนี้ (`st.infect.n`) ไม่ใช่ดาเมจ — ผู้อ่าน log ต้องรู้ว่าหน่วยของ `amount` เปลี่ยนไปตาม fxKind
+ *
+ *  🔑 `effect` ปกติมาจาก `part.effect` ตรงๆ แต่ `extra` spread ทับทีหลังได้ (ดู `infectBurst` ใน runOnHit):
+ *     ระเบิดเชื้อใช้ part เดียวกับตอนแปะ (`effect: 'infect'`) แต่ต้องส่ง event คนละชื่อ ('infectBurst')
+ *     เพราะ `battleBeats.js` กรุ๊ป passive event ติดกันด้วยคีย์ `uid:effect:nth` โดยไม่ดู fxKind เลย —
+ *     ถ้าทั้งแปะและระเบิดใช้ effect ชื่อ 'infect' เหมือนกัน หมัดที่ตีเป้าที่ติดเชื้ออยู่แล้ว (กรณีปกติ เพราะ
+ *     มีแต่ไวรัสเท่านั้นที่ถือ part นี้) จะชนคีย์กัน ⇒ ป้ายระเบิดตัวแรกโดนกลืนเป็น `skillQuiet` เงียบๆ */
 function ev(unit, p, part, extra = {}) {
   return { t: 'passive', uid: unit.uid, side: unit.side, petId: unit.id, name: p.name, icon: p.icon, effect: part.effect, ...extra }
 }
@@ -526,10 +534,16 @@ export function runOnHit(defender, dmg, attacker, team, rand, forced = false) {
     const vpart = partsAt(vp, 'onAttack').find(x => x.effect === 'infect')
     if (vpart) {
       const vv = valOf(vpart, inf.from)
-      // 🔴 += ไม่ใช่ = — pierce เป็นช่องรวม เผื่อกลไกอื่นในอนาคตใส่ค่าเพิ่มเข้ามาในหมัดเดียวกัน
-      res.pierce += pctOf(inf.from.atk, vv.pct) * inf.n
+      // 🔴 คำนวณ delta ของ "หมัดนี้" แยกไว้ก่อน แล้วค่อย += เข้า res.pierce — amount ที่ล็อกต้องเป็นส่วนที่
+      //    บล็อกนี้ contribute เอง ไม่ใช่ res.pierce สะสมทั้งก้อน (วันนี้ infect เป็นตัวเดียวที่ใส่ค่า pierce
+      //    เลยบังเอิญเท่ากัน แต่ถ้าวันหน้ามีกลไกอื่น += เข้ามาก่อนบล็อกนี้ในหมัดเดียวกัน amount จะโป้งทันที)
+      const delta = pctOf(inf.from.atk, vv.pct) * inf.n
+      res.pierce += delta
+      // 🔑 effect ตั้งชื่อแยกจากตอนแปะ ('infectBurst' ไม่ใช่ 'infect') แม้จะมาจาก part เดียวกัน —
+      //    ดูเหตุผลเต็มในดอคบล็อกของ ev() ด้านบน: battleBeats.js กรุ๊ป event ด้วย uid:effect:nth
+      //    ถ้าใช้ชื่อเดียวกับตอนแปะ หมัดที่ตีเป้าติดเชื้ออยู่แล้ว (กรณีปกติ) จะชนคีย์กันแล้วป้ายระเบิดหาย
       res.events.push(ev(inf.from, vp, vpart, { targets: [defender.uid],
-        amount: Math.round(res.pierce), fxKind: 'damage' }))
+        amount: Math.round(delta), fxKind: 'damage', effect: 'infectBurst' }))
     }
   }
 
