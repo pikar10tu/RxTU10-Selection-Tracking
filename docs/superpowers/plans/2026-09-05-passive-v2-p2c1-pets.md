@@ -72,16 +72,20 @@ P2a และ P2b พิสูจน์ตัวเองด้วย **"ไฟ�
 - [ ] **Step 1: เขียนเทสที่ยังไม่ผ่าน**
 
 ```js
-test('runOnKill: ล้มศัตรู 1 ตัว = ได้ชั้นเดียว ไม่ใช่สองชั้น', () => {
+test('runOnKill: การตายหนึ่งครั้งต้องได้ชั้นไม่เกินหนึ่ง (ของเดิมยิงซ้ำ 2 ครั้งต่อศพ)', () => {
+  // ⚠️ ห้ามเช็คด้วย "จำนวนชั้นรวม" หรือ "ชั้นซ้ำกันไหม" — เพดานของทีเร็กซ์คือ 3 ซึ่งบังเอิญเท่ากับ
+  //    จำนวนศัตรู ⇒ ทั้งก่อนและหลังแก้ได้ [1,2,3] เหมือนกันเป๊ะ เทสแบบนั้นจะเขียวทั้งที่บั๊กยังอยู่
+  //    สัญญาณจริงคือ "ศพเดียวมี stackAtk สองใบติดกัน"
   const strong = { id: 'trex', rarity: 'legendary', element: 'fist', grade: 5 }
   const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
   const r = simulateBattle([strong], [weak, weak, weak], 999)
-  const stacks = r.log.filter(e => e.t === 'passive' && e.effect === 'stackAtk')
-  const amounts = stacks.map(e => e.amount)
-  // ชั้นต้องไต่ทีละ 1 ต่อการตายหนึ่งครั้ง ห้ามมี 1,2 ติดกันจากศพเดียว
-  assert.deepEqual(amounts, [...new Set(amounts)], `ชั้นซ้ำ = ยิงซ้ำ: ${amounts}`)
-  const deaths = r.log.filter(e => e.t === 'attack' && e.dead).length
-  assert.ok(stacks.length <= deaths, `${stacks.length} ชั้น จากการตาย ${deaths} ครั้ง`)
+  let sinceDeath = -1, worst = 0
+  for (const e of r.log) {
+    if (e.t === 'attack') { if (sinceDeath >= 0) worst = Math.max(worst, sinceDeath); sinceDeath = e.dead ? 0 : -1 }
+    else if (sinceDeath >= 0 && e.t === 'passive' && e.effect === 'stackAtk') sinceDeath += 1
+  }
+  worst = Math.max(worst, Math.max(0, sinceDeath))
+  assert.equal(worst, 1, 'ศพเดียวต้องให้ชั้นเดียว — มากกว่านั้นแปลว่า runOnKill ยิงซ้ำ')
 })
 
 test('runOnKill: หมัดที่ปิดไฟต์ก็ต้องได้ชั้น (บรรทัดใต้ลูปเป็นตัวเดียวที่ยิงให้มัน)', () => {
@@ -97,7 +101,7 @@ test('runOnKill: หมัดที่ปิดไฟต์ก็ต้องไ
 - [ ] **Step 2: รันให้เห็นว่าไม่ผ่าน**
 
 Run: `node --test src/utils/battlePassives.test.js`
-Expected: FAIL เคสแรก — เห็น `amounts` เป็น `[1, 2, 3]` จากการตายครั้งเดียว (หรือมีเลขซ้ำ)
+Expected: FAIL เคสแรก — `worst` เป็น 2 (ศพเดียวได้สองชั้น)
 เคสที่สองควรผ่านอยู่แล้ว (มันคุ้มครองบรรทัดที่ห้ามลบ)
 
 - [ ] **Step 3: รวมสองจุดเป็นการเรียกครั้งเดียว**
@@ -127,15 +131,24 @@ Expected: FAIL เคสแรก — เห็น `amounts` เป็น `[1, 2
 
 ใน `scripts/battle-differential.mjs` — เก็บ id ของทั้งสองทีมทุกครั้งที่เจอไฟต์ต่าง แล้วสรุปท้ายสุด:
 
+🔴 **อย่านับแค่ "เพ็ทตัวนี้อยู่ในไฟต์ที่ต่างกี่ไฟต์"** — ตัวเติมทีมกับคู่ต่อสู้จะติดมาด้วยเสมอ
+แล้วรายการจะไม่มีวันอ่านว่า "มีแต่ตัวเดียว" ⇒ ตอบคำถามที่เราถามไม่ได้เลย
+สิ่งที่ต้องรู้คือ **"ไฟต์ที่ต่างโดยไม่มีตัวนี้ มีกี่ไฟต์"** — ตัวที่ได้ 0 คือตัวที่อยู่ในทุกไฟต์ที่ต่าง
+
 ```js
-// นับว่าเพ็ทตัวไหนอยู่ในไฟต์ที่ผลต่างกันบ้าง — ใช้ตอบว่า "ที่เปลี่ยนคือตัวที่เราตั้งใจแก้เท่านั้นจริงไหม"
-const byPet = new Map()
+// เก็บรายชื่อเพ็ทของไฟต์ที่ผลต่างกัน (เก็บเป็น Set ต่อไฟต์)
+const badTeams = []
 // …ใน cmp() ตอนที่เจอว่าต่าง:
-for (const id of new Set([...A, ...B].map(u => u.id))) byPet.set(id, (byPet.get(id) || 0) + 1)
+badTeams.push(new Set([...A, ...B].map(u => u.id)))
 // …ตอนพิมพ์สรุป:
-if (bad) {
-  const rows = [...byPet.entries()].sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id} ${n}`)
-  console.log('เพ็ทที่อยู่ในไฟต์ที่ต่าง:', rows.join(' · '))
+if (badTeams.length) {
+  const ids = new Set(badTeams.flatMap(t => [...t]))
+  const rows = [...ids]
+    .map(id => [id, badTeams.filter(t => !t.has(id)).length])
+    .sort((a, b) => a[1] - b[1])
+    .map(([id, n]) => `${id} ${n}`)
+  console.log('ไฟต์ที่ต่างโดยไม่มีเพ็ทตัวนี้ (0 = อยู่ในทุกไฟต์ที่ต่าง = ตัวที่เปลี่ยนจริง):')
+  console.log('  ' + rows.join(' · '))
 }
 ```
 
@@ -144,8 +157,13 @@ if (bad) {
 Run: `node --test $(find src -name "*.test.js")` → fail 0
 Run: `npm run build` → ผ่าน
 Run: `node scripts/battle-differential.mjs 7b2c7f5`
-Expected: **ต่างกัน > 0 และรายชื่อเพ็ทต้องมีแต่ `trex`** — ถ้ามีตัวอื่นโผล่มา แปลว่าการรวมลูปเปลี่ยนอย่างอื่นด้วย
-ให้หยุดแล้วรายงาน · บันทึกตัวเลข "ต่างกันกี่ไฟต์" ไว้ในรายงาน
+Expected: **ต่างกัน > 0 และในรายการแยกเดี่ยว `trex` ต้องมีค่า 0** (= อยู่ในไฟต์ที่ต่างทุกไฟต์)
+ถ้ามีเพ็ทตัวอื่นได้ 0 ด้วย แปลว่าการรวมลูปเปลี่ยนอย่างอื่นนอกจากทีเร็กซ์ ให้หยุดแล้วรายงาน
+บันทึกตัวเลข "ต่างกันกี่ไฟต์" ไว้ — งานย่อยถัดๆ ไปจะเทียบกับเลขนี้
+
+🔴 **อ่านรายการให้ถูก:** ตัวเลขข้างชื่อเพ็ทคือ "จำนวนไฟต์ที่ต่างโดย**ไม่มี**ตัวนี้อยู่" ไม่ใช่จำนวนไฟต์ที่มันอยู่
+เพ็ทที่ได้ 0 คือตัวที่อยู่ในไฟต์ที่ต่างทุกไฟต์ = ตัวที่พฤติกรรมเปลี่ยนจริง · เพ็ทที่แค่ยืนอยู่ในทีมด้วย
+(เช่นตัวเติมทีมอย่าง `qilin`/`genie`) จะได้เลขมากกว่า 0 เสมอ
 
 - [ ] **Step 6: Commit**
 
