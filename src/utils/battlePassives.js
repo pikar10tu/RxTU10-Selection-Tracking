@@ -508,6 +508,27 @@ export function runOnHit(defender, dmg, attacker, team, rand, forced = false) {
     }
   }
 
+  // ── ผลของ "ผู้ตี" ที่ต้องเขียน state ของเป้า ──
+  // 🔴 infect เป็น effect เดียวที่อ่านพาสสีฟของผู้ตีในฟังก์ชันนี้ เพราะมันต้อง (1) เขียน ps ของเป้า
+  //    และ (2) ใส่ค่าลงช่อง pierce ซึ่งอยู่ในผลลัพธ์ของ runOnHit · runOnDealt ไม่รู้จักเป้า จึงทำที่นั่นไม่ได้
+  // 🔑 วางไว้ท้ายฟังก์ชัน "หลัง" สายลดจบ (หลัง res.dmg = Math.max(0, res.dmg) และหลัง atkOnHit) โดยตั้งใจ:
+  //    การแปะเชื้อไม่ขึ้นกับว่าหมัดทำดาเมจได้เท่าไร — โดนดอดจ์หรือเกราะกันเต็มหมัดก็ยังติดเชื้อ
+  //    (เชื้อระบาดจากการสัมผัส ไม่ใช่จากดาเมจที่ทะลุเข้ามา)
+  const ap = passiveFor(attacker)
+  for (const part of partsAt(ap, 'onAttack')) {
+    if (part.effect !== 'infect') continue
+    const v = valOf(part, attacker)
+    const st = psOf(defender)
+    const cur = st.infect || { n: 0, from: attacker }
+    if (cur.n < v.max) {
+      st.infect = { n: cur.n + 1, from: attacker }
+      res.events.push(ev(attacker, ap, part, { targets: [defender.uid],
+        amount: st.infect.n, fxKind: 'debuff' }))
+    } else {
+      st.infect = cur
+    }
+  }
+
   return res
 }
 

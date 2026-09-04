@@ -936,3 +936,26 @@ test('runOnAttack: targetLowest ต้องไม่แย่งเป้าท
     assert.equal(mod.target, gorilla, 'taunt ต้องชนะ targetLowest ตามลำดับในสเปก')
   } finally { delete PET_PASSIVES.__taunt3 }
 })
+
+// ── infect (ตอนที่ 1: แปะเชื้อ + เพดาน — ยังไม่ระเบิด) ────────
+test('infect: ไวรัสตีแล้วเป้าได้ชั้นเชื้อ ชนเพดานแล้วไม่เกิน', () => {
+  PET_PASSIVES.__virus = {
+    name: 'ทดสอบเชื้อ', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  try {
+    const virus = { uid: 'A0', side: 'A', id: '__virus', hp: 100, maxHp: 100, atk: 100 }
+    const tgt = { uid: 'B0', side: 'B', id: '__blank__', hp: 500, maxHp: 500, atk: 10 }
+    for (let i = 0; i < 7; i++) runOnHit(tgt, 10, virus, [tgt], () => 0.5)
+    assert.equal(psOf(tgt).infect.n, 5, 'เพดาน 5 ชั้น')
+    assert.equal(psOf(tgt).infect.from, virus)
+  } finally { delete PET_PASSIVES.__virus }
+})
+
+test('infect: เพ็ทที่ไม่ใช่ไวรัสตี ไม่แปะเชื้อ', () => {
+  const att = { uid: 'A0', side: 'A', id: 'turtle', hp: 100, maxHp: 100, atk: 100 }
+  const tgt = { uid: 'B0', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+  runOnHit(tgt, 10, att, [tgt], () => 0.5)
+  assert.equal(psOf(tgt).infect, undefined)
+})
