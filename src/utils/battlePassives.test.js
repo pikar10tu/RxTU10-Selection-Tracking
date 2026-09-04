@@ -1385,3 +1385,25 @@ test('infect ทะลุทุกเกราะจริง — ยิงผ�
   assert.equal(boomChecked, 3)
   assert.equal(realHits.length, 4)
 })
+
+// ── runOnKill: ต้องยิงครั้งเดียวต่อการฆ่าหนึ่งครั้ง (บั๊กเดิม: เรียกซ้ำเมื่อศัตรูยังเหลือ) ──
+test('runOnKill: ล้มศัตรู 1 ตัว = ได้ชั้นเดียว ไม่ใช่สองชั้น', () => {
+  const strong = { id: 'trex', rarity: 'legendary', element: 'fist', grade: 5 }
+  const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
+  const r = simulateBattle([strong], [weak, weak, weak], 999)
+  const stacks = r.log.filter(e => e.t === 'passive' && e.effect === 'stackAtk')
+  const amounts = stacks.map(e => e.amount)
+  // ชั้นต้องไต่ทีละ 1 ต่อการตายหนึ่งครั้ง ห้ามมี 1,2 ติดกันจากศพเดียว
+  assert.deepEqual(amounts, [...new Set(amounts)], `ชั้นซ้ำ = ยิงซ้ำ: ${amounts}`)
+  const deaths = r.log.filter(e => e.t === 'attack' && e.dead).length
+  assert.ok(stacks.length <= deaths, `${stacks.length} ชั้น จากการตาย ${deaths} ครั้ง`)
+})
+
+test('runOnKill: หมัดที่ปิดไฟต์ก็ต้องได้ชั้น (บรรทัดใต้ลูปเป็นตัวเดียวที่ยิงให้มัน)', () => {
+  const strong = { id: 'trex', rarity: 'legendary', element: 'fist', grade: 5 }
+  const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
+  const r = simulateBattle([strong], [weak], 4242)          // ศัตรูตัวเดียว = ตายทีเดียวจบ
+  assert.equal(r.winner, 'A')
+  const stacks = r.log.filter(e => e.t === 'passive' && e.effect === 'stackAtk')
+  assert.equal(stacks.length, 1, 'หมัดปิดเกมต้องได้ชั้น 1 ชั้น')
+})

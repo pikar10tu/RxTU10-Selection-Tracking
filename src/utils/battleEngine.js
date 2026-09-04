@@ -175,16 +175,18 @@ export function simulateBattle(teamA, teamB, seed) {
     if (ai !== -1) {
       const att = team[ai]
       let killed = hit(att, foes)
-      // killChain — "ตัวเดียวที่เพิ่ม beat ได้" จึงมีเพดานจาก value.max และหยุดทันทีที่ศัตรูหมด
+      // killChain — "ตัวเดียวที่เพิ่ม beat ได้" จึงมีเพดานจาก value.max
+      // 🔴 เรียก runOnKill ครั้งเดียวต่อการฆ่าหนึ่งครั้ง — เงื่อนไข "ศัตรูยังเหลือ" ย้ายมาไว้ใน
+      //    การตัดสินใจ "ตีต่อไหม" ไม่ใช่เงื่อนไขเข้าลูป · ของเดิมเข้าลูปไม่ได้ตอนศัตรูหมด
+      //    แล้วบรรทัดใต้ลูปยิงซ้ำ ⇒ ทีเร็กซ์ได้ 2 ชั้นต่อการล้ม 1 ตัว (บั๊กจริงตั้งแต่ ส.ค.)
       let chain = 0
-      while (killed && alive(foes).length && turns < BATTLE_CFG.maxTurns) {
+      while (killed && turns < BATTLE_CFG.maxTurns) {
         const k = runOnKill(att, chain, team, foes)
         for (const e of k.events) log.push(e)
-        if (!k.extraAttack) break
+        if (!k.extraAttack || !alive(foes).length) break
         chain++; turns++
         killed = hit(att, foes)
       }
-      if (killed) { const k = runOnKill(att, chain, team, foes); for (const e of k.events) log.push(e) }
       cursor[cur] = (ai + 1) % team.length
     }
     turns++
