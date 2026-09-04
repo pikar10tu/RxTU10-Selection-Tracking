@@ -514,6 +514,25 @@ export function runOnHit(defender, dmg, attacker, team, rand, forced = false) {
   // 🔑 วางไว้ท้ายฟังก์ชัน "หลัง" สายลดจบ (หลัง res.dmg = Math.max(0, res.dmg) และหลัง atkOnHit) โดยตั้งใจ:
   //    การแปะเชื้อไม่ขึ้นกับว่าหมัดทำดาเมจได้เท่าไร — โดนดอดจ์หรือเกราะกันเต็มหมัดก็ยังติดเชื้อ
   //    (เชื้อระบาดจากการสัมผัส ไม่ใช่จากดาเมจที่ทะลุเข้ามา)
+
+  // ระเบิดเชื้อ — ใครก็ได้ในทีมไวรัสตี (รวมไวรัสเอง) · เชื้อไม่ลด · ไปทางช่อง pierce เท่านั้น
+  // 🔴 ต้องเช็คก่อนแปะชั้นใหม่ของหมัดนี้ (บล็อกถัดไปข้างล่าง) — เป้าที่ติดเชื้ออยู่แล้วระเบิดจากค่าปัจจุบันก่อน
+  //    ชั้นที่หมัดนี้เพิ่มค่อยขึ้นทีหลัง ไม่งั้นหมัดแรกที่แปะเชื้อจะระเบิดตัวเองทันที (ต้องไม่เกิดตามสเปก)
+  // 🔑 เช็คทีมด้วย side ไม่ใช่ identity — attacker.side === inf.from.side ครอบทั้ง "ไวรัสเอง" และ "เพื่อนร่วมทีม"
+  //    ในเงื่อนไขเดียว · from เป็น object เดิมของไวรัส (ไม่ใช่ uid) จึงยังอ่าน atk ได้แม้ไวรัสตายไปแล้ว
+  const inf = psOf(defender).infect
+  if (inf && inf.n > 0 && attacker && inf.from && attacker.side === inf.from.side) {
+    const vp = passiveFor(inf.from)
+    const vpart = partsAt(vp, 'onAttack').find(x => x.effect === 'infect')
+    if (vpart) {
+      const vv = valOf(vpart, inf.from)
+      // 🔴 += ไม่ใช่ = — pierce เป็นช่องรวม เผื่อกลไกอื่นในอนาคตใส่ค่าเพิ่มเข้ามาในหมัดเดียวกัน
+      res.pierce += pctOf(inf.from.atk, vv.pct) * inf.n
+      res.events.push(ev(inf.from, vp, vpart, { targets: [defender.uid],
+        amount: Math.round(res.pierce), fxKind: 'damage' }))
+    }
+  }
+
   const ap = passiveFor(attacker)
   for (const part of partsAt(ap, 'onAttack')) {
     if (part.effect !== 'infect') continue

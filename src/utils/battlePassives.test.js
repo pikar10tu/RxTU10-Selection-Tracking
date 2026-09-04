@@ -7,6 +7,7 @@ import {
 } from './battlePassives.js'
 import { PET_PASSIVES, passiveValueAt, passiveText, effectText, partsOf, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT } from '../data/petPassives.js'
 import { PETS } from '../data/index.js'
+import { COMBAT_BASE, COMBAT_GRADE, ELEMENT_BIAS } from '../data/petPower.js'
 import { simulateBattle } from './battleEngine.js'
 import { buildBeats, beatDuration } from './battleBeats.js'
 
@@ -947,14 +948,17 @@ test('infect: ไวรัสตีแล้วเป้าได้ชั้น
   try {
     const virus = { uid: 'A0', side: 'A', id: '__virus', hp: 100, maxHp: 100, atk: 100 }
     const tgt = { uid: 'B0', side: 'B', id: '__blank__', hp: 500, maxHp: 500, atk: 10 }
-    let infectEvents = 0
+    // 🔴 P2b (งานย่อย 6) ทำให้หมัดที่ 2 เป็นต้นไปของลูปนี้ "ระเบิด" ด้วย (virus ตีเป้าที่ตัวเองแปะเชื้อไว้แล้ว
+    //    ก็ถือว่าอยู่ทีมเดียวกับ from) ⇒ นับเฉพาะ event fxKind:'debuff' (การแปะชั้น) ให้ตรงกับที่เทสนี้ตั้งใจวัด
+    //    (เพดานของการ "แปะ" ไม่ใช่จำนวนครั้งที่ "ระเบิด" ซึ่งไม่มีเพดานและถูกเทสแยกไว้ต่างหากแล้ว)
+    let tagEvents = 0
     for (let i = 0; i < 7; i++) {
       const r = runOnHit(tgt, 10, virus, [tgt], () => 0.5)
-      infectEvents += r.events.filter(e => e.effect === 'infect').length
+      tagEvents += r.events.filter(e => e.effect === 'infect' && e.fxKind === 'debuff').length
     }
     assert.equal(psOf(tgt).infect.n, 5, 'เพดาน 5 ชั้น')
     assert.equal(psOf(tgt).infect.from, virus)
-    assert.equal(infectEvents, 5, 'ชนเพดานแล้วต้องเงียบ — 7 หมัดต้องได้ event แค่ 5 อัน ไม่ใช่ 7')
+    assert.equal(tagEvents, 5, 'ชนเพดานแล้วต้องเงียบ — 7 หมัดต้องได้ event แปะชั้นแค่ 5 อัน ไม่ใช่ 7')
   } finally { delete PET_PASSIVES.__virus }
 })
 
@@ -1011,4 +1015,117 @@ test('infect: ดอดจ์เต็มหมัด (dmg=0) ก็ยังต
     assert.equal(psOf(tgt).infect.n, 1, 'หลบเต็มหมัดก็ยังต้องติดเชื้อ 1 ชั้น')
     assert.equal(psOf(tgt).infect.from, virus)
   } finally { delete PET_PASSIVES.__virusDmg; delete PET_PASSIVES.__dodger }
+})
+
+// ── infect (ตอนที่ 2: ระเบิดผ่าน pierce) ───────────────────────
+// ⚠️ pct ของสามเทสนี้อ่านจากพาสสีฟของไวรัสตอนระเบิด (Step 4: passiveFor(inf.from) → หา part effect infect)
+//    ⇒ ต้องลงทะเบียน __virus แบบงานย่อย 5 แล้วให้ from ชี้ยูนิตที่ id: '__virus' จริง — id '__blank__' หา
+//    part ไม่เจอ (ไม่มีพาสสีฟ) จะได้ pierce = 0 เสมอโดยไม่เกี่ยวกับตรรกะที่กำลังเทส
+test('infect: เพื่อนร่วมทีมไวรัสตี ก็ระเบิดเชื้อ และเชื้อไม่ลดลง', () => {
+  PET_PASSIVES.__virus = {
+    name: 'ทดสอบเชื้อ', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  try {
+    const virus = { uid: 'A0', side: 'A', id: '__virus', hp: 100, maxHp: 100, atk: 100 }
+    const mate = { uid: 'A1', side: 'A', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    const tgt = { uid: 'B0', side: 'B', id: '__blank__', hp: 500, maxHp: 500, atk: 10 }
+    psOf(tgt).infect = { n: 3, from: virus }
+    const res = runOnHit(tgt, 10, mate, [tgt], () => 0.5)
+    assert.equal(res.pierce, 45, '15% ของ atk 100 × 3 ชั้น')
+    assert.equal(psOf(tgt).infect.n, 3, 'เชื้อต้องไม่ลดตอนระเบิด')
+  } finally { delete PET_PASSIVES.__virus }
+})
+
+test('infect: ศัตรูของไวรัสตีกันเอง ไม่ระเบิด', () => {
+  PET_PASSIVES.__virus = {
+    name: 'ทดสอบเชื้อ', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  try {
+    const virus = { uid: 'A0', side: 'A', id: '__virus', hp: 100, maxHp: 100, atk: 100 }
+    const foe = { uid: 'B1', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    const tgt = { uid: 'B0', side: 'B', id: '__blank__', hp: 500, maxHp: 500, atk: 10 }
+    psOf(tgt).infect = { n: 3, from: virus }
+    assert.equal(runOnHit(tgt, 10, foe, [tgt], () => 0.5).pierce, 0)
+  } finally { delete PET_PASSIVES.__virus }
+})
+
+test('infect: ไวรัสตายแล้วเชื้อยังระเบิดได้ (อ่าน atk จากตัวที่ตายแล้ว)', () => {
+  PET_PASSIVES.__virus = {
+    name: 'ทดสอบเชื้อ', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  try {
+    const deadVirus = { uid: 'A0', side: 'A', id: '__virus', hp: 0, maxHp: 100, atk: 100 }
+    const mate = { uid: 'A1', side: 'A', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    const tgt = { uid: 'B0', side: 'B', id: '__blank__', hp: 500, maxHp: 500, atk: 10 }
+    psOf(tgt).infect = { n: 2, from: deadVirus }
+    assert.equal(runOnHit(tgt, 10, mate, [tgt], () => 0.5).pierce, 30)
+  } finally { delete PET_PASSIVES.__virus }
+})
+
+// หนี้จากสเปก §7.4 ข้อ 1 (P2a Task 3 เคยเขียนเทสที่ตั้งค่า res.pierce เองแล้วเช็คค่าที่เพิ่งตั้ง —
+// พิสูจน์แค่ว่า JS assignment ทำงาน ไม่ได้พิสูจน์ว่า pierce ทะลุเกราะจริง จึงถูกลบทิ้งใน P2a)
+// เทสนี้ยิงผ่าน simulateBattle เต็มใบ ให้ engine เป็นคนคำนวณทั้งสายลดและ pierce เอง แล้วตรวจทุก event
+// ระเบิดเชื้อในไฟต์เทียบกับสูตร infect เป๊ะๆ ไม่ใช่แค่ "มากกว่า 0" — ถ้า turtle มีสิทธิ์หักดาเมจนี้ได้แม้แต่นิดเดียว
+// (damageReduction 12% ของมันเอง) ตัวเลขที่ได้จริงจะไม่ตรงสูตรทันที
+test('infect ทะลุทุกเกราะจริง — ยิงผ่าน simulateBattle ไม่ใช่แค่ระดับฟังก์ชัน', () => {
+  // ทีม A: ไวรัสล้วน (1 ตัว) · ทีม B: เต่า (damageReduction) — ทีมละตัวเดียว ⇒ A0 ตี B0 ทุกหมัดแน่นอน
+  // ถ้าเชื้อถูกหักโดยสายลด ดาเมจที่ B เสียแต่ละหมัดจะน้อยกว่าที่คำนวณไว้อย่างเห็นได้ชัด
+  PET_PASSIVES.__virus = {
+    name: 'ทดสอบเชื้อ', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  try {
+    const A = [{ id: '__virus', rarity: 'legendary', element: 'fist', grade: 3 }]
+    const B = [{ id: 'turtle', rarity: 'common', element: 'paper', grade: 3 }]
+    const r = simulateBattle(A, B, 12345)
+    const infectEvents = r.log.filter(e => e.t === 'passive' && e.effect === 'infect')
+    assert.ok(infectEvents.length > 0, 'ต้องมี event เชื้อในไฟต์')
+
+    // ── ที่มาของ virusAtk: buildCombatant (src/data/petPower.js combatStats), ไม่เดา ──
+    //   rarity legendary → COMBAT_BASE.legendary.atk = 14
+    //   grade 3          → COMBAT_GRADE[3] = 1.52
+    //   element fist      → ELEMENT_BIAS.fist.atk = 1.2
+    //   atk = 14 × 1.52 × 1.2 = 25.536 (คูณตามลำดับเดียวกับ combatStats() เป๊ะ กันพลาดจุดทศนิยม)
+    //   __virus ไม่มี aura/setup ใดๆ ที่แตะ atk ⇒ ค่านี้คงที่ตลอดทั้งไฟต์ ไม่ต้องคำนึงถึง atkOnHit/stackAtk
+    const virusAtk = COMBAT_BASE.legendary.atk * COMBAT_GRADE[3] * ELEMENT_BIAS.fist.atk
+    assert.equal(virusAtk, 25.536)
+
+    // ── สูตรระเบิด (Step 4 ที่เพิ่งเขียนใน battlePassives.js runOnHit) ──
+    //   res.pierce += pctOf(inf.from.atk, vv.pct) * inf.n   ← ใช้ n "ก่อน" แปะชั้นใหม่ของหมัดนี้
+    //   amount ของ event fxKind:'damage' = Math.round(res.pierce)
+    // เดินตาม log ตามลำดับจริง สะสม n จาก event แปะชั้น (fxKind:'debuff', amount = n หลังแปะ) แล้วเช็คว่า
+    // event ระเบิด (fxKind:'damage') ที่ตามมาแต่ละอัน ตรงกับ Math.round(virusAtk × 0.15 × nก่อนหน้า) เป๊ะ
+    // — ไม่ใช่ Math.round(virusAtk × 0.15 × nก่อนหน้า × 0.88) ซึ่งจะเป็นค่าที่ได้ถ้า damageReduction 12%
+    // ของ turtle มีสิทธิ์แตะช่อง pierce (มันไม่มีสิทธิ์ ตามสเปก — เทสนี้พิสูจน์ตรงนี้)
+    let stackSoFar = 0
+    let boomChecked = 0
+    for (const e of infectEvents) {
+      if (e.fxKind === 'damage') {
+        const undiminished = Math.round(virusAtk * 0.15 * stackSoFar)
+        const asIfReduced = Math.round(virusAtk * 0.15 * stackSoFar * (1 - 0.12))   // ถ้า DR 12% ของ turtle แตะ pierce ได้
+        assert.equal(e.amount, undiminished,
+          `pierce หมัดที่ n=${stackSoFar} ต้องเท่ากับ ${undiminished} (สูตรไม่ผ่านสายลด)`)
+        assert.notEqual(e.amount, asIfReduced,
+          'ถ้าค่าตรงกับเวอร์ชันที่ถูกลด 12% ด้วย แปลว่า turtle แตะ pierce ได้ ซึ่งผิดสเปก')
+        boomChecked++
+      } else if (e.fxKind === 'debuff') {
+        stackSoFar = e.amount   // st.infect.n หลังแปะของหมัดนี้ — ใช้เป็น n "ก่อนหน้า" ของหมัดถัดไป
+      }
+    }
+    assert.ok(boomChecked > 0, 'ต้องมีหมัดที่ทำให้เชื้อระเบิดจริงอย่างน้อย 1 ครั้งถึงจะพิสูจน์อะไรได้')
+
+    // ── ค่าที่วัดได้จริงตอนเขียนเทสนี้ (seed 12345, เพื่อบันทึกไว้เป็นหลักฐาน ไม่ใช่ที่มาของสูตร) ──
+    //   debuff n=1 → damage 4 (round(3.8304×1)) → debuff n=2 → damage 8 (round(3.8304×2))
+    //   → debuff n=3 → damage 11 (round(3.8304×3)) → debuff n=4 (ไฟต์จบก่อนหมัดถัดไป ชนะฝั่ง A)
+    // ยืนยันจำนวน event ให้ตรงกับที่สังเกตได้จริง กันไม่ให้สูตรข้างบน "ผ่านโดยบังเอิญ" เพราะไม่มีอะไรให้เช็คเลย
+    assert.equal(infectEvents.filter(e => e.fxKind === 'debuff').length, 4)
+    assert.equal(boomChecked, 3)
+  } finally { delete PET_PASSIVES.__virus }
 })
