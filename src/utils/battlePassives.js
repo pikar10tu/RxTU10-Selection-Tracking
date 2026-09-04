@@ -340,7 +340,10 @@ export function runOnAttack(att, target, foes, rand) {
  */
 export function runOnDealt(attacker, attTeam, dealt) {
   const out = { events: [] }
-  if (!attacker || !attTeam || !(dealt > 0)) return out
+  // 🔴 ผู้ตีอาจตายไปแล้วระหว่างบีตนี้ (โดนหนามสวนตอน sub-hit ก่อนหน้า) — เอนจินไม่ได้เช็คเลือด
+  //    ผู้ตีระหว่าง cleave/multiStrike · ถ้าปล่อยให้ teamLifesteal ทำงานต่อ มันจะดูดเลือดตัวเอง
+  //    กลับขึ้นมาเกิน 0 โดยไม่เคยผ่าน runOnDeath = ฟื้นคืนชีพโดยไม่เคยตายอย่างเป็นทางการ
+  if (!attacker || attacker.hp <= 0 || !attTeam || dealt <= 0) return out
 
   const ap = passiveFor(attacker)
   for (const part of partsAt(ap, 'onAttack')) {
@@ -442,16 +445,6 @@ export function runOnHit(defender, dmg, attacker, team, rand) {
           res.events.push(ev(defender, p, part, { targets: [attacker.uid], amount: Math.round(res.thorns), fxKind: 'thorns' }))
         }
         break
-      case 'atkOnHit': {
-        // ไม่มีเพดานโดยตั้งใจ (user ยืนยัน) — P4 ต้องรายงานว่าในไฟต์ยาวมันบานแค่ไหน
-        const st = psOf(defender)
-        st.rage = (st.rage || 0) + 1
-        defender.atk *= 1 + v.pct / 100
-        const e = ev(defender, p, part, { targets: [defender.uid], amount: st.rage, fxKind: 'buff' })
-        e.statsAfter = statsSnapshot(team)
-        res.events.push(e)
-        break
-      }
     }
   }
 
@@ -460,6 +453,23 @@ export function runOnHit(defender, dmg, attacker, team, rand) {
   //    ถ้าเกิน 100% ขึ้นมา res.dmg จะติดลบ แล้วเอนจินทำ `tg.hp -= dmg` = หมัดนั้นกลายเป็นการฟื้นเลือดให้เป้า
   //    (ตัวลดอื่นหักเป็นทอด ×(1-p) จึงเข้าใกล้ 0 ได้แต่ไม่มีวันติดลบ)
   res.dmg = Math.max(0, res.dmg)
+
+  // atkOnHit — ต้องรู้ผลสุดท้ายของสายลดก่อนถึงจะตอบได้ว่า "โดนตี" จริงไหม
+  // 🔴 อยู่นอกลูปโดยตั้งใจ: ถ้าอยู่ในลูป ผลจะขึ้นกับ *ลำดับ part ในข้อมูล* — เพ็ทที่เขียน
+  //    [damageReduction, dodge] จะสะสมชั้น ส่วน [dodge, damageReduction] จะไม่สะสม ทั้งที่หลบเหมือนกัน
+  //    (สเปก §7.4 ข้อ 6 เตือนเรื่องลำดับ part ไว้แล้ว — ตรงนี้คือการถอดความขึ้นกับลำดับออกให้หมด)
+  if (res.dmg > 0) {
+    for (const part of partsAt(p, 'onHit')) {
+      if (part.effect !== 'atkOnHit') continue
+      const v = valOf(part, defender)
+      const st = psOf(defender)
+      st.rage = (st.rage || 0) + 1
+      defender.atk *= 1 + v.pct / 100
+      const e = ev(defender, p, part, { targets: [defender.uid], amount: st.rage, fxKind: 'buff' })
+      e.statsAfter = statsSnapshot(team)
+      res.events.push(e)
+    }
+  }
 
   return res
 }

@@ -108,7 +108,11 @@ export function weightOf(e, dmgPct) {
  *     แล้วถูกลดเป็น skillQuiet = ป้าย 💧 หายไปทั้งที่คู่หูทำงานอยู่ (วัดจริง 2 ไฟต์ในทีมวันนี้)
  *  ✅ user เคาะ 3 ก.ย. 2026: "ก้อนหนึ่ง = สกิลของเพ็ทตัวเดียวยิงหลาย part · duoRegen ไม่ใช่แบบนั้น
  *     ให้มันมีโมเมนต์ของตัวเอง" — จึงกันออกจากก้อนตรงนี้ ไม่ใช่ไปยุ่งกับลำดับ event ในเอนจิน */
-const OUT_OF_GROUP_EFFECTS = new Set(['duoRegen'])
+/** effect ที่ "ไม่ใช่สกิลของเพ็ทที่มันโผล่บน" จึงห้ามถูกกลืนเข้าก้อนจังหวะของเพ็ทตัวนั้น
+ *  duoRegen = ของคู่หู 🐳🦭 แต่ยิงบนตัวผู้รับ
+ *  teamLifesteal = ออร่าของ 🦇 แต่ยิงบนตัวที่ออกหมัด · ถ้าเพ็ทตัวเดียวมีทั้ง healOnAttack
+ *    และ teamLifesteal สองใบจะติดกันบน uid เดียว แล้วกฎก้อนจะปิดเสียงใบแรกทิ้ง */
+export const OUT_OF_GROUP_EFFECTS = new Set(['duoRegen', 'teamLifesteal'])
 
 /** คีย์ของ "ก้อน" = เพ็ทหนึ่งตัวยิงสกิลของตัวเองติดกัน · effect ที่ไม่ใช่สกิลของใบนั้นได้คีย์ของตัวเอง */
 const groupIdOf = (e) => (OUT_OF_GROUP_EFFECTS.has(e.effect) ? `${e.uid || ''}#${e.effect}` : (e.uid || ''))

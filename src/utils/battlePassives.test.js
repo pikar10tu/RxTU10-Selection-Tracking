@@ -399,6 +399,14 @@ test('runOnDealt: ไม่มีดาเมจ/ไม่มีทีมผู�
   assert.equal(me.hp, 50)
 })
 
+test('runOnDealt: ผู้ตีที่ตายไปแล้ว (โดนหนามกลางบีต) ต้องไม่ดูดเลือดกลับมา', () => {
+  const me = { uid: 'A0', side: 'A', id: '__blank__', hp: 0, maxHp: 100, atk: 10, lifestealPct: 50 }
+  const mate = { uid: 'A1', side: 'A', id: '__blank__', hp: 50, maxHp: 100, atk: 10 }
+  const out = runOnDealt(me, [me, mate], 100)
+  assert.equal(me.hp, 0, 'ตัวที่ตายแล้วต้องไม่ฟื้นเอง')
+  assert.deepEqual(out.events, [])
+})
+
 // ── onHit ───────────────────────────────────────────────────
 test('damageReduction (mammoth): ลดดาเมจที่ตัวเองรับ', () => {
   const r = runOnHit(u('mammoth'), 100, u('cat'), [u('mammoth')], () => 0.5)
@@ -449,6 +457,40 @@ test('atkOnHit: โดนตีทีนึง atk เพิ่มถาวร �
     // ทบต้น 100×1.03³ = 109.2727 ≠ บวกเชิงเส้น 100×(1+3×0.03) = 109.0 — ปัดสองตำแหน่งให้เห็นส่วนต่าง
     assert.equal(Math.round(me.atk * 100) / 100, 109.27)
   } finally { delete PET_PASSIVES.__gori }
+})
+
+test('atkOnHit: หมัดที่ถูกหลบทั้งหมัด ไม่นับเป็น "โดนตี" จึงไม่สะสมชั้น', () => {
+  PET_PASSIVES.__rage = {
+    name: 'ทดสอบเดือด', icon: '🧪',
+    parts: [
+      { hook: 'onHit', effect: 'dodge', value: { pct: 100 }, step: { pct: 0 } },
+      { hook: 'onHit', effect: 'atkOnHit', value: { pct: 3 }, step: { pct: 0 } },
+    ],
+    desc: 'ทดสอบ {pct}%', short: 'ทดสอบ {pct}%',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__rage', hp: 100, maxHp: 100, atk: 100 }
+    const att = { uid: 'B0', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    const res = runOnHit(me, 100, att, [me], () => 0)     // rand 0 = หลบติดแน่นอน
+    assert.equal(res.dmg, 0)
+    assert.equal(psOf(me).rage, undefined, 'หลบได้แล้วยังสะสมชั้น = ผิดนิยาม "ทุกครั้งที่รับดาเมจ"')
+    assert.equal(me.atk, 100)
+  } finally { delete PET_PASSIVES.__rage }
+})
+
+test('atkOnHit: หมัดที่ดาเมจผ่านเข้ามาจริง ยังสะสมเหมือนเดิม', () => {
+  const me = { uid: 'A0', side: 'A', id: '__rage2', hp: 100, maxHp: 100, atk: 100 }
+  PET_PASSIVES.__rage2 = {
+    name: 'ทดสอบเดือด2', icon: '🧪',
+    parts: [{ hook: 'onHit', effect: 'atkOnHit', value: { pct: 3 }, step: { pct: 0 } }],
+    desc: 'ทดสอบ {pct}%', short: 'ทดสอบ {pct}%',
+  }
+  try {
+    const att = { uid: 'B0', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    runOnHit(me, 50, att, [me], () => 0.99)
+    assert.equal(psOf(me).rage, 1)
+    assert.equal(Math.round(me.atk), 103)
+  } finally { delete PET_PASSIVES.__rage2 }
 })
 
 test('teamDamageReduction: หักเป็นทอดกับ damageReduction ของตัวเอง ไม่ใช่บวก %', () => {
