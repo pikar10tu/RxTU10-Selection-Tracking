@@ -296,6 +296,14 @@ export const STATUS_ICON = {
   // ── P2 ──
   elementTrinity: '🔺', teamLifesteal: '🩸', teamDamageReduction: '🧱', atkOnHit: '💢',
   berserk: '🔥', giantSlayer: '🗡️', healOnAttack: '💞', stealStats: '🫳',
+  // ── P2b ──
+  // ⚠️ ไม่ใช่ 💢 ของ atkOnHit — สองอันหน้าตาเดียวกันบนการ์ดเดียวอ่านไม่ออก (ดูเทสไอคอนไม่ซ้ำท้ายไฟล์)
+  // ⚠️ ไม่ใช่ 🛡️ ของ guardian ด้วยเหตุผลเดียวกัน — armorStack กับ guardian คนละความหมาย
+  //    (guardian = เพื่อนรับแทนให้, armorStack = เกราะของตัวเองกันหมัดทั้งดอก) จึงเลือกไอคอนคนละตัว
+  infect: '🦠', taunt: '📢', armorStack: '🏰',
+  // infectBurst ไม่ต้องมีป้ายของตัวเอง — เป็น fxKind: 'damage' (event ระเบิดครั้งเดียว ไม่ใช่สถานะติดตัว)
+  // ไอคอนตอนระเบิดมาจาก p.icon ของพาสสีฟไวรัสเอง (ดู ev() ใน battlePassives.js) ไม่ผ่านทะเบียนนี้เลย
+  // ป้าย 'infect' ด้านบนคือตัวแทนสถานะที่ยืนพักอยู่บนการ์ด — เทสความครบท้ายไฟล์ยกเว้น infectBurst ไว้ตรงๆ
 }
 
 /** ความหมายสั้นๆ ของป้าย — ใช้ใน aria-label และหน้า inspect */
@@ -311,17 +319,27 @@ export const STATUS_TEXT = {
   teamDamageReduction: 'ทั้งทีมลดดาเมจที่ได้รับ', atkOnHit: 'ยิ่งโดนตียิ่งแรง',
   berserk: 'ยิ่งเลือดหายยิ่งแรง', giantSlayer: 'ยิ่งเป้าตัวใหญ่ยิ่งแรง',
   healOnAttack: 'ตีแล้วฟื้นเลือดเพื่อน', stealStats: 'ขโมยพลังจากศัตรู',
+  // ── P2b ──
+  infect: 'ติดเชื้อ ยิ่งโดนตียิ่งเจ็บ', taunt: 'บังคับให้ศัตรูตีตัวเอง', armorStack: 'มีเกราะกันหมัดเต็มใบ',
 }
 
 /** aura ที่แผ่ใส่ "ทีมตัวเอง" — ป้ายลงทุกใบในทีมนั้น */
 export const TEAM_AURA_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'teamCrit',
   'elementTrinity', 'teamLifesteal', 'teamDamageReduction'])
-/** aura ที่แผ่ใส่ "ทีมศัตรู" — ป้ายลงฝั่งตรงข้าม (ดีบัฟ) */
+/** aura ที่แผ่ใส่ "ทีมศัตรู" — ป้ายลงฝั่งตรงข้าม (ดีบัฟ) ⚠️ เฉพาะ effect ที่มาจาก part hook 'aura' เท่านั้น
+ *  (aurasOf() ใน battleBuffs.js หาแค่ partsAt(p, 'aura') — เป็นค่า % คงที่ที่แผ่ทั้งทีมศัตรูตั้งแต่ต้นไฟต์) */
 export const FOE_AURA_EFFECTS = new Set(['enemyVuln'])
 /** สถานะติดตัวที่ไม่ต้องพึ่งใคร — ป้ายลงเฉพาะเจ้าตัว */
 export const SELF_STATUS_EFFECTS = new Set([
   'guardian', 'damageReduction', 'dodge', 'thorns', 'revive', 'saveAlly', 'cheatDeath', 'stackAtk',
   'atkOnHit', 'berserk', 'giantSlayer', 'stealStats', 'healOnAttack',
+  // ── P2b ── สถานะติดตัวเจ้าของสกิลเอง (คนละกลุ่มกับ infect ด้านล่าง ที่ลงบน "ตัวที่ถูกตี" แทน)
+  'taunt', 'armorStack',
 ])
+/** ดีบัฟที่ลงบน "ตัวที่ถูกเล็ง" ทีละตัว ไม่ใช่ทั้งทีมพร้อมกัน — ต่างจาก FOE_AURA_EFFECTS ตรงที่
+ *  ไม่ได้มาจาก part hook 'aura' (ค่าคงที่ตั้งแต่ต้นไฟต์) แต่มาจาก hook 'onAttack' ที่สะสมชั้นระหว่างไฟต์
+ *  ลงบนตัวเป้าโดยตรง (state จริงอยู่ที่ psOf(target).infect ไม่ใช่ค่าคงที่จาก part) ⇒ aurasOf() หาไม่เจอ
+ *  P2c ต้องอ่านชั้นสแตคจาก state runtime นั้นเอง ไม่ใช่ผ่าน buffSources/aurasOf ของกลุ่มสองกลุ่มบน */
+export const FOE_STATUS_EFFECTS = new Set(['infect'])
 /** สูงสุดกี่ป้ายต่อการ์ด — วัดจากทีมสุ่ม 5,000 คู่: เฉลี่ย 1.09 · ชนเพดาน 3 แค่ 4.7% */
 export const STATUS_MAX = 3

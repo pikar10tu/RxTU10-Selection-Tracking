@@ -2,7 +2,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  PET_PASSIVES, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT, TEAM_AURA_EFFECTS, SELF_STATUS_EFFECTS,
+  PET_PASSIVES, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT,
+  TEAM_AURA_EFFECTS, SELF_STATUS_EFFECTS, FOE_AURA_EFFECTS, FOE_STATUS_EFFECTS,
   partsOf, partsAt, partAt, partWithEffect, passiveValueAt, passiveText, effectText,
 } from './petPassives.js'
 
@@ -162,5 +163,68 @@ test('effect ใหม่ของ P2 ต้องมีไอคอน คำ�
     assert.ok(inTeam || inSelf, `${k} ไม่อยู่ในกลุ่มป้ายไหนเลย (buffSources จะไม่มีวันเจอ)`)
     // อยู่สองกลุ่มพร้อมกัน = อาจขึ้นป้ายซ้ำสอง จึงต้องเลือกกลุ่มเดียว
     assert.ok(!(inTeam && inSelf), `${k} อยู่ทั้งสองกลุ่มพร้อมกัน (ต้องเลือกกลุ่มเดียว)`)
+  }
+})
+
+// ── P2b: infect/taunt/armorStack (สเปก 2026-09-04-passive-v2-p2b-hard-three) ──────────
+//  taunt/armorStack เป็นสถานะติดตัวเจ้าของสกิลเอง ⇒ SELF_STATUS_EFFECTS เหมือนกลุ่มเดิม
+//  infect ต่างจากทุกตัวก่อนหน้า: เป็นดีบัฟที่ "ลงบนศัตรูที่ถูกตี" ทีละตัว ไม่ใช่ aura คงที่ทั้งทีมตั้งแต่ต้นไฟต์
+//  (FOE_AURA_EFFECTS ใช้ไม่ได้ — aurasOf() หาแค่ part hook 'aura' แต่ infect มาจาก hook 'onAttack' ที่สะสม
+//   ชั้นระหว่างไฟต์ลง state ของเป้าโดยตรง) จึงต้องมีกลุ่มใหม่ FOE_STATUS_EFFECTS ให้ P2c อ่านต่อ
+test('P2b: infect/taunt/armorStack ต้องมีไอคอน คำอธิบายป้าย และอยู่ในกลุ่มป้ายที่ถูกต้องครบ', () => {
+  const ALL_GROUPS = [TEAM_AURA_EFFECTS, SELF_STATUS_EFFECTS, FOE_AURA_EFFECTS, FOE_STATUS_EFFECTS]
+  for (const k of ['infect', 'taunt', 'armorStack']) {
+    assert.ok(STATUS_ICON[k], `${k} ไม่มีไอคอน`)
+    assert.ok(STATUS_TEXT[k], `${k} ไม่มีคำอธิบายป้าย`)
+    const memberships = ALL_GROUPS.filter(g => g.has(k)).length
+    assert.equal(memberships, 1, `${k} ต้องอยู่ในกลุ่มป้ายพอดี 1 กลุ่ม (เจอ ${memberships})`)
+  }
+  // ⚠️ infect ต้องลงกลุ่มดีบัฟที่ลงบนเป้าเจาะจง ไม่ใช่กลุ่ม aura คงที่ (ดูเหตุผลด้านบนหัวเทส)
+  assert.ok(FOE_STATUS_EFFECTS.has('infect'), 'infect ต้องอยู่ใน FOE_STATUS_EFFECTS ไม่ใช่ FOE_AURA_EFFECTS')
+  assert.ok(!FOE_AURA_EFFECTS.has('infect'), 'infect ไม่ใช่ aura คงที่ — aurasOf() จะไม่มีวันเจอ')
+  assert.ok(SELF_STATUS_EFFECTS.has('taunt'), 'taunt เป็นสถานะติดตัวเจ้าของสกิลเอง')
+  assert.ok(SELF_STATUS_EFFECTS.has('armorStack'), 'armorStack เป็นสถานะติดตัวเจ้าของสกิลเอง')
+})
+
+// infectBurst คือ event ระเบิดครั้งเดียว (fxKind: 'damage') ไม่ใช่สถานะติดตัวที่ค้างอยู่บนการ์ด
+// ไอคอนตอนระเบิดมาจาก p.icon ของพาสสีฟไวรัสเอง (ev() ใน battlePassives.js) ไม่ผ่านทะเบียนป้ายนี้เลย
+// จึง "ตั้งใจ" ไม่มีป้ายของตัวเอง — เทสนี้พูดสิ่งนั้นออกมาตรงๆ กันมีคนเห็นว่าขาดแล้วเผลอเติมทีหลัง
+test('P2b: infectBurst ตั้งใจไม่มีป้ายของตัวเอง (เป็น FX ระเบิดครั้งเดียว ใช้ p.icon ไม่ใช่ STATUS_ICON)', () => {
+  assert.equal(STATUS_ICON.infectBurst, undefined)
+  assert.equal(STATUS_TEXT.infectBurst, undefined)
+})
+
+// ── กันไอคอนซ้ำ: ป้ายสองอันหน้าตาเดียวกันบนการ์ดเดียว = ผู้เล่นอ่านไม่ออกว่าได้อะไรมาสองอย่าง ──
+// อนุญาตให้ซ้ำได้เฉพาะกลุ่มที่ตั้งใจให้ "ความหมายเดียวกัน" ใช้ไอคอนเดียวกันจริงๆ (คอมเมนต์อธิบายทีละกลุ่ม)
+// การชนกันแบบอื่นที่ไม่อยู่ในลิสต์นี้ถือว่าไม่ตั้งใจ — เทสต้องแดง
+const ALLOWED_ICON_DUPES = [
+  // ฟื้น/กันตาย 1 ครั้งทั้งสามแบบ — ความหมายเดียวกันจากมุมผู้เล่น ("มีของกันตายอยู่")
+  ['revive', 'saveAlly', 'cheatDeath'],
+  // บัฟพลังโจมตีทีมทั้งสองแบบ (คงที่ / ต่อจำนวนเพื่อนสายจู่โจม) — ผลที่เห็นบนจอเหมือนกัน
+  ['teamAtk', 'teamAtkPerElement'],
+  // ลดดาเมจที่ได้รับทั้งสองแบบ (เฉพาะตัว / ทั้งทีม) — ความหมายเดียวกัน ต่างแค่ขอบเขต
+  ['damageReduction', 'teamDamageReduction'],
+]
+
+test('ไอคอนป้ายต้องไม่ซ้ำกัน (ป้ายสองอันหน้าตาเดียวกันบนการ์ดเดียว = อ่านไม่ออก)', () => {
+  const allowedPairKey = new Set()
+  for (const group of ALLOWED_ICON_DUPES) {
+    for (const a of group) for (const b of group) if (a !== b) allowedPairKey.add(`${a}|${b}`)
+  }
+  const seen = new Map()
+  for (const [k, icon] of Object.entries(STATUS_ICON)) {
+    if (seen.has(icon)) {
+      const other = seen.get(icon)
+      if (!allowedPairKey.has(`${k}|${other}`)) {
+        assert.fail(`${k} ใช้ไอคอน ${icon} ซ้ำกับ ${other} โดยไม่ได้อยู่ในลิสต์ยกเว้น (ALLOWED_ICON_DUPES)`)
+      }
+      continue
+    }
+    seen.set(icon, k)
+  }
+  // ทุกกลุ่มยกเว้นต้องซ้ำกันจริงในทะเบียน ไม่งั้นลิสต์ยกเว้นค้างของที่ไม่มีจริงแล้วไม่มีใครรู้
+  for (const group of ALLOWED_ICON_DUPES) {
+    const icons = new Set(group.map(k => STATUS_ICON[k]))
+    assert.equal(icons.size, 1, `กลุ่ม [${group.join(', ')}] ควรใช้ไอคอนเดียวกันจริง แต่ไม่ใช่ (${[...icons]})`)
   }
 })
