@@ -613,6 +613,10 @@ function firePassiveFx(e) {
     case 'cleave':  fx?.sweep(on, e.icon, 45); break        // เขี้ยว/เปลวไฟลงหลายใบในจังหวะเดียว
     case 'heal':    fx?.sweep(on, '✨', 70); break
     case 'guard':   fx?.ring(e.uid, 'windup', 320); break
+    // armorStack — วงแหวนกันหมัดชุดเดียวกับ guard (ผู้เล่นอ่านทั้งคู่ว่า "หมัดนี้ไม่เข้า") แต่แยก fxKind
+    // เพราะหน่วยของ amount คนละเรื่องกัน (ที่นี่ = ดาเมจสะท้อน, ของ guard = ดาเมจที่รับแทน) ·
+    // ตัวก้อนสะท้อนมี attack event sub ตามมาติดๆ เล่าให้อยู่แล้ว จึงไม่ต้องยิง FX ซ้ำที่นี่
+    case 'armor':   fx?.ring(e.uid, 'windup', 320); break
     case 'revive':  fx?.sweep(on, e.icon, 0); break
     case 'save':    fx?.sweep(on, '🛡️', 0); break
     case 'thorns':  fx?.sweep(on, e.icon, 0); break

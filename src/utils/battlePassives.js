@@ -56,8 +56,15 @@ const STAT_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'stackAt
  *       amount = "เลขของบัฟนั้น": `stackAtk`/`atkOnHit` = จำนวนชั้นสะสม (battleBuffs.liveBuffs อ่านเป็นชั้น)
  *       ส่วนตัวที่ไม่ได้สะสมชั้น (`berserk`/`giantSlayer`) = **% ดาเมจที่เพิ่มได้จริงรอบนี้** (ปัดจำนวนเต็ม)
  *       ⚠️ giantSlayer ห้ามส่งเป็น "จำนวนขั้น" เพราะมันมีเพดาน `max` ⇒ ขั้นกับ % ไม่ตรงกันเมื่อชนเพดาน
- *     - `fxKind: 'debuff'` (วันนี้มีแค่ `infect` แปะชั้น) → targets = เป้าที่ติด · amount = จำนวนชั้นสะสม
- *       หลังแปะของหมัดนี้ (`st.infect.n`) ไม่ใช่ดาเมจ — ผู้อ่าน log ต้องรู้ว่าหน่วยของ `amount` เปลี่ยนไปตาม fxKind
+ *     - `fxKind: 'debuff'` (`infect` ทั้งตอนแปะชั้นและตอนย้ายเชื้อไปโฮสต์ใหม่) → targets = เป้าที่ติด ·
+ *       amount = จำนวนชั้นสะสมของเป้านั้นหลังเหตุการณ์นี้ (`st.infect.n`) ไม่ใช่ดาเมจ
+ *     - `fxKind: 'guard'` (`guardian` ของบากุ) → targets = เพื่อนที่ถูกรับแทน · amount = ดาเมจที่ผู้พิทักษ์กินไปแทน
+ *     - `fxKind: 'armor'` (`armorStack`) → targets = ตัวที่มีเกราะ · **amount = ดาเมจที่สะท้อนกลับไป**
+ *       และ **สแตคที่เหลืออยู่ในฟิลด์แยก `armorLeft`** (0 ได้)
+ *       🔴 ห้ามยุบกลับไปใช้ `fxKind: 'guard'` ร่วมกับบากุ — เคยเป็นแบบนั้นมาก่อนแล้วพัง: `amount` ของ
+ *          'guard' คือ "ดาเมจที่รับแทน" ส่วนของเกราะคือ "จำนวนสแตค" ⇒ ชื่อ fxKind เดียวกันแต่หน่วยคนละอัน
+ *          มินิชิปของ §6.2 ที่คีย์ด้วย fxKind แล้วพิมพ์ `amount` จะพิมพ์เลขมั่วโดยไม่มีเทสจับ
+ *     ⚠️ หน่วยของ `amount` เปลี่ยนไปตาม fxKind เสมอ — เพิ่ม fxKind ใหม่เมื่อไหร่ ต้องมาเติมแถวที่นี่ด้วย
  *
  *  🔑 `effect` ปกติมาจาก `part.effect` ตรงๆ แต่ `extra` spread ทับทีหลังได้ (ดู `infectBurst` ใน runOnHit):
  *     ระเบิดเชื้อใช้ part เดียวกับตอนแปะ (`effect: 'infect'`) แต่ต้องส่ง event คนละชื่อ ('infectBurst')
@@ -226,6 +233,10 @@ export function runOnStart(team, foes) {
 // ══════════════════════════════════════════════════════════════
 //  onRound — ต้นรอบใหม่
 // ══════════════════════════════════════════════════════════════
+/** ⚠️ `taunt` ลงทะเบียนบน hook `onRound` แต่ **ไม่มีเคสในฟังก์ชันนี้โดยตั้งใจ** — ไม่ใช่ของตกหล่น
+ *  hook บอกแค่ "ผลนี้มีอายุเท่ารอบหนึ่ง" (มุมผู้เล่น: ต้นรอบใหม่กอริลลาท้าชนอีกครั้ง) ส่วนคนอ่านค่าจริงคือ
+ *  `tauntTargetOf()` ที่ตัวเลือกเป้าของเอนจินเรียกก่อนสุ่ม และ `runOnHit` ที่หักดาเมจเมื่อ forced = true
+ *  🔴 ห้ามเติมเคส `taunt` ลงลูปข้างล่างเพื่อ "ให้ครบ" — มันจะกลายเป็น event ซ้ำที่ไม่มีผลอะไรทุกต้นรอบ */
 export function runOnRound(team) {
   const out = []
   for (const u of alive(team)) {
@@ -481,13 +492,23 @@ export function runOnHit(defender, dmg, attacker, team, rand, forced = false) {
         if (res.reflect > 0) break
         const st = psOf(defender)
         // เติมสแตคครั้งเดียวตอนโดนหมัดแรกของไฟต์ — ไม่มีการเติมซ้ำระหว่างไฟต์ (สเปก §4.3)
+        // 🔑 ต้องอยู่ "เหนือ" การ์ด res.dmg ข้างล่าง — สัมผัสแรกของไฟต์อาจเป็นหมัดที่ถูกกันจนเหลือ 0
+        //    ถ้าไป seed ทีหลัง สแตคจะยังไม่ถูกตั้งจนกว่าจะมีหมัดที่ดาเมจผ่านเข้ามาจริง
         if (st.armor === undefined) st.armor = v.count
+        // 🔴 ไม่มีดาเมจเหลือให้กันแล้ว = ห้ามกินสแตค — นี่คือการถอด "ความขึ้นกับลำดับ part ในข้อมูล"
+        //    ตัวเดียวกับที่ atkOnHit ถูกยกออกนอกลูปเพื่อกำจัดทิ้ง: เพ็ทที่เขียน [dodge, armorStack]
+        //    จะเสียสแตคฟรีแล้วสะท้อน 0 ส่วน [armorStack, dodge] กันหมัดจริงและสะท้อนเต็ม
+        //    ทั้งที่เป็นพาสสีฟชุดเดียวกันเป๊ะ · สแตคคือทรัพยากรทั้งหมดของกลไกนี้ และไม่มี event ไหน
+        //    บอกผู้เล่นเลยว่ามันถูกใช้ไปกับหมัดที่ไม่มีอะไรให้กัน
+        if (res.dmg <= 0) break
         if (st.armor <= 0) break
         st.armor -= 1
         res.reflect = pctOf(res.dmg, v.pct)
         res.dmg = 0                                  // กันทั้งหมัด ไม่ใช่โล่ที่มีค่าเลือด
+        // fxKind แยกเป็น 'armor' ของตัวเอง ไม่ใช่ 'guard' ของบากุ — ดูเหตุผลในดอคบล็อกของ ev()
+        // (หน่วยของ amount ต่างกันคนละเรื่อง) · สแตคที่เหลือไปอยู่ฟิลด์ของตัวเอง `armorLeft`
         res.events.push(ev(defender, p, part, { targets: [defender.uid],
-          amount: st.armor, fxKind: 'guard' }))
+          amount: Math.round(res.reflect), armorLeft: st.armor, fxKind: 'armor' }))
         break
       }
     }
@@ -630,13 +651,29 @@ export function runOnAnyDeath(dead, killerTeam, foes, rand) {
     const others = alive(foes || []).filter(u => u !== dead)
     if (others.length) {
       const to = others[Math.floor(rand() * others.length)]
-      // เพดานอ่านจาก value.max ของพาสสีฟไวรัสตัวจริงเสมอ (P4 เป็นเจ้าของตัวเลขนี้ ห้ามมีสำเนาที่สองในโค้ด)
+      const cur = psOf(to).infect
+      // 🔴 กฎ "ไวรัสตัวแรกที่แปะเป็นเจ้าของสแตค" (สเปก §4.1) ใช้กับการย้ายเชื้อด้วย — โฮสต์ใหม่ที่ติดเชื้อ
+      //    ของไวรัสตัวอื่นอยู่ก่อนแล้ว ต้อง "คงเจ้าของเดิมไว้" ชั้นจากศพไหลเข้ากองเดียวกันเฉยๆ
+      //    ถ้าปล่อยให้ inf.from (เจ้าของเชื้อบนศพ) ทับ เจ้าของจะเปลี่ยนกลางไฟต์ ⇒ ดาเมจระเบิดซึ่งคิดจาก
+      //    from.atk เปลี่ยนความแรงเงียบๆ โดยไม่มีสัญญาณอะไรถึงผู้เล่นเลย — เป็นเหตุผลเดียวกับที่ฝั่งแปะชั้น
+      //    ใน runOnHit ยึด cur.from ไม่ใช่ attacker (ที่นี่เคยเป็นจุดเดียวในโค้ดที่แหกกฎข้อนี้)
+      const owner = (cur && cur.from) ? cur.from : inf.from
+      // เพดานอ่านจาก value.max ของพาสสีฟไวรัส "เจ้าของกองนี้" เสมอ (P4 เป็นเจ้าของตัวเลขนี้ ห้ามมีสำเนาที่สองในโค้ด)
+      // 🔑 ต้องเป็นเจ้าของที่รอด ไม่ใช่ไวรัสที่กำลังไหลเข้ามา — ไม่งั้นกองของ A จะถูกตัดด้วยเพดานของ B
       // `inf.n` เป็นแค่พื้นกันพัง ถ้าไวรัสไม่มี part 'infect' จริงๆ (ซึ่งไม่ควรเกิด — st.infect ถูกสร้างจาก
       // part นี้เท่านั้น) ไม่ใช่ที่สำหรับใส่เพดานจริง
-      const vpart = partsAt(passiveFor(inf.from), 'onAttack').find(x => x.effect === 'infect')
-      const cap = vpart ? valOf(vpart, inf.from).max : inf.n
-      const cur = psOf(to).infect
-      psOf(to).infect = { n: Math.min(cap, (cur ? cur.n : 0) + inf.n), from: inf.from }
+      const vp = passiveFor(owner)
+      const vpart = partsAt(vp, 'onAttack').find(x => x.effect === 'infect')
+      const cap = vpart ? valOf(vpart, owner).max : inf.n
+      const n = Math.min(cap, (cur ? cur.n : 0) + inf.n)
+      psOf(to).infect = { n, from: owner }
+      // 🔑 ทุกการสะสม state ในไฟล์นี้ยิง event เสมอ — การย้ายเชื้อเงียบๆ จะทำให้ป้ายชั้นเชื้อของ §6.4
+      //    กระโดดจากศพไปโผล่บนตัวใหม่โดยไม่มีใครเล่าว่าเกิดอะไร · effect ตั้งชื่อแยกจากตอนแปะ
+      //    ('infectSpread') ด้วยเหตุผลเดียวกับ 'infectBurst' — ดูดอคบล็อกของ ev() เรื่องคีย์ก้อนของ battleBeats
+      //    🔒 ไม่กิน beat: passive event ได้ timing ZERO ยกเว้นใบสุดท้ายของก้อน · และบล็อกนี้ทำงาน
+      //       เฉพาะไฟต์ที่มีเชื้ออยู่แล้วเท่านั้น
+      if (vpart) out.push(ev(owner, vp, vpart, { targets: [to.uid], amount: n,
+        fxKind: 'debuff', effect: 'infectSpread' }))
     }
     delete psOf(dead).infect
   }
