@@ -186,12 +186,15 @@ test('P2b: infect/taunt/armorStack ต้องมีไอคอน คำอ�
   assert.ok(SELF_STATUS_EFFECTS.has('armorStack'), 'armorStack เป็นสถานะติดตัวเจ้าของสกิลเอง')
 })
 
-// infectBurst คือ event ระเบิดครั้งเดียว (fxKind: 'damage') ไม่ใช่สถานะติดตัวที่ค้างอยู่บนการ์ด
-// ไอคอนตอนระเบิดมาจาก p.icon ของพาสสีฟไวรัสเอง (ev() ใน battlePassives.js) ไม่ผ่านทะเบียนป้ายนี้เลย
+// infectBurst (ระเบิดเชื้อ) และ infectSpread (ย้ายเชื้อจากศพไปโฮสต์ใหม่) เป็น "เหตุการณ์ครั้งเดียว"
+// ไม่ใช่สถานะติดตัวที่ค้างอยู่บนการ์ด — สถานะที่ค้างจริงคือ `infect` ซึ่งมีป้ายของตัวเองอยู่แล้ว
+// ไอคอนของทั้งสองมาจาก p.icon ของพาสสีฟไวรัสเอง (ev() ใน battlePassives.js) ไม่ผ่านทะเบียนป้ายนี้เลย
 // จึง "ตั้งใจ" ไม่มีป้ายของตัวเอง — เทสนี้พูดสิ่งนั้นออกมาตรงๆ กันมีคนเห็นว่าขาดแล้วเผลอเติมทีหลัง
-test('P2b: infectBurst ตั้งใจไม่มีป้ายของตัวเอง (เป็น FX ระเบิดครั้งเดียว ใช้ p.icon ไม่ใช่ STATUS_ICON)', () => {
-  assert.equal(STATUS_ICON.infectBurst, undefined)
-  assert.equal(STATUS_TEXT.infectBurst, undefined)
+test('P2b: infectBurst/infectSpread ตั้งใจไม่มีป้ายของตัวเอง (เป็นเหตุการณ์ครั้งเดียว ใช้ p.icon ไม่ใช่ STATUS_ICON)', () => {
+  for (const k of ['infectBurst', 'infectSpread']) {
+    assert.equal(STATUS_ICON[k], undefined)
+    assert.equal(STATUS_TEXT[k], undefined)
+  }
 })
 
 // ── กันไอคอนซ้ำ: ป้ายสองอันหน้าตาเดียวกันบนการ์ดเดียว = ผู้เล่นอ่านไม่ออกว่าได้อะไรมาสองอย่าง ──

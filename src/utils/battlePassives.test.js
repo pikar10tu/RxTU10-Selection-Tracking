@@ -9,7 +9,7 @@ import { PET_PASSIVES, passiveValueAt, passiveText, effectText, partsOf, PASSIVE
 import { PETS } from '../data/index.js'
 import { COMBAT_BASE, COMBAT_GRADE, ELEMENT_BIAS } from '../data/petPower.js'
 import { simulateBattle } from './battleEngine.js'
-import { buildBeats, beatDuration } from './battleBeats.js'
+import { buildBeats, beatDuration, totalDuration } from './battleBeats.js'
 
 const u = (id, over = {}) => ({ id, uid: over.uid || 'A0', side: 'A', atk: 100, maxHp: 1000, hp: 1000, element: 'fist', ...over })
 const seq = (...vals) => { let i = 0; return () => vals[Math.min(i++, vals.length - 1)] }
@@ -620,6 +620,67 @@ test('infect: ไม่มีศัตรูเหลือให้ย้าย
   } finally { delete PET_PASSIVES.__virus }
 })
 
+// 🔴 กฎ "ไวรัสตัวแรกที่แปะเป็นเจ้าของกอง" (สเปก §4.1) ต้องใช้กับ *การย้ายเชื้อ* ด้วย ไม่ใช่แค่ตอนแปะ
+//    ตอนแรกโค้ดย้ายเชื้อทับ from ด้วยเจ้าของเชื้อบนศพเสมอ ⇒ โฮสต์ที่ติดเชื้อ A อยู่แล้วเปลี่ยนเจ้าของเป็น B
+//    กลางไฟต์ · ดาเมจระเบิดคิดจาก from.atk ⇒ ความแรงของเชื้อเปลี่ยนโดยไม่มีสัญญาณอะไรถึงผู้เล่นเลย
+test('infect: เชื้อจากศพย้ายลงโฮสต์ที่ติดเชื้อไวรัสอื่นอยู่ก่อน ต้องไม่แย่งความเป็นเจ้าของ (และเพดานยึดของเจ้าของเดิม)', () => {
+  PET_PASSIVES.__virusA = {
+    name: 'ทดสอบเชื้อ A', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  PET_PASSIVES.__virusB = {
+    // เพดานกับ atk ต่างจาก A ชัดเจน — ถ้าโค้ดหยิบผิดตัว ตัวเลขจะโป้งทันที
+    name: 'ทดสอบเชื้อ B', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 9 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  try {
+    const virusA = { uid: 'A0', side: 'A', id: '__virusA', hp: 100, maxHp: 100, atk: 100 }
+    const virusB = { uid: 'A1', side: 'A', id: '__virusB', hp: 100, maxHp: 100, atk: 999 }
+    const corpse = { uid: 'B0', side: 'B', id: '__blank__', hp: 0, maxHp: 100, atk: 10 }
+    const host = { uid: 'B1', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    psOf(host).infect = { n: 3, from: virusA }     // โฮสต์ติดเชื้อของ A อยู่ก่อน (A เป็นเจ้าของกองนี้)
+    psOf(corpse).infect = { n: 4, from: virusB }   // ศพถือเชื้อของ B
+
+    const out = runOnAnyDeath(corpse, [virusA, virusB], [corpse, host], () => 0.5)
+
+    assert.equal(psOf(host).infect.from, virusA, 'เจ้าของเดิมของโฮสต์ต้องอยู่ ไม่ถูกเจ้าของเชื้อบนศพทับ')
+    assert.equal(psOf(host).infect.n, 5,
+      'เพดานต้องอ่านจากพาสสีฟของเจ้าของที่รอด (__virusA max 5) ไม่ใช่ของไวรัสที่ไหลเข้ามา (__virusB max 9)')
+    assert.equal(psOf(corpse).infect, undefined, 'ศพต้องไม่ถือเชื้อต่อ')
+
+    // การย้ายเชื้อต้องมี event เล่า ไม่งั้นป้ายชั้นเชื้อของสเปก §6.4 กระโดดจากศพไปโผล่บนตัวใหม่เงียบๆ
+    const spread = out.filter(e => e.effect === 'infectSpread')
+    assert.equal(spread.length, 1, 'ต้องมี event ย้ายเชื้อพอดี 1 ใบ')
+    assert.equal(spread[0].fxKind, 'debuff')
+    assert.deepEqual(spread[0].targets, ['B1'], 'ป้ายต้องลงบนโฮสต์ใหม่')
+    assert.equal(spread[0].amount, 5, 'amount = จำนวนชั้นของโฮสต์หลังย้าย (หน่วยเดียวกับตอนแปะ)')
+    assert.equal(spread[0].uid, 'A0', 'event เป็นของไวรัสเจ้าของกอง (A) ไม่ใช่ B')
+    assert.equal(spread[0].kind, undefined, '🔴 ห้ามมีฟิลด์ชื่อ kind ใน event (CLAUDE.md ข้อ 15)')
+  } finally { delete PET_PASSIVES.__virusA; delete PET_PASSIVES.__virusB }
+})
+
+test('infect: ย้ายลงโฮสต์ที่ยังสะอาด เจ้าของคือไวรัสของศพตามเดิม + มี event เล่า', () => {
+  PET_PASSIVES.__virus = {
+    name: 'ทดสอบเชื้อ', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'infect', value: { pct: 15, max: 5 }, step: { pct: 0, max: 0 } }],
+    desc: 'เชื้อ {pct}% ต่อชั้น สูงสุด {max}', short: 'เชื้อ {pct}% ต่อชั้น',
+  }
+  try {
+    const virus = { uid: 'A0', side: 'A', id: '__virus', hp: 100, maxHp: 100, atk: 100 }
+    const corpse = { uid: 'B0', side: 'B', id: '__blank__', hp: 0, maxHp: 100, atk: 10 }
+    const clean = { uid: 'B1', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    psOf(corpse).infect = { n: 2, from: virus }
+    const out = runOnAnyDeath(corpse, [virus], [corpse, clean], () => 0.5)
+    assert.equal(psOf(clean).infect.from, virus)
+    assert.equal(psOf(clean).infect.n, 2)
+    const spread = out.filter(e => e.effect === 'infectSpread')
+    assert.equal(spread.length, 1)
+    assert.equal(spread[0].amount, 2)
+  } finally { delete PET_PASSIVES.__virus }
+})
+
 // ── integration: กฎเหล็ก + determinism ──────────────────────
 const team = (ids, rarity, grade) => ids.map((id, i) => {
   const d = PETS.find(p => p.id === id)
@@ -910,6 +971,62 @@ test('armorStack: กินสแตคแล้วกันทั้งหม�
   } finally { delete PET_PASSIVES.__armor }
 })
 
+// 🔴 fxKind ของเกราะต้องแยกจาก 'guard' ของบากุ — สอง effect เคยใช้ชื่อเดียวกันแต่ `amount` คนละหน่วย
+//    (บากุ = ดาเมจที่รับแทน · เกราะ = จำนวนสแตคที่เหลือ ซึ่งเป็น 0 ได้) ⇒ มินิชิปของสเปก §6.2 ที่คีย์ด้วย
+//    fxKind แล้วพิมพ์ amount จะพิมพ์เลขผิดหน่วยโดยไม่มีเทสจับ · ตอนนี้เกราะเป็น 'armor' และ amount =
+//    ดาเมจสะท้อน (ค่าที่เดิมไม่ได้ถูกบันทึกไว้ที่ไหนเลย — P2c จะต้องไปขุดจาก attack event ตัวถัดไปเอง)
+test('armorStack: event เป็น fxKind ของตัวเอง · amount = ดาเมจสะท้อน · สแตคที่เหลืออยู่ใน armorLeft', () => {
+  PET_PASSIVES.__armorEv = {
+    name: 'ทดสอบเกราะป้าย', icon: '🧪',
+    parts: [{ hook: 'onHit', effect: 'armorStack', value: { count: 2, pct: 80 }, step: { count: 0, pct: 0 } }],
+    desc: 'เกราะ {count} ชั้น สะท้อน {pct}%', short: 'เกราะ {count} ชั้น',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__armorEv', hp: 100, maxHp: 100, atk: 10 }
+    const att = { uid: 'B0', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    const e = runOnHit(me, 100, att, [me], () => 0.5).events.find(x => x.effect === 'armorStack')
+    assert.ok(e, 'ต้องมี event ของเกราะ')
+    assert.equal(e.fxKind, 'armor', "ห้ามใช้ 'guard' ร่วมกับบากุ — หน่วยของ amount คนละอย่างกัน")
+    assert.equal(e.amount, 80, 'amount = ดาเมจที่สะท้อนกลับไปจริง (80% ของ 100)')
+    assert.equal(e.armorLeft, 1, 'สแตคที่เหลือย้ายไปอยู่ฟิลด์ของตัวเอง')
+    assert.equal(e.kind, undefined, '🔴 ห้ามมีฟิลด์ชื่อ kind ใน event (CLAUDE.md ข้อ 15)')
+  } finally { delete PET_PASSIVES.__armorEv }
+})
+
+// 🔴 หนี้ของงานย่อย 1: atkOnHit ถูกยกออกนอกลูปเพื่อเลิกขึ้นกับ "ลำดับ part ในข้อมูล" — แล้ว armorStack
+//    เดินกลับเข้าไปใหม่เพราะไม่มีการ์ด res.dmg · เทสนี้คือหลักฐานว่าการ์ดที่เพิ่มเข้าไปกัดจริง
+test('armorStack: หมัดที่ถูกหลบไปแล้ว (dmg = 0) ต้องไม่กินสแตคและไม่เด้งป้าย', () => {
+  PET_PASSIVES.__armorDodge = {
+    name: 'ทดสอบเกราะ+หลบ', icon: '🧪',
+    parts: [
+      // ลำดับนี้แหละคือปัญหา: dodge ล้างดาเมจก่อน แล้ว armorStack ที่อยู่ถัดไปเห็น res.dmg = 0
+      // แล้วเดิมยังกินสแตคไปหนึ่งชั้นพร้อมสะท้อน 0 — ทรัพยากรทั้งหมดของกลไกหายไปเงียบๆ
+      // pct 50 (ไม่ใช่ 100) เพื่อให้เทสสั่งได้ทั้ง "หลบติด" และ "หลบไม่ติด" ด้วย rand คนละค่า
+      { hook: 'onHit', effect: 'dodge', value: { pct: 50 }, step: { pct: 0 } },
+      { hook: 'onHit', effect: 'armorStack', value: { count: 2, pct: 80 }, step: { count: 0, pct: 0 } },
+    ],
+    desc: 'หลบ {pct}%', short: 'หลบ {pct}%',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__armorDodge', hp: 100, maxHp: 100, atk: 10 }
+    const att = { uid: 'B0', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    const res = runOnHit(me, 100, att, [me], () => 0)     // rand 0 → 0 < 50 = หลบติด
+    assert.equal(res.dodged, true, 'ต้องหลบจริงในเทสนี้')
+    assert.equal(res.dmg, 0)
+    assert.equal(res.reflect, 0, 'ไม่มีดาเมจเหลือให้กัน ⇒ ไม่มีอะไรให้สะท้อน')
+    assert.equal(psOf(me).armor, 2, 'สแตคถูก seed ตอนสัมผัสแรก แต่ห้ามถูกใช้กับหมัดที่ไม่มีอะไรให้กัน')
+    assert.equal(res.events.filter(e => e.effect === 'armorStack').length, 0,
+      'ไม่ได้กินสแตค = ต้องไม่มีป้ายเกราะเด้ง (ไม่งั้นผู้เล่นเห็นเกราะทำงานทั้งที่หลบไปแล้ว)')
+
+    // หมัดถัดไปที่ดาเมจผ่านจริง สแตคยังครบ 2 พร้อมใช้ — พิสูจน์ว่าการ์ดไม่ได้ปิดกลไกทิ้ง
+    const hit = runOnHit(me, 100, att, [me], () => 0.99)  // rand 0.99 → 99 < 50 เป็นเท็จ = หลบไม่ติด
+    assert.equal(hit.dodged, false)
+    assert.equal(hit.dmg, 0, 'เกราะกันทั้งหมัด')
+    assert.equal(hit.reflect, 80)
+    assert.equal(psOf(me).armor, 1, 'เพิ่งเสียสแตคแรกที่หมัดนี้ ไม่ใช่ที่หมัดที่หลบไปก่อนหน้า')
+  } finally { delete PET_PASSIVES.__armorDodge }
+})
+
 test('armorStack: กันหมัดหลักได้ แต่กันดาเมจเชื้อไม่ได้ (pierce ทะลุเกราะ)', () => {
   PET_PASSIVES.__armor2 = {
     name: 'ทดสอบเกราะ2', icon: '🧪',
@@ -924,6 +1041,72 @@ test('armorStack: กันหมัดหลักได้ แต่กัน�
     assert.equal(res.dmg, 0)
     assert.equal(res.pierce, 30, 'เกราะต้องไม่แตะช่อง pierce')
   } finally { delete PET_PASSIVES.__armor2 }
+})
+
+// ══════════════════════════════════════════════════════════════
+//  armorStack ระดับ simulateBattle — ทางสะท้อนในเอนจินไม่เคยถูกเทสที่ชั้นไหนเลย
+// ══════════════════════════════════════════════════════════════
+// 🔴 บล็อกสะท้อนใน battleEngine.js ทำให้ strike() **เรียกซ้อนตัวเอง** เป็นครั้งแรกในโค้ดเบสนี้ แต่ของเดิม
+//    มีแค่ assert ว่า runOnHit คืน res.reflect เป็นตัวเลข ⇒ การรีเคอร์ซิฟ, flag `reflecting`, `sub: true`,
+//    รายชื่อเป้า และพารามิเตอร์ "ทีมของเป้า" ไม่มีใครทดสอบสักตัว (แผน P2b งานย่อย 2 สั่งแค่เทสหน่วยย่อย)
+//
+// 🔒 ครึ่งสำคัญที่สุดของเทสนี้คือ **ความยาวรีเพลย์ต้องไม่ขยับ** — กฎเหล็ก "passive ห้ามเพิ่ม beat"
+//    ทำงานที่ชั้น buildBeats ไม่ใช่ชั้น log ⇒ ต้องวัดที่นั่น · รันคุมกลุ่มใช้ pct: 0 ซึ่งยัง "กินสแตค
+//    และกันหมัดเต็มใบ" เหมือนเดิมทุกอย่าง (res.dmg = 0 ไม่ขึ้นกับ pct) ต่างกันแค่ก้อนสะท้อนที่เป็น 0
+//    ⇒ ลำดับหมัด/การตาย/การดึง rand เหมือนกันเป๊ะ (เป้าที่โดนสะท้อนไม่มีพาสสีฟที่ดึง rand และ HP ที่หาย
+//    ไม่พอทำให้ใครตายเร็วขึ้นในไฟต์นี้ — ยืนยันด้วยจำนวน attack event ที่ไม่ใช่ sub เท่ากันทั้งสองรัน)
+test('armorStack: ก้อนสะท้อนยิงจริงผ่าน simulateBattle เป็น sub และไม่ยืดความยาวรีเพลย์แม้แต่มิลลิวินาทีเดียว', () => {
+  // A: เกราะตัวเดียว (common/1 = อ่อน ตายในไม่กี่รอบ) · B: ศัตรูสองตัว legendary/5 เลือดหนา
+  // ⇒ ก้อนสะท้อน (2 สแตค × 2 เป้า = 4 หมัด) ไม่พอฆ่าใคร ⇒ โครงไฟต์ของสองรันเหมือนกันเป๊ะ
+  const A = [{ id: '__armorSim', rarity: 'common', element: 'fist', grade: 1 }]
+  const B = [{ id: '__foeSim', rarity: 'legendary', element: 'fist', grade: 5 },
+             { id: '__foeSim', rarity: 'legendary', element: 'fist', grade: 5 }]
+  const runWith = (pct) => {
+    PET_PASSIVES.__armorSim = {
+      name: 'ทดสอบเกราะสนาม', icon: '🧪',
+      parts: [{ hook: 'onHit', effect: 'armorStack', value: { count: 2, pct }, step: { count: 0, pct: 0 } }],
+      desc: 'เกราะ {count} ชั้น สะท้อน {pct}%', short: 'เกราะ {count} ชั้น',
+    }
+    try { return simulateBattle(A, B, 42) } finally { delete PET_PASSIVES.__armorSim }
+  }
+  const real = runWith(80)
+  const ctrl = runWith(0)
+  // __foeSim ไม่ได้ลงทะเบียนพาสสีฟโดยตั้งใจ — ศัตรูต้องไม่มีอะไรดึง rand() หรือกันดาเมจ
+  assert.equal(PET_PASSIVES.__foeSim, undefined)
+
+  // ── ก้อนสะท้อนมีจริง และเป็นหมัดลูกของ beat เดิม ──
+  const reflects = real.log.filter(e => e.t === 'attack' && e.attacker === 'A0' && e.sub)
+  assert.equal(reflects.length, 4, 'เกราะ 2 สแตค × ศัตรู 2 ตัว = สะท้อน 4 หมัด')
+  assert.ok(reflects.every(e => e.sub === true), '🔒 ทุกหมัดสะท้อนต้องเป็น sub (อยู่ beat เดิม)')
+  assert.ok(reflects.every(e => e.side === 'A'), 'ฝั่งของหมัดสะท้อน = ฝั่งของคนที่มีเกราะ ไม่ใช่ผู้ตี')
+  assert.deepEqual(reflects.map(e => e.target), ['B0', 'B1', 'B0', 'B1'],
+    'แต่ละก้อนต้องลงศัตรูที่ยังไม่ตาย "ทุกตัว" ตามลำดับในทีม (พารามิเตอร์ทีมของเป้าส่งถูก)')
+  assert.ok(reflects.every(e => e.dmg > 0), 'ดาเมจสะท้อนต้องลงจริง ไม่ใช่ event เปล่า')
+
+  // ป้ายเกราะบอกดาเมจสะท้อนตรงกับที่ลงจริง (ศัตรูไม่มีสายลด ⇒ ต้องเท่ากันเป๊ะ)
+  const armorEvents = real.log.filter(e => e.t === 'passive' && e.effect === 'armorStack')
+  assert.equal(armorEvents.length, 2, 'กินสแตคได้ 2 ครั้งเท่านั้น แล้วรับหมัดปกติ')
+  assert.deepEqual(armorEvents.map(e => e.armorLeft), [1, 0])
+  assert.equal(reflects[0].dmg, armorEvents[0].amount)
+  assert.equal(reflects[1].dmg, armorEvents[0].amount)
+
+  // ── รันคุมกลุ่ม: เกราะยังกินสแตคและกันหมัดเต็มใบเหมือนเดิม ต่างกันแค่ไม่มีก้อนสะท้อน ──
+  assert.equal(ctrl.log.filter(e => e.t === 'passive' && e.effect === 'armorStack').length, 2,
+    'pct: 0 ต้องยัง "กินสแตคและกันหมัด" เหมือนกันทุกอย่าง ไม่งั้นสองรันเทียบกันไม่ได้')
+  assert.equal(ctrl.log.filter(e => e.t === 'attack' && e.sub).length, 0, 'คุมกลุ่มต้องไม่มีหมัดสะท้อนเลย')
+  const mainHits = (r) => r.log.filter(e => e.t === 'attack' && !e.sub).length
+  assert.equal(mainHits(real), mainHits(ctrl), 'จำนวนหมัดหลักต้องเท่ากัน = โครงไฟต์ไม่เปลี่ยน')
+  assert.equal(real.winner, ctrl.winner)
+  assert.equal(real.rounds, ctrl.rounds)
+
+  // ── 🔒 กฎเหล็ก วัดที่ชั้นที่มันทำงานจริง: ความยาวรีเพลย์รวมต้องเท่ากันเป๊ะ ──
+  const maxHpOf = (r) => Object.fromEntries(Object.entries(r.units).map(([uid, s]) => [uid, s.maxHp]))
+  const durReal = totalDuration(buildBeats(real.log, maxHpOf(real)))
+  const durCtrl = totalDuration(buildBeats(ctrl.log, maxHpOf(ctrl)))
+  assert.equal(durReal, durCtrl,
+    '🔒 ก้อนสะท้อนเพิ่ม event เข้า log แต่ต้องได้ kind "sub" (timing ZERO) ⇒ เวลารวมห้ามขยับ')
+  const kinds = buildBeats(real.log, maxHpOf(real)).filter((_, i) => real.log[i].sub).map(b => b.kind)
+  assert.deepEqual(kinds, ['sub', 'sub', 'sub', 'sub'], 'ทุกหมัดสะท้อนต้องถูกจัดเป็น kind sub')
 })
 
 // ── tauntTargetOf ────────────────────────────────────────────
