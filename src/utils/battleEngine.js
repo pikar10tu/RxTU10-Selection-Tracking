@@ -51,12 +51,14 @@ export function simulateBattle(teamA, teamB, seed) {
   // กันเกราะสะท้อนชนกันไปมา: ระหว่างยิงก้อนสะท้อน ห้ามมีก้อนสะท้อนใหม่เกิดขึ้นอีกชั้น
   let reflecting = false
 
-  /** หักเลือด 1 ครั้ง + บันทึก log · คืน true ถ้าเป้าตายจริง (ผ่าน onDeath แล้ว) */
-  const strike = (att, tg, foes, mult, tier, sub) => {
+  /** หักเลือด 1 ครั้ง + บันทึก log · คืน true ถ้าเป้าตายจริง (ผ่าน onDeath แล้ว)
+   *  forced = หมัดนี้ลงบนเป้าที่ถูก taunt บังคับมา (ไม่ใช่เป้าที่เลือกเอง) — ส่งต่อให้ runOnHit ตัดสินใจลดดาเมจ
+   *  🔴 เป้ารองของ cleave และดาเมจสะท้อนของ armorStack ไม่ใช่หมัดที่ถูกบังคับ ⇒ เรียก strike() โดยไม่ส่ง forced (= false) */
+  const strike = (att, tg, foes, mult, tier, sub, forced = false) => {
     const before = tg.hp
     // onHit: guardian (เพื่อนรับแทน) → dodge → ลดดาเมจ → หนาม  (มุมของ "ผู้รับ" ล้วน)
     const attTeam = att.side === 'A' ? A : B
-    const hitRes = runOnHit(tg, Math.max(0, mult), att, foes, rand)
+    const hitRes = runOnHit(tg, Math.max(0, mult), att, foes, rand, forced)
     for (const e of hitRes.events) log.push(e)
     // onDealt: ผลฝั่ง "ผู้ตี" ที่ต้องรู้ดาเมจจริง (healOnAttack / teamLifesteal)
     // 🔒 ต้อง push ต่อท้าย hitRes.events ทันที — ลำดับ event ใน log คือสิ่งที่รีเพลย์เล่าตามตรงๆ
@@ -104,8 +106,11 @@ export function simulateBattle(teamA, teamB, seed) {
     return dead
   }
 
-  /** 1 หมัด = 1 beat · cleave/multiStrike อยู่ในหมัดเดียวกัน (กฎเหล็ก: ห้ามเพิ่ม beat) */
+  /** 1 หมัด = 1 beat · cleave/multiStrike อยู่ในหมัดเดียวกัน (กฎเหล็ก: ห้ามเพิ่ม beat)
+   *  🔴 forced ต้องจำไว้ "ก่อน" pick() คืนเป้า — pick() เองก็เรียก tauntTargetOf ซ้ำ แต่ไม่ดึง rand()
+   *     ก่อนเช็ค taunt ⇒ เรียกซ้ำได้โดยไม่ทำให้ลำดับสุ่มของไฟต์เลื่อน (ดู comment บน pick ด้านบน) */
   const hit = (att, foes) => {
+    const forced = !!tauntTargetOf(foes)
     let tg = pick(foes)
     if (!tg) return false
     const mod = runOnAttack(att, tg, foes, rand)
@@ -125,12 +130,13 @@ export function simulateBattle(teamA, teamB, seed) {
     let killed = false
     for (let i = 0; i < mod.strikes; i++) {
       if (tg.hp <= 0) break
-      if (strike(att, tg, foes, perHit, { crit, eff }, i > 0)) killed = true
+      if (strike(att, tg, foes, perHit, { crit, eff }, i > 0, forced)) killed = true
     }
     // เป้ารองของ cleave — ดาเมจลดตาม pct · ยังอยู่ beat เดียวกัน
+    // ⚠️ ไม่ใช่หมัดที่ถูกบังคับ แม้เป้าหลักจะถูก taunt ดึงมาก็ตาม — ส่ง false เสมอ (สเปกงานย่อยนี้)
     for (const x of mod.extra) {
       if (x.unit.hp <= 0) continue
-      if (strike(att, x.unit, foes, base * (x.pct / 100), { crit: false, eff: 'neutral' }, true)) killed = true
+      if (strike(att, x.unit, foes, base * (x.pct / 100), { crit: false, eff: 'neutral' }, true, false)) killed = true
     }
     return killed
   }

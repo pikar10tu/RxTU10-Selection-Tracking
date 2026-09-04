@@ -274,6 +274,7 @@ export function runOnAttack(att, target, foes, rand) {
     const v = valOf(part, att)
     switch (part.effect) {
       case 'targetLowest': {
+        if (tauntTargetOf(foes)) break        // ถูกบังคับอยู่ — ลำดับในสเปก: taunt > targetLowest
         const low = alive(foes).reduce((b, f) => (!b || f.hp / f.maxHp < b.hp / b.maxHp ? f : b), null)
         if (low && low !== target) {
           res.target = low
@@ -401,7 +402,7 @@ export function runOnDealt(attacker, attTeam, dealt) {
  *   thorns   = ดาเมจสะท้อนกลับไปที่ผู้ตี (เอนจินเป็นคนหัก)
  *   reflect  = ดาเมจดิบที่ต้องยิงใส่ศัตรูทุกตัวของผู้รับ ผ่าน strike() ปกติ (armorStack, สเปก §4.3)
  */
-export function runOnHit(defender, dmg, attacker, team, rand) {
+export function runOnHit(defender, dmg, attacker, team, rand, forced = false) {
   // pierce = ดาเมจที่ "ไม่ผ่านสายลด" — เอนจินหักหลัง res.dmg · วันนี้มีแค่ infect (P2b) ที่ใส่ค่า
   // 🔴 ห้ามเอาไปใช้กับกลไกอื่นโดยไม่แก้สเปก: การทะลุเกราะคือเหตุผลที่ไวรัสมีอยู่
   //    ถ้าแจกให้ตัวอื่นด้วย มันจะกลายเป็นแค่ "ดาเมจเพิ่ม" อีกตัวหนึ่ง
@@ -432,7 +433,15 @@ export function runOnHit(defender, dmg, attacker, team, rand) {
   // (ไม่ใช่บวก % กัน: 20% + 12% ≠ 32% แต่เป็น ×0.8×0.88 = ลดจริง 29.6%)
   if (defender.teamDrPct > 0) res.dmg -= pctOf(res.dmg, defender.teamDrPct)
 
-  const p = passiveFor(defender)
+  // taunt — ลดเฉพาะหมัดที่ถูกดึงมาหาเจ้าตัว ไม่ใช่ตลอดเวลา (สเปก §4.2)
+  // flag มาจากเอนจินซึ่งเป็นคนรู้ว่าเป้าถูกบังคับหรือเลือกเอง — ห้ามให้ที่นี่เดาเอง
+  const p0 = passiveFor(defender)
+  if (forced) {
+    const tp = partsAt(p0, 'onRound').find(x => x.effect === 'taunt')
+    if (tp) res.dmg -= pctOf(res.dmg, valOf(tp, defender).pct)
+  }
+
+  const p = p0
   for (const part of partsAt(p, 'onHit')) {
     const v = valOf(part, defender)
     switch (part.effect) {

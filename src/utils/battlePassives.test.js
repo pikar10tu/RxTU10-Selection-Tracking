@@ -903,3 +903,32 @@ test('tauntTargetOf: มีสองตัวเอาช่องซ้าย�
     assert.equal(tauntTargetOf([dead, left, right]), left)
   } finally { delete PET_PASSIVES.__taunt }
 })
+
+test('taunt: ลดดาเมจเฉพาะหมัดที่ถูกบังคับมา ไม่ใช่ทุกหมัด', () => {
+  PET_PASSIVES.__taunt2 = {
+    name: 'ทดสอบท้าชน2', icon: '🧪',
+    parts: [{ hook: 'onRound', effect: 'taunt', value: { pct: 25 }, step: { pct: 0 } }],
+    desc: 'ท้าชน ลด {pct}%', short: 'ท้าชน ลด {pct}%',
+  }
+  try {
+    const me = { uid: 'B0', side: 'B', id: '__taunt2', hp: 100, maxHp: 100, atk: 10 }
+    const att = { uid: 'A0', side: 'A', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    assert.equal(runOnHit(me, 100, att, [me], () => 0.5, true).dmg, 75, 'หมัดที่ถูกดึงมาต้องลด 25%')
+    assert.equal(runOnHit(me, 100, att, [me], () => 0.5, false).dmg, 100, 'หมัดที่เลือกเองต้องไม่ลด')
+  } finally { delete PET_PASSIVES.__taunt2 }
+})
+
+test('runOnAttack: targetLowest ต้องไม่แย่งเป้าที่ถูก taunt บังคับไว้', () => {
+  PET_PASSIVES.__taunt3 = {
+    name: 'ทดสอบท้าชน3', icon: '🧪',
+    parts: [{ hook: 'onRound', effect: 'taunt', value: { pct: 25 }, step: { pct: 0 } }],
+    desc: 'ท้าชน ลด {pct}%', short: 'ท้าชน ลด {pct}%',
+  }
+  try {
+    const gorilla = { uid: 'B0', side: 'B', id: '__taunt3', hp: 100, maxHp: 100, atk: 10 }
+    const weak = { uid: 'B1', side: 'B', id: '__blank__', hp: 5, maxHp: 100, atk: 10 }
+    const eagle = { uid: 'A0', side: 'A', id: 'simurgh', hp: 100, maxHp: 100, atk: 10 }
+    const mod = runOnAttack(eagle, gorilla, [gorilla, weak], () => 0.5)
+    assert.equal(mod.target, gorilla, 'taunt ต้องชนะ targetLowest ตามลำดับในสเปก')
+  } finally { delete PET_PASSIVES.__taunt3 }
+})
