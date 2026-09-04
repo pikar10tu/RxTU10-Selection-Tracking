@@ -40,6 +40,9 @@ export function simulateBattle(teamA, teamB, seed) {
 
   const pick = (foes) => { const al = alive(foes); return al.length ? al[Math.floor(rand() * al.length)] : null }
 
+  // กันเกราะสะท้อนชนกันไปมา: ระหว่างยิงก้อนสะท้อน ห้ามมีก้อนสะท้อนใหม่เกิดขึ้นอีกชั้น
+  let reflecting = false
+
   /** หักเลือด 1 ครั้ง + บันทึก log · คืน true ถ้าเป้าตายจริง (ผ่าน onDeath แล้ว) */
   const strike = (att, tg, foes, mult, tier, sub) => {
     const before = tg.hp
@@ -55,6 +58,15 @@ export function simulateBattle(teamA, teamB, seed) {
     // ยังอยู่ใน beat เดิม และ attack event คิด dmg จาก before-after อยู่แล้ว หลอดเลือดจึงตรงเอง
     if (hitRes.pierce > 0) tg.hp -= hitRes.pierce
     if (hitRes.thorns > 0) att.hp -= hitRes.thorns
+
+    // เกราะสะท้อน — ใส่ศัตรูทุกตัวของผู้รับ ผ่าน strike() ปกติ (โดนสายลดของฝั่งนั้นตามสเปก)
+    // 🔒 sub: true ⇒ อยู่ beat เดิม ไม่เพิ่มจังหวะ · reflecting กันไม่ให้เกราะฝั่งตรงข้ามสะท้อนกลับมาวนไม่รู้จบ
+    if (hitRes.reflect > 0 && !reflecting) {
+      reflecting = true
+      const victims = alive(att.side === 'A' ? A : B)
+      for (const v of victims) strike(tg, v, att.side === 'A' ? A : B, hitRes.reflect, { crit: false, eff: 'neutral' }, true)
+      reflecting = false
+    }
 
     let dead = tg.hp <= 0
     if (dead) {

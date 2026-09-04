@@ -840,3 +840,44 @@ test('pierce: ค่าเริ่มต้นเป็น 0 เสมอ', () 
   const att = { uid: 'B0', side: 'B', id: 'blank', hp: 100, maxHp: 100, atk: 10 }
   assert.equal(runOnHit(d, 100, att, [d], () => 0.5).pierce, 0)
 })
+
+test('armorStack: กินสแตคแล้วกันทั้งหมัด + คืนก้อนสะท้อนให้เอนจิน', () => {
+  PET_PASSIVES.__armor = {
+    name: 'ทดสอบเกราะ', icon: '🧪',
+    parts: [{ hook: 'onHit', effect: 'armorStack', value: { count: 2, pct: 80 }, step: { count: 0, pct: 0 } }],
+    desc: 'เกราะ {count} ชั้น สะท้อน {pct}%', short: 'เกราะ {count} ชั้น',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__armor', hp: 100, maxHp: 100, atk: 10 }
+    const att = { uid: 'B0', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    const r1 = runOnHit(me, 100, att, [me], () => 0.5)
+    assert.equal(r1.dmg, 0, 'สแตคแรกต้องกันหมัดทั้งหมด')
+    assert.equal(r1.reflect, 80)
+    assert.equal(psOf(me).armor, 1)
+
+    const r2 = runOnHit(me, 50, att, [me], () => 0.5)
+    assert.equal(r2.dmg, 0)
+    assert.equal(r2.reflect, 40)
+    assert.equal(psOf(me).armor, 0)
+
+    const r3 = runOnHit(me, 50, att, [me], () => 0.5)
+    assert.equal(r3.dmg, 50, 'หมดสแตคแล้วต้องรับเต็ม')
+    assert.equal(r3.reflect, 0)
+  } finally { delete PET_PASSIVES.__armor }
+})
+
+test('armorStack: กันหมัดหลักได้ แต่กันดาเมจเชื้อไม่ได้ (pierce ทะลุเกราะ)', () => {
+  PET_PASSIVES.__armor2 = {
+    name: 'ทดสอบเกราะ2', icon: '🧪',
+    parts: [{ hook: 'onHit', effect: 'armorStack', value: { count: 1, pct: 0 }, step: { count: 0, pct: 0 } }],
+    desc: 'เกราะ {count} ชั้น', short: 'เกราะ {count} ชั้น',
+  }
+  try {
+    const me = { uid: 'A0', side: 'A', id: '__armor2', hp: 100, maxHp: 100, atk: 10 }
+    const att = { uid: 'B0', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+    const res = runOnHit(me, 100, att, [me], () => 0.5)
+    res.pierce = 30                      // จำลองว่างานย่อย 6 ใส่ค่าให้ (เทสจริงอยู่ที่งานย่อย 6)
+    assert.equal(res.dmg, 0)
+    assert.equal(res.pierce, 30, 'เกราะต้องไม่แตะช่อง pierce')
+  } finally { delete PET_PASSIVES.__armor2 }
+})

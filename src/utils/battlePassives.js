@@ -386,14 +386,15 @@ export function runOnDealt(attacker, attTeam, dealt) {
 //  onHit — ก่อนหักเลือด (dodge / ลดดาเมจ / เปลี่ยนตัวรับ / หนาม)
 // ══════════════════════════════════════════════════════════════
 /**
- * คืน { dmg, dodged, thorns, events, pierce }
+ * คืน { dmg, dodged, thorns, events, pierce, reflect }
  *   thorns   = ดาเมจสะท้อนกลับไปที่ผู้ตี (เอนจินเป็นคนหัก)
+ *   reflect  = ดาเมจดิบที่ต้องยิงใส่ศัตรูทุกตัวของผู้รับ ผ่าน strike() ปกติ (armorStack, สเปก §4.3)
  */
 export function runOnHit(defender, dmg, attacker, team, rand) {
   // pierce = ดาเมจที่ "ไม่ผ่านสายลด" — เอนจินหักหลัง res.dmg · วันนี้มีแค่ infect (P2b) ที่ใส่ค่า
   // 🔴 ห้ามเอาไปใช้กับกลไกอื่นโดยไม่แก้สเปก: การทะลุเกราะคือเหตุผลที่ไวรัสมีอยู่
   //    ถ้าแจกให้ตัวอื่นด้วย มันจะกลายเป็นแค่ "ดาเมจเพิ่ม" อีกตัวหนึ่ง
-  const res = { dmg, dodged: false, thorns: 0, pierce: 0, events: [] }
+  const res = { dmg, dodged: false, thorns: 0, pierce: 0, reflect: 0, events: [] }
 
   // 1) guardian ของ "เพื่อนในทีมเดียวกัน" — ต้องเช็คก่อนของตัว defender เอง
   // 🔑 ส่วนที่ผู้พิทักษ์รับไปถูกหักออกจากดาเมจ "ก่อน" teamDrPct และก่อน damageReduction ทุกตัว
@@ -445,6 +446,18 @@ export function runOnHit(defender, dmg, attacker, team, rand) {
           res.events.push(ev(defender, p, part, { targets: [attacker.uid], amount: Math.round(res.thorns), fxKind: 'thorns' }))
         }
         break
+      case 'armorStack': {
+        const st = psOf(defender)
+        // เติมสแตคครั้งเดียวตอนโดนหมัดแรกของไฟต์ — ไม่มีการเติมซ้ำระหว่างไฟต์ (สเปก §4.3)
+        if (st.armor === undefined) st.armor = v.count
+        if (st.armor <= 0) break
+        st.armor -= 1
+        res.reflect = pctOf(res.dmg, v.pct)
+        res.dmg = 0                                  // กันทั้งหมัด ไม่ใช่โล่ที่มีค่าเลือด
+        res.events.push(ev(defender, p, part, { targets: [defender.uid],
+          amount: st.armor, fxKind: 'guard' }))
+        break
+      }
     }
   }
 
