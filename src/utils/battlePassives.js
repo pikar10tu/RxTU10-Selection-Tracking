@@ -597,6 +597,23 @@ export function runOnHit(defender, dmg, attacker, team, rand, forced = false) {
 export function runOnDeath(unit, team) {
   const out = { prevented: false, events: [] }
 
+  // 0) กินสถานะ "ทนต่อ" ก่อน — ยังไม่แตะโควตา cheatDeath (คนละก้อนกัน)
+  // 🔴 สถานะหลายชั้นตัวแรกของเกม (P2c-1 Task 5, แมว): cheatDeath ให้ 1 ครั้ง + grit ให้ทนอีก v.grit ครั้ง
+  //    ตอน grit หมดพอดี ต้องคืน atk ที่บวกไว้ตอนได้สถานะ ไม่งั้นบัฟค้างถาวรทั้งไฟต์ (ตัวเองคูณ กันคูณซ้ำ
+  //    ด้วยการหารด้วย gritMult ตัวเดียวกับตอนคูณเข้าไปเป๊ะ แล้วเคลียร์ gritMult=0 กันหมัดถัดไปหารซ้ำ)
+  const gst = unit.ps && unit.ps.grit
+  if (gst > 0) {
+    const st = psOf(unit)
+    st.grit -= 1
+    unit.hp = 1
+    if (st.grit === 0 && st.gritMult) { unit.atk /= st.gritMult; st.gritMult = 0 }
+    out.prevented = true
+    out.events.push({ t: 'passive', uid: unit.uid, side: unit.side, petId: unit.id,
+      name: passiveFor(unit)?.name || 'ทนต่อ', icon: passiveFor(unit)?.icon || '🐱',
+      effect: 'grit', targets: [unit.uid], amount: st.grit, hpPct: 1, fxKind: 'revive' })
+    return out
+  }
+
   // 1) ของตัวเอง — revive / cheatDeath
   const p = passiveFor(unit)
   // onDeath มี part เดียวโดยธรรมชาติ: กันตายได้ครั้งเดียวต่อการตายหนึ่งครั้ง
@@ -613,10 +630,18 @@ export function runOnDeath(unit, team) {
       return out
     }
     if (part.effect === 'cheatDeath') {
-      psOf(unit).uses = (psOf(unit).uses || 0) + 1
+      const st = psOf(unit)
+      st.uses = (st.uses || 0) + 1
       unit.hp = 1
+      // สถานะ "ทนต่อ" — หมัดถึงตายอีก v.grit ครั้งไม่ฆ่ามัน และระหว่างนั้นแรงขึ้น v.atkPct%
+      // 🔴 ต้องคืน atk ตอนสถานะหมด ไม่งั้นบัฟค้างถาวรทั้งไฟต์ (สถานะหลายชั้นตัวแรกของเกม)
+      if (v.grit > 0) {
+        st.grit = v.grit
+        st.gritMult = 1 + (v.atkPct || 0) / 100
+        unit.atk *= st.gritMult
+      }
       out.prevented = true
-      out.events.push(ev(unit, p, part, { targets: [unit.uid], hpPct: 1, fxKind: 'revive' }))
+      out.events.push(ev(unit, p, part, { targets: [unit.uid], hpPct: 1, amount: st.grit || 0, fxKind: 'revive' }))
       return out
     }
   }

@@ -538,6 +538,32 @@ test('cheatDeath (cat): รอดด้วยเลือด 1 ครั้ง�
   assert.equal(c.hp, 1)
 })
 
+// 🔴 P2c-1 Task 5: สถานะหลายชั้นตัวแรกของเกม — รอดตายด้วย cheatDeath แล้วได้ "ทนต่อ" อีก 2 หมัด
+//    พร้อม atk +50% ระหว่างมีสถานะ · ต้องคืน atk ให้ตรงตอนสถานะหมด ไม่งั้นบัฟค้างถาวรทั้งไฟต์
+test('แมว: รอดตายครั้งแรกแล้วได้สถานะทน 2 หมัด + แรงขึ้น แล้วบัฟหายตอนหมดสถานะ', () => {
+  const cat = { uid: 'A0', side: 'A', id: 'cat', hp: 0, maxHp: 100, atk: 100 }
+  const team = [cat]
+
+  const d1 = runOnDeath(cat, team)                       // ครั้งที่ 1 — cheatDeath
+  assert.equal(d1.prevented, true)
+  assert.equal(cat.hp, 1)
+  assert.equal(psOf(cat).grit, 2, 'ได้สถานะทน 2 หมัด')
+  assert.equal(Math.round(cat.atk), 150, 'atk +50% ระหว่างมีสถานะ')
+
+  cat.hp = 0
+  assert.equal(runOnDeath(cat, team).prevented, true)    // ครั้งที่ 2 — กินสถานะ
+  assert.equal(psOf(cat).grit, 1)
+  assert.equal(Math.round(cat.atk), 150, 'ยังมีสถานะ บัฟยังอยู่')
+
+  cat.hp = 0
+  assert.equal(runOnDeath(cat, team).prevented, true)    // ครั้งที่ 3 — สถานะหมดพอดี
+  assert.equal(psOf(cat).grit, 0)
+  assert.equal(Math.round(cat.atk), 100, 'สถานะหมด บัฟต้องหายไปด้วย ไม่ค้างถาวร')
+
+  cat.hp = 0
+  assert.equal(runOnDeath(cat, team).prevented, false, 'ครั้งที่ 4 ตายจริง')
+})
+
 test('saveAlly (genie): กันเพื่อนตาย 1 ครั้ง แล้วหมดสิทธิ์', () => {
   const g = u('genie', { uid: 'A0' })
   const a = u('mouse', { uid: 'A1', hp: -10 })
