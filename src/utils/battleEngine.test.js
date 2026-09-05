@@ -274,3 +274,96 @@ test('killChain: ผู้ตีที่ตายจากหนามกลา
     delete PET_PASSIVES.__spikeTest
   }
 })
+
+// ── รีวิวรอบ 2 (6 ก.ย. 2026): บั๊กตระกูลเดียวกับ killChain ที่หลุดไว้ ──────────
+// ผู้ตีตายกลางหมัดตัวเองแล้วยังตีต่อ เกิดได้ในอีก 2 ลูปของ hit() ด้วย ไม่ใช่แค่ killChain
+// (🐰 กระต่ายถือ multiStrike จริง · 🐕 เซอร์เบอรัสถือ cleave จริง — เข้าถึงได้วันนี้ ไม่ใช่สมมุติ)
+
+test('multiStrike: ผู้ตีที่ตายจากหนามหลังหมัดแรกต้องไม่ตีหมัดที่สองต่อในหมัดเดียวกัน (สเปก §7.6 ข้อ 6)', () => {
+  PET_PASSIVES.__spikeTest2 = {
+    name: 'หนามทดสอบ 2', icon: '🧪',
+    parts: [{ hook: 'onHit', effect: 'thorns', value: { pct: 500 }, step: { pct: 0 } }],
+    desc: 'ทดสอบ', short: 'ทดสอบ',
+  }
+  PET_PASSIVES.__multiStrikeTest = {
+    name: 'มัลติสไตรค์ทดสอบ', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'multiStrike', value: { chance: 100, pct: 100 }, step: { chance: 0, pct: 0 } }],
+    desc: 'ทดสอบ', short: 'ทดสอบ',
+  }
+  try {
+    const A = [{ id: '__multiStrikeTest', rarity: 'legendary', element: 'fist', grade: 5 }]
+    const B = [{ id: '__spikeTest2', rarity: 'common', element: 'fist', grade: 0 }]
+    const r = simulateBattle(A, B, 1)
+
+    // ผู้ตีตายจากหนามตั้งแต่หมัดแรกของ multiStrike (sub:false) — หมัดที่สอง (sub:true) ต้องไม่เกิดเลย
+    const atkA0 = r.log.filter(e => e.t === 'attack' && e.attacker === 'A0')
+    assert.equal(atkA0.length, 1, 'ผู้ตีตายจากหนามกลางหมัดแรกของ multiStrike ต้องไม่มีหมัดที่สอง (sub) ตามมา')
+  } finally {
+    delete PET_PASSIVES.__spikeTest2
+    delete PET_PASSIVES.__multiStrikeTest
+  }
+})
+
+test('cleave: ผู้ตีที่ตายจากหนามที่เป้าหลักต้องไม่ตีเป้ารองต่อในหมัดเดียวกัน (สเปก §7.6 ข้อ 6)', () => {
+  PET_PASSIVES.__spikeTest3 = {
+    name: 'หนามทดสอบ 3', icon: '🧪',
+    parts: [{ hook: 'onHit', effect: 'thorns', value: { pct: 500 }, step: { pct: 0 } }],
+    desc: 'ทดสอบ', short: 'ทดสอบ',
+  }
+  PET_PASSIVES.__cleaveTest = {
+    name: 'คลีฟทดสอบ', icon: '🧪',
+    parts: [{ hook: 'onAttack', effect: 'cleave', value: { count: 2, pct: 100 }, step: { count: 0, pct: 0 } }],
+    desc: 'ทดสอบ', short: 'ทดสอบ',
+  }
+  try {
+    const A = [{ id: '__cleaveTest', rarity: 'legendary', element: 'fist', grade: 5 }]
+    const B = [
+      { id: '__spikeTest3', rarity: 'common', element: 'fist', grade: 0 },   // เป้าหลัก — หนามฆ่าผู้ตี
+      { id: '__spikeTest3', rarity: 'common', element: 'fist', grade: 0 },   // เป้ารองของ cleave — ไม่ควรถูกตี
+    ]
+    const r = simulateBattle(A, B, 1)
+
+    const atkA0 = r.log.filter(e => e.t === 'attack' && e.attacker === 'A0')
+    assert.equal(atkA0.length, 1, 'ผู้ตีตายจากหนามของเป้าหลักต้องไม่ตีเป้ารองของ cleave ต่อ')
+  } finally {
+    delete PET_PASSIVES.__spikeTest3
+    delete PET_PASSIVES.__cleaveTest
+  }
+})
+
+test('หนึ่งการตาย = รันฮุคหนึ่งครั้ง: ตัวที่ตายกลางก้อนสะท้อนของตัวเอง ต้องไม่ยิง onAnyDeath ซ้ำสอง (สเปก §7.6)', () => {
+  // เพ็ทสังเคราะห์: T ถือหนาม (onHit) + stackAtk (onAnyDeath) พร้อมกัน · Y ถือเกราะสะท้อน (armorStack)
+  // เส้นทางซ้อน: T ตี Y (strike ชั้นนอก) → เกราะของ Y โปรก สะท้อนกลับใส่ทีมของ T (มีแค่ T) ผ่าน strike
+  // ชั้นใน (Y เป็นผู้ตีคราวนี้) → หนามของ T (ผู้รับก้อนสะท้อน) สวน Y จนตายกลางชั้นใน → ชั้นในเรียก
+  // resolveSilentDeath(Y, T) ไปแล้วหนึ่งรอบ (T ได้ stackAtk 1 ชั้น) → พอกลับมาชั้นนอก `tg` (=Y) ก็ยัง
+  // hp<=0 อยู่ ⇒ ถ้าไม่มีตัวกันซ้ำ ชั้นนอกจะรันฮุคของ Y อีกรอบ ⇒ T ได้ stackAtk ชั้นที่ 2 ฟรี (บั๊กเดิม
+  // ของทีเร็กซ์ได้ 2 ชั้นต่อศพ ที่เฟสก่อนเพิ่งแก้ไปจุดหนึ่ง — นี่คือจุดที่สอง)
+  PET_PASSIVES.__thornsWitness = {
+    name: 'หนามพยานทดสอบ', icon: '🧪',
+    parts: [
+      { hook: 'onHit', effect: 'thorns', value: { pct: 500 }, step: { pct: 0 } },
+      { hook: 'onAnyDeath', effect: 'stackAtk', value: { pct: 12, max: 3 }, step: { pct: 0, max: 0 } },
+    ],
+    desc: 'ทดสอบ', short: 'ทดสอบ',
+  }
+  PET_PASSIVES.__armorTest = {
+    name: 'เกราะทดสอบ', icon: '🧪',
+    parts: [{ hook: 'onHit', effect: 'armorStack', value: { count: 1, pct: 100 }, step: { count: 0, pct: 0 } }],
+    desc: 'ทดสอบ', short: 'ทดสอบ',
+  }
+  try {
+    // A มี 2 ตัว (ca=2 > cb=1) เพื่อบังคับให้ A ออกตีก่อนแบบไม่พึ่ง rand() — T (index 0) ต้องเป็นผู้ตีก่อนเสมอ
+    const A = [
+      { id: '__thornsWitness', rarity: 'legendary', element: 'scissors', grade: 5 },
+      { id: 'mouse', rarity: 'common', element: 'scissors', grade: 0 },
+    ]
+    const B = [{ id: '__armorTest', rarity: 'common', element: 'scissors', grade: 0 }]
+    const r = simulateBattle(A, B, 1)
+
+    const stacks = r.log.filter(e => e.t === 'passive' && e.effect === 'stackAtk' && e.uid === 'A0')
+    assert.equal(stacks.length, 1, 'ศพเดียว (Y) ต้องยิง onAnyDeath ให้ T แค่ครั้งเดียว ไม่ใช่สองครั้ง')
+  } finally {
+    delete PET_PASSIVES.__thornsWitness
+    delete PET_PASSIVES.__armorTest
+  }
+})

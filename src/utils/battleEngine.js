@@ -6,7 +6,7 @@
 import { BATTLE_CFG, buildCombatant, elementMult } from '../data/battle.js'
 import {
   runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDealt, runOnDeath, runOnKill, runOnAnyDeath, statsSnapshot,
-  tauntTargetOf,
+  tauntTargetOf, psOf,
 } from './battlePassives.js'
 
 // mulberry32 — RNG เดียวกับ sim
@@ -102,32 +102,14 @@ export function simulateBattle(teamA, teamB, seed) {
       }
     }
 
+    // 🔴 รีวิวรอบ 2 (6 ก.ย.): ตายหนึ่งครั้งต้องรันฮุคครั้งเดียว — ทางเดินซ้อน (X ตี Y ที่มีเกราะสะท้อน ⇒
+    //    Y ยิงสะท้อนใส่ v ผ่าน strike() ชั้นใน ⇒ Y โดนหนามของ v สวนตายกลางชั้นใน ⇒ resolveSilentDeath
+    //    รันฮุคของ Y ไปแล้วรอบหนึ่งด้วยผู้ฆ่า=v) ทำให้ tg ของ strike() ชั้นนอกนี้ (=Y ตัวเดียวกัน) ตายอยู่แล้ว
+    //    ตอนมาถึงบรรทัดนี้ ⇒ ต้องเรียก resolveSilentDeath ตัวเดียวกัน (ไม่ใช่ลอจิกซ้ำ) เพื่อให้ธงกันซ้ำ
+    //    (_deathDone ใน resolveSilentDeath) ทำงาน ไม่งั้นทีเร็กซ์ได้ 2 ชั้นจากศพเดียว (บั๊กเดิมของ P2c-1
+    //    ที่เพิ่งแก้ไปแล้วครั้งหนึ่ง — คนละจุดแต่รูปแบบเดียวกัน)
     let dead = tg.hp <= 0
-    if (dead) {
-      const d = runOnDeath(tg, foes, att)      // foes (จากมุมผู้ตี) = ทีมของ tg · att = ผู้สังหาร (ฟีนิกซ์ใช้ตีสวน)
-      for (const e of d.events) log.push(e)
-      if (d.prevented) dead = false
-      // หมัดสวนของฟีนิกซ์ — ธงของตัวเอง `countering` (ไม่ใช้ร่วมกับ `reflecting` ของเกราะอีกแล้ว ดูเหตุผล
-      // ยาวตรงที่ประกาศตัวแปรด้านบน) เช็คทั้งสองธงตอนจะยิง: `!reflecting` กันหมัดสวนเกิดซ้อนในก้อนสะท้อน
-      // เกราะของตัวเอง (เคสประหลาด edge case) · `!countering` กันฟีนิกซ์สองตัวสวนกันไม่รู้จบ
-      // (ฟีนิกซ์สองตัวตีกันตาย: หมัดสวนของ B ฆ่า A ได้ แต่หมัดสวนที่ A "จะ" ยิงกลับต้องไม่เกิด เพราะตอนนั้น
-      // ยัง countering = true จากก้อนสวนของ B อยู่) · sub: true ⇒ อยู่ beat เดิม ไม่เพิ่มจังหวะ 🔒
-      // ⚠️ ต้อง finally เหตุผลเดียวกับก้อนสะท้อนเกราะด้านบน — throw ซ้อนแล้วไม่มี finally = countering
-      //    ค้าง true ตลอดไฟต์ที่เหลือ ⇒ หมัดสวนของฟีนิกซ์ทุกตัวหลังจากนั้นเงียบสนิท
-      if (d.counter && !reflecting && !countering) {
-        countering = true
-        try {
-          if (d.counter.target.hp > 0) {
-            strike(tg, d.counter.target, att.side === 'A' ? A : B, d.counter.mult, { crit: false, eff: 'neutral' }, true)
-          }
-        } finally { countering = false }
-      }
-    }
-    if (dead) {
-      // ฝั่งที่ได้ประโยชน์คือทีมของผู้ตี — ไม่ว่าใครเป็นคนลงมือจริง
-      const killerTeam = att.side === 'A' ? A : B
-      for (const e of runOnAnyDeath(tg, killerTeam, foes, rand)) log.push(e)
-    }
+    if (dead) dead = resolveSilentDeath(tg, att)
     log.push({
       t: 'attack', side: att.side, attacker: att.uid, target: tg.uid,
       dmg: Math.round(before - tg.hp), crit: !!tier?.crit, eff: tier?.eff || 'neutral',
@@ -148,12 +130,23 @@ export function simulateBattle(teamA, teamB, seed) {
     return dead
   }
 
-  /** ตายเงียบ (thorns/guardian ใน strike() ที่ผ่านไปแล้ว · aoeOpener ก่อนรอบ 1) — รวมโค้ดจุดเดียว
-   *  ตามลำดับเดียวกับ if(dead) เดิมใน strike(): runOnDeath → หมัดสวนของฟีนิกซ์ (ถ้ามี) → runOnAnyDeath
+  /** จุดเดียวที่ตัดสินว่า "ตัวนี้ตายจริงไหม" ไม่ว่าจะมาจากทางไหน (ตี tg ปกติ, หนาม/guardian หลัง strike()
+   *  ของตัวเอง, หรือ aoeOpener ก่อนรอบ 1) — ตามลำดับเดียวกับ if(dead) เดิม: runOnDeath → หมัดสวนของฟีนิกซ์
+   *  (ถ้ามี) → runOnAnyDeath · คืน true ถ้าตายจริง (ไม่ถูกกันไว้)
    *  @param unit    ตัวที่อาจตาย (เช็ค hp เองในนี้ — เรียกได้เสมอแม้ไม่ตาย/ไม่มีตัว)
-   *  @param killer  ผู้สร้างดาเมจจริงตามสเปก §7.6 (ไม่ใช่คนที่ดาเมจไปตกใส่) */
+   *  @param killer  ผู้สร้างดาเมจจริงตามสเปก §7.6 (ไม่ใช่คนที่ดาเมจไปตกใส่)
+   *
+   *  🔴 รีวิวรอบ 2 (6 ก.ย.): "หนึ่งการตาย = รันฮุคหนึ่งครั้ง" ต้องเป็นคุณสมบัติของฟังก์ชันนี้เอง ไม่ใช่ให้
+   *     ทุกจุดที่เรียกจำเอง — เพราะ unit ตัวเดียวกันเข้าถึงจุดนี้ได้จากคนละเส้นทางในหมัดเดียวกัน (เช่น Y เป็น
+   *     tg ของ strike() ชั้นนอก และเป็น att ของ strike() ชั้นในตอนเกราะสะท้อนของ Y เองยิงออกไป แล้วโดนหนาม
+   *     ของเป้าสวนตายกลางชั้นใน) ใช้ธง `ps._deathDone` กันรันฮุคซ้ำของ "การตายเดียวกัน" — ตั้งเฉพาะตอนตายจริง
+   *     (ไม่ถูก prevent) และเคลียร์ทันทีที่เจอ unit.hp > 0 (ฟื้นจาก revive/cheatDeath/saveAlly) เพื่อให้การตาย
+   *     "ครั้งใหม่" ของตัวเดียวกันทีหลังในไฟต์เดียวกันรันฮุคได้เต็มรอบอีกครั้ง ไม่ใช่ธงถาวรตลอดไฟต์ */
   const resolveSilentDeath = (unit, killer) => {
-    if (!unit || unit.hp > 0) return
+    if (!unit) return false
+    if (unit.hp > 0) { psOf(unit)._deathDone = false; return false }
+    const st = psOf(unit)
+    if (st._deathDone) return true   // การตายเดียวกันนี้รันฮุคไปแล้วจากเส้นทางอื่น (ดูดอคบล็อกด้านบน) — ไม่รันซ้ำ
     const unitTeam = unit.side === 'A' ? A : B
     const killerTeam = killer.side === 'A' ? A : B
     const d = runOnDeath(unit, unitTeam, killer)
@@ -166,9 +159,10 @@ export function simulateBattle(teamA, teamB, seed) {
         if (d.counter.target.hp > 0) strike(unit, d.counter.target, killerTeam, d.counter.mult, { crit: false, eff: 'neutral' }, true)
       } finally { countering = false }
     }
-    if (!d.prevented) {
-      for (const e of runOnAnyDeath(unit, killerTeam, unitTeam, rand)) log.push(e)
-    }
+    if (d.prevented) return false
+    st._deathDone = true
+    for (const e of runOnAnyDeath(unit, killerTeam, unitTeam, rand)) log.push(e)
+    return true
   }
 
   // เลือกเป้า: ถูกบังคับ (taunt) มาก่อนเสมอ · ไม่งั้นสุ่มตามเดิม
@@ -213,15 +207,20 @@ export function simulateBattle(teamA, teamB, seed) {
     const base = att.atk * m
 
     // หมัดหลัก (multiStrike = ตีซ้ำเป้าเดิมใน beat เดียว ทีละ strikePct)
+    // 🔴 สเปก §7.6 ข้อ 6 (รีวิวรอบ 2, 6 ก.ย.): เช็ค att.hp > 0 ด้วย — เข้าถึงได้จริงวันนี้แล้ว ไม่ใช่สมมุติ
+    //    (🐰 กระต่ายถือ multiStrike) หนามของเป้าตัวแรกสวนผู้ตีตายกลางหมัดได้ ⇒ ต้องหยุด ไม่ตีซ้ำทั้งที่ตายแล้ว
     const perHit = mod.strikes > 1 ? base * (mod.strikePct / 100) : base
     let killed = false
     for (let i = 0; i < mod.strikes; i++) {
-      if (tg.hp <= 0) break
+      if (tg.hp <= 0 || att.hp <= 0) break
       if (strike(att, tg, foes, perHit, { crit, eff }, i > 0, forced)) killed = true
     }
     // เป้ารองของ cleave — ดาเมจลดตาม pct · ยังอยู่ beat เดียวกัน
     // ⚠️ ไม่ใช่หมัดที่ถูกบังคับ แม้เป้าหลักจะถูก taunt ดึงมาก็ตาม — ส่ง false เสมอ (สเปกงานย่อยนี้)
+    // 🔴 สเปก §7.6 ข้อ 6: เช็ค att.hp > 0 เหมือนกัน — เข้าถึงได้จริงวันนี้ (🐕 เซอร์เบอรัสถือ cleave) หมัดหลัก
+    //    ข้างบนอาจฆ่าผู้ตีไปแล้ว (โดนหนามของเป้าหลักสวนตาย) ก่อนจะมาถึงเป้ารอง ⇒ ต้องหยุดตีเป้ารองด้วย
     for (const x of mod.extra) {
+      if (att.hp <= 0) break
       if (x.unit.hp <= 0) continue
       if (strike(att, x.unit, foes, base * (x.pct / 100), { crit: false, eff: 'neutral' }, true, false)) killed = true
     }
