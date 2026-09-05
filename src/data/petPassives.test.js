@@ -190,11 +190,25 @@ test('P2b: infect/taunt/armorStack ต้องมีไอคอน คำอ�
 // ไม่ใช่สถานะติดตัวที่ค้างอยู่บนการ์ด — สถานะที่ค้างจริงคือ `infect` ซึ่งมีป้ายของตัวเองอยู่แล้ว
 // ไอคอนของทั้งสองมาจาก p.icon ของพาสสีฟไวรัสเอง (ev() ใน battlePassives.js) ไม่ผ่านทะเบียนป้ายนี้เลย
 // จึง "ตั้งใจ" ไม่มีป้ายของตัวเอง — เทสนี้พูดสิ่งนั้นออกมาตรงๆ กันมีคนเห็นว่าขาดแล้วเผลอเติมทีหลัง
+//
+// 🔴 P2c-1 Task 5 (แมว) ต่อคิวเข้ากลุ่มเดียวกันด้วยเหตุผลที่หนักกว่า: infectBurst/infectSpread แค่
+//    "ยังไม่มีป้าย" (จะเติมได้ถ้าอยากได้ในอนาคต) ส่วน 'grit' ไม่มีวันเป็น part.effect ในทะเบียนเลย
+//    แม้แต่วันเดียว — มันคือ runtime state ที่เกิดจากการกิน cheatDeath ของแมว (psOf(unit).grit ใน
+//    battlePassives.js runOnDeath) ⇒ ป้ายที่คีย์ด้วย part.effect (buffSources() ใน battleBuffs.js)
+//    จะไม่มีวัน match คำว่า 'grit' ได้เลย ใส่ป้ายไว้ในทะเบียนนี้จึงเป็น dead config ถาวร ไม่ใช่ของที่รอวันใช้
+//    (รีวิว 5 ก.ย. ชี้ประเด็นนี้ — ของค้างเรื่อง badge ที่อ่าน runtime จริงถูกบันทึกแยกไว้ ไม่ใช่งานของ task นี้)
 test('P2b: infectBurst/infectSpread ตั้งใจไม่มีป้ายของตัวเอง (เป็นเหตุการณ์ครั้งเดียว ใช้ p.icon ไม่ใช่ STATUS_ICON)', () => {
   for (const k of ['infectBurst', 'infectSpread']) {
     assert.equal(STATUS_ICON[k], undefined)
     assert.equal(STATUS_TEXT[k], undefined)
   }
+})
+
+test('P2c-1: grit (แมว) ตั้งใจไม่มีป้ายของตัวเองเลย — เป็น runtime state ไม่ใช่ part.effect จึง match ไม่ได้ทุกกรณี', () => {
+  assert.equal(STATUS_ICON.grit, undefined)
+  assert.equal(STATUS_TEXT.grit, undefined)
+  assert.ok(!SELF_STATUS_EFFECTS.has('grit'), 'grit ไม่ควรอยู่ในกลุ่มป้ายไหนเลย (ไม่มี part.effect ให้ match)')
+  assert.ok(!TEAM_AURA_EFFECTS.has('grit') && !FOE_AURA_EFFECTS.has('grit') && !FOE_STATUS_EFFECTS.has('grit'))
 })
 
 // ── กันไอคอนซ้ำ: ป้ายสองอันหน้าตาเดียวกันบนการ์ดเดียว = ผู้เล่นอ่านไม่ออกว่าได้อะไรมาสองอย่าง ──
