@@ -92,9 +92,10 @@ export const PET_PASSIVES = {
   },
   cerberus: {
     name: 'ตรีเขี้ยวอสูร', icon: '🦷',
-    parts: [{ hook: 'onAttack', effect: 'cleave', value: { count: 3, pct: 40 }, step: { count: 0, pct: 8 } }],
-    desc: 'พุ่งขย้ำทีเดียว เขี้ยวโดนศัตรู {count} ตัว · ตัวรองโดน {pct}% ของดาเมจ',
-    short: 'เขี้ยวโดนศัตรู {count} ตัว · ตัวรองโดน {pct}%',
+    parts: [{ hook: 'onAttack', effect: 'cleave', value: { count: 3, pct: 40, repeat: true },
+              step: { count: 0, pct: 8 } }],
+    desc: 'พุ่งขย้ำทีเดียว เขี้ยวลง {count} ที สุ่มเป้า ซ้ำตัวเดิมได้ · แต่ละทีโดน {pct}% ของดาเมจ',
+    short: 'เขี้ยวลง {count} ที สุ่มเป้า · ทีละ {pct}%',
   },
   unicorn: {
     name: 'เขาศักดิ์สิทธิ์', icon: '✨',

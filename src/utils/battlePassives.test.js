@@ -237,6 +237,23 @@ test('cleave: ศัตรูเหลือตัวเดียว ไม่�
   assert.equal(r.events.length, 0)
 })
 
+test('เซอร์เบอรัส: สุ่มเป้ารองซ้ำตัวเดิมได้ (repeat: true)', () => {
+  const att = { uid: 'A0', side: 'A', id: 'cerberus', hp: 100, maxHp: 100, atk: 100 }
+  const f1 = { uid: 'B0', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+  const f2 = { uid: 'B1', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+  const res = runOnAttack(att, f1, [f1, f2], () => 0)      // rand 0 = เลือกตัวแรกเสมอ
+  assert.equal(res.extra.length, 2, 'count 3 ⇒ เป้ารอง 2 ตัว')
+  assert.ok(res.extra.every(x => x.unit === f1), 'rand 0 ⇒ ซ้ำตัวเดิมได้')
+})
+
+test('มังกร: ยังเป็น cleave แบบไม่ซ้ำเหมือนเดิม (สเปกไม่ได้สั่งให้เปลี่ยน)', () => {
+  const att = { uid: 'A0', side: 'A', id: 'dragon', hp: 100, maxHp: 100, atk: 100 }
+  const f1 = { uid: 'B0', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+  const f2 = { uid: 'B1', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+  const res = runOnAttack(att, f1, [f1, f2], () => 0)
+  assert.deepEqual(res.extra.map(x => x.unit), [f2], 'เป้ารองต้องเป็นตัวที่ไม่ใช่เป้าหลัก')
+})
+
 test('execute (shark): แรงขึ้นเฉพาะเป้าเลือดน้อย', () => {
   const low = u('cat', { uid: 'B0', hp: 100 })
   const high = u('cat', { uid: 'B0', hp: 900 })

@@ -302,7 +302,19 @@ export function runOnAttack(att, target, foes, rand) {
         break
       }
       case 'cleave': {
-        const others = alive(foes).filter(f => f !== res.target).slice(0, Math.max(0, (v.count || 1) - 1))
+        const pool = alive(foes)
+        let others
+        if (v.repeat) {
+          // สุ่มซ้ำตัวเดิมได้ — ตัวเดียวอาจโดนหลายที (🐕 เซอร์เบอรัส)
+          // 🎲 ดึง rand ตรงนี้ ⇒ ลำดับสุ่มของไฟต์ที่มีตัวนี้เลื่อนจากของเดิม เป็นเจตนา
+          others = []
+          for (let i = 0; i < Math.max(0, (v.count || 1) - 1); i++) {
+            if (!pool.length) break
+            others.push(pool[Math.floor(rand() * pool.length)])
+          }
+        } else {
+          others = pool.filter(f => f !== res.target).slice(0, Math.max(0, (v.count || 1) - 1))
+        }
         if (others.length) {
           res.extra = others.map(u => ({ unit: u, pct: v.pct }))
           res.events.push(ev(att, p, part, { targets: [res.target.uid, ...others.map(u => u.uid)], fxKind: 'cleave' }))
