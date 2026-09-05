@@ -219,6 +219,14 @@ test('อูโรโบรอส: เลือดเต็ม regen ข้า�
   assert.deepEqual(events.map(e => e.effect), ['stackAtk'])
 })
 
+test('บากุ: มี 2 part (รับแทน + ฟื้นเลือดตัวเองทุกต้นรอบ)', () => {
+  assert.equal(partsOf(PET_PASSIVES.qilin).length, 2, 'qilin ต้องมี 2 part')
+  const guard = u('qilin', { uid: 'A0', hp: 100 })            // เลือดพร่อง ⇒ regen ทำงาน
+  const events = runOnRound([guard])
+  assert.deepEqual(events.map(e => e.effect), ['regenSelf'])
+  assert.ok(guard.hp > 100, 'ต้องฟื้นเลือดจริง')
+})
+
 test('healLowestAlly (unicorn): ฟื้นให้เพื่อนที่พร่องสุด ไม่ใช่ตัวเอง', () => {
   const uni = u('unicorn', { hp: 100 })
   const hurt = u('cat', { uid: 'A1', hp: 200 })

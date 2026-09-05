@@ -75,9 +75,12 @@ export const PET_PASSIVES = {
   },
   qilin: {
     name: 'ปราการพิทักษ์', icon: '🛡️',
-    parts: [{ hook: 'onHit', effect: 'guardian', value: { pct: 50 }, step: { pct: 8 } }],
-    desc: 'รับดาเมจแทนเพื่อนที่เลือดน้อยที่สุด {pct}%',
-    short: 'รับดาเมจแทนเพื่อนที่เลือดน้อยสุด {pct}%',
+    parts: [
+      { hook: 'onHit', effect: 'guardian', value: { pct: 50 }, step: { pct: 8 }, tag: 'guard' },
+      { hook: 'onRound', effect: 'regenSelf', value: { pct: 3 }, step: { pct: 1 }, tag: 'regen' },
+    ],
+    desc: 'รับดาเมจแทนเพื่อนที่เลือดน้อยสุด {guard.pct}% · ฟื้นเลือดตัวเอง {regen.pct}% ทุกต้นรอบ',
+    short: 'รับแทน {guard.pct}% · ฟื้นเอง {regen.pct}%/รอบ',
   },
   mammoth: {
     name: 'เกราะปฐพี', icon: '🪨',
