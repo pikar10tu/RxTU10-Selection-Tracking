@@ -223,11 +223,17 @@ test('targetLowest (simurgh): เปลี่ยนเป้าไปตัว�
   assert.equal(r.target.uid, 'B1')
 })
 
-test('cleave (cerberus): เป้ารอง 2 ตัว (รวมเป้าหลักเป็น 3) และไม่ซ้ำเป้าหลัก', () => {
+test('cleave (dragon): เป้ารอง 1 ตัว (รวมเป้าหลักเป็น 2 ตามทะเบียนมังกร) และไม่ซ้ำเป้าหลัก', () => {
   const foes = [u('cat', { uid: 'B0' }), u('mouse', { uid: 'B1' }), u('turtle', { uid: 'B2' })]
-  const r = runOnAttack(u('cerberus'), foes[0], foes, () => 0.5)
-  assert.equal(r.extra.length, 2)
+  const r = runOnAttack(u('dragon'), foes[0], foes, () => 0.5)
+  assert.equal(r.extra.length, 1)
   assert.ok(!r.extra.some(x => x.unit.uid === 'B0'))
+})
+
+test('เซอร์เบอรัส: เขี้ยว 3 ที ⇒ ได้เป้ารอง 2 ตัวเสมอ (นับจำนวน ไม่สนว่า rand สุ่มโดนตัวไหน)', () => {
+  const foes = [u('cat', { uid: 'B0' }), u('mouse', { uid: 'B1' }), u('turtle', { uid: 'B2' })]
+  const r = runOnAttack(u('cerberus'), foes[0], foes, seq(0.1, 0.9))
+  assert.equal(r.extra.length, 2, 'count 3 ⇒ เป้ารอง 2 ตัวเสมอ ไม่ว่าจะซ้ำหรือไม่ซ้ำเป้าหลัก')
 })
 
 test('cleave: ศัตรูเหลือตัวเดียว ไม่มีเป้ารอง ไม่เด้ง event หลอก', () => {
