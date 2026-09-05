@@ -132,3 +132,22 @@ test('statsAfter: stackAtk ส่ง atk ใหม่มาทุกชั้น
   for (const s of stacks) assert.ok(s.statsAfter.A0.atk > 0)
   if (stacks.length >= 2) assert.ok(stacks[1].statsAfter.A0.atk > stacks[0].statsAfter.A0.atk)
 })
+
+// 🔴 แมวเป็นตัวเดียวที่ขยับ atk ผ่าน hook onDeath (สถานะ "ทนต่อ" +50% แล้วคืนตอนหมด)
+//    ถ้า event ของมันไม่แบก statsAfter การ์ดในรีเพลย์จะค้างเลขเก่าทั้งที่ตัวจริงตีด้วยเลขใหม่ —
+//    เทสนี้จึงยิงไฟต์จริงแล้วบังคับกฎเดียวกับที่ stealStats/aura/stackAtk/atkOnHit ถือกันอยู่
+test('statsAfter: ทุก event ของแมวที่ขยับ atk ต้องแบกสเตตัสใหม่มาด้วย (ไฟต์จริง)', () => {
+  // แมวเกรด 0 ธาตุเสียเปรียบ เจอหนูเกรด 4 → โดนหมัดถึงตาย 3 ครั้งก่อนตายจริงในยกที่ 5
+  const r = simulateBattle([{ id: 'cat', rarity: 'common', element: 'fist', grade: 0 }],
+                           [{ id: 'mouse', rarity: 'legendary', element: 'paper', grade: 4 }], 1)
+  const evs = r.log.filter(e => e.t === 'passive' && (e.effect === 'cheatDeath' || e.effect === 'grit'))
+  assert.deepEqual(evs.map(e => e.effect), ['cheatDeath', 'grit', 'grit'], 'ต้องรอดหมัดถึงตาย 3 ครั้งในไฟต์จริง')
+  for (const e of evs) assert.ok(e.statsAfter, `${e.effect} ไม่มี statsAfter`)
+
+  const base = r.units.A0.atk                    // ตัวเลขที่การ์ดตั้งต้น (หลังออร่า)
+  const buffed = evs[0].statsAfter.A0.atk
+  assert.ok(buffed > base, `ตอนได้สถานะ การ์ดต้องขึ้นเป็นเลขที่ใช้สู้จริง (${buffed} ควรมากกว่า ${base})`)
+  assert.ok(Math.abs(buffed - base * 1.5) <= 1, `+50% ตามพาสสีฟ (ได้ ${buffed} จากฐาน ${base})`)
+  assert.equal(evs[1].statsAfter.A0.atk, buffed, 'ระหว่างยังมีสถานะ เลขต้องค้างที่ค่าบัฟ')
+  assert.equal(evs[2].statsAfter.A0.atk, base, 'ใบที่สถานะหมดพอดี ต้องคืนเลขเดิม ไม่ค้างบัฟ')
+})

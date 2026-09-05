@@ -622,6 +622,10 @@ export function runOnHit(defender, dmg, attacker, team, rand, forced = false) {
  *    ห้ามให้ผลอื่นในฟังก์ชันนี้ขึ้นกับ attacker เพราะ hook นี้ต้องทำงานได้แม้ไม่รู้ผู้สังหาร */
 export function runOnDeath(unit, team, attacker = null) {
   const out = { prevented: false, events: [] }
+  const p = passiveFor(unit)
+  // onDeath มี part เดียวโดยธรรมชาติ: กันตายได้ครั้งเดียวต่อการตายหนึ่งครั้ง
+  // ถ้าวันหนึ่งมีเพ็ทที่ revive + cheatDeath พร้อมกัน ต้องเปลี่ยนเป็น partsAt แล้วนิยามลำดับก่อน
+  const part = partAt(p, 'onDeath')
 
   // 0) กินสถานะ "ทนต่อ" ก่อน — ยังไม่แตะโควตา cheatDeath (คนละก้อนกัน)
   // 🔴 สถานะหลายชั้นตัวแรกของเกม (P2c-1 Task 5, แมว): cheatDeath ให้ 1 ครั้ง + grit ให้ทนอีก v.grit ครั้ง
@@ -634,17 +638,17 @@ export function runOnDeath(unit, team, attacker = null) {
     unit.hp = 1
     if (st.grit === 0 && st.gritMult) { unit.atk /= st.gritMult; st.gritMult = 0 }
     out.prevented = true
-    out.events.push({ t: 'passive', uid: unit.uid, side: unit.side, petId: unit.id,
-      name: passiveFor(unit)?.name || 'ทนต่อ', icon: passiveFor(unit)?.icon || '🐱',
-      effect: 'grit', targets: [unit.uid], amount: st.grit, hpPct: 1, fxKind: 'revive' })
+    // ยิงผ่าน ev() เหมือนพี่น้องทุกใบ แล้วทับชื่อ effect เป็น 'grit' ผ่าน extra (แพทเทิร์นเดียวกับ infectBurst)
+    // 🔑 สถานะนี้เกิดได้ทางเดียวคือกิน cheatDeath มาก่อน ⇒ p/part มีจริงเสมอ จึงไม่มีค่าสำรองให้หลงว่ามีทาง
+    const e = ev(unit, p, part, { effect: 'grit', targets: [unit.uid], amount: st.grit, hpPct: 1, fxKind: 'revive' })
+    // 🔴 ใบที่สถานะหมดพอดีคืน atk จริง ⇒ ต้องแบกสเตตัสใหม่ไปให้การ์ด ไม่งั้นเลขบนจอค้างที่ค่าบัฟ
+    //    (กฎเดียวกับทุกใบที่ขยับ atk: stealStats/aura/stackAtk/atkOnHit/onAnyDeath/onKill)
+    e.statsAfter = statsSnapshot(team)
+    out.events.push(e)
     return out
   }
 
   // 1) ของตัวเอง — revive / cheatDeath
-  const p = passiveFor(unit)
-  // onDeath มี part เดียวโดยธรรมชาติ: กันตายได้ครั้งเดียวต่อการตายหนึ่งครั้ง
-  // ถ้าวันหนึ่งมีเพ็ทที่ revive + cheatDeath พร้อมกัน ต้องเปลี่ยนเป็น partsAt แล้วนิยามลำดับก่อน
-  const part = partAt(p, 'onDeath')
   if (part && (psOf(unit).uses || 0) < (valOf(part, unit).times || 1)) {
     const v = valOf(part, unit)
     if (part.effect === 'revive') {
@@ -672,7 +676,10 @@ export function runOnDeath(unit, team, attacker = null) {
         unit.atk *= st.gritMult
       }
       out.prevented = true
-      out.events.push(ev(unit, p, part, { targets: [unit.uid], hpPct: 1, amount: st.grit || 0, fxKind: 'revive' }))
+      // ใบนี้คูณ atk เข้าไปตรงๆ (บรรทัดบน) ⇒ ต้องแบกสเตตัสใหม่ไปด้วย เหมือนทุกใบที่ขยับ atk
+      const e = ev(unit, p, part, { targets: [unit.uid], hpPct: 1, amount: st.grit || 0, fxKind: 'revive' })
+      e.statsAfter = statsSnapshot(team)
+      out.events.push(e)
       return out
     }
   }
