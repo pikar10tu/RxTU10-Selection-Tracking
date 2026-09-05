@@ -532,6 +532,71 @@ test('revive (phoenix): ฟื้นครั้งเดียวเท่า�
   assert.equal(runOnDeath(ph, [ph]).prevented, false, 'ครั้งที่สองต้องตายจริง')
 })
 
+// 🔴 P2c-1 Task 6: ฟีนิกซ์คืนชีพแล้วต้องตีสวนผู้สังหารด้วย — runOnDeath รับพารามิเตอร์ที่สาม (attacker)
+test('ฟีนิกซ์: คืนชีพแล้วคืนหมัดสวนใส่ผู้สังหาร', () => {
+  const px = { uid: 'A0', side: 'A', id: 'phoenix', hp: 0, maxHp: 100, atk: 200 }
+  const killer = { uid: 'B0', side: 'B', id: '__blank__', hp: 100, maxHp: 100, atk: 10 }
+  const out = runOnDeath(px, [px], killer)
+  assert.equal(out.prevented, true)
+  assert.ok(px.hp > 1, 'คืนชีพด้วยเลือดตามสูตรเดิม')
+  assert.equal(out.counter.target, killer)
+  assert.equal(out.counter.mult, 300, '150% ของ atk 200')
+})
+
+test('ฟีนิกซ์: ไม่มีผู้สังหาร (ตายจากออร่า/หนาม) ต้องไม่ throw และไม่มีหมัดสวน', () => {
+  const px = { uid: 'A0', side: 'A', id: 'phoenix', hp: 0, maxHp: 100, atk: 200 }
+  const out = runOnDeath(px, [px])
+  assert.equal(out.prevented, true)
+  assert.equal(out.counter, undefined)
+})
+
+// ══════════════════════════════════════════════════════════════
+//  ฟีนิกซ์สองตัวตีกันตาย — ระดับ simulateBattle (ธง `reflecting` ไม่เคยถูกทดสอบกับหมัดสวนของฟีนิกซ์เลย
+//  งานย่อยก่อนหน้าเทสแค่ armorStack) 🔴 นี่คือ RECURSION จริง: หมัดสวนของ B อาจฆ่า A ได้ ซึ่งจะยิง
+//  runOnDeath(A) ซ้อนเข้ามาอีกชั้น ⇒ ถ้า A เป็นฟีนิกซ์ด้วย A ก็จะฟื้นแล้ว "อยากจะ" สวนกลับ B อีกที
+//  ธง reflecting (ตัวเดียวกับก้อนสะท้อนเกราะ) ต้องกันไม่ให้หมัดสวนที่สองยิงจริง ไม่งั้นวนไม่รู้จบ
+// ══════════════════════════════════════════════════════════════
+test('ฟีนิกซ์สองตัวตีกันตาย: หมัดสวนของตัวหนึ่งฆ่าอีกตัวได้ แต่ไม่สวนซ้อนไม่รู้จบ (ธง reflecting กันไว้)', () => {
+  // ใช้พาสสีฟสังเคราะห์หน้าตาเหมือนฟีนิกซ์เป๊ะ (pct 35 / counterPct 150) แทนของจริง — กันไม่ให้เทสนี้
+  // ผูกกับเลขจูนสมดุลจริงของฟีนิกซ์ (ถ้าวันหน้ามีคนจูน pct/counterPct ของฟีนิกซ์ เทสนี้ต้องไม่แดงตาม)
+  PET_PASSIVES.__phoenixSim = {
+    name: 'ทดสอบฟีนิกซ์', icon: '🧪',
+    parts: [{ hook: 'onDeath', effect: 'revive', value: { pct: 35, counterPct: 150 }, step: { pct: 0, counterPct: 0 } }],
+    desc: 'ทดสอบ {pct}% {counterPct}%', short: 'ทดสอบ {pct}% {counterPct}%',
+  }
+  try {
+    // ฟีนิกซ์เหมือนกันเป๊ะ 1v1 — ต่อยแลกกันไปสามสี่รอบตามธรรมชาติจนมีตัวหนึ่งเลือดต่ำมาก (สุ่มด้วย seed คงที่)
+    // seed=1 ตรวจแล้วว่า: รอบ 4 ฝั่ง B โจมตี A จนตาย (A ฟื้น 35% + คำนวณหมัดสวนใส่ B) แล้วหมัดสวนนั้น
+    // แรงพอฆ่า B ที่ตอนนั้นเหลือเลือดต่ำมากจากการแลกหมัดก่อนหน้า (B ฟื้น 35% ด้วยเช่นกัน) — ครบสูตรที่ต้องการ
+    const A = [{ id: '__phoenixSim', rarity: 'legendary', element: 'fist', grade: 0 }]
+    const B = [{ id: '__phoenixSim', rarity: 'legendary', element: 'fist', grade: 0 }]
+    const r = simulateBattle(A, B, 1)
+
+    const revives = r.log.filter(e => e.t === 'passive' && e.effect === 'revive')
+    assert.equal(revives.length, 2, 'ต้องฟื้นได้ฝั่งละ 1 ครั้งเท่านั้น (ทั้งคู่ใช้สิทธิ์ฟื้นของตัวเองไปคนละครั้ง)')
+    assert.deepEqual(revives.map(e => e.uid), ['A0', 'B0'], 'A ตายก่อนแล้วฟื้น+สวน จากนั้นหมัดสวนนั้นฆ่า B ให้ฟื้นตาม')
+
+    // 🔒 หัวใจของเทสนี้: ต้องมีหมัดสวนแค่ "ก้อนเดียว" (ของ A ที่ฆ่า B) — ถ้าธง reflecting ไม่กัน
+    //    หมัดสวนที่สองของ B (ที่ควรจะยิงใส่ A กลับ เพราะ B ก็ฟื้นแล้วมี counter เหมือนกัน) จะโผล่มาด้วย
+    const subAttacks = r.log.filter(e => e.t === 'attack' && e.sub)
+    assert.equal(subAttacks.length, 1, 'ต้องมีหมัดสวนแค่ครั้งเดียว — สวนซ้อน (B สวนกลับ A) ต้องไม่เกิด')
+    assert.equal(subAttacks[0].side, 'A', 'หมัดสวนที่ยิงจริงต้องเป็นของ A (ตัวที่ตายก่อนและสวนก่อน)')
+    assert.equal(subAttacks[0].target, 'B0')
+
+    // ── หมัดสวนต้องไม่กลายเป็น beat ใหม่ — ยืนยันที่ชั้น buildBeats ตรงๆ (กฎเหล็ก passive ห้ามเพิ่ม beat) ──
+    const subIdx = r.log.findIndex(e => e.t === 'attack' && e.sub)
+    const maxHpOf = Object.fromEntries(Object.entries(r.units).map(([uid, s]) => [uid, s.maxHp]))
+    const beats = buildBeats(r.log, maxHpOf)
+    assert.equal(beats[subIdx].kind, 'sub', 'หมัดสวนต้องถูกจัดเป็น kind sub เหมือนหมัดลูกอื่นๆ')
+    assert.equal(beatDuration(beats[subIdx]), 0, '🔒 sub ต้องกินเวลา 0 — ไม่ใช่จังหวะหมัดใหม่')
+
+    // ไฟต์ต้องจบจริง (ไม่วนไม่รู้จบ) — ยืนยันว่ามี event 'end' และจบด้วย turns ที่สมเหตุสมผล
+    assert.equal(r.log.at(-1).t, 'end', 'ไฟต์ต้องจบเป็นปกติ ไม่ค้าง/วนไม่รู้จบ')
+  } finally {
+    delete PET_PASSIVES.__phoenixSim
+  }
+})
+
 test('cheatDeath (cat): รอดด้วยเลือด 1 ครั้งเดียว', () => {
   const c = u('cat', { hp: -20 })
   assert.equal(runOnDeath(c, [c]).prevented, true)

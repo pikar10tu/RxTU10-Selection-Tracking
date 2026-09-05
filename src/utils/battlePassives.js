@@ -594,7 +594,10 @@ export function runOnHit(defender, dmg, attacker, team, rand, forced = false) {
 // ══════════════════════════════════════════════════════════════
 //  onDeath — ตอนกำลังจะตาย (คืน true = กันไว้ได้ ยังไม่ตาย)
 // ══════════════════════════════════════════════════════════════
-export function runOnDeath(unit, team) {
+/** @param {object|null} attacker  ผู้สังหาร ถ้ารู้ (เอนจินส่งมาจาก strike()) — null ถ้าตายจากออร่า/หนาม/สถานะ
+ *    ⚠️ ใช้เพื่อคำนวณหมัดสวนของฟีนิกซ์เท่านั้น (out.counter) — เอนจินเป็นคนยิงจริงผ่าน strike() แบบ sub
+ *    ห้ามให้ผลอื่นในฟังก์ชันนี้ขึ้นกับ attacker เพราะ hook นี้ต้องทำงานได้แม้ไม่รู้ผู้สังหาร */
+export function runOnDeath(unit, team, attacker = null) {
   const out = { prevented: false, events: [] }
 
   // 0) กินสถานะ "ทนต่อ" ก่อน — ยังไม่แตะโควตา cheatDeath (คนละก้อนกัน)
@@ -625,6 +628,11 @@ export function runOnDeath(unit, team) {
       psOf(unit).uses = (psOf(unit).uses || 0) + 1
       unit.hp = pctOf(unit.maxHp, v.pct)
       out.prevented = true
+      // ตีสวนผู้สังหาร — เอนจินเป็นคนยิงผ่าน strike() ปกติ (โดนสายลดของฝั่งนั้น) แบบ sub
+      // 🔒 sub ⇒ อยู่ beat เดิม ไม่เพิ่มจังหวะ · ถ้าไม่มีผู้สังหาร (ตายจากออร่า/หนาม) ก็ไม่มีหมัดสวน
+      if (v.counterPct > 0 && attacker && attacker.hp > 0) {
+        out.counter = { target: attacker, mult: pctOf(unit.atk, v.counterPct) }
+      }
       out.events.push(ev(unit, p, part, { targets: [unit.uid], amount: Math.round(unit.hp),
         hpPct: Math.round((unit.hp / unit.maxHp) * 100), fxKind: 'revive' }))
       return out

@@ -57,9 +57,12 @@ export const PET_PASSIVES = {
   },
   phoenix: {
     name: 'เกิดใหม่จากเถ้า', icon: '🔥',
-    parts: [{ hook: 'onDeath', effect: 'revive', value: { pct: 35 }, step: { pct: 10 } }],
-    desc: 'ตายครั้งแรกแล้วฟื้นกลับมาด้วยเลือด {pct}%',
-    short: 'ตายครั้งแรกแล้วฟื้นด้วยเลือด {pct}%',
+    // 🔴 P2c-1 Task 6: เพิ่ม counterPct — ตีสวนผู้สังหารหลังคืนชีพ · step: 0 เพราะยังไม่มีเพ็ทไหนขึ้นขั้นได้จริง
+    //    (ดันเจี้ยนหินยังไม่มา) แต่ pct หลักยังอัพได้ตามเดิม (ดู step ของ pct ด้านบน)
+    parts: [{ hook: 'onDeath', effect: 'revive', value: { pct: 35, counterPct: 150 },
+              step: { pct: 10, counterPct: 0 } }],
+    desc: 'ตายครั้งแรกแล้วฟื้นด้วยเลือด {pct}% แล้วตีสวนผู้สังหาร {counterPct}% ของพลังโจมตี',
+    short: 'ฟื้นด้วยเลือด {pct}% + ตีสวน {counterPct}%',
   },
   whale: {
     name: 'พรมหาสมุทร', icon: '💧',

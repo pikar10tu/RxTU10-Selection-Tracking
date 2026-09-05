@@ -94,9 +94,20 @@ export function simulateBattle(teamA, teamB, seed) {
 
     let dead = tg.hp <= 0
     if (dead) {
-      const d = runOnDeath(tg, foes)          // foes (จากมุมผู้ตี) = ทีมของ tg
+      const d = runOnDeath(tg, foes, att)      // foes (จากมุมผู้ตี) = ทีมของ tg · att = ผู้สังหาร (ฟีนิกซ์ใช้ตีสวน)
       for (const e of d.events) log.push(e)
       if (d.prevented) dead = false
+      // หมัดสวนของฟีนิกซ์ — ใช้ธงเดียวกับก้อนสะท้อนของเกราะ (reflecting) กันสวนซ้อนไม่รู้จบ
+      // (ฟีนิกซ์สองตัวตีกันตาย: หมัดสวนของ B ฆ่า A ได้ แต่หมัดสวนที่ A "จะ" ยิงกลับต้องไม่เกิด
+      // เพราะตอนนั้นยัง reflecting = true จากก้อนสวนของ B อยู่) · sub: true ⇒ อยู่ beat เดิม ไม่เพิ่มจังหวะ 🔒
+      if (d.counter && !reflecting) {
+        reflecting = true
+        try {
+          if (d.counter.target.hp > 0) {
+            strike(tg, d.counter.target, att.side === 'A' ? A : B, d.counter.mult, { crit: false, eff: 'neutral' }, true)
+          }
+        } finally { reflecting = false }
+      }
     }
     if (dead) {
       // ฝั่งที่ได้ประโยชน์คือทีมของผู้ตี — ไม่ว่าใครเป็นคนลงมือจริง
