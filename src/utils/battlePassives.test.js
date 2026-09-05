@@ -38,7 +38,7 @@ test('เพ็ททุกตัวในแค็ตตาล็อกมี p
 })
 
 test('passive ทุกอันมีฟิลด์ครบและ hook ที่รู้จัก', () => {
-  const HOOKS = ['aura', 'onStart', 'onRound', 'onAttack', 'onHit', 'onKill', 'onDeath']
+  const HOOKS = ['aura', 'onStart', 'onRound', 'onAttack', 'onHit', 'onKill', 'onDeath', 'onAnyDeath']
   for (const [id, p] of Object.entries(PET_PASSIVES)) {
     assert.ok(p.name && p.icon && p.desc, `${id} ฟิลด์ไม่ครบ`)
     const parts = partsOf(p)
@@ -547,12 +547,31 @@ test('saveAlly (genie): กันเพื่อนตาย 1 ครั้ง �
   assert.equal(runOnDeath(b, [g, b]).prevented, false, 'genie ใช้ได้ครั้งเดียว')
 })
 
+// 🔧 P2c-1 Task 4: ทีเร็กซ์ย้าย hook ไป onAnyDeath แล้ว (ได้ชั้นแม้ไม่ได้ลงมือฆ่าเอง) — ยิงผ่าน
+//    runOnAnyDeath ตรงๆ แทน runOnKill เดิม เพื่อพิสูจน์ว่าเพดาน 3 ชั้นยังคงเดิมหลังย้าย hook
 test('stackAtk (trex): สะสมได้ถึงเพดานแล้วหยุด', () => {
   const t = u('trex')
   const base = t.atk
-  for (let i = 0; i < 6; i++) runOnKill(t, 0)
+  const dead = { uid: 'B0', side: 'B', id: 'blank', hp: 0, maxHp: 100, atk: 10 }
+  for (let i = 0; i < 6; i++) runOnAnyDeath(dead, [t], [dead])
   assert.equal(psOf(t).atkStacks, 3, 'เพดาน 3 ชั้น')
   assert.ok(t.atk > base)
+})
+
+test('ทีเร็กซ์: เพื่อนเป็นคนล้มศัตรู ทีเร็กซ์ก็ได้ชั้น', () => {
+  const trex = { id: 'trex', rarity: 'legendary', element: 'fist', grade: 0 }   // อ่อนสุด จะได้ไม่ได้เป็นคนฆ่าเอง
+  const mate = { id: 'bahamut', rarity: 'legendary', element: 'fist', grade: 5 }
+  const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
+  const r = simulateBattle([trex, mate], [weak, weak], 777)
+  const mine = r.log.filter(e => e.t === 'passive' && e.effect === 'stackAtk' && e.petId === 'trex')
+  assert.ok(mine.length > 0, 'ต้องได้ชั้นแม้ไม่ได้เป็นคนฆ่า')
+})
+
+test('ทีเร็กซ์: hook ย้ายไป onAnyDeath แล้ว ไม่เหลือ onKill', () => {
+  const parts = partsOf(PET_PASSIVES.trex)
+  assert.equal(parts.length, 1)
+  assert.equal(parts[0].hook, 'onAnyDeath')
+  assert.equal(parts[0].value.max, 3, 'เพดานชั้นเดิมต้องไม่เปลี่ยน')
 })
 
 test('killChain (kirin): ตีต่อได้จนถึงเพดาน แล้วหยุด (ไม่วนไม่รู้จบ)', () => {
@@ -1402,44 +1421,69 @@ test('infect ทะลุทุกเกราะจริง — ยิงผ�
 })
 
 // ── runOnKill: ต้องยิงครั้งเดียวต่อการฆ่าหนึ่งครั้ง (บั๊กเดิม: เรียกซ้ำเมื่อศัตรูยังเหลือ) ──
-// ⚠️ เทสนี้ (ของบรีฟฉบับแรก) ไม่ discriminate บั๊ก: เพดาน trex.stackAtk.max=3 บังเอิญเท่ากับจำนวน
+// 🔧 P2c-1 Task 4: ทีเร็กซ์ย้าย hook ไป onAnyDeath แล้ว (ยิงจาก strike() ก่อนบรรทัด log 'attack' จะถูกันซะอีก
+//    ไม่ใช่จากลูป runOnKill ใต้ hit() อีกต่อไป) และไม่มีเพ็ทจริงตัวไหนเหลือ onKill+stackAtk ให้ยืมร่างแล้ว
+//    (มีแค่ kirin ที่เหลือ onKill แต่ effect เป็น killChain) — 3 เทสนี้จึงเปลี่ยนมาใช้ __slayer สังเคราะห์
+//    (ค่าค่าเดิมของทีเร็กซ์ทุกประการ) เพื่อให้ยังยิงผ่าน onKill จริง ไม่งั้นเทสจับบั๊กของ Task 1 จะเงียบไปเฉยๆ
+// ⚠️ เทสนี้ (ของบรีฟฉบับแรก) ไม่ discriminate บั๊ก: เพดาน __slayer.stackAtk.max=3 บังเอิญเท่ากับจำนวน
 //    ศัตรู (3 ตัว) พอดี ⇒ ต่อให้ยิงซ้ำจริง ค่าที่ push ออกมาก็ยังไล่ 1,2,3 ไม่ซ้ำกันเอง (assert แรกผ่าน
 //    เสมอ) และเพดานเองก็กันไม่ให้จำนวน event เกิน deaths อยู่แล้ว (assert สองผ่านเสมอ) — วัดจริงแล้ว:
 //    ทั้งก่อนและหลังแก้บั๊ก ได้ amounts=[1,2,3] เหมือนกันเป๊ะ เทสนี้จึงพิสูจน์ได้แค่ "ค่าที่บันทึกไว้ไม่ลดลง/
 //    ไม่ซ้ำกันเอง" เท่านั้น ไม่ได้พิสูจน์ว่า runOnKill ถูกเรียกกี่ครั้งต่อการตาย — เก็บไว้เป็นสมอกันเลขเพี้ยน
 //    แบบอื่น แต่ตัวที่จับบั๊กจริงคือเทสถัดไป
 test('runOnKill: ล้มศัตรู 1 ตัว = ได้ชั้นเดียว ไม่ใช่สองชั้น', () => {
-  const strong = { id: 'trex', rarity: 'legendary', element: 'fist', grade: 5 }
-  const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
-  const r = simulateBattle([strong], [weak, weak, weak], 999)
-  const stacks = r.log.filter(e => e.t === 'passive' && e.effect === 'stackAtk')
-  const amounts = stacks.map(e => e.amount)
-  // ชั้นต้องไต่ทีละ 1 ต่อการตายหนึ่งครั้ง ห้ามมี 1,2 ติดกันจากศพเดียว
-  assert.deepEqual(amounts, [...new Set(amounts)], `ชั้นซ้ำ = ยิงซ้ำ: ${amounts}`)
-  const deaths = r.log.filter(e => e.t === 'attack' && e.dead).length
-  assert.ok(stacks.length <= deaths, `${stacks.length} ชั้น จากการตาย ${deaths} ครั้ง`)
+  PET_PASSIVES.__slayer = {
+    name: 'ทดสอบนักล่า', icon: '🧪',
+    parts: [{ hook: 'onKill', effect: 'stackAtk', value: { pct: 12, max: 3 }, step: { pct: 4, max: 0 } }],
+    desc: 'ล้ม 1 ตัว +{pct}% (สะสม {max})', short: 'ล้ม 1 ตัว +{pct}% (สะสม {max})',
+  }
+  try {
+    const strong = { id: '__slayer', rarity: 'legendary', element: 'fist', grade: 5 }
+    const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
+    const r = simulateBattle([strong], [weak, weak, weak], 999)
+    const stacks = r.log.filter(e => e.t === 'passive' && e.effect === 'stackAtk')
+    const amounts = stacks.map(e => e.amount)
+    // ชั้นต้องไต่ทีละ 1 ต่อการตายหนึ่งครั้ง ห้ามมี 1,2 ติดกันจากศพเดียว
+    assert.deepEqual(amounts, [...new Set(amounts)], `ชั้นซ้ำ = ยิงซ้ำ: ${amounts}`)
+    const deaths = r.log.filter(e => e.t === 'attack' && e.dead).length
+    assert.ok(stacks.length <= deaths, `${stacks.length} ชั้น จากการตาย ${deaths} ครั้ง`)
+  } finally { delete PET_PASSIVES.__slayer }
 })
 
 // ── ตัวที่จับบั๊กจริง: เดินไล่ log ทีละ event นับ stackAtk ที่โผล่ "หลัง attack ที่ dead:true"
 //    ก่อนถึง attack ครั้งถัดไป — ต้องไม่เกิน 1 เสมอ ไม่ว่าเพดานจะซ้อนกับจำนวนศัตรูพอดีหรือไม่ ──
 test('runOnKill: การตายหนึ่งครั้งต้องได้ชั้นไม่เกินหนึ่ง (ของเดิมยิงซ้ำ 2 ครั้งต่อศพ)', () => {
-  const strong = { id: 'trex', rarity: 'legendary', element: 'fist', grade: 5 }
-  const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
-  const r = simulateBattle([strong], [weak, weak, weak], 999)
-  let sinceDeath = -1, worst = 0
-  for (const e of r.log) {
-    if (e.t === 'attack') { if (sinceDeath >= 0) worst = Math.max(worst, sinceDeath); sinceDeath = e.dead ? 0 : -1 }
-    else if (sinceDeath >= 0 && e.t === 'passive' && e.effect === 'stackAtk') sinceDeath += 1
+  PET_PASSIVES.__slayer = {
+    name: 'ทดสอบนักล่า', icon: '🧪',
+    parts: [{ hook: 'onKill', effect: 'stackAtk', value: { pct: 12, max: 3 }, step: { pct: 4, max: 0 } }],
+    desc: 'ล้ม 1 ตัว +{pct}% (สะสม {max})', short: 'ล้ม 1 ตัว +{pct}% (สะสม {max})',
   }
-  worst = Math.max(worst, Math.max(0, sinceDeath))
-  assert.equal(worst, 1, 'ศพเดียวต้องให้ชั้นเดียว — ได้มากกว่านั้นแปลว่า runOnKill ยิงซ้ำ')
+  try {
+    const strong = { id: '__slayer', rarity: 'legendary', element: 'fist', grade: 5 }
+    const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
+    const r = simulateBattle([strong], [weak, weak, weak], 999)
+    let sinceDeath = -1, worst = 0
+    for (const e of r.log) {
+      if (e.t === 'attack') { if (sinceDeath >= 0) worst = Math.max(worst, sinceDeath); sinceDeath = e.dead ? 0 : -1 }
+      else if (sinceDeath >= 0 && e.t === 'passive' && e.effect === 'stackAtk') sinceDeath += 1
+    }
+    worst = Math.max(worst, Math.max(0, sinceDeath))
+    assert.equal(worst, 1, 'ศพเดียวต้องให้ชั้นเดียว — ได้มากกว่านั้นแปลว่า runOnKill ยิงซ้ำ')
+  } finally { delete PET_PASSIVES.__slayer }
 })
 
 test('runOnKill: หมัดที่ปิดไฟต์ก็ต้องได้ชั้น (บรรทัดใต้ลูปเป็นตัวเดียวที่ยิงให้มัน)', () => {
-  const strong = { id: 'trex', rarity: 'legendary', element: 'fist', grade: 5 }
-  const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
-  const r = simulateBattle([strong], [weak], 4242)          // ศัตรูตัวเดียว = ตายทีเดียวจบ
-  assert.equal(r.winner, 'A')
-  const stacks = r.log.filter(e => e.t === 'passive' && e.effect === 'stackAtk')
-  assert.equal(stacks.length, 1, 'หมัดปิดเกมต้องได้ชั้น 1 ชั้น')
+  PET_PASSIVES.__slayer = {
+    name: 'ทดสอบนักล่า', icon: '🧪',
+    parts: [{ hook: 'onKill', effect: 'stackAtk', value: { pct: 12, max: 3 }, step: { pct: 4, max: 0 } }],
+    desc: 'ล้ม 1 ตัว +{pct}% (สะสม {max})', short: 'ล้ม 1 ตัว +{pct}% (สะสม {max})',
+  }
+  try {
+    const strong = { id: '__slayer', rarity: 'legendary', element: 'fist', grade: 5 }
+    const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
+    const r = simulateBattle([strong], [weak], 4242)          // ศัตรูตัวเดียว = ตายทีเดียวจบ
+    assert.equal(r.winner, 'A')
+    const stacks = r.log.filter(e => e.t === 'passive' && e.effect === 'stackAtk')
+    assert.equal(stacks.length, 1, 'หมัดปิดเกมต้องได้ชั้น 1 ชั้น')
+  } finally { delete PET_PASSIVES.__slayer }
 })

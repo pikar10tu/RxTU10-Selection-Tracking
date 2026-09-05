@@ -39,9 +39,9 @@ export const PET_PASSIVES = {
   },
   trex: {
     name: 'สัญชาตญาณนักล่า', icon: '🦖',
-    parts: [{ hook: 'onKill', effect: 'stackAtk', value: { pct: 12, max: 3 }, step: { pct: 4, max: 0 } }],
-    desc: 'ล้มศัตรู 1 ตัว พลังโจมตี +{pct}% ถาวร (สะสมได้ {max} ชั้น)',
-    short: 'ล้มศัตรู 1 ตัว พลังโจมตี +{pct}% (สะสม {max} ชั้น)',
+    parts: [{ hook: 'onAnyDeath', effect: 'stackAtk', value: { pct: 12, max: 3 }, step: { pct: 4, max: 0 } }],
+    desc: 'ศัตรูล้ม 1 ตัว (ใครล้มก็ได้) พลังโจมตี +{pct}% ถาวร (สะสมได้ {max} ชั้น)',
+    short: 'ศัตรูล้ม 1 ตัว พลังโจมตี +{pct}% (สะสม {max} ชั้น)',
   },
   ouroboros: {
     name: 'วัฏจักรนิรันดร์', icon: '🐍',
