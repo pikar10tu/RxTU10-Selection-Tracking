@@ -199,6 +199,11 @@ test('aoeOpener (bahamut): ศัตรูทุกตัวโดน + มี e
   assert.deepEqual(evs[0].targets, ['B0', 'B1'])
 })
 
+test('บาฮามุท: เลขเปิดไฟต์เป็น 150% ของพลังโจมตี', () => {
+  const v = partsOf(PET_PASSIVES.bahamut)[0].value
+  assert.equal(v.pct, 150)
+})
+
 test('regenSelf: ฟื้นเมื่อเลือดพร่อง · เลือดเต็มแล้วไม่เด้ง event ซ้ำซาก', () => {
   const hurt = u('panda', { hp: 500 })
   assert.equal(runOnRound([hurt]).length, 1)
@@ -752,7 +757,12 @@ test('stackAtk (trex): สะสมได้ถึงเพดานแล้ว
 test('ทีเร็กซ์: เพื่อนเป็นคนล้มศัตรู ทีเร็กซ์ก็ได้ชั้น', () => {
   const trex = { id: 'trex', rarity: 'legendary', element: 'fist', grade: 0 }   // อ่อนสุด จะได้ไม่ได้เป็นคนฆ่าเอง
   const mate = { id: 'bahamut', rarity: 'legendary', element: 'fist', grade: 5 }
-  const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 0 }
+  // 🔴 P2c-1 Task 8: grade 0 (hp 50) เคยพอสำหรับเทสนี้ตอนบาฮามุทเปิดไฟต์แค่ 12% — พอขึ้นเป็น 150%
+  //    (ตามเลขใหม่ของบาฮามุท) เปิดไฟต์ทีเดียวน็อกทั้งคู่ตายคาที่ (aoeOpener ลด hp ตรงๆ ไม่ผ่าน
+  //    onDeath/onAnyDeath เลย) ⇒ ทีเร็กซ์ไม่ได้ชั้นเพราะไม่มี "การฆ่า" ที่ระบบนับผ่านมันเลย ไม่ใช่บั๊กที่ตั้งใจทดสอบ
+  //    ยกเกรดเป็น 3 (hp ~76) ให้รอดจากอ๊อพเนอร์แล้วตายจริงกลางไฟต์ผ่านหมัดปกติแทน — คงเจตนาเทสเดิมไว้เป๊ะ
+  //    (ทีเร็กซ์ต้องได้ชั้นแม้ไม่ได้เป็นคนฆ่าเอง) แค่ไม่ให้ชนเคสขอบที่ไม่เกี่ยวกับสิ่งที่เทสนี้ตั้งใจวัด
+  const weak = { id: '__blank__', rarity: 'common', element: 'scissors', grade: 3 }
   const r = simulateBattle([trex, mate], [weak, weak], 777)
   const mine = r.log.filter(e => e.t === 'passive' && e.effect === 'stackAtk' && e.petId === 'trex')
   assert.ok(mine.length > 0, 'ต้องได้ชั้นแม้ไม่ได้เป็นคนฆ่า')

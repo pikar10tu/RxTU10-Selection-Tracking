@@ -26,7 +26,7 @@ export const PET_PASSIVES = {
   // ── Legendary ───────────────────────────────────────────────
   bahamut: {
     name: 'ลมหายใจราชัน', icon: '🔥',
-    parts: [{ hook: 'onStart', effect: 'aoeOpener', value: { pct: 12 }, step: { pct: 4 } }],
+    parts: [{ hook: 'onStart', effect: 'aoeOpener', value: { pct: 150 }, step: { pct: 4 } }],
     desc: 'เริ่มสู้ สาดเปลวไฟใส่ศัตรูทุกตัว {pct}% ของพลังโจมตี',
     short: 'เริ่มสู้ ยิงศัตรูทุกตัว {pct}% ของพลังโจมตี',
   },
