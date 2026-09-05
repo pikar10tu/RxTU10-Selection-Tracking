@@ -597,6 +597,62 @@ test('ฟีนิกซ์สองตัวตีกันตาย: หมั
   }
 })
 
+// ══════════════════════════════════════════════════════════════
+//  🔴 รีวิวรอบ 1 (5 ก.ย.): บรีฟเดิมสั่งให้หมัดสวนใช้ธง `reflecting` ร่วมกับก้อนสะท้อนเกราะ — user เคาะแก้
+//  เอง (override บรีฟ) เพราะถ้าหมัดสวนของฟีนิกซ์ลงบนตัวมีเกราะ (armorStack) เกราะจะกินสแตคไปแต่ไม่ได้
+//  สะท้อนกลับเลย: `runOnHit` คิด res.reflect ให้แล้ว (กินสแตคจริง) แต่บล็อกเกราะเช็ค `!reflecting` ซึ่งบล็อก
+//  หมัดสวนตั้งเป็น true ครอบไว้อยู่ ⇒ เกราะจ่ายสแตคฟรีทุกครั้งที่โดนหมัดสวน — วันนี้ไม่มีเพ็ทจริงตัวไหนมี
+//  armorStack แต่กลไกเอนจินพร้อมแล้ว วันที่ P3 ลงทะเบียนเพ็ทเกราะตัวแรกจะพังทันทีถ้าอยู่บอร์ดเดียวกับฟีนิกซ์
+//  ⇒ แยกธงเป็น `reflecting` (ก้อนสะท้อนเกราะกำลังบิน) กับ `countering` (หมัดสวนฟีนิกซ์กำลังบิน) คนละความหมาย
+// ══════════════════════════════════════════════════════════════
+test('ฟีนิกซ์สวนใส่ตัวมีเกราะ: เกราะต้องกินสแตคแล้ว "ได้สะท้อนกลับจริง" (ไม่ใช่กินฟรี)', () => {
+  PET_PASSIVES.__phxArmorTest = {
+    name: 'ทดสอบฟีนิกซ์', icon: '🧪',
+    parts: [{ hook: 'onDeath', effect: 'revive', value: { pct: 35, counterPct: 150 }, step: { pct: 0, counterPct: 0 } }],
+    desc: 'ทดสอบ {pct}% {counterPct}%', short: 'ทดสอบ {pct}% {counterPct}%',
+  }
+  PET_PASSIVES.__armorTest = {
+    name: 'ทดสอบเกราะ', icon: '🧪',
+    parts: [{ hook: 'onHit', effect: 'armorStack', value: { count: 3, pct: 50 }, step: { count: 0, pct: 0 } }],
+    desc: 'ทดสอบ {count} ชั้น สะท้อน {pct}%', short: 'ทดสอบ {count} ชั้น',
+  }
+  try {
+    // A: ฟีนิกซ์ตัวเดียว (อ่อน ตายง่าย) · B: ตัวมีเกราะ + เพื่อนกันตัวเติม ทำให้ทีม B ใหญ่กว่า
+    // ⇒ B ได้ตีก่อนเสมอ (กติกา "ทีมใหญ่กว่าตีก่อน" ไม่ต้องพึ่งสุ่ม) แล้วชนสูตร legendary/grade5 vs
+    // common/grade0 ทำให้ B0 มีโอกาสน็อก A0 ได้ตั้งแต่หมัดแรกของทั้งไฟต์ (ตรวจแล้วที่ seed=1)
+    // ⇒ หมัดสวนของ A0 เป็น "หมัดแรก" ที่ B0 เคยโดนในไฟต์นี้เป๊ะ กันไม่ให้ปนกับสแตคที่อาจถูกกินจากหมัดอื่นก่อน
+    const A = [{ id: '__phxArmorTest', rarity: 'common', element: 'fist', grade: 0 }]
+    const B = [{ id: '__armorTest', rarity: 'legendary', element: 'fist', grade: 5 },
+               { id: '__blank__', rarity: 'common', element: 'fist', grade: 0 }]
+    const r = simulateBattle(A, B, 1)
+
+    // (a) เกราะต้องกินสแตคจากหมัดสวน — เห็นได้จาก event armorStack ใบแรก (armorLeft: 3-1=2)
+    const armorEvents = r.log.filter(e => e.t === 'passive' && e.effect === 'armorStack')
+    assert.equal(armorEvents.length, 1, 'เกราะต้องกินสแตคจากหมัดสวนของฟีนิกซ์ 1 ครั้ง')
+    assert.equal(armorEvents[0].armorLeft, 2, 'เหลือ 2 จาก 3 ชั้น')
+    assert.equal(armorEvents[0].uid, 'B0')
+
+    // (b) เกราะต้อง "ได้สะท้อนกลับจริง" — ก้อนสะท้อนคือหมัด sub ที่ B0 (เจ้าของเกราะ) ยิงกลับใส่ A0
+    //    🔴 ก่อนแก้ (ธงเดียว): บล็อกหมัดสวนตั้ง reflecting=true ครอบไว้ทั้งก้อน ⇒ บล็อกเกราะเช็ค !reflecting
+    //    เจอ false ตลอด ⇒ ก้อนสะท้อนนี้ไม่เคยเกิดเลยแม้เกราะจะกินสแตคไปแล้ว (พิสูจน์ไว้ในหัวข้อ TDD ของรายงาน)
+    const reflectStrikes = r.log.filter(e => e.t === 'attack' && e.sub && e.attacker === 'B0' && e.target === 'A0')
+    assert.equal(reflectStrikes.length, 1, 'เกราะต้องยิงก้อนสะท้อนกลับใส่ A0 จริง ไม่ใช่กินสแตคฟรี')
+    assert.equal(reflectStrikes[0].dmg, armorEvents[0].amount,
+      'ดาเมจสะท้อนที่ลงจริงต้องตรงกับป้ายเกราะบอกไว้ (A0 ไม่มีสายลดใดๆ)')
+
+    // หมัดสวนของฟีนิกซ์เองก็ต้องมีอยู่ด้วย (attacker A0 → B0) — ก้อนสะท้อนมาจากหมัดสวนอันนี้เป๊ะ
+    const counterStrike = r.log.find(e => e.t === 'attack' && e.sub && e.attacker === 'A0' && e.target === 'B0')
+    assert.ok(counterStrike, 'ต้องมีหมัดสวนของฟีนิกซ์ลงบน B0 ด้วย (ต้นเหตุที่ทำให้เกราะกินสแตค)')
+    assert.equal(counterStrike.dmg, 0, 'เกราะกันหมัดสวนได้ทั้งดอก (ตามกติกา armorStack ปกติ)')
+
+    // ไฟต์จบปกติ ไม่ค้าง
+    assert.equal(r.log.at(-1).t, 'end')
+  } finally {
+    delete PET_PASSIVES.__phxArmorTest
+    delete PET_PASSIVES.__armorTest
+  }
+})
+
 test('cheatDeath (cat): รอดด้วยเลือด 1 ครั้งเดียว', () => {
   const c = u('cat', { hp: -20 })
   assert.equal(runOnDeath(c, [c]).prevented, true)
