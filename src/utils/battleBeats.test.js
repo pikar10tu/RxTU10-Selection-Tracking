@@ -6,6 +6,9 @@ import {
 } from './battleBeats.js'
 // battleBeats.js ไม่ import อะไรโดยตั้งใจ — เทสจึงเป็นที่เดียวที่เอาสองฝั่งมาชนกันได้
 import { PET_PASSIVES, partsOf, TEAM_AURA_EFFECTS, FOE_AURA_EFFECTS } from '../data/petPassives.js'
+// 🔴 log ที่เขียนมือพิสูจน์ได้แค่ "รูปที่เรานึกออก" — ตระกูลหมัดสวน/สะท้อนมีรูปที่เอนจินเท่านั้นที่ผลิตได้
+//    (หมัดลูกถูก log ก่อนหมัดแม่) จึงต้องมีเทสที่กิน log จากไฟต์จริงอย่างน้อยหนึ่งตัว
+import { simulateBattle } from './battleEngine.js'
 
 const MH = { A0: 100, A1: 100, B0: 100, B1: 100 }
 const atk = (o = {}) => ({ t: 'attack', attacker: 'A0', target: 'B0', dmg: 10, targetHpAfter: 90, ...o })
@@ -130,6 +133,70 @@ test('หมัดลูกที่อยู่ท้าย log กลายเ
   const bs = buildBeats(log, MH)
   assert.equal(bs[1].kind, 'finish', 'หมัดลูกใบสุดท้ายของไฟต์ต้องได้บีตปิดเกม')
   assert.equal(bs[0].kind, 'sub', 'หมัดหลักในบีตเดียวกันยกเวลาให้ใบสุดท้าย')
+})
+
+// ── หมัดสวน/สะท้อน: เอนจิน log ไว้ "ก่อน" หมัดแม่ ⇒ ใบท้าย log ไม่ใช่หมัดที่ปิดไฟต์ ──
+// 🔑 เทสตัวนี้กิน log จาก simulateBattle จริง ไม่ใช่ log ที่เขียนมือ — เพราะรูปที่เขียนมือกันมา
+//    (วาง sub ไว้ท้ายสุด) เป็นรูปที่เอนจินไม่เคยผลิตให้ตระกูลหมัดสวน/สะท้อนเลย บั๊กนี้จึงหลบเทส
+//    ทั้งชุดของงานย่อย 2 มาได้ · ห้ามแทนด้วย log เขียนมือ ไม่งั้นช่องโหว่เดิมกลับมาทันที
+test('บีตปิดเกมอยู่ที่หมัดที่ปิดไฟต์จริง ไม่ใช่หมัดแม่ที่ถูก log ทีหลัง (log จากไฟต์จริง)', () => {
+  // 🔥 ฟีนิกซ์ตาย → คืนชีพ → ตีสวนบาฮามุทตาย = จบไฟต์ · เอนจิน push หมัดสวนก่อนหมัดแม่เสมอ
+  const r = simulateBattle([{ id: 'phoenix', rarity: 'legendary', element: 'fist', grade: 0 }],
+                           [{ id: 'bahamut', rarity: 'legendary', element: 'fist', grade: 0 }], 7)
+  const mh = Object.fromEntries(Object.entries(r.units).map(([uid, s]) => [uid, Math.round(s.maxHp) || 1]))
+  const bs = buildBeats(r.log, mh)
+
+  const fins = bs.filter(b => b.kind === 'finish')
+  assert.equal(fins.length, 1, 'finish มีใบเดียวเสมอ')
+  const at = bs.findIndex(b => b.kind === 'finish')
+  assert.equal(bs[at].dead, true, 'ใบที่ถือบีตปิดเกมต้องเป็นหมัดที่ฆ่าจริง')
+  assert.equal(bs[at].attacker, 'A0', 'คือหมัดสวนของฟีนิกซ์')
+  assert.equal(bs[at].sub, true)
+
+  const parent = bs[at + 1]
+  assert.equal(parent.t, 'attack', 'ถัดไปคือหมัดแม่ที่ถูก log ทีหลัง')
+  assert.equal(parent.dead, false, 'หมัดแม่ไม่ได้ฆ่าใคร (และดาเมจติดลบเพราะฟีนิกซ์ฟื้นเลือด)')
+  assert.equal(parent.kind, 'sub', 'อยู่บีตเดียวกัน ⇒ ยกเวลาให้ใบที่ปิดไฟต์')
+  assert.equal(beatDuration(parent), 0, 'ห้ามมีหมัดกินเวลาต่อท้ายบีตปิดเกม')
+})
+
+test('หมัดสวนที่ล้างทีมศัตรู ได้บีตปิดเกม (รูปเดียวกับที่เอนจินผลิต)', () => {
+  const log = [
+    pas({ effect: 'revive', fxKind: 'revive' }),
+    atk({ side: 'A', attacker: 'A0', target: 'B0', dmg: 99, targetHpAfter: 0, dead: true, sub: true }),
+    atk({ side: 'B', attacker: 'B0', target: 'A0', dmg: -9, targetHpAfter: 40, dead: false }),
+    { t: 'end', winner: 'A', rounds: 3, hpPctA: 0.4, hpPctB: 0 },
+  ]
+  const bs = buildBeats(log, MH)
+  assert.equal(bs[1].kind, 'finish')
+  assert.equal(bs[2].kind, 'sub')
+})
+
+// 🔒 กับดักของกฎนี้ — วัดจาก log จริง (bahamut vs cerberus ซีด 5308871522): หมัดลูกของ "บีตก่อนหน้า"
+//    ใส่ลายเซ็นเดียวกับหมัดสวนได้เป๊ะ (sub + ผู้ตีเป็นเป้าของหมัดแม่) ตัวแยกคือหมัดแม่ฆ่าเองหรือเปล่า
+test('หมัดหลักใบท้ายที่ฆ่าเอง ต้องคงบีตปิดเกมไว้ แม้ก่อนหน้าจะเป็นหมัดลูกของบีตก่อน', () => {
+  const log = [
+    atk({ side: 'B', attacker: 'B0', target: 'A2', dmg: 23, targetHpAfter: 40 }),
+    atk({ side: 'B', attacker: 'B0', target: 'A2', dmg: 9, targetHpAfter: 31, sub: true }),
+    atk({ side: 'A', attacker: 'A2', target: 'B0', dmg: 22, targetHpAfter: 0, dead: true }),
+    { t: 'end', winner: 'A', rounds: 4, hpPctA: 0.3, hpPctB: 0 },
+  ]
+  const bs = buildBeats(log, MH)
+  assert.equal(bs[2].kind, 'finish', 'หมัดที่ฆ่าจริงคือใบท้าย ห้ามย้ายบีตไปไหน')
+  assert.equal(bs[1].kind, 'sub')
+})
+
+test('ไฟต์ที่จบเพราะหมดรอบ บีตปิดเกมอยู่ที่หมัดสุดท้าย ไม่กระโดดย้อนไปหาศพก่อนหน้า', () => {
+  const log = [
+    atk({ side: 'B', attacker: 'B0', target: 'A0', dmg: 10, targetHpAfter: 50 }),
+    atk({ side: 'B', attacker: 'B0', target: 'A1', dmg: 99, targetHpAfter: 0, dead: true, sub: true }),
+    atk({ side: 'A', attacker: 'A0', target: 'B0', dmg: 5, targetHpAfter: 60 }),
+    { t: 'end', winner: 'A', rounds: 30, hpPctA: 0.4, hpPctB: 0.6 },   // ไม่มีฝั่งไหนถูกล้างทีม
+  ]
+  const bs = buildBeats(log, MH)
+  assert.equal(bs[2].kind, 'finish', 'ไม่มีหมัดปิดไฟต์ ⇒ ใบสุดท้ายถือบีตไว้ตามเดิม')
+  assert.equal(bs[1].kind, 'sub')
+  assert.equal(bs[1].kill, true, 'ศพก่อนหน้ายังเป็นการตายอยู่ แค่ไม่ใช่จังหวะปิดเกม')
 })
 
 // ── ประกาศสกิล ────────────────────────────────────────────────────
