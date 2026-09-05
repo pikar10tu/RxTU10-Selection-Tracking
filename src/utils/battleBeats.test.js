@@ -103,11 +103,33 @@ test('finish มีตัวเดียวต่อไฟต์เสมอ แ
   assert.equal(bs[1].kind, 'ko', 'หมัดที่ฆ่าแต่ไม่จบไฟต์ = ko')
 })
 
-test('หมัดลูกไม่มีวันเป็น finish แม้อยู่ท้าย log', () => {
+test('หมัดลูกที่ปิดไฟต์ได้เวลาปิดเกม ส่วนหมัดหลักในบีตเดียวกันยกเวลาให้', () => {
+  const log = [
+    { t: 'attack', side: 'A', attacker: 'A0', target: 'B0', dmg: 10, targetHpAfter: 90 },
+    { t: 'attack', side: 'A', attacker: 'A0', target: 'B0', dmg: 10, targetHpAfter: 80 },
+    { t: 'attack', side: 'A', attacker: 'A0', target: 'B1', dmg: 50, targetHpAfter: 0, dead: true, sub: true },
+  ]
+  const b = buildBeats(log, { B0: 100, B1: 100 })
+  assert.equal(b[2].kind, 'finish', 'ใบสุดท้ายของไฟต์ต้องได้บีตปิดเกม แม้จะเป็นหมัดลูก')
+  assert.equal(b[1].kind, 'sub', 'หมัดหลักของบีตนั้นยกเวลาให้ใบสุดท้าย')
+  assert.equal(b[0].kind, 'hit', 'บีตก่อนหน้าไม่เกี่ยว')
+})
+
+test('ไฟต์ที่จบด้วยหมัดหลักตามปกติ จังหวะต้องไม่เปลี่ยน', () => {
+  const log = [
+    { t: 'attack', side: 'A', attacker: 'A0', target: 'B0', dmg: 10, targetHpAfter: 90 },
+    { t: 'attack', side: 'A', attacker: 'A0', target: 'B0', dmg: 90, targetHpAfter: 0, dead: true },
+  ]
+  const b = buildBeats(log, { B0: 100 })
+  assert.equal(b[1].kind, 'finish')
+  assert.equal(b[0].kind, 'hit')
+})
+
+test('หมัดลูกที่อยู่ท้าย log กลายเป็น finish ส่วนหมัดหลักก่อนหน้ายกเวลาให้ (user เคาะ 5 ก.ย.)', () => {
   const log = [atk({ dmg: 99, targetHpAfter: 0, dead: true }), atk({ sub: true, dmg: 3, target: 'B1' })]
   const bs = buildBeats(log, MH)
-  assert.equal(bs[0].kind, 'finish')
-  assert.equal(bs[1].kind, 'sub')
+  assert.equal(bs[1].kind, 'finish', 'หมัดลูกใบสุดท้ายของไฟต์ต้องได้บีตปิดเกม')
+  assert.equal(bs[0].kind, 'sub', 'หมัดหลักในบีตเดียวกันยกเวลาให้ใบสุดท้าย')
 })
 
 // ── ประกาศสกิล ────────────────────────────────────────────────────

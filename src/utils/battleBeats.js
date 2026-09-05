@@ -147,11 +147,22 @@ export function buildBeats(log, maxHpByUid) {
     }
   })
 
-  // หมัดปิดเกม = attack ตัวสุดท้ายที่ไม่ใช่หมัดลูก (มีได้ตัวเดียวต่อไฟต์เสมอ)
+  // หมัดปิดเกม = attack ใบสุดท้ายของไฟต์ — **นับหมัดลูกด้วย** (user เคาะ 5 ก.ย.)
+  // ของเดิมข้ามหมัดลูกไป ⇒ ก้อนสะท้อน/cleave ที่ปิดเกมถูกเล่าเป็น 0ms ส่วนหมัดหลักที่ถูกกัน
+  // จนดาเมจเป็น 0 กลับได้บีตปิดเกม ×4 — คนดูเห็นจังหวะจบที่ไม่ใช่จังหวะที่ฆ่าจริง
   let finishAt = -1
   for (let i = evts.length - 1; i >= 0; i--) {
     const ev = evts[i]
-    if (ev && ev.t === 'attack' && !ev.sub) { finishAt = i; break }
+    if (ev && ev.t === 'attack') { finishAt = i; break }
+  }
+
+  // ใบอื่นที่อยู่ในบีตเดียวกับหมัดปิดเกม → ยกเวลาให้ใบสุดท้ายคนเดียว (แพทเทิร์นเดียวกับ openGroup)
+  const finishGroup = new Set()
+  for (let i = finishAt; i >= 0; i--) {
+    const ev = evts[i]
+    if (!ev || ev.t !== 'attack') break
+    if (i !== finishAt) finishGroup.add(i)
+    if (!ev.sub) break                    // ถึงหมัดหลักของบีตแล้ว รวมมันด้วยแล้วหยุด
   }
 
   // ── pass 2: แจก kind ให้ passive ──
@@ -226,7 +237,9 @@ export function buildBeats(log, maxHpByUid) {
     // หมัดลูกไม่กินเวลา แต่ยังมี weight ของตัวเอง (จึงเบากว่าหมัดหลักโดยอัตโนมัติ ไม่ต้อง hardcode)
     // 🔒 นี่คือจุดที่บั๊กเดิมอยู่: เมื่อก่อน tier=null แล้ว applyImpact ตกลง else ตัวสุดท้าย
     //    = ได้เอฟเฟกต์ระดับหมัดปิดเกม 11.5 ครั้ง/ไฟต์ · ตอนนี้ kind มีค่าเสมอ ไม่มีทางตกท้าย
-    const kind = ev.sub ? 'sub' : (i === finishAt ? 'finish' : (ev.dead === true ? 'ko' : 'hit'))
+    const kind = i === finishAt ? 'finish'
+      : (finishGroup.has(i) || ev.sub) ? 'sub'
+      : (ev.dead === true ? 'ko' : 'hit')
 
     const alive = inf.hpPctAfter > 0
     const danger = alive && inf.hpPctAfter <= DANGER_PCT
