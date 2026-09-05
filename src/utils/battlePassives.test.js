@@ -5,7 +5,7 @@ import {
   runSetup, applyAuras, runOnStart, runOnRound, runOnAttack, runOnHit, runOnDealt, runOnDeath, runOnKill, runOnAnyDeath, passiveFor, psOf,
   tauntTargetOf,
 } from './battlePassives.js'
-import { PET_PASSIVES, passiveValueAt, passiveText, effectText, partsOf, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT } from '../data/petPassives.js'
+import { PET_PASSIVES, passiveValueAt, passiveText, effectText, partsOf, PASSIVE_MAX_LEVEL, STATUS_ICON, STATUS_TEXT, TEAM_AURA_EFFECTS } from '../data/petPassives.js'
 import { PETS } from '../data/index.js'
 import { COMBAT_BASE, COMBAT_GRADE, ELEMENT_BIAS } from '../data/petPower.js'
 import { simulateBattle } from './battleEngine.js'
@@ -111,11 +111,26 @@ test('teamAtk (seal): เดี่ยว +6% · เข้าคู่ whale เ�
   assert.equal(duo[0].teamRegenPct, 3)
 })
 
-test('teamAtkPerElement (wolf): ยิ่งมีเพื่อนสาย fist ยิ่งแรง', () => {
-  const one = [u('wolf')]
-  const three = [u('wolf'), u('trex', { uid: 'A1' }), u('kirin', { uid: 'A2' })]
-  applyAuras(one, []); applyAuras(three, [])
-  assert.ok(three[0].atk > one[0].atk)
+test('หมาป่า: บัฟเฉพาะเพื่อนสายจู่โจม ตัวสายอื่นไม่ได้อะไร', () => {
+  const mk = (uid, id, el) => ({ uid, side: 'A', id, element: el, hp: 100, maxHp: 100, atk: 100 })
+  const wolf = mk('A0', 'wolf', 'fist')
+  const fistMate = mk('A1', '__blank__', 'fist')
+  const paperMate = mk('A2', '__blank__', 'paper')
+  applyAuras([wolf, fistMate, paperMate], [])
+  assert.equal(Math.round(fistMate.atk), 104, 'เพื่อนสายจู่โจมได้ 4%')
+  assert.equal(Math.round(wolf.atk), 104, 'ตัวหมาป่าเองก็สายจู่โจม จึงได้ด้วย')
+  assert.equal(paperMate.atk, 100, 'สายอื่นต้องไม่ได้อะไร')
+})
+
+test('teamAtkPerElement ถูกลบออกจากระบบแล้ว (ค่าคงที่ที่ไม่มีใครอ่าน อันตรายกว่าค่าที่ผิด)', () => {
+  assert.equal(STATUS_ICON.teamAtkPerElement, undefined)
+  assert.equal(STATUS_TEXT.teamAtkPerElement, undefined)
+  assert.equal(TEAM_AURA_EFFECTS.has('teamAtkPerElement'), false)
+  for (const [id, p] of Object.entries(PET_PASSIVES)) {
+    for (const part of partsOf(p)) {
+      assert.notEqual(part.effect, 'teamAtkPerElement', `${id} ยังใช้ effect ที่ถูกลบแล้ว`)
+    }
+  }
 })
 
 test('enemyVuln (owl): ไปลงที่ศัตรู ไม่ใช่ทีมตัวเอง', () => {

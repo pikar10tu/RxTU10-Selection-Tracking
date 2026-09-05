@@ -47,7 +47,7 @@ export const CLUTCH_EFFECTS = new Set(['revive', 'cheatDeath', 'saveAlly'])
  *     ถ้าตกหล่น: openCutOf จะตัดกลุ่มยกแรกที่ตัวนั้นทันที ⇒ ป้ายออร่าเลิกขึ้นพร้อมกัน
  *     กลายเป็นทยอยขึ้นทีละใบ ซึ่งเป็นอาการที่สเปกบอกให้เลี่ยงตรงๆ */
 export const OPENING_EFFECTS = new Set([
-  'teamHp', 'teamAtk', 'teamAtkPerElement', 'teamCrit', 'enemyVuln',   // aura เดิม 5 ตัว
+  'teamHp', 'teamAtk', 'teamAtkElement', 'teamCrit', 'enemyVuln',   // aura เดิม 5 ตัว
   'elementTrinity', 'teamLifesteal', 'teamDamageReduction',            // aura ใหม่ของ P2
   'stealStats',                                                        // hook setup — เอนจิน log ก่อน aura ทุกใบ
 ])

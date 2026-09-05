@@ -121,9 +121,9 @@ export const PET_PASSIVES = {
   // ── Rare ────────────────────────────────────────────────────
   wolf: {
     name: 'สัญชาตญาณฝูง', icon: '🐺',
-    parts: [{ hook: 'aura', effect: 'teamAtkPerElement', value: { pct: 4, element: 'fist' }, step: { pct: 1.5 } }],
-    desc: 'พลังโจมตีทั้งทีม +{pct}% ต่อเพื่อนสายจู่โจม 1 ตัว',
-    short: 'พลังโจมตีทีม +{pct}% ต่อเพื่อนสายจู่โจม 1 ตัว',
+    parts: [{ hook: 'aura', effect: 'teamAtkElement', value: { pct: 4, element: 'fist' }, step: { pct: 1.5 } }],
+    desc: 'เพื่อนสายจู่โจมทุกตัว พลังโจมตี +{pct}%',
+    short: 'เพื่อนสายจู่โจมทุกตัว +{pct}%',
   },
   shark: {
     name: 'เขี้ยวกระหาย', icon: '🦈',
@@ -289,7 +289,7 @@ export function effectText(p, level = 1, { onTarget = false, effect = null } = {
 //     (🪨 ของ mammoth เป็นเคสนั้นอยู่ตอนนี้ — ไม่พัง แต่หน้าตาไม่เหมือนกันทุกเครื่อง)
 // ════════════════════════════════════════════════════════════════════
 export const STATUS_ICON = {
-  teamHp: '❤️', teamAtk: '⚔️', teamAtkPerElement: '⚔️', teamCrit: '💥', enemyVuln: '🎯',
+  teamHp: '❤️', teamAtk: '⚔️', teamAtkElement: '⚔️', teamCrit: '💥', enemyVuln: '🎯',
   guardian: '🛡️', damageReduction: '🧱', dodge: '💨', thorns: '⚡',
   revive: '🧿', saveAlly: '🧿', cheatDeath: '🧿', stackAtk: '⬆️',
   duoRegen: '💧',
@@ -308,7 +308,7 @@ export const STATUS_ICON = {
 
 /** ความหมายสั้นๆ ของป้าย — ใช้ใน aria-label และหน้า inspect */
 export const STATUS_TEXT = {
-  teamHp: 'เลือดสูงสุดเพิ่ม', teamAtk: 'พลังโจมตีเพิ่ม', teamAtkPerElement: 'พลังโจมตีเพิ่ม',
+  teamHp: 'เลือดสูงสุดเพิ่ม', teamAtk: 'พลังโจมตีเพิ่ม', teamAtkElement: 'พลังโจมตีเพิ่ม',
   teamCrit: 'โอกาสคริติคอลเพิ่ม', enemyVuln: 'รับดาเมจเพิ่ม',
   guardian: 'มีเพื่อนรับแทนให้', damageReduction: 'ลดดาเมจที่ได้รับ', dodge: 'มีโอกาสหลบ',
   thorns: 'ตีแล้วเจ็บกลับ', revive: 'ตายแล้วฟื้นคืนชีพได้ 1 ครั้ง', saveAlly: 'กันเพื่อนตายได้ 1 ครั้ง',
@@ -324,7 +324,7 @@ export const STATUS_TEXT = {
 }
 
 /** aura ที่แผ่ใส่ "ทีมตัวเอง" — ป้ายลงทุกใบในทีมนั้น */
-export const TEAM_AURA_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'teamCrit',
+export const TEAM_AURA_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkElement', 'teamCrit',
   'elementTrinity', 'teamLifesteal', 'teamDamageReduction'])
 /** aura ที่แผ่ใส่ "ทีมศัตรู" — ป้ายลงฝั่งตรงข้าม (ดีบัฟ) ⚠️ เฉพาะ effect ที่มาจาก part hook 'aura' เท่านั้น
  *  (aurasOf() ใน battleBuffs.js หาแค่ partsAt(p, 'aura') — เป็นค่า % คงที่ที่แผ่ทั้งทีมศัตรูตั้งแต่ต้นไฟต์) */

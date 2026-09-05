@@ -39,7 +39,7 @@ export function statsSnapshot(...teams) {
 }
 
 /** effect ที่ขยับ atk/maxHp จริง — teamCrit/enemyVuln ไม่ต้องแบก snapshot ไปด้วย */
-const STAT_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkPerElement', 'stackAtk', 'elementTrinity'])
+const STAT_EFFECTS = new Set(['teamHp', 'teamAtk', 'teamAtkElement', 'stackAtk', 'elementTrinity'])
 
 /** สร้าง event สำหรับ log — รูปเดียวกับที่ BattleReplay/battleBeats รับ
  *  🔴 ชนิดผลชื่อ `fxKind` ห้ามใช้ชื่อ `kind` เด็ดขาด — `kind` เป็นของ battleBeats (= เวลา)
@@ -165,11 +165,11 @@ export function applyAuras(team, foes) {
           if (duo && v.duoRegen) for (const t of team) t.teamRegenPct = (t.teamRegenPct || 0) + v.duoRegen
           break
         }
-        case 'teamAtkPerElement': {
-          const n = team.filter(t => t.element === v.element).length
-          if (n > 0) for (const t of team) t.atk *= (1 + (v.pct * n) / 100)
+        case 'teamAtkElement':
+          // บัฟเฉพาะเพื่อนที่อยู่สายที่ระบุ — ตัวสายอื่นในทีมไม่ได้อะไร
+          // (ของเดิม teamAtkPerElement บัฟ *ทั้งทีม* โดยคูณตามจำนวนเพื่อนสายนั้น ⇒ ยิ่งกองยิ่งบาน)
+          for (const t of team) if (t.element === v.element) t.atk *= (1 + v.pct / 100)
           break
-        }
         case 'teamRegen':
           // ใช้ช่องเดียวกับ duo whale🔗seal — ถ้ามีทั้งคู่ก็บวกกัน (ตั้งใจ)
           for (const t of team) t.teamRegenPct = (t.teamRegenPct || 0) + v.pct
