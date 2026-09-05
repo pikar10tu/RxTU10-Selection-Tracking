@@ -468,6 +468,10 @@ export function runOnHit(defender, dmg, attacker, team, rand, forced = false) {
     // ⚠️ เลือดผู้พิทักษ์ลดโดยไม่มี attack event ⇒ ถ้าไม่ส่ง hpPct หลอดของเขาจะค้างเต็มทั้งที่เลือดหาย
     res.events.push(ev(g, gp, gpart, { targets: [defender.uid], amount: Math.round(share),
       guardUid: g.uid, guardHpPct: Math.max(0, Math.round((g.hp / g.maxHp) * 100)), fxKind: 'guard' }))
+    // 🔴 สเปก §7.6: ผู้พิทักษ์ตายจากส่วนแบ่งนี้ได้จริง แต่มันไม่ได้ "สร้าง" ดาเมจ แค่ย้ายเข้าตัว
+    //    ⇒ ต้องส่งอ้างอิงตัวเองกลับไปให้เอนจิน (battleEngine.js) เช็คตายหลัง log ของหมัดนี้แล้วเท่านั้น
+    //    เอนจินเป็นคนตัดสินว่าใครคือ "ผู้ฆ่า" (คนที่สวนหมัดมา ไม่ใช่ผู้พิทักษ์) — ที่นี่แค่รายงานว่ามีใครรับแทนไป
+    res.guard = g
     break                                              // ผู้พิทักษ์ตัวเดียวพอ
   }
 

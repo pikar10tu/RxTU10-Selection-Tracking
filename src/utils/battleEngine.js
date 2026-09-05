@@ -37,16 +37,15 @@ export function simulateBattle(teamA, teamB, seed) {
   // สเตตัสหลัง aura ก่อนหมัดแรก = "ตัวหารจริง" ของหลอดเลือดฝั่ง UI
   // (targetHpAfter ใน log อยู่บนสเกลนี้ ไม่ใช่ค่าดิบ — ใช้ค่าดิบแล้วทีมที่มีคุณวาฬหลอดจะเกิน 100%)
   const units = statsSnapshot(A, B)
-  for (const e of [...runOnStart(A, B), ...runOnStart(B, A)]) log.push(e)
 
-  // เลือกเป้า: ถูกบังคับ (taunt) มาก่อนเสมอ · ไม่งั้นสุ่มตามเดิม
-  // 🔴 ต้องเช็ค taunt ก่อนเรียก rand() — ถ้าเรียก rand() แล้วค่อยทิ้งผล ลำดับสุ่มจะเลื่อนทั้งไฟต์
-  const pick = (foes) => {
-    const forced = tauntTargetOf(foes)
-    if (forced) return forced
-    const al = alive(foes)
-    return al.length ? al[Math.floor(rand() * al.length)] : null
-  }
+  // ═══════════════════════════════════════════════════════════════════════
+  // 🔴 สเปก §7.6 (6 ก.ย. 2026): "การตายทุกทางต้องนับเป็นการตาย · ใครสร้างดาเมจ คนนั้นคือผู้ฆ่า"
+  //    หนาม (thorns) · เกราะสะท้อน (armorStack) เกิด "ข้างใน" strike() ที่ยังไม่จบ — ต้องยกธง/strike()/
+  //    resolveSilentDeath ขึ้นมาไว้ "ก่อน" onStart แล้ว เพราะ aoeOpener (บาฮามุท, ยิงก่อนรอบ 1) ก็ฆ่าได้
+  //    เงียบๆ เหมือนกัน และต้องใช้ strike()/resolveSilentDeath ตัวเดียวกันกับที่ strike() เรียกตอนจบตัวเอง
+  //    (ย้ายมาจากตำแหน่งเดิมหลัง onStart — ของเดิมไม่เคยต้องใช้ strike() ก่อน onStart เพราะยังไม่มีใครฆ่าใคร
+  //    แบบเงียบตอนนั้น)
+  // ═══════════════════════════════════════════════════════════════════════
 
   // กันเกราะสะท้อนชนกันไปมา: ระหว่างยิงก้อนสะท้อน ห้ามมีก้อนสะท้อนใหม่เกิดขึ้นอีกชั้น
   let reflecting = false
@@ -138,7 +137,60 @@ export function simulateBattle(teamA, teamB, seed) {
       ...(sub ? { sub: true } : {}),
       targetHpAfter: Math.max(0, Math.round(tg.hp)), dead,
     })
+    // 🔴 สเปก §7.6: ตายเงียบ 2 ทางที่เหลือของ strike() นี้ — หนาม (att โดนสวนตอนบรรทัด 81) และ guardian
+    //    (ผู้พิทักษ์ hitRes.guard โดนหักตอนอยู่ใน runOnHit) ต้องแก้ "หลัง" log เหตุการณ์ของหมัดนี้ (ก้อน
+    //    'attack' ข้างบน) เท่านั้น — เหตุต้องมาก่อนผลเสมอ (battleBeats.js อนุมานใครปิดไฟต์จาก log ล้วน)
+    //    และห้ามเช็คตอน strike() ยังไม่จบ (ตระกูลบั๊กเดียวกับธง reflecting/countering ด้านบน)
+    //    ผู้ฆ่าตามสเปก: หนาม → เจ้าของหนาม (tg, ผู้รับหมัดที่สะท้อนกลับ) · guardian → คนสวนหมัดมา (att เดิม
+    //    ของ strike() นี้เอง ไม่ใช่ผู้พิทักษ์ — บากุไม่ได้สร้างดาเมจ แค่ย้ายเข้าตัว)
+    resolveSilentDeath(att, tg)
+    resolveSilentDeath(hitRes.guard, att)
     return dead
+  }
+
+  /** ตายเงียบ (thorns/guardian ใน strike() ที่ผ่านไปแล้ว · aoeOpener ก่อนรอบ 1) — รวมโค้ดจุดเดียว
+   *  ตามลำดับเดียวกับ if(dead) เดิมใน strike(): runOnDeath → หมัดสวนของฟีนิกซ์ (ถ้ามี) → runOnAnyDeath
+   *  @param unit    ตัวที่อาจตาย (เช็ค hp เองในนี้ — เรียกได้เสมอแม้ไม่ตาย/ไม่มีตัว)
+   *  @param killer  ผู้สร้างดาเมจจริงตามสเปก §7.6 (ไม่ใช่คนที่ดาเมจไปตกใส่) */
+  const resolveSilentDeath = (unit, killer) => {
+    if (!unit || unit.hp > 0) return
+    const unitTeam = unit.side === 'A' ? A : B
+    const killerTeam = killer.side === 'A' ? A : B
+    const d = runOnDeath(unit, unitTeam, killer)
+    for (const e of d.events) log.push(e)
+    // 🔑 ห้าม return ตอน prevented เฉยๆ — หมัดสวนของฟีนิกซ์ต้องยิงแม้ prevented=true (revive คือกรณีนั้นเป๊ะ)
+    //    ตรงกับโค้ดเดิมใน strike(): `if (d.prevented) dead=false` แล้วเช็ค d.counter แยกเป็นคนละ if
+    if (d.counter && !reflecting && !countering) {
+      countering = true
+      try {
+        if (d.counter.target.hp > 0) strike(unit, d.counter.target, killerTeam, d.counter.mult, { crit: false, eff: 'neutral' }, true)
+      } finally { countering = false }
+    }
+    if (!d.prevented) {
+      for (const e of runOnAnyDeath(unit, killerTeam, unitTeam, rand)) log.push(e)
+    }
+  }
+
+  // เลือกเป้า: ถูกบังคับ (taunt) มาก่อนเสมอ · ไม่งั้นสุ่มตามเดิม
+  // 🔴 ต้องเช็ค taunt ก่อนเรียก rand() — ถ้าเรียก rand() แล้วค่อยทิ้งผล ลำดับสุ่มจะเลื่อนทั้งไฟต์
+  const pick = (foes) => {
+    const forced = tauntTargetOf(foes)
+    if (forced) return forced
+    const al = alive(foes)
+    return al.length ? al[Math.floor(rand() * al.length)] : null
+  }
+
+  // onStart (ก่อนหมัดแรก) — ต้องเรียกทีละ event แล้ว resolve aoeOpener "ทันทีหลัง" event ของมันเอง
+  // (สเปก §7.6: บาฮามุทฆ่าเพ็ทฝั่งตรงข้ามได้ก่อนรอบ 1 · เอนจินยืนยันแล้วว่าตั้งใจให้เกิดได้)
+  // 🔑 ใช้ resolveSilentDeath ตัวเดียวกับที่ strike() ใช้ — ฟีนิกซ์ที่ตายจาก aoeOpener ก็ต้องฟื้น+สวนได้
+  //    เหมือนตายทางอื่นทุกทาง ไม่ใช่กรณีพิเศษ
+  for (const e of [...runOnStart(A, B), ...runOnStart(B, A)]) {
+    log.push(e)
+    if (e.t === 'passive' && e.effect === 'aoeOpener') {
+      const killer = (e.side === 'A' ? A : B).find(u => u.uid === e.uid)
+      const victims = e.side === 'A' ? B : A
+      for (const uid of e.targets || []) resolveSilentDeath(victims.find(u => u.uid === uid), killer)
+    }
   }
 
   /** 1 หมัด = 1 beat · cleave/multiStrike อยู่ในหมัดเดียวกัน (กฎเหล็ก: ห้ามเพิ่ม beat)
@@ -205,8 +257,11 @@ export function simulateBattle(teamA, teamB, seed) {
       // 🔴 เรียก runOnKill ครั้งเดียวต่อการฆ่าหนึ่งครั้ง — เงื่อนไข "ศัตรูยังเหลือ" ย้ายมาไว้ใน
       //    การตัดสินใจ "ตีต่อไหม" ไม่ใช่เงื่อนไขเข้าลูป · ของเดิมเข้าลูปไม่ได้ตอนศัตรูหมด
       //    แล้วบรรทัดใต้ลูปยิงซ้ำ ⇒ ทีเร็กซ์ได้ 2 ชั้นต่อการล้ม 1 ตัว (บั๊กจริงตั้งแต่ ส.ค.)
+      // 🔴 สเปก §7.6 ข้อ 6: ต้องเช็ค att.hp > 0 ด้วย — ตั้งแต่หนาม/guardian ฆ่าผู้ตีกลางหมัดได้จริง
+      //    (ผ่าน resolveSilentDeath ด้านบน) ผู้ตีที่ตายกลาง hit() ของตัวเอง (เช่นโดนหนามสวนจนตายพอดี
+      //    ตอนฆ่าศัตรูตัวที่กำลังจะน็อก) ต้องหยุดตีทันที ไม่ใช่ตีต่อทั้งที่ตายไปแล้ว
       let chain = 0
-      while (killed && turns < BATTLE_CFG.maxTurns) {
+      while (killed && att.hp > 0 && turns < BATTLE_CFG.maxTurns) {
         const k = runOnKill(att, chain, team, foes)
         for (const e of k.events) log.push(e)
         if (!k.extraAttack || !alive(foes).length) break
