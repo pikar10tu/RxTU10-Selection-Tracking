@@ -206,6 +206,19 @@ test('regenSelf: ฟื้นเมื่อเลือดพร่อง · �
   assert.equal(runOnRound([u('panda')]).length, 0, 'เลือดเต็มไม่ควรมี event')
 })
 
+test('อูโรโบรอส: มี 2 part และลำดับ event ตรงกับลำดับใน parts', () => {
+  assert.equal(partsOf(PET_PASSIVES.ouroboros).length, 2, 'ouroboros ต้องมี 2 part')
+  const snake = u('ouroboros', { uid: 'A0', hp: 100 })       // เลือดพร่อง ⇒ regen ทำงาน
+  const events = runOnRound([snake])
+  assert.deepEqual(events.map(e => e.effect), ['regenSelf', 'stackAtk'])
+})
+
+test('อูโรโบรอส: เลือดเต็ม regen ข้าม แต่ stackAtk ยังทำงาน', () => {
+  const snake = u('ouroboros', { uid: 'A0' })                // เลือดเต็ม
+  const events = runOnRound([snake])
+  assert.deepEqual(events.map(e => e.effect), ['stackAtk'])
+})
+
 test('healLowestAlly (unicorn): ฟื้นให้เพื่อนที่พร่องสุด ไม่ใช่ตัวเอง', () => {
   const uni = u('unicorn', { hp: 100 })
   const hurt = u('cat', { uid: 'A1', hp: 200 })

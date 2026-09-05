@@ -45,9 +45,12 @@ export const PET_PASSIVES = {
   },
   ouroboros: {
     name: 'วัฏจักรนิรันดร์', icon: '🐍',
-    parts: [{ hook: 'onRound', effect: 'regenSelf', value: { pct: 4 }, step: { pct: 1.5 } }],
-    desc: 'ฟื้นเลือดตัวเอง {pct}% ของเลือดสูงสุดทุกต้นรอบ',
-    short: 'ฟื้นเลือดตัวเอง {pct}% ทุกต้นรอบ',
+    parts: [
+      { hook: 'onRound', effect: 'regenSelf', value: { pct: 4 }, step: { pct: 1.5 }, tag: 'regen' },
+      { hook: 'onRound', effect: 'stackAtk', value: { pct: 5, max: 4 }, step: { pct: 1, max: 0 }, tag: 'rage' },
+    ],
+    desc: 'ทุกต้นรอบ ฟื้นเลือดตัวเอง {regen.pct}% และพลังโจมตี +{rage.pct}% (สะสมได้ {rage.max} ชั้น)',
+    short: 'ทุกต้นรอบ ฟื้น {regen.pct}% + แรง +{rage.pct}%',
   },
   simurgh: {
     name: 'โฉบเด็ดชีพ', icon: '🦅',

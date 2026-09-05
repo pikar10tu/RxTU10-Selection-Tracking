@@ -259,6 +259,17 @@ export function runOnRound(team) {
         if (!t || t.hp >= t.maxHp) continue
         const h = healUnit(t, v.pct)
         out.push(ev(u, p, part, { targets: [t.uid], ...h, fxKind: 'heal' }))
+      } else if (part.effect === 'stackAtk') {
+        // ไต่ชั้นทุกต้นรอบ (🐍) — เพดานและวิธีคิดเหมือน onKill/onAnyDeath ทุกประการ
+        const st = psOf(u)
+        const stacks = st.atkStacks || 0
+        if (stacks < v.max) {
+          st.atkStacks = stacks + 1
+          u.atk *= 1 + v.pct / 100
+          const e = ev(u, p, part, { targets: [u.uid], amount: st.atkStacks, fxKind: 'buff' })
+          e.statsAfter = statsSnapshot(team)
+          out.push(e)
+        }
       }
     }
   }
