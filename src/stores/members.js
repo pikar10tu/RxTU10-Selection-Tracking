@@ -8,12 +8,15 @@ import { readCache, slimForCache, MEMBERS_CACHE_KEY, MEMBERS_CACHE_TTL } from '.
 import { useUsageStore } from './usage.js'
 import { stripTrailingEmoji } from '../utils/text.js'
 import { rosterToMembers } from '../utils/roster.js'
+import { memberBucket, memberKey } from '../utils/memberIndex.js'
 
 export const useMembersStore = defineStore('members', () => {
-    const fbUsers    = ref({})   // { studentId: userObject }
+    const fbUsers    = ref({})   // { studentId (หรือ uid ถ้ายังไม่ผูกรหัส): userObject }
     const students   = ref([])   // all students from static data
     const guestUsers = ref([])
     const loading    = ref(false)
+    const fbSkipped  = ref(0)    // จำนวน user doc ที่ข้ามในรอบล่าสุด (doc เปล่า ไม่มีทั้งรหัสและชื่อเล่น)
+                                 // ⚠️ ค่าจริงเฉพาะรอบที่ยิง Firestore — hydrate จาก cache ไม่รู้เลขนี้
 
     // ── เส้นทาง roster (ทุกจอของนักศึกษา) — 1 read ต่อเซสชัน ──
     // แยกจาก fbUsers/loadFbUsers ที่เป็นของ AdminView เท่านั้น (ต้องการ doc เต็ม)
@@ -124,9 +127,11 @@ export const useMembersStore = defineStore('members', () => {
             useUsageStore().track(snap.size) // ตัวถ่วง read หลัก — นับเข้าตัวประมาณการ
             const newFb = {}
             const guests = []
+            let skipped = 0
             snap.forEach(d => {
                 const x = d.data()
-                if (!x.studentId && !x.nickname) return
+                // doc เปล่าจริงๆ (ยังไม่ผ่าน onboarding เลย) — ข้ามได้ แต่ต้องนับให้เห็น
+                if (!x.studentId && !x.nickname) { skipped++; return }
                 // normalize first → canonical defaults + deep-defaulted nested
                 // objects, then keep only the light subset the member views need.
                 const n = normalizeUserData(x)
@@ -159,11 +164,15 @@ export const useMembersStore = defineStore('members', () => {
                     likes: n.likes,
                     likedBy: n.likedBy,
                 }
-                if (n.accountType === 'guest' || n.track === 'guest') guests.push(light)
-                else if (n.studentId) newFb[n.studentId] = light
+                // 🔴 ห้ามกลับไปเป็น `else if (n.studentId)` — คนที่ผ่าน onboarding แต่ยังไม่ผูกรหัส
+                //    จะตกทั้งสองช่องแล้วหายเงียบ (ไม่ได้รับ broadcast + ไม่โผล่ในแผงแอดมิน)
+                //    ดูเหตุผลเต็มใน utils/memberIndex.js
+                if (memberBucket(n) === 'guest') guests.push(light)
+                else newFb[memberKey(n, d.id)] = light
             })
             fbUsers.value    = newFb
             guestUsers.value = guests
+            fbSkipped.value  = skipped
             writeCache() // เก็บ light subset ไว้ใช้ข้ามเซสชัน
         } catch (e) {
             console.error('[members]', e)
@@ -173,7 +182,7 @@ export const useMembersStore = defineStore('members', () => {
     }
 
     return {
-        fbUsers, students, guestUsers, loading, initStudents, loadFbUsers,   // ← AdminView เท่านั้น
+        fbUsers, students, guestUsers, loading, fbSkipped, initStudents, loadFbUsers,   // ← AdminView เท่านั้น
         rosterRows, rosterUsers, rosterGuests, rosterReady, rosterMissing, rosterLoading, loadRoster,
         profiles, loadProfile,
     }

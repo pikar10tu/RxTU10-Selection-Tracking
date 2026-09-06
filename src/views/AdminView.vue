@@ -725,7 +725,9 @@ async function sendBroadcast() {
     const uids = [...new Set(targets.map(u => u.uid).filter(Boolean))]
     if (!uids.length) { toast('ไม่พบผู้รับ', 'error'); return }
     const label = bcTarget.value === 'sci' ? 'สาย Sci' : bcTarget.value === 'care' ? 'สาย Care' : 'ทั้งรุ่น'
-    const ok = await confirm(`ส่งจดหมาย "${title}" ถึง ${label} (${uids.length} คน)${coins ? ` พร้อมเหรียญ ${coins.toLocaleString()}` : ''}?`)
+    // บอกด้วยว่ามีบัญชีที่ไม่ได้รับกี่ใบ — เดิมขึ้นแต่เลขคนที่ส่งถึง ใครตกหล่นไม่มีอะไรบอก
+    const skipNote = members.fbSkipped ? `\n(ข้าม ${members.fbSkipped} บัญชีที่ยังไม่ผ่าน onboarding — ไม่มีทั้งรหัสและชื่อเล่น)` : ''
+    const ok = await confirm(`ส่งจดหมาย "${title}" ถึง ${label} (${uids.length} คน)${coins ? ` พร้อมเหรียญ ${coins.toLocaleString()}` : ''}?${skipNote}`)
     if (!ok) return
     const body = cleanText(bcBody.value, LIMITS.feedback)
     // chunk ละ 450 (< 500 ops/batch ของ Firestore)
