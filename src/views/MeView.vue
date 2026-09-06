@@ -12,6 +12,14 @@
           <div class="me-nick">{{ auth.userData?.nickname || 'ฉัน' }}</div>
           <button class="me-btn-sm" @click="fileEl?.click()"><Emoji char="📷" /> เปลี่ยนรูป</button>
           <input ref="fileEl" type="file" accept="image/*" hidden @change="onFile" />
+          <!-- ปุ่มบันทึกต้องอยู่ตรงนี้ ไม่ใช่ในกล่อง "ข้อมูลติดต่อ" ที่พับอยู่ —
+               เดิมเลือกรูปแล้วเห็นรูปเปลี่ยนบนจอ แต่หาปุ่มบันทึกไม่เจอ ⇒ รีเฟรชแล้วรูปเด้งกลับ -->
+          <div v-if="newPhoto" class="me-photo-save">
+            <button class="me-btn-sm on" :disabled="saving" @click="save">
+              {{ saving ? 'กำลังบันทึก…' : '💾 บันทึกรูปนี้' }}
+            </button>
+            <button class="me-btn-sm ghost" :disabled="saving" @click="cancelPhoto">ยกเลิก</button>
+          </div>
         </div>
       </div>
 
@@ -164,12 +172,22 @@ async function backfillMini() {
 onMounted(backfillMini)
 watch(() => auth.userData?.customPhoto, backfillMini)
 
+function cancelPhoto() {
+  newPhoto.value = null
+  newPhotoMini.value = null
+  if (fileEl.value) fileEl.value.value = ''   // เลือกไฟล์เดิมซ้ำต้องยิง change ได้อีก
+}
+
 function onFile(e) {
   const file = e.target.files?.[0]
   if (!file) return
   const reader = new FileReader()
+  // ไฟล์รูปที่เบราว์เซอร์ถอดรหัสไม่ได้ (เช่น HEIC จากไอโฟนบางรุ่น) เดิมเงียบสนิท
+  // ไม่มีอะไรขึ้นบนจอเลย ⇒ ผู้ใช้อ่านว่า "ปุ่มเสีย"
+  reader.onerror = () => toast('อ่านไฟล์รูปไม่ได้ ลองเลือกรูปอื่น', 'error')
   reader.onload = () => {
     const img = new Image()
+    img.onerror = () => toast('ไฟล์นี้ไม่ใช่รูปที่เปิดได้ ลองบันทึกเป็น JPG/PNG ก่อน', 'error')
     img.onload = () => {
       const max = 256
       const scale = Math.min(1, max / Math.max(img.width, img.height))
@@ -207,9 +225,8 @@ async function save() {
   auth.setUserDataOptimistic(patch)
   try {
     await updateDoc(doc(db, 'users', auth.currentUser.uid), patch)
-    newPhoto.value = null
-    newPhotoMini.value = null
-    syncRosterRow()   // แถว roster ถือรูปจิ๋วอยู่ → เปลี่ยนรูปแล้วเพื่อนต้องเห็นทันที
+    cancelPhoto()   // ล้าง input ด้วย ไม่งั้นเลือกไฟล์เดิมซ้ำจะไม่ยิง change
+    syncRosterRow()  // แถว roster ถือรูปจิ๋วอยู่ → เปลี่ยนรูปแล้วเพื่อนต้องเห็นทันที
     toast('บันทึกโปรไฟล์แล้ว', 'success')
   } catch (e) {
     console.error('[me save]', e)
@@ -229,6 +246,9 @@ async function save() {
 .me-nick { font-size: 1rem; font-weight: 800; color: var(--text, #4a3f5e); }
 .me-btn-sm { border: none; background: var(--primary-light, #f4edff); color: var(--primary, #b58df1); border-radius: 9px; padding: 7px 12px; font-family: inherit; font-size: .76rem; font-weight: 700; cursor: pointer; }
 .me-btn-sm.ghost { background: rgba(0,0,0,.05); color: rgba(0,0,0,.5); }
+.me-btn-sm.on { background: var(--primary, #b58df1); color: #fff; }
+.me-btn-sm:disabled { opacity: .6; cursor: default; }
+.me-photo-save { display: flex; gap: 6px; }
 .me-input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 2px solid var(--ink); border-radius: 11px; font-family: inherit; font-size: .85rem; background: #fff; }
 .me-input:focus { outline: none; box-shadow: var(--pop); }
 .me-contact { display: flex; flex-direction: column; gap: 8px; }
