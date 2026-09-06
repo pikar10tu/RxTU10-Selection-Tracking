@@ -48,10 +48,11 @@
 <script setup>
 import Emoji from '../components/shared/Emoji.vue'
 import { RouterLink } from 'vue-router'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
 import { useMailbox } from '../stores/mailbox.js'
 import { questNotClaimed } from '../utils/dailyQuest.js'
+import { pendingAnnounce } from '../utils/mailbox.js'
 import ResidenceCard from '../components/residence/ResidenceCard.vue'
 import DailyCard from '../components/home/DailyCard.vue'
 import ExpeditionCard from '../components/home/ExpeditionCard.vue'
@@ -74,7 +75,21 @@ const questPending = computed(() =>
 )
 
 // โหลดจดหมายตั้งแต่เข้า Home เพื่อให้จุดแดงโชว์ได้โดยไม่ต้องเปิดแผงก่อน
-onMounted(() => { if (authStore.isLoggedIn) mailbox.load() })
+// แล้วถ้ามีประกาศใหม่จากแอดมินที่ยังไม่เคยเด้งให้ดู → เปิดกล่องจดหมายเอง 1 ครั้ง
+let alive = true
+onUnmounted(() => { alive = false })
+
+onMounted(async () => {
+  if (!authStore.isLoggedIn) return
+  await mailbox.load()
+  if (!alive) return                          // ออกจากหน้า Home ไปก่อนโหลดเสร็จ
+  if (!authStore.userData?.welcomeBoxSeen) return  // ยังติด onboarding/WelcomeBox อยู่ อย่าไปแทรก
+  const ann = pendingAnnounce(mailbox.mails, authStore.userData?.announceSeen)
+  if (!ann) return
+  showMail.value = true
+  // ติดธง "เด้งให้ดูแล้ว" อย่างเดียว — ไม่แตะ read เพื่อให้จุดแดงค้างจนกว่าจะกดจดหมายจริง
+  authStore.patchUser({ announceSeen: ann.id }, { announceSeen: ann.id })
+})
 
 // การ์ดงานถัดไปสั่งเปิด bottom-sheet ได้ (เควสไม่มีหน้าแยก)
 function onCardSheet(name) { if (name === 'quest') showQuest.value = true }

@@ -34,6 +34,19 @@ export function attentionCount(mails) {
   return (mails || []).filter(needsAttention).length
 }
 
+// จดหมายประกาศที่ควร "เด้ง" กล่องจดหมายให้ดูเอง — คืน mail หรือ null
+//   นับเฉพาะ from:'admin' (= ของที่ออกจากปุ่ม broadcast ในแอดมิน) เพราะ:
+//     · จดหมายต้อนรับเป็น from:'welcome' → กันชนกับ WelcomeBox ที่เด้งอยู่แล้ว (ไม่งั้นคนสมัครใหม่โดน 2 จอซ้อน)
+//     · รางวัลแจ้งข้อสอบผิดเป็น from:'system' → ไม่ใช่ประกาศ ไม่ต้องเด้ง
+//     · เช็ค from ไม่ใช่ type ⇒ ประกาศที่แนบเหรียญ (type กลายเป็น 'reward') ก็ยังเด้ง
+//   เงื่อนไข !read มีไว้กันเด้งใส่คนที่ไล่กดจุดแดงเจอประกาศไปเองแล้วก่อนฟีเจอร์นี้ขึ้นเว็บ
+//   ⚠️ สมมติว่า mails เรียงใหม่→เก่ามาแล้ว (store ใช้ orderBy('createdAt','desc'))
+export function pendingAnnounce(mails, seenId) {
+  const latest = (mails || []).find(m => m?.from === 'admin')
+  if (!latest || latest.read || latest.id === seenId) return null
+  return latest
+}
+
 function truncate(s, n) {
   const str = String(s ?? '')
   return str.length > n ? str.slice(0, n) + '…' : str

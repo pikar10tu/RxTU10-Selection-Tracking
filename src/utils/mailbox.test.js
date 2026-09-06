@@ -2,7 +2,7 @@
 // รัน: node --test src/utils/mailbox.test.js
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { rewardCoins, rewardTickets, canClaim, needsAttention, attentionCount, buildReportRewardMail, buildBroadcastMail, buildWelcomeGiftMail } from './mailbox.js'
+import { rewardCoins, rewardTickets, canClaim, needsAttention, attentionCount, buildReportRewardMail, buildBroadcastMail, buildWelcomeGiftMail, pendingAnnounce } from './mailbox.js'
 
 test('rewardCoins: คืนจำนวนเหรียญถ้า reward.coins เป็นบวก, ไม่งั้น 0', () => {
   assert.equal(rewardCoins({ reward: { coins: 50 } }), 50)
@@ -129,4 +129,45 @@ test('buildWelcomeGiftMail: แม่แบบเป๊ะ from welcome, reward 
   assert.equal(m.reward.tickets, 50)
   assert.equal(m.createdAt, 123)
   assert.equal(canClaim(m), true)
+})
+
+// ── pendingAnnounce: จดหมายประกาศที่ควรเด้งกล่องจดหมายให้ดูเอง ──
+// (mails เรียงใหม่→เก่า เหมือนที่ store ส่งมา)
+const ann = (over = {}) => ({ id: 'a1', from: 'admin', read: false, ...over })
+
+test('pendingAnnounce: ไม่มีจดหมายเลย → null', () => {
+  assert.equal(pendingAnnounce([], null), null)
+  assert.equal(pendingAnnounce(undefined, null), null)
+  assert.equal(pendingAnnounce(null, 'a1'), null)
+})
+
+test('pendingAnnounce: จดหมายต้อนรับ/ระบบ ไม่นับเป็นประกาศ (กันชน WelcomeBox)', () => {
+  assert.equal(pendingAnnounce([{ id: 'w', from: 'welcome', read: false }], null), null)
+  assert.equal(pendingAnnounce([{ id: 's', from: 'system', read: false }], null), null)
+  assert.equal(pendingAnnounce([{ id: 'd', from: 'daily', read: false }], null), null)
+})
+
+test('pendingAnnounce: ประกาศใหม่ที่ยังไม่อ่าน และยังไม่เคยเด้ง → คืนฉบับนั้น', () => {
+  assert.deepEqual(pendingAnnounce([ann()], null), ann())
+  assert.deepEqual(pendingAnnounce([ann()], 'a0'), ann())   // เคยเด้งฉบับเก่า ฉบับใหม่ยังต้องเด้ง
+})
+
+test('pendingAnnounce: อ่านไปแล้ว → ไม่เด้ง (คนที่กดจุดแดงเจอเองก่อนฟีเจอร์ขึ้น)', () => {
+  assert.equal(pendingAnnounce([ann({ read: true })], null), null)
+})
+
+test('pendingAnnounce: เคยเด้งฉบับนี้ไปแล้ว → ไม่เด้งซ้ำ แม้ยังไม่อ่าน (จุดแดงค้างไว้)', () => {
+  assert.equal(pendingAnnounce([ann()], 'a1'), null)
+})
+
+test('pendingAnnounce: มีประกาศหลายฉบับ → ดูฉบับล่าสุดเท่านั้น', () => {
+  const mails = [ann({ id: 'new' }), ann({ id: 'old', read: false })]
+  assert.equal(pendingAnnounce(mails, null).id, 'new')
+  // ฉบับล่าสุดเด้งไปแล้ว → ไม่ถอยไปเด้งฉบับเก่าที่ยังไม่อ่าน
+  assert.equal(pendingAnnounce(mails, 'new'), null)
+})
+
+test('pendingAnnounce: ข้ามจดหมายอื่นที่มาก่อนประกาศในลิสต์', () => {
+  const mails = [{ id: 'w', from: 'welcome', read: false }, ann({ id: 'a9' })]
+  assert.equal(pendingAnnounce(mails, null).id, 'a9')
 })

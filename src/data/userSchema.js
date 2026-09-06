@@ -54,6 +54,9 @@ export const USER_DEFAULTS = {
   freeGachaTickets: 0,
   welcomeGiftV1: false,   // one-time: ส่งจดหมายของขวัญต้อนรับแล้ว (กัน client ส่งซ้ำ)
   welcomeBoxSeen: false,  // เห็น Welcome box ต้อนรับแล้ว (กัน popup เด้งซ้ำ)
+  announceSeen: null,     // id จดหมายประกาศ (from:'admin') ฉบับล่าสุดที่เด้งกล่องจดหมายให้ดูแล้ว
+                          // ⚠️ คนละเรื่องกับ mail.read — ตัวนี้แปลว่า "เด้งให้ดูแล้ว" ไม่ใช่ "อ่านแล้ว"
+                          // (จุดแดงต้องค้างไว้จนกว่าเจ้าตัวจะกดจดหมายจริงๆ)
   // ── gacha (Phase B) ──
   gachaPity: 0,            // จำนวน pull ตั้งแต่ legendary ล่าสุด (soft 76 / hard 100)
   gachaTarget: null,       // species id ของ legendary ที่เลือกเป็นเป้า (null = ไม่เลือก → new-first)
